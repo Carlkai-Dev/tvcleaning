@@ -19,6 +19,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.net.Uri;
 import android.os.Looper;
 import android.provider.Settings;
 import android.view.Gravity;
@@ -121,19 +122,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnWifi = findViewById(R.id.btnWifi);
 
         grid = findViewById(R.id.grid);
-        grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
+        GridLayoutManager glm = new GridLayoutManager(this, COLUMNS);
+        grid.setLayoutManager(glm);
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
-        grid.addItemDecoration(new DockDecoration(COLUMNS, density));
         grid.setLayoutAnimation(new LayoutAnimationController(
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
         adapter = new AppAdapter(this, this, COLUMNS);
+        glm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                return adapter.spanAt(position);
+            }
+        });
+        grid.addItemDecoration(new DockDecoration(COLUMNS, density, adapter, getString(R.string.recent),
+                getResources().getFont(R.font.outfit), getResources().getDisplayMetrics().scaledDensity));
         grid.setAdapter(adapter);
 
         // tvOS layout: push the dock row to the bottom of the screen; the grid hides below until you press Down.
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             int h = b - t;
             int dockRow = (int) ((145 + 6 + 12) * density);   // item height plus DockDecoration offsets
+            adapter.setCellWidth((r - l - grid.getPaddingLeft() - grid.getPaddingRight()) / COLUMNS);
             int want = Math.max(0, h - dockRow - (int) (30 * density));
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
@@ -274,7 +284,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             hideHero();
             // Scroll just enough so the whole glass (not only the tile) is visible.
-            Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
+            // The Recent row also keeps its heading in view.
+            int above = adapter.isRecent(position) ? (int) (36 * density) : (int) pad * 2;
+            Rect want = new Rect(0, -above, item.getWidth(), item.getHeight() + (int) pad);
             grid.requestChildRectangleOnScreen(item, want, false);
         }
     }
@@ -336,17 +348,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
-        int count = adapter.getItemCount();
-        int target;
+        int row = adapter.rowOf(position);
+        int col = position - adapter.rowStart(row);
+        int targetRow;
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
-            target = position - COLUMNS;
+            if (row == 0) return false;                    // dock row: let focus move to the top bar
+            targetRow = row - 1;
         } else {
-            int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
-            if (position >= lastRowStart) return true;     // already on the last row: stay put
-            target = Math.min(position + COLUMNS, count - 1);
+            if (row >= adapter.rowCount() - 1) return true;   // already on the last row: stay put
+            targetRow = row + 1;
         }
-        focusTile(target);
+        // Same column in the next row, or that row's last tile when it is shorter (the Recent row can be).
+        focusTile(adapter.rowStart(targetRow) + Math.min(col, adapter.rowLength(targetRow) - 1));
         return true;
     }
 
@@ -539,5 +552,151 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.run();
         });
         rows.addView(row);
+    }
+
+    // ---- long-press menus ------------------------------------------------------------------------
+
+    @Override
+    public void onTileLongPress(int position, View card) {
+        AppAdapter.Entry e = adapter.entryAt(position);
+        if (e == null) return;
+        final String pkg = e.pkg;
+        final String key = AppAdapter.keyOf(e);
+        final boolean inDock = position < adapter.dockCount();
+        final List<String> dock = adapter.dockPackages();
+        Menu m = new Menu(e.label);
+
+        if (inDock) {
+            int i = dock.indexOf(pkg);
+            if (i > 0) m.add(getString(R.string.move_left), null, () -> {
+                Collections.swap(dock, i, i - 1);
+                saveDock(dock, key, position);
+            });
+            if (i < dock.size() - 1) m.add(getString(R.string.move_right), null, () -> {
+                Collections.swap(dock, i, i + 1);
+                saveDock(dock, key, position);
+            });
+            m.add(getString(R.string.remove_from_dock), null, () -> {
+                dock.remove(pkg);
+                saveDock(dock, null, position);
+            });
+        } else {
+            // A full dock gives up its last slot; say which app that moves out.
+            String replaced = dock.size() >= COLUMNS ? getString(R.string.replaces, adapter.labelAt(COLUMNS - 1)) : null;
+            m.add(getString(R.string.add_to_dock), replaced, () -> {
+                if (dock.size() >= COLUMNS) dock.set(COLUMNS - 1, pkg);
+                else dock.add(pkg);
+                saveDock(dock, key, position);
+            });
+        }
+        if (e.recent) m.add(getString(R.string.remove_from_recent), null, () -> {
+            Prefs.removeRecent(this, pkg);
+            refresh(null, position);
+        });
+        m.add(getString(R.string.hide), null, () -> {
+            Prefs.hide(this, pkg);
+            if (dock.remove(pkg)) Prefs.setDock(this, dock);
+            refresh(null, position);
+        });
+        m.add(getString(R.string.app_info), null, () ->
+                open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))));
+        if (!e.system) m.add(getString(R.string.uninstall), null, () ->
+                open(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + pkg))));
+        m.show(card, Gravity.START, (int) (240 * density));
+    }
+
+    private void saveDock(List<String> dock, String focusKey, int fallback) {
+        Prefs.setDock(this, dock);
+        refresh(focusKey, fallback);
+    }
+
+    /** Reload the tiles and put focus back on an app (by key) or, if it moved away, on a slot. */
+    private void refresh(String focusKey, int fallback) {
+        adapter.reload();
+        grid.post(() -> {
+            int pos = adapter.positionOf(focusKey);
+            focusTile(pos >= 0 ? pos : fallback);
+        });
+    }
+
+    /** A small glass menu in the style of the Inputs dropdown: an optional heading, then text rows. */
+    private final class Menu {
+        final View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        final LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = new PopupWindow(panel, ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, true);
+
+        Menu(String heading) {
+            popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
+            popup.setOutsideTouchable(true);
+            popup.setAnimationStyle(0);
+            // The top shelf title would show through the glass; bring it back when the menu closes.
+            popup.setOnDismissListener(() -> {
+                if (heroShown) heroName.animate().alpha(1f).setDuration(160).start();
+            });
+            if (heading != null) {
+                TextView h = new TextView(MainActivity.this);
+                h.setText(heading.toUpperCase());
+                h.setTextColor(0x8CFFFFFF);
+                h.setTextSize(11f);
+                h.setLetterSpacing(0.18f);
+                h.setTypeface(getResources().getFont(R.font.outfit));
+                h.setSingleLine(true);
+                h.setPadding((int) (12 * density), (int) (8 * density), (int) (12 * density), (int) (6 * density));
+                rows.addView(h);
+            }
+        }
+
+        /** A row that closes the menu, then runs the action. */
+        TextView add(String title, String status, Runnable action) {
+            return add(title, status, action, null);
+        }
+
+        /** With stay set, the row runs that instead and keeps the menu open. Returns the status view. */
+        TextView add(String title, String status, Runnable action, Runnable stay) {
+            View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+            row.findViewById(R.id.icon).setVisibility(View.GONE);
+            row.findViewById(R.id.dot).setVisibility(View.GONE);
+            TextView t = row.findViewById(R.id.title);
+            t.setText(title);
+            ((LinearLayout.LayoutParams) t.getLayoutParams()).setMarginStart(0);
+            TextView st = row.findViewById(R.id.status);
+            if (status != null) st.setText(status);
+            else st.setVisibility(View.GONE);
+            row.setOnClickListener(v -> {
+                if (stay != null) {
+                    stay.run();
+                    return;
+                }
+                popup.dismiss();
+                if (action != null) action.run();
+            });
+            rows.addView(row);
+            return st;
+        }
+
+        void show(View anchor, int gravity, int width) {
+            popup.setWidth(width);
+            panel.setAlpha(0f);
+            // Below the anchor when it fits, otherwise above it (the dock and the lower rows sit near the
+            // bottom of the screen). The extra margin clears a focused tile's scale-up.
+            panel.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.UNSPECIFIED);
+            int[] at = new int[2];
+            anchor.getLocationInWindow(at);
+            int gap = (int) (10 * density + anchor.getHeight() * (anchor.getScaleY() - 1f) / 2f);
+            int y = gap;
+            if (at[1] + anchor.getHeight() + gap + panel.getMeasuredHeight() > root.getHeight() - 16 * density) {
+                y = -(anchor.getHeight() + gap + panel.getMeasuredHeight());
+            }
+            popup.showAsDropDown(anchor, gravity == Gravity.END ? anchor.getWidth() - width : 0, y, Gravity.START);
+            heroName.animate().alpha(0f).setDuration(120).start();
+            panel.animate().alpha(1f).setDuration(180).start();
+            for (int i = 0; i < rows.getChildCount(); i++) {
+                if (rows.getChildAt(i).isFocusable()) {
+                    rows.getChildAt(i).requestFocus();
+                    break;
+                }
+            }
+        }
     }
 }

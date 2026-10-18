@@ -1,9 +1,9 @@
 package com.gathin.tvhome;
 
-import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
@@ -12,8 +12,6 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
-import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -36,7 +34,8 @@ import java.util.Set;
 
 /**
  * App tiles. The first {@link MainActivity#COLUMNS} positions are the pinned dock (favourites, fixed order),
- * the rest is alphabetical.
+ * then a Recent row (up to one row of recently opened apps that are not in the dock), then every app
+ * alphabetically.
  */
 public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
@@ -45,6 +44,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         /** Called for D-pad Up/Down on a tile. Return true when handled. */
         boolean onTileVerticalKey(int position, int keyCode);
+
+        /** Long-press OK on a tile. */
+        void onTileLongPress(int position, View card);
     }
 
     static final class Entry {
@@ -53,14 +55,34 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final String pkg;
         final Drawable banner;
         final Drawable icon;
+        final boolean system;
+        /** A copy shown in the Recent row; the same app also has its normal tile. */
+        boolean recent;
         int ambient;
 
-        Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
+        Entry(String label, ComponentName component, Drawable banner, Drawable icon, boolean system) {
             this.label = label;
             this.component = component;
             this.pkg = component.getPackageName();
             this.banner = banner;
             this.icon = icon;
+            this.system = system;
+        }
+
+        /** Own drawable copies: one Drawable shown by two ImageViews would only redraw in one of them. */
+        Entry asRecent() {
+            Entry e = new Entry(label, component, copy(banner), copy(icon), system);
+            e.recent = true;
+            e.ambient = ambient;
+            return e;
+        }
+
+        String key() {
+            return component.flattenToShortString() + (recent ? "#recent" : "");
+        }
+
+        private static Drawable copy(Drawable d) {
+            return d != null && d.getConstantState() != null ? d.getConstantState().newDrawable() : d;
         }
     }
 
@@ -69,17 +91,17 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Context ctx;
     private final TileListener listener;
     private final int dockSize;
-    /** Dock order (res/values/config.xml, dock_apps). */
-    private final List<String> favourites;
-    /** Never shown as tiles (res/values/config.xml, hidden_apps). */
+    /** Never shown as tiles (res/values/config.xml, hidden_apps). Apps hidden with the remote are in Prefs. */
     private final Set<String> hidden;
     private final List<Entry> items = new ArrayList<>();
+    private int dockCount, recentCount;
+    /** Width of one grid column, so a short Recent row's last tile can stay in its own column. */
+    private int cellWidth;
 
     AppAdapter(Context ctx, TileListener listener, int dockSize) {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
-        this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
@@ -90,16 +112,19 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
+        List<String> favourites = Prefs.dock(ctx);
+        Set<String> userHidden = Prefs.hidden(ctx);
         List<Entry> fresh = new ArrayList<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
+            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg) || userHidden.contains(pkg)) continue;
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
             String label = String.valueOf(ri.loadLabel(pm));
-            fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
+            boolean system = (ri.activityInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
+            fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon, system));
         }
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
@@ -111,8 +136,91 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             return a.label.compareToIgnoreCase(b.label);
         });
         items.clear();
-        items.addAll(fresh);
+        dockCount = Math.min(dockSize, fresh.size());
+        items.addAll(fresh.subList(0, dockCount));
+        // Recent row: newest first, skipping apps already in the dock and apps no longer installed.
+        List<Entry> recent = new ArrayList<>();
+        for (String pkg : Prefs.recent(ctx)) {
+            if (recent.size() == dockSize) break;
+            for (int i = dockCount; i < fresh.size(); i++) {
+                if (fresh.get(i).pkg.equals(pkg)) {
+                    recent.add(fresh.get(i).asRecent());
+                    break;
+                }
+            }
+        }
+        recentCount = recent.size();
+        items.addAll(recent);
+        items.addAll(fresh.subList(dockCount, fresh.size()));
         notifyDataSetChanged();
+    }
+
+    // ---- rows: dock, then Recent (if any), then the alphabetical grid --------------------------
+
+    int dockCount() {
+        return dockCount;
+    }
+
+    boolean isRecent(int position) {
+        return position >= dockCount && position < dockCount + recentCount;
+    }
+
+    int recentStart() {
+        return recentCount > 0 ? dockCount : -1;
+    }
+
+    private int gridStart() {
+        return dockCount + recentCount;
+    }
+
+    int rowOf(int position) {
+        if (position < dockCount) return 0;
+        if (recentCount > 0 && position < gridStart()) return 1;
+        return (recentCount > 0 ? 2 : 1) + (position - gridStart()) / dockSize;
+    }
+
+    int rowStart(int row) {
+        if (row == 0) return 0;
+        if (recentCount > 0) return row == 1 ? dockCount : gridStart() + (row - 2) * dockSize;
+        return gridStart() + (row - 1) * dockSize;
+    }
+
+    int rowLength(int row) {
+        if (row == 0) return dockCount;
+        if (recentCount > 0 && row == 1) return recentCount;
+        return Math.min(dockSize, items.size() - rowStart(row));
+    }
+
+    int rowCount() {
+        return items.isEmpty() ? 0 : rowOf(items.size() - 1) + 1;
+    }
+
+    /** Grid columns a tile takes: a short Recent row's last tile fills the rest of the row. */
+    int spanAt(int position) {
+        boolean lastOfShortRecent = recentCount > 0 && recentCount < dockSize && position == gridStart() - 1;
+        return lastOfShortRecent ? dockSize - recentCount + 1 : 1;
+    }
+
+    void setCellWidth(int width) {
+        if (width == cellWidth) return;
+        cellWidth = width;
+        if (recentCount > 0 && recentCount < dockSize) notifyItemChanged(gridStart() - 1);
+    }
+
+    Entry entryAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position) : null;
+    }
+
+    /** Packages in the dock, in order, as shown. */
+    List<String> dockPackages() {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < dockCount; i++) out.add(items.get(i).pkg);
+        return out;
+    }
+
+    /** Key of an app's normal tile (not its Recent copy). */
+    static String keyOf(Entry e) {
+        return e.component.flattenToShortString();
     }
 
     @NonNull
@@ -126,7 +234,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     public void onBindViewHolder(@NonNull Holder h, int position) {
         Entry e = items.get(position);
         h.name.setText(e.label);
-        h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
+        h.name.setVisibility(position < dockCount ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
+        // Keep a short Recent row's last tile in its own column although it spans the rest of the row.
+        int padEnd = (spanAt(position) - 1) * cellWidth;
+        if (h.itemView.getPaddingEnd() != padEnd) {
+            h.itemView.setPaddingRelative(0, h.itemView.getPaddingTop(), padEnd, h.itemView.getPaddingBottom());
+        }
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
@@ -146,12 +259,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            int pos = h.getBindingAdapterPosition();
+            if (pos != RecyclerView.NO_POSITION) listener.onTileLongPress(pos, v);
             return true;
         });
     }
@@ -163,6 +272,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
             ctx.startActivity(i);
+            Prefs.pushRecent(ctx, e.pkg);
         } catch (Exception ex) {
             Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();
         }
@@ -175,19 +285,19 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     @Override
     public long getItemId(int position) {
-        return items.get(position).component.flattenToShortString().hashCode();
+        return items.get(position).key().hashCode();
     }
 
     /** Stable key for the app at a position (its component), or null. */
     String keyAt(int position) {
-        return position >= 0 && position < items.size() ? items.get(position).component.flattenToShortString() : null;
+        return position >= 0 && position < items.size() ? items.get(position).key() : null;
     }
 
     /** Position of the app with this key, or -1 when it is gone. */
     int positionOf(String key) {
         if (key == null) return -1;
         for (int i = 0; i < items.size(); i++) {
-            if (items.get(i).component.flattenToShortString().equals(key)) return i;
+            if (items.get(i).key().equals(key)) return i;
         }
         return -1;
     }

@@ -5,7 +5,8 @@
 -->
 <resources>
 
-    <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
+    <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped.
+         This is the starting dock: once you change the dock on the TV (hold OK on an app), the TV keeps its own. -->
     <string-array name="dock_apps">
         <item>com.netflix.ninja</item>
         <item>com.amazon.amazonvideo.livingroom</item>

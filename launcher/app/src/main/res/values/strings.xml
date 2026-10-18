@@ -20,4 +20,14 @@
     <string name="cant_open">Can\'t open %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
     <string name="dream_name">Clock</string>
+    <string name="recent">Recent</string>
+    <string name="move_left">Move left</string>
+    <string name="move_right">Move right</string>
+    <string name="remove_from_dock">Remove from dock</string>
+    <string name="add_to_dock">Add to dock</string>
+    <string name="replaces">replaces %1$s</string>
+    <string name="remove_from_recent">Remove from Recent</string>
+    <string name="hide">Hide</string>
+    <string name="app_info">App info</string>
+    <string name="uninstall">Uninstall</string>
 </resources>
