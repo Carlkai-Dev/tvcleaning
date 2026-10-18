@@ -13,7 +13,7 @@
     <string name="no_hidden_apps">No hay apps ocultas. Mantén OK sobre una app para ocultarla.</string>
     <string name="show_hidden_app">Mostrar %1$s</string>
     <string name="app_shown">App visible de nuevo</string>
-    <string name="move_help">Moviendo %1$s · Flechas: mover · OK: guardar · Atrás: cancelar\nLas primeras cuatro apps aparecen en la barra</string>
+    <string name="move_help">Moviendo %1$s · Flechas: mover · OK: guardar · Atrás: cancelar\nLas primeras %2$d apps aparecen en la barra</string>
     <string name="move_saved">Orden guardado</string>
     <string name="move_cancelled">Cambios cancelados</string>
     <string name="move_save_failed">No se pudo guardar. Intenta de nuevo o pulsa Atrás para cancelar.</string>

@@ -62,7 +62,7 @@ Open your assistant, paste the prompt from [`PROMPT.md`](PROMPT.md), and fill in
 
 **3. Follow along**
 Accept the "Allow USB debugging?" prompt when it appears on the TV, then answer the checklist
-questions: which streaming apps you use, which four go in the dock, whether to keep the voice
+questions: which streaming apps you use, which six go in the dock, whether to keep the voice
 assistant, Chromecast and firmware updates.
 
 That's it. The assistant backs up, debloats, builds and installs the launcher, and checks every
@@ -73,12 +73,12 @@ first time; with this repo as context, people report about fifteen minutes.
 
 A home screen that is yours again:
 
-- **Pitch-black background** and a dock of your four favourite apps at the bottom, in a lighter
+- **Pitch-black background** and a dock of your six favourite apps at the bottom, in a translucent
   rounded band, exactly where Apple TV puts it.
 - **A top shelf** showing the focused app's name in large type, with an ambient glow in a colour
   taken from the app's own artwork.
 - **The rest of your apps in a grid** that slides up when you press Down.
-- **A fitted glass highlight** inside the focused tile. The artwork and highlight scale together
+- **A fitted glass highlight** around the focused tile. The artwork and highlight scale together
   when the tile lifts or opens its app menu.
 - **Three frosted buttons**: Inputs (a dropdown of HDMI ports, AV and Live TV), Wi-Fi (showing the
   network you're on) and Settings.

@@ -53,19 +53,35 @@ final class AppMenuView extends FrameLayout {
         if (artwork != null && artwork.getConstantState() != null)
             artwork = artwork.getConstantState().newDrawable().mutate();
         preview.setImageDrawable(artwork);
-        preview.setScaleType(entry.banner != null ? ImageView.ScaleType.FIT_XY : ImageView.ScaleType.CENTER_INSIDE);
+        preview.setScaleType(entry.banner != null ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_INSIDE);
         preview.setContentDescription(entry.label);
         previewCard = new FrameLayout(context);
-        previewCard.setBackground(round(0xFF16161A, 16 * density, 0, 0));
+        float tileRadius = getResources().getDimension(R.dimen.tile_radius);
+        previewCard.setBackground(round(0xFF16161A, tileRadius, 0, 0));
         previewCard.setClipChildren(false);
         previewCard.setClipToPadding(false);
         previewCard.setElevation(16 * density);
         previewCard.setScaleX(initialScale);
         previewCard.setScaleY(initialScale);
         FrameLayout artworkFrame = new FrameLayout(context);
-        artworkFrame.setBackground(round(0xFF16161A, 16 * density, 0, 0));
+        artworkFrame.setBackground(round(0xFF16161A, tileRadius, 0, 0));
         artworkFrame.setClipToOutline(true);
-        artworkFrame.addView(preview, new LayoutParams(-1, -1));
+        if (entry.banner != null) artworkFrame.addView(preview, new LayoutParams(-1, -1));
+        else {
+            LayoutParams iconLayout = new LayoutParams((int) (32 * density), (int) (32 * density), Gravity.CENTER);
+            iconLayout.bottomMargin = (int) (10 * density);
+            artworkFrame.addView(preview, iconLayout);
+            TextView label = new TextView(context);
+            label.setText(entry.label);
+            label.setTextColor(Color.WHITE);
+            label.setTextSize(10);
+            label.setTypeface(getResources().getFont(R.font.outfit));
+            label.setSingleLine(true);
+            label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            label.setGravity(Gravity.CENTER);
+            label.setPadding((int) (6 * density), 0, (int) (6 * density), (int) (5 * density));
+            artworkFrame.addView(label, new LayoutParams(-1, -2, Gravity.BOTTOM));
+        }
         previewCard.addView(artworkFrame, new LayoutParams(-1, -1));
         GlassView previewHighlight = new GlassView(context, null);
         int haloRoom = (int) (GlassView.HALO_INSET_DP * density);

@@ -29,6 +29,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -52,7 +53,7 @@ import java.util.List;
 public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
-    static int COLUMNS = 4;
+    static int COLUMNS = 6;
     private static final long MINUTE_MS = 60_000L;
     private String liveTvPkg;
 
@@ -80,6 +81,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private AppMenuView appMenu;
     private int settingsRightPresses;
     private PopupWindow hiddenPopup;
+    private int lastDockPosition;
+    private int pendingFocusPosition = RecyclerView.NO_POSITION;
+    private boolean homeShown;
+    private final DecelerateInterpolator navigationEase = new DecelerateInterpolator(1.5f);
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
@@ -132,6 +137,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
         adapter = new AppAdapter(this, this, COLUMNS);
         grid.setAdapter(adapter);
+        // One listener owns pending focus, including repeated presses while a row is scrolling in.
+        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override public void onScrollStateChanged(@NonNull RecyclerView rv, int state) {
+                if (state == RecyclerView.SCROLL_STATE_IDLE && pendingFocusPosition != RecyclerView.NO_POSITION)
+                    focusTile(pendingFocusPosition);
+            }
+        });
         moveHint = new TextView(this);
         moveHint.setTextColor(Color.WHITE);
         moveHint.setTextSize(16);
@@ -153,11 +165,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // tvOS layout: push the dock row to the bottom of the screen; the grid hides below until you press Down.
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             int h = b - t;
-            int dockRow = (int) ((145 + 6 + 12) * density);   // item height plus DockDecoration offsets
-            int want = Math.max(0, h - dockRow - (int) (30 * density));
+            int dockRow = getResources().getDimensionPixelSize(R.dimen.tile_row_height) + (int) (18 * density);
+            int want = Math.max(0, h - dockRow - (int) (18 * density));
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
             }
+            if (pendingFocusPosition != RecyclerView.NO_POSITION
+                    && grid.findViewHolderForAdapterPosition(pendingFocusPosition) != null)
+                grid.post(() -> {
+                    if (pendingFocusPosition != RecyclerView.NO_POSITION) focusTile(pendingFocusPosition);
+                });
         });
 
         View btnInputs = findViewById(R.id.btnInputs);
@@ -181,6 +198,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return true;
             }
             settingsRightPresses = 0;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                focusTile(Math.min(lastDockPosition, COLUMNS - 1));
+                return true;
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnInputs) return true;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
@@ -203,7 +224,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
         adapter.reload();
-        grid.scheduleLayoutAnimation();
+        if (!homeShown) grid.scheduleLayoutAnimation();
+        homeShown = true;
         updateGreeting();
         updateWifiLabel();
         handler.postDelayed(minuteTick, MINUTE_MS);
@@ -219,6 +241,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         settingsRightPresses = 0;
+        pendingFocusPosition = RecyclerView.NO_POSITION;
+        grid.stopScroll();
         if (hiddenPopup != null) hiddenPopup.dismiss();
         dismissAppMenu(null);
         // Leaving Home never commits an unfinished rearrangement.
@@ -409,7 +433,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void updateMoveHint() {
-        moveHint.setText(getString(R.string.move_help, adapter.labelAt(movingPosition)));
+        moveHint.setText(getString(R.string.move_help, adapter.labelAt(movingPosition), COLUMNS));
         moveHint.setContentDescription(moveHint.getText());
     }
 
@@ -472,17 +496,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.offsetDescendantRectToMyCoords(card, r);
         View item = (View) card.getParent();
         if (position < COLUMNS) {
+            lastDockPosition = position;
             // Dock: park it at the bottom of the screen and show the top shelf for this app.
             int decoratedTop = item.getTop() - (int) (6 * density);
             int dy = decoratedTop - grid.getPaddingTop();
-            if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy);
+            if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy, navigationEase, 200);
             showHero(position, r.top - dy);
         } else {
             hideHero();
             // Keep the scaled card visible when moving through the app grid.
-            float pad = 6f * density;
-            Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-            grid.requestChildRectangleOnScreen(item, want, false);
+            int top = item.getTop() - (int) (4 * density);
+            int bottom = item.getBottom() + (int) (8 * density);
+            int dy = bottom > grid.getHeight() - grid.getPaddingBottom()
+                    ? bottom - (grid.getHeight() - grid.getPaddingBottom())
+                    : top < grid.getPaddingTop() ? top - grid.getPaddingTop() : 0;
+            if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy, navigationEase, 200);
         }
     }
 
@@ -493,30 +521,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int color = adapter.ambientColorAt(position);
         float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
-
+        // Replace stale callbacks immediately when the user crosses several icons quickly.
+        heroName.animate().cancel();
+        ambient.animate().cancel();
+        heroName.setText(label);
+        heroName.setY(y);
         if (!heroShown) {
-            heroName.setText(label);
-            heroName.setY(y);
             heroName.setTranslationX(0f);
-            heroName.animate().alpha(1f).setDuration(260).start();
+            heroName.animate().alpha(1f).setDuration(180).start();
             setAmbient(color);
-            ambient.animate().alpha(1f).setDuration(600).start();
+            ambient.animate().alpha(1f).setDuration(240).start();
             heroShown = true;
         } else if (changed) {
-            heroName.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
-                heroName.setText(label);
-                heroName.setY(y);
-                heroName.setTranslationX(12 * density);
-                heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
-            }).start();
-            if (color != ambientColor) {
-                ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
-                    setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(500).start();
-                }).start();
-            }
+            heroName.setAlpha(0.7f);
+            heroName.setTranslationX(4 * density);
+            heroName.animate().alpha(1f).translationX(0f).setDuration(150).start();
+            if (color != ambientColor) setAmbient(color);
+            ambient.animate().alpha(1f).setDuration(180).start();
         } else {
-            heroName.setY(y);
+            heroName.animate().alpha(1f).translationX(0f).setDuration(150).start();
+            ambient.animate().alpha(1f).setDuration(180).start();
         }
     }
 
@@ -528,6 +552,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void hideHero() {
         if (!heroShown) return;
+        heroName.animate().cancel();
+        ambient.animate().cancel();
         heroShown = false;
         heroName.animate().alpha(0f).setDuration(160).start();
         ambient.animate().alpha(0f).setDuration(300).start();
@@ -536,11 +562,37 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- navigation ------------------------------------------------------------------------------
 
     @Override
-    public boolean onTileVerticalKey(int position, int keyCode) {
+    public boolean onTileDirectionKey(int position, int keyCode) {
         int count = adapter.getItemCount();
+        if (pendingFocusPosition != RecyclerView.NO_POSITION) position = pendingFocusPosition;
         int target;
-        if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            int column = position % COLUMNS;
+            target = position + (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
+            if ((keyCode == KeyEvent.KEYCODE_DPAD_LEFT && column == 0)
+                    || (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && column == COLUMNS - 1)
+                    || target >= count) return true;
+        } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+            if (position < COLUMNS) {
+                pendingFocusPosition = RecyclerView.NO_POSITION;
+                Rect bounds = new Rect(0, 0, grid.getWidth(), grid.getHeight());
+                root.offsetDescendantRectToMyCoords(grid, bounds);
+                int contentWidth = grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight();
+                int center = bounds.left + grid.getPaddingLeft()
+                        + (int) ((position + 0.5f) * contentWidth / COLUMNS);
+                View nearest = findViewById(R.id.btnInputs);
+                int distance = Integer.MAX_VALUE;
+                for (int id : new int[]{R.id.btnInputs, R.id.btnWifi, R.id.btnSettings}) {
+                    View button = findViewById(id);
+                    Rect buttonBounds = new Rect(0, 0, button.getWidth(), button.getHeight());
+                    root.offsetDescendantRectToMyCoords(button, buttonBounds);
+                    int delta = Math.abs(center - buttonBounds.centerX());
+                    if (delta < distance) { nearest = button; distance = delta; }
+                }
+                lastDockPosition = position;
+                nearest.requestFocus();
+                return true;
+            }
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
@@ -556,23 +608,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final int pos = Math.max(0, Math.min(position, adapter.getItemCount() - 1));
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
         if (vh != null) {
+            pendingFocusPosition = RecyclerView.NO_POSITION;
             View card = vh.itemView.findViewById(R.id.card);
             // Already focused: refresh the title and scroll position when returning from an app.
             if (card.isFocused()) onTileFocused(pos, card);
             else card.requestFocus();
             return;
         }
-        // Not laid out yet: scroll there, then focus once the scroll settles.
-        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(@NonNull RecyclerView rv, int newState) {
-                if (newState != RecyclerView.SCROLL_STATE_IDLE) return;
-                rv.removeOnScrollListener(this);
-                RecyclerView.ViewHolder h = rv.findViewHolderForAdapterPosition(pos);
-                View target = h != null ? h.itemView.findViewById(R.id.card) : rv.getChildAt(0);
-                if (target != null) target.requestFocus();
-            }
-        });
+        // The shared listener will focus the latest requested tile once it is attached.
+        pendingFocusPosition = pos;
         grid.smoothScrollToPosition(pos);
     }
 

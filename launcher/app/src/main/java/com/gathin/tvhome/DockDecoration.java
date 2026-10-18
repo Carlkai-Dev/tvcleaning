@@ -70,9 +70,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             }
         }
         if (!any) return;
-        float pad = 14 * density;
+        float pad = 13 * density;
         rect.inset(-pad, -pad);
-        float radius = 26 * density;
+        float radius = 24 * density;
         // Scrolling only translates the cached shaders; focus scaling never resizes the dock.
         if (Math.abs(gradientHeight - rect.height()) > 0.5f) {
             gradientHeight = rect.height();

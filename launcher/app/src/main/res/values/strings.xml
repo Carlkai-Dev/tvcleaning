@@ -13,7 +13,7 @@
     <string name="no_hidden_apps">No hidden apps. Hold OK on an app to hide it.</string>
     <string name="show_hidden_app">Show %1$s</string>
     <string name="app_shown">App visible again</string>
-    <string name="move_help">Moving %1$s · Arrows: move · OK: save · Back: cancel\nThe first four apps appear in the dock</string>
+    <string name="move_help">Moving %1$s · Arrows: move · OK: save · Back: cancel\nThe first %2$d apps appear in the dock</string>
     <string name="move_saved">App order saved</string>
     <string name="move_cancelled">Changes cancelled</string>
     <string name="move_save_failed">Could not save. Try again or press Back to cancel.</string>

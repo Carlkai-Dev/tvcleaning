@@ -10,6 +10,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -17,7 +18,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.ViewConfiguration;
-import android.view.animation.OvershootInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 import org.json.JSONArray;
@@ -45,8 +47,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         void onTileFocused(int position, View card);
         void onTileMenuRequested(int position, View card);
 
-        /** Called for D-pad Up/Down on a tile. Return true when handled. */
-        boolean onTileVerticalKey(int position, int keyCode);
+        /** Called for all four D-pad directions. Return true when handled. */
+        boolean onTileDirectionKey(int position, int keyCode);
     }
 
     static final class Entry {
@@ -55,14 +57,16 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final String pkg;
         final Drawable banner;
         final Drawable icon;
+        final String sourcePath;
         int ambient;
 
-        Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
+        Entry(String label, ComponentName component, Drawable banner, Drawable icon, String sourcePath) {
             this.label = label;
             this.component = component;
             this.pkg = component.getPackageName();
             this.banner = banner;
             this.icon = icon;
+            this.sourcePath = sourcePath;
         }
     }
 
@@ -77,12 +81,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final List<Entry> items = new ArrayList<>();
+    private final int artworkWidth;
+    private final int artworkHeight;
+    private final int iconSize;
     private List<Entry> moveSnapshot;
 
     AppAdapter(Context ctx, TileListener listener, int dockSize) {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
+        artworkWidth = (int) Math.ceil(ctx.getResources().getDimension(R.dimen.tile_width) * MENU_SCALE);
+        artworkHeight = (int) Math.ceil(ctx.getResources().getDimension(R.dimen.tile_height) * MENU_SCALE);
+        iconSize = (int) Math.ceil(32 * ctx.getResources().getDisplayMetrics().density * MENU_SCALE);
         this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
@@ -95,16 +105,27 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         Set<String> userHidden = userHiddenPackages();
+        Map<ComponentName, Entry> previous = new HashMap<>();
+        for (Entry entry : items) previous.put(entry.component, entry);
         List<Entry> fresh = new ArrayList<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg) || userHidden.contains(pkg)) continue;
+            ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
+            String sourcePath = ri.activityInfo.applicationInfo.sourceDir;
+            String label = String.valueOf(ri.loadLabel(pm));
+            Entry cached = previous.get(component);
+            if (cached != null && sourcePath.equals(cached.sourcePath) && label.equals(cached.label)) {
+                fresh.add(cached);
+                continue;
+            }
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
-            Drawable icon = ri.loadIcon(pm);
-            String label = String.valueOf(ri.loadLabel(pm));
-            fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
+            // Keep only a tile-sized image, including headroom for the long-press scale.
+            // Banner apps do not need an additional launcher icon in memory.
+            Drawable icon = banner == null ? fitArtwork(ri.loadIcon(pm), iconSize, iconSize) : null;
+            fresh.add(new Entry(label, component, fitArtwork(banner, artworkWidth, artworkHeight), icon, sourcePath));
         }
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
@@ -135,6 +156,22 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         notifyDataSetChanged();
     }
 
+    private Drawable fitArtwork(Drawable drawable, int maxWidth, int maxHeight) {
+        if (drawable == null) return null;
+        int width = drawable.getIntrinsicWidth() > 0 ? drawable.getIntrinsicWidth() : maxWidth;
+        int height = drawable.getIntrinsicHeight() > 0 ? drawable.getIntrinsicHeight() : maxHeight;
+        float scale = Math.min(1f, Math.min(maxWidth / (float) width, maxHeight / (float) height));
+        width = Math.max(1, Math.round(width * scale));
+        height = Math.max(1, Math.round(height * scale));
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        bitmap.setDensity(ctx.getResources().getDisplayMetrics().densityDpi);
+        Rect bounds = new Rect(drawable.getBounds());
+        drawable.setBounds(0, 0, width, height);
+        drawable.draw(new Canvas(bitmap));
+        drawable.setBounds(bounds);
+        return new BitmapDrawable(ctx.getResources(), bitmap);
+    }
+
     @NonNull
     @Override
     public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -148,11 +185,16 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.setText(e.label);
         h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
+        h.card.animate().cancel();
+        h.name.animate().cancel();
         h.highlight.animate().cancel();
         h.highlight.setAlpha(focused ? 1f : 0f);
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
         h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
+        h.name.setTranslationY(focused ? 2f * ctx.getResources().getDisplayMetrics().density
+                : -4f * ctx.getResources().getDisplayMetrics().density);
+        h.card.setContentDescription(e.label);
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
             h.banner.setVisibility(View.VISIBLE);
@@ -343,7 +385,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             highlight = v.findViewById(R.id.tileGlass);
 
             final float density = v.getResources().getDisplayMetrics().density;
-            final float radius = density * 16f;
+            final float radius = v.getResources().getDimension(R.dimen.tile_radius);
+            final DecelerateInterpolator ease = new DecelerateInterpolator(1.5f);
             View artwork = v.findViewById(R.id.artwork);
             artwork.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
@@ -359,30 +402,31 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                         || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
                     if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
                         view.animate().scaleX(MENU_SCALE).scaleY(MENU_SCALE)
-                                .setInterpolator(new DecelerateInterpolator())
+                                .setInterpolator(ease)
                                 .setDuration(ViewConfiguration.getLongPressTimeout()).start();
                     } else if (event.getAction() == KeyEvent.ACTION_UP) {
                         view.animate().scaleX(FOCUS_SCALE).scaleY(FOCUS_SCALE)
-                                .setInterpolator(new DecelerateInterpolator()).setDuration(180).start();
+                                .setInterpolator(ease).setDuration(160).start();
                     }
                     return false; // Android still distinguishes click from long click.
                 }
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
+                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN
+                        && keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
                 int pos = getBindingAdapterPosition();
-                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileVerticalKey(pos, keyCode);
+                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileDirectionKey(pos, keyCode);
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
-                highlight.animate().alpha(focused ? 1f : 0f).setDuration(focused ? 160 : 120).start();
+                highlight.animate().alpha(focused ? 1f : 0f).setDuration(focused ? 130 : 100).start();
                 float s = focused ? FOCUS_SCALE : 1.0f;
                 view.animate().scaleX(s).scaleY(s)
-                        .setDuration(focused ? 220 : 180)
-                        .setInterpolator(new OvershootInterpolator(focused ? 0.6f : 0f))
+                        .setDuration(focused ? 180 : 140)
+                        .setInterpolator(ease)
                         .start();
                 name.animate().alpha(focused ? 1f : 0f)
-                        .translationY(focused ? density * 4f : -density * 6f)
-                        .setDuration(220).start();
+                        .translationY(focused ? density * 2f : -density * 4f)
+                        .setDuration(160).start();
                 int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);

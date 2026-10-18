@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="tile_width">124dp</dimen>
+    <dimen name="tile_height">70dp</dimen>
+    <dimen name="tile_radius">12dp</dimen>
+    <!-- Tile size plus GlassView.HALO_INSET_DP on each side. -->
+    <dimen name="tile_halo_width">136dp</dimen>
+    <dimen name="tile_halo_height">82dp</dimen>
+    <dimen name="tile_row_height">112dp</dimen>
+</resources>

@@ -1,4 +1,4 @@
-# Hisense launcher customizations (2.5)
+# Hisense launcher customizations (2.6)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
@@ -7,7 +7,7 @@ It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 1
 
 - Hold **OK** on an app: the tile zooms and a contextual menu opens.
 - **Move**: use the arrows to swap positions; press OK to save or Back to cancel.
-- The first four visible apps make up the dock. Apps can move between the dock and the grid.
+- The first six visible apps make up the dock. Apps can move between the dock and the grid.
 - **Uninstall**: opens Android's uninstall confirmation. System apps are kept intact and show an explanation instead.
 - **Hide**: removes an app from Home without disabling or uninstalling it.
 - Focus **Settings** and press **Right five separate times** to open the hidden-app dropdown.
@@ -84,9 +84,42 @@ The frame counter stayed unchanged over a three-second idle interval after navig
 One memory snapshot after these interactions was about 71.5 MiB PSS; this is an observation,
 not a controlled memory comparison with an earlier version.
 
+## Six-app layout and navigation in 2.6
+
+Home now uses six columns, with six dock slots taken from the existing saved order.
+Tiles share a 124 by 70 dp frame, 12 dp corners and consistent spacing. The narrower cards leave room for
+focus enlargement and the contour halo. Banners preserve their aspect ratio instead of being cropped or stretched;
+fallback icons and labels share the same dimensions in Home and the contextual preview.
+The dock sits slightly lower, with a small preview of the next row.
+
+Artwork is rasterized once at a bounded size suitable for the 1.2x contextual preview. Apps with banners
+do not also retain a launcher icon. Reloading Home reuses entries whose component, APK source path and label
+match, avoiding repeated image loading on ordinary returns. Hidden or removed entries are not retained in a separate cache.
+
+Arrow navigation explicitly stays within row edges and preserves columns vertically where a destination exists.
+Up from the dock selects the nearest header control; Down from the header returns to the last dock slot.
+A single pending-focus request follows rapid input during scrolling, rather than accumulating scroll listeners.
+Row adjustments use short eased scrolls, the app title immediately follows the selected app, and the entry
+animation runs only on the activity's first resume. No perpetual effects or new dependencies were added.
+
+Verified all six dock positions, horizontal edges, vertical column mapping, rapid input through the last row,
+returning from Settings, contextual menus at both dock edges, moving and cancelling across the dock boundary,
+and hiding/restoring Stremio through the five-press dropdown. Saved order and hidden packages matched the original state.
+The dock-menu recording contained 276 frames; none showed the previous top-left panel flash.
+
+A single cold-start comparison on the same TV sampled Home PSS three times shortly after launch:
+2.5 measured 64,048 / 68,607 / 68,674 KiB, and 2.6 measured 55,011 / 59,301 / 57,956 KiB.
+The respective medians were 67.0 and 56.6 MiB. Launch times were 2.90 and 3.35 seconds in these individual runs;
+this is not evidence of a startup-speed improvement or a sustained workload benchmark.
+The 2.6 frame counter stayed unchanged during a three-second idle sample after startup settled.
+
+![Six-app dock](launcher-dock-2.6.png)
+![Six-column app grid](launcher-grid-2.6.png)
+
 ## Hisense configuration
 
-`launcher/app/src/main/res/values/config.xml` sets the initial dock to YouTube TV, Apple TV, Prime Video and Netflix.
+`launcher/app/src/main/res/values/config.xml` sets the initial dock to YouTube TV, Apple TV, Prime Video,
+Netflix, Hisense Channels and Stremio. An existing saved order takes precedence.
 The Live TV package is `com.vt.tv.tvcenter` for the tested device. Change it for other TV models.
 
 The tested TV also exposed a higher-priority Home recovery activity from `com.google.android.tungsten.setupwraith`.
@@ -107,7 +140,7 @@ adb shell input keyevent KEYCODE_HOME
 ## Validation
 
 - `assembleDebug` succeeded using JDK 17, Android SDK 34 and build-tools 34.0.0.
-- Installed on the real TV; verified Home, the four dock apps, Settings and the HDMI/AV/Live TV menu.
+- Installed on the real TV; verified Home, the six dock tiles, Settings and the HDMI/AV/Live TV menu.
 - Verified move, cancel, save and order persistence after stopping and reopening the launcher.
 - Verified hide persistence after process restart and recovery through Settings.
 - Verified Android's uninstall confirmation and cancelled it; no apps were removed during testing.

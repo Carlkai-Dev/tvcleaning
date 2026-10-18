@@ -27,7 +27,7 @@ public class GlassView extends View {
     public GlassView(Context context, AttributeSet attrs) {
         super(context, attrs);
         density = getResources().getDisplayMetrics().density;
-        radius = 16f * density;
+        radius = getResources().getDimension(R.dimen.tile_radius);
         rim.setStyle(Paint.Style.STROKE);
         rim.setStrokeWidth(1f * density);
         glow.setStyle(Paint.Style.STROKE);
