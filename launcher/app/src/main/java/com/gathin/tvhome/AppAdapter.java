@@ -91,10 +91,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         List<Entry> fresh = new ArrayList<>();
+        Set<String> seenPackages = new HashSet<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
+	    if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
+	    if (!seenPackages.add(pkg)) continue;
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
