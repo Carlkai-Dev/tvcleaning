@@ -15,7 +15,7 @@ import android.provider.Settings;
  * Optional (config.xml keep_audio_awake): on TVs whose single output (for example HDMI ARC to a soundbar) goes to
  * standby after a few seconds of silence, waking it delays each sound noticeably, and some soundbars switch their
  * amplifier off on all-zero samples and swallow the first sounds. While the home screen is in front, a looping
- * track of noise at about -75 dBFS, far below hearing, keeps both awake. It stops in onPause, so it never keeps
+ * stream of noise at about -75 dBFS, far below hearing, keeps both awake. It stops in onPause, so it never keeps
  * the TV from sleeping.
  */
 final class UiSounds {
@@ -31,7 +31,7 @@ final class UiSounds {
     private final SoundPool pool;
     private final int nav, select;
     private final boolean keepOutputAwake;
-    private AudioTrack keepAwake;
+    private volatile AudioTrack keepAwake;
 
     UiSounds(Context context) {
         this.context = context;
@@ -54,10 +54,14 @@ final class UiSounds {
         pool.play(id, VOLUME, VOLUME, 1, 0, 1f);
     }
 
-    /** Home screen in front: start the near-silent loop, if enabled. */
+    /**
+     * Home screen in front: start the near-silent stream, if enabled. Streamed by a thread that blocks in write()
+     * between half-second chunks; a static track looping one chunk kept its AudioTrack thread busy at about 75% of
+     * a core on a MediaTek Google TV.
+     */
     void resume() {
         if (!keepOutputAwake || keepAwake != null) return;
-        int frames = RATE / 2;   // half a second, looped
+        int frames = RATE / 2;   // half a second per write
         AudioTrack track = null;
         try {
             track = new AudioTrack.Builder()
@@ -67,31 +71,40 @@ final class UiSounds {
                             .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                             .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                             .build())
-                    .setTransferMode(AudioTrack.MODE_STATIC)
-                    .setBufferSizeInBytes(frames * 2)
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .setBufferSizeInBytes(frames * 2 * 2)
                     .build();
-            short[] hiss = new short[frames];
-            java.util.Random random = new java.util.Random(1);
-            for (int i = 0; i < frames; i++) hiss[i] = (short) (random.nextInt(13) - 6);
-            track.write(hiss, 0, frames);
-            track.setLoopPoints(0, frames, -1);
             track.play();
-            keepAwake = track;
         } catch (RuntimeException e) {
             // Called from onResume: a failure here must never take the home screen down.
             if (track != null) track.release();
+            return;
         }
+        final AudioTrack playing = track;
+        short[] hiss = new short[frames];
+        java.util.Random random = new java.util.Random(1);
+        for (int i = 0; i < frames; i++) hiss[i] = (short) (random.nextInt(13) - 6);
+        keepAwake = playing;
+        new Thread(() -> {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);
+            // Blocks until the track has room; ends when pause() stops the track (write returns an error).
+            while (keepAwake == playing && playing.write(hiss, 0, frames) > 0) {
+            }
+        }, "KeepAudioAwake").start();
     }
 
     /** Home screen left (an app opened or the TV sleeping): let the output go to standby again. */
     void pause() {
-        if (keepAwake == null) return;
+        AudioTrack track = keepAwake;
+        if (track == null) return;
+        keepAwake = null;
         try {
-            keepAwake.stop();
+            track.pause();
+            track.flush();
+            track.stop();
         } catch (IllegalStateException ignored) {
         }
-        keepAwake.release();
-        keepAwake = null;
+        track.release();
     }
 
     void release() {
