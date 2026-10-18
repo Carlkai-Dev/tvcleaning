@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TCL C6K / G08, Android 14. Copy to launcher/app/src/main/res/values/config.xml.
+     Example dock only: replace these entries with the apps you use. -->
+<resources>
+    <string-array name="dock_apps">
+        <item>com.google.android.youtube.tv</item>
+        <item>com.stremio.one</item>
+        <item>com.netflix.ninja</item>
+        <item>com.amazon.amazonvideo.livingroom</item>
+    </string-array>
+    <string-array name="hidden_apps">
+        <item>com.tcl.tv</item>
+    </string-array>
+    <string name="live_tv_package" translatable="false">com.tcl.tv</string>
+    <integer name="columns">4</integer>
+</resources>

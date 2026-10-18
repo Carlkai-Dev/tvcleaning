@@ -43,6 +43,7 @@ Debloat
 - Run `pm` commands one per shell call, chained commands may silently stop after the first.
 
 Launcher
+- Check the matching `examples/` notes before replacing Home; some firmware has a separate setup/recovery app that can take over even after the stock launcher is disabled.
 - Don't install a third-party launcher that charges for basics like wallpapers. Build a small native
   Android TV launcher instead (Java, AndroidX RecyclerView, minSdk matching the TV, debug build is fine),
   install it over ADB, set it as the default home and disable the stock launcher. If several apps claim
