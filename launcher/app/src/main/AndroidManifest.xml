@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Needed on Android 10 to read the Wi-Fi network name; granted over adb at install time. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Lets the Screensaver options change "Start after"; granted over adb at install time. -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
     <application
         android:label="@string/app_name"
@@ -32,6 +34,20 @@
             </intent-filter>
         </activity>
 
+        <!-- Screensaver options, shown as a tile in the grid. -->
+        <activity
+            android:name=".ScreensaverSettings"
+            android:label="@string/screensaver"
+            android:banner="@drawable/banner_screensaver"
+            android:taskAffinity="com.gathin.tvhome.screensaver"
+            android:exported="true"
+            android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <!-- Screensaver: pick it in Settings, or `settings put secure screensaver_components
              com.gathin.tvhome/.ClockDream` over adb. -->
         <service
@@ -43,6 +59,9 @@
                 <action android:name="android.service.dreams.DreamService" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <meta-data
+                android:name="android.service.dream"
+                android:resource="@xml/dream" />
         </service>
     </application>
 </manifest>

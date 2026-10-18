@@ -186,7 +186,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg) || !seen.add(pkg)) continue;
+            boolean ownHome = pkg.equals(ctx.getPackageName()) && !ri.activityInfo.name.endsWith(".ScreensaverSettings");
+            if (ownHome || hidden.contains(pkg) || !seen.add(pkg)) continue;   // our own Screensaver tile stays
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);

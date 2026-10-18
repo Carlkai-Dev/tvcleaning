@@ -3,10 +3,12 @@ package com.gathin.tvhome;
 import android.os.Handler;
 import android.os.Looper;
 import android.service.dreams.DreamService;
+import android.widget.TextClock;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
 
+import java.util.Calendar;
 import java.util.Random;
 
 /**
@@ -23,7 +25,8 @@ public class ClockDream extends DreamService {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Random random = new Random();
-    private View content;
+    private View content, dim;
+    private float clockAlpha = 1f;   // lower at night when the dim option is on
     private ImageView front, back;
     private int sceneIndex;
 
@@ -31,6 +34,7 @@ public class ClockDream extends DreamService {
         @Override
         public void run() {
             moveClock();
+            applyNightDim();
             handler.postDelayed(this, MOVE_MS);
         }
     };
@@ -52,6 +56,9 @@ public class ClockDream extends DreamService {
         setContentView(R.layout.dream_clock);
 
         content = findViewById(R.id.dreamContent);
+        dim = findViewById(R.id.dim);
+        applyClockFormat();
+        applyNightDim();
         front = findViewById(R.id.sceneA);
         back = findViewById(R.id.sceneB);
         sceneIndex = random.nextInt(SCENES.length);
@@ -65,7 +72,7 @@ public class ClockDream extends DreamService {
         content.setAlpha(0f);
         content.post(() -> {
             placeClock();
-            content.animate().alpha(1f).setDuration(1200).start();
+            content.animate().alpha(clockAlpha).setDuration(1200).start();
         });
         handler.postDelayed(clockTick, MOVE_MS);
         handler.postDelayed(sceneTick, SCENE_MS - FADE_MS);
@@ -88,6 +95,28 @@ public class ClockDream extends DreamService {
         handler.removeCallbacks(sceneTick);
         if (front != null) front.animate().cancel();
         if (back != null) back.animate().cancel();
+    }
+
+    /** Screensaver options: 12-hour, 24-hour, or follow the TV. */
+    private void applyClockFormat() {
+        String clock = ScreensaverSettings.prefs(this).getString(ScreensaverSettings.KEY_CLOCK, "system");
+        if ("system".equals(clock)) return;
+        TextClock time = findViewById(R.id.dreamTime), ampm = findViewById(R.id.dreamAmpm);
+        boolean h12 = "12".equals(clock);
+        time.setFormat12Hour(h12 ? "h:mm" : "HH:mm");
+        time.setFormat24Hour(h12 ? "h:mm" : "HH:mm");
+        ampm.setFormat12Hour(h12 ? "a" : "");
+        ampm.setFormat24Hour(h12 ? "a" : "");
+    }
+
+    /** Screensaver options: between 22:00 and 06:00 the picture is darkened (checked again every minute). */
+    private void applyNightDim() {
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        boolean night = ScreensaverSettings.prefs(this).getBoolean(ScreensaverSettings.KEY_NIGHT, false)
+                && (hour >= 22 || hour < 6);
+        clockAlpha = night ? 0.6f : 1f;
+        dim.animate().alpha(night ? 0.62f : 0f).setDuration(2000).start();
+        if (content != null && content.getAlpha() > 0.5f) content.animate().alpha(clockAlpha).setDuration(2000).start();
     }
 
     /** Fade the next scene in over the current one, then swap roles. */
@@ -118,7 +147,7 @@ public class ClockDream extends DreamService {
     private void moveClock() {
         content.animate().alpha(0f).setDuration(900).withEndAction(() -> {
             placeClock();
-            content.animate().alpha(1f).setDuration(1200).start();
+            content.animate().alpha(clockAlpha).setDuration(1200).start();
         }).start();
     }
 

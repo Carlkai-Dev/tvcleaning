@@ -28,4 +28,16 @@
     <string name="hide_app">Hide app</string>
     <string name="show_hidden">Show %1$d hidden</string>
     <string name="app_info">App info</string>
+    <string name="screensaver">Screensaver</string>
+    <string name="start_after">Start after</string>
+    <string name="minutes">%1$d min</string>
+    <string name="clock_format">Clock</string>
+    <string name="clock_system">Follow TV</string>
+    <string name="clock_12">12-hour</string>
+    <string name="clock_24">24-hour</string>
+    <string name="dim_at_night">Dim at night</string>
+    <string name="on">On</string>
+    <string name="off">Off</string>
+    <string name="preview">Preview now</string>
+    <string name="needs_permission">Run launcher/build-and-install.sh once to allow changing this.</string>
 </resources>

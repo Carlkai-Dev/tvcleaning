@@ -20,6 +20,14 @@
         android:alpha="0"
         android:importantForAccessibility="no" />
 
+    <!-- Night dimming (Screensaver options): black, faded in by ClockDream. -->
+    <View
+        android:id="@+id/dim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FF000000"
+        android:alpha="0" />
+
     <LinearLayout
         android:id="@+id/dreamContent"
         android:layout_width="wrap_content"
@@ -33,6 +41,7 @@
             android:baselineAligned="true">
 
             <TextClock
+                android:id="@+id/dreamTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:format12Hour="h:mm"
@@ -45,6 +54,7 @@
                 android:includeFontPadding="false" />
 
             <TextClock
+                android:id="@+id/dreamAmpm"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"

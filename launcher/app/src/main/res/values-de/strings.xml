@@ -27,4 +27,16 @@
     <string name="hide_app">App ausblenden</string>
     <string name="show_hidden">%1$d ausgeblendete anzeigen</string>
     <string name="app_info">App-Info</string>
+    <string name="screensaver">Bildschirmschoner</string>
+    <string name="start_after">Start nach</string>
+    <string name="minutes">%1$d Min.</string>
+    <string name="clock_format">Uhr</string>
+    <string name="clock_system">Wie TV</string>
+    <string name="clock_12">12 Stunden</string>
+    <string name="clock_24">24 Stunden</string>
+    <string name="dim_at_night">Nachts abdunkeln</string>
+    <string name="on">An</string>
+    <string name="off">Aus</string>
+    <string name="preview">Jetzt ansehen</string>
+    <string name="needs_permission">Führe einmal launcher/build-and-install.sh aus, um das zu erlauben.</string>
 </resources>

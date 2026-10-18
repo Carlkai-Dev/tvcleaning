@@ -53,6 +53,15 @@ run `my-tv/build-and-install.sh`. Dark images work best, since the text is white
 again, set `android:background="#FF000000"` on the root view in
 `launcher/app/src/main/res/layout/activity_main.xml`.
 
+## Screensaver options
+Open the **Screensaver** tile in the app grid (or the gear next to the screensaver in the TV's own settings):
+
+- **Start after**: 5, 10, 15, 30 or 60 minutes of idle time. Press OK to step to the next value. This changes the TV's
+  screen-off timeout, so `launcher/build-and-install.sh` grants the `WRITE_SETTINGS` permission over adb once.
+- **Clock**: follow the TV, 12-hour or 24-hour.
+- **Dim at night**: darkens the picture and the clock between 22:00 and 06:00.
+- **Preview now**: starts the screensaver right away.
+
 ## Screensaver
 The launcher includes an "Aurora Clock" screensaver: four aurora scenes (`dream_1.jpg` to `dream_4.jpg`
 in `drawable-nodpi/`) crossfade every 16 s with a slow pan and zoom, under a thin clock and date that move
