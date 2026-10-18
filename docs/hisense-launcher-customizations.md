@@ -1,7 +1,28 @@
-# Hisense launcher customizations (2.12)
+# Hisense launcher customizations (2.12.1)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
+
+## Consistent transparency in 2.12.1
+
+Header pills and the Inputs, Wi-Fi, Settings and hidden-app panels now share the
+dock's tint, surface stops and edge palette. All four existing Dock glass
+finishes apply to these launcher surfaces. Changing the finish refreshes the
+open Settings panel immediately; newly opened panels use the current finish.
+Focused pills and selected rows retain their light selection and dark text for
+legibility, without reducing the opacity of labels or icons.
+
+GlassSurface caches its shaders until the dimensions or finish change. It uses
+three round-rectangle drawing passes, without live blur, bitmaps, timers or
+background work. Dock geometry, clipping and navigation remain unchanged.
+
+Validation: successful debug build and installation on the Hisense. Captures
+confirmed all four finishes updating the open Settings panel and the three
+header pills. Inputs and Wi-Fi were checked in Standard and Glass with distinct
+background pixels, unchanged rounded row selection and working Back navigation.
+Remote focus on the Inputs pill retained its light fill and dark icon/text.
+All original preferences, including app ordering and hidden apps, were restored
+and compared after testing. No device language or network was changed.
 
 ## Glass and localized daily greetings in 2.12
 

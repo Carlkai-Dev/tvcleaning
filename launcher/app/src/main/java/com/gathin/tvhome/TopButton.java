@@ -20,6 +20,7 @@ public final class TopButton extends LinearLayout {
         setOrientation(HORIZONTAL);
         setGravity(Gravity.CENTER);
         setBaselineAligned(false);
+        setBackground(new GlassSurface(context, 21, true));
         ColorStateList colors = context.getColorStateList(R.drawable.pill_text);
         TypedArray attributes = context.obtainStyledAttributes(attrs,
                 new int[]{android.R.attr.text, android.R.attr.drawableStart});

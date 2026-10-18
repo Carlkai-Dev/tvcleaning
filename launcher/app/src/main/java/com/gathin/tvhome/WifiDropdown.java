@@ -119,6 +119,10 @@ final class WifiDropdown {
         scanPending = false;
     }
 
+    void refreshAppearance() {
+        if (dropdown != null) dropdown.refreshAppearance();
+    }
+
     void dismiss() {
         if (dropdown != null) dropdown.window.dismiss();
         stopListening();

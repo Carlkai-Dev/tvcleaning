@@ -23,6 +23,7 @@ final class HeaderDropdown {
         this.anchor = anchor;
         density = activity.getResources().getDisplayMetrics().density;
         panel = activity.getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        panel.setBackground(new GlassSurface(activity, 24, false));
         rows = panel.findViewById(R.id.rows);
         // A focused row must settle fully inside the viewport, including its rounded selection.
         ((ScrollView) panel.findViewById(R.id.popupScroll)).setSmoothScrollingEnabled(false);
@@ -34,6 +35,8 @@ final class HeaderDropdown {
         window.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
         window.setOnDismissListener(() -> anchor.requestFocus());
     }
+
+    void refreshAppearance() { panel.invalidate(); }
 
     void show() {
         int width = window.getWidth();

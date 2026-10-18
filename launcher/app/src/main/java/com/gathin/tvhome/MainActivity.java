@@ -363,7 +363,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View anchor = findViewById(R.id.btnSettings);
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setBackgroundResource(R.drawable.glass_panel);
+        panel.setBackground(new GlassSurface(this, 20, false));
         int inset = (int) (6 * density);
         panel.setPadding(inset, inset, inset, inset);
         TextView heading = new TextView(this);
@@ -687,6 +687,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         findViewById(R.id.dateSeparator).setVisibility(dateVisibility);
         grid.getLayoutAnimation().getAnimation().setDuration(LauncherOptions.duration(240));
         invalidateAppearance(root);
+        if (launcherSettings != null) launcherSettings.refreshAppearance();
+        if (inputDropdown != null) inputDropdown.refreshAppearance();
+        if (wifiDropdown != null) wifiDropdown.refreshAppearance();
+        if (hiddenPopup != null) hiddenPopup.getContentView().invalidate();
     }
 
     private void invalidateAppearance(View view) {

@@ -53,7 +53,7 @@ final class LauncherSettings {
         panel = new LinearLayout(activity);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(10), dp(10), dp(10), dp(10));
-        panel.setBackgroundResource(R.drawable.header_glass);
+        panel.setBackground(new GlassSurface(activity, 24, false));
         dialog.setContentView(panel);
         dialog.setOnKeyListener((d, key, event) -> {
             if (key == KeyEvent.KEYCODE_BACK) {
@@ -98,6 +98,10 @@ final class LauncherSettings {
         window.setAttributes(parameters);
         dialog.show();
         window.setLayout(dp(280), -2);
+    }
+
+    void refreshAppearance() {
+        if (panel != null) panel.invalidate();
     }
 
     void dismiss() {
