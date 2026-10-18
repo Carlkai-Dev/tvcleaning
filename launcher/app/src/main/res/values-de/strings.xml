@@ -72,4 +72,6 @@
     <string name="greeting_name_hint">Optional · bis zu 24 Zeichen</string>
     <string name="greeting_save_name">Speichern</string>
     <string name="greeting_daily_help">Jeden Tag ein neuer Spruch. Persönliche Sprüche erscheinen nur mit gespeichertem Namen. Zum Entfernen den Namen leer lassen.</string>
+    <string name="launcher_created_by">Erstellt von</string>
+    <string name="launcher_tuned_by">Angepasst von</string>
 </resources>

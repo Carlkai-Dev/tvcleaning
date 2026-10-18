@@ -22,6 +22,9 @@ import android.widget.EditText;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextUtils;
+import android.text.SpannableString;
+import android.text.style.StyleSpan;
+import android.graphics.Typeface;
 
 /** Settings views exist only while this small anchored panel is open. */
 final class LauncherSettings {
@@ -168,6 +171,8 @@ final class LauncherSettings {
             info(R.string.launcher_version, version);
             info(R.string.launcher_device, Build.MANUFACTURER + " · " + Build.MODEL);
             info(R.string.launcher_android, Build.VERSION.RELEASE);
+            info(R.string.launcher_created_by, "Gathin23");
+            info(R.string.launcher_tuned_by, "YouLop09");
         }
         rows.getChildAt(Math.min(selected, rows.getChildCount() - 1)).requestFocus();
     }
@@ -232,7 +237,12 @@ final class LauncherSettings {
 
     private void info(int label, String value) {
         TextView item = text(14, Color.WHITE);
-        item.setText(activity.getString(R.string.launcher_info_value, activity.getString(label), value));
+        String content = activity.getString(R.string.launcher_info_value, activity.getString(label), value);
+        if (label == R.string.launcher_created_by) {
+            SpannableString styled = new SpannableString(content);
+            styled.setSpan(new StyleSpan(Typeface.BOLD), content.length() - value.length(), content.length(), 0);
+            item.setText(styled);
+        } else item.setText(content);
         item.setPadding(dp(12), dp(8), dp(12), dp(8));
         item.setFocusable(true);
         item.setBackgroundResource(R.drawable.input_row_bg);

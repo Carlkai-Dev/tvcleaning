@@ -91,4 +91,6 @@
     <string name="greeting_name_hint">Optional · up to 24 characters</string>
     <string name="greeting_save_name">Save</string>
     <string name="greeting_daily_help">A new phrase each day. Name-based phrases appear only with a saved name. Leave the name blank to remove it.</string>
+    <string name="launcher_created_by">Created by</string>
+    <string name="launcher_tuned_by">Tuned by</string>
 </resources>

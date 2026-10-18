@@ -24,6 +24,9 @@ Remote focus on the Inputs pill retained its light fill and dark icon/text.
 All original preferences, including app ordering and hidden apps, were restored
 and compared after testing. No device language or network was changed.
 
+Launcher information credits the original creator **Gathin23** and customization
+author **YouLop09**. This credits-only update keeps version 2.12.1 / code 20.
+
 ## Glass and localized daily greetings in 2.12
 
 Appearance → Dock glass adds a fourth finish, **Glass**, with a nearly transparent

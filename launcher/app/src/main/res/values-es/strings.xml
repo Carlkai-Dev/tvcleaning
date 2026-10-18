@@ -70,4 +70,6 @@
     <string name="greeting_name_hint">Opcional · hasta 24 caracteres</string>
     <string name="greeting_save_name">Guardar</string>
     <string name="greeting_daily_help">Una frase diferente cada día. Las frases personales solo aparecen con un nombre guardado. Déjalo vacío para quitarlo.</string>
+    <string name="launcher_created_by">Creado por</string>
+    <string name="launcher_tuned_by">Tuneado por</string>
 </resources>
