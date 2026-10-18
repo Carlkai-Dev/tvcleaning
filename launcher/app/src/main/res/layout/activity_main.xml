@@ -204,4 +204,7 @@
 
     <!-- Devices Fullscreen Overlay -->
     <include layout="@layout/overlay_devices" />
+
+    <!-- Settings Fullscreen Overlay -->
+    <include layout="@layout/overlay_settings" />
 </FrameLayout>

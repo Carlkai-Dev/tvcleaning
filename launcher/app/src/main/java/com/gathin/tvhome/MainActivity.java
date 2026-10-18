@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
@@ -82,6 +83,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean isDockPeeking = false;
     private ValueAnimator dockPeekAnimator;
     private float peekOffset;
+    private String peekDepthPref = "ultra";
+    private boolean isTopBarShowText = true;
+    private View settingsOverlay;
+    private TextView btnTopStyleText, btnTopStyleIcon;
+    private TextView btnPeekUltra, btnPeekBalanced, btnPeekNone;
+    private TextView btnWallAuto, btnWallDay, btnWallNight;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
     private boolean glassShown;
@@ -104,9 +111,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
-        peekOffset = 115f * density;
         COLUMNS = Math.max(1, getResources().getInteger(R.integer.columns));
         liveTvPkg = getString(R.string.live_tv_package).trim();
+
+        SharedPreferences prefs = getSharedPreferences("tvhome_prefs", MODE_PRIVATE);
+        peekDepthPref = prefs.getString("dock_peek_depth", "ultra");
+        updatePeekOffset();
 
         root = findViewById(R.id.root);
         glass = findViewById(R.id.glass);
@@ -166,7 +176,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnCalendar.setOnClickListener(v -> showCalendar());
         btnDevices.setOnClickListener(v -> showDevices());
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
-        btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> showSettings());
+        isTopBarShowText = prefs.getBoolean("top_bar_show_text", true);
+        applyTopBarStyle(isTopBarShowText);
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -297,6 +309,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onBackPressed() {
+        if (settingsOverlay != null && settingsOverlay.getVisibility() == View.VISIBLE) {
+            hideSettings();
+            return;
+        }
         if (calendarOverlay != null && calendarOverlay.getVisibility() == View.VISIBLE) {
             hideCalendar();
             return;
@@ -732,6 +748,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (isDockPeeking == peek && dockPeekAnimator == null) return;
         isDockPeeking = peek;
         final float targetY = peek ? peekOffset : 0f;
+        if (peek) {
+            grid.scrollToPosition(0);
+        }
 
         if (dockPeekAnimator != null) {
             dockPeekAnimator.cancel();
@@ -914,12 +933,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void updateWallpaper() {
-        Calendar now = Calendar.getInstance();
-        int hour = now.get(Calendar.HOUR_OF_DAY);
-        int minute = now.get(Calendar.MINUTE);
-        int timeInMinutes = hour * 60 + minute;
-        // Day cycle: 07:00 (420 min) to 19:30 (1170 min)
-        boolean isDay = (timeInMinutes >= 420 && timeInMinutes < 1170);
+        SharedPreferences prefs = getSharedPreferences("tvhome_prefs", MODE_PRIVATE);
+        String themePref = prefs.getString("wallpaper_theme", "auto");
+        boolean isDay;
+        if ("day".equals(themePref)) {
+            isDay = true;
+        } else if ("night".equals(themePref)) {
+            isDay = false;
+        } else {
+            Calendar now = Calendar.getInstance();
+            int hour = now.get(Calendar.HOUR_OF_DAY);
+            int minute = now.get(Calendar.MINUTE);
+            int timeInMinutes = hour * 60 + minute;
+            // Day cycle: 07:00 (420 min) to 19:30 (1170 min)
+            isDay = (timeInMinutes >= 420 && timeInMinutes < 1170);
+        }
         int targetRes = isDay ? R.drawable.wallpaper_day : R.drawable.wallpaper_night;
 
         if (wallpaper == null) return;
@@ -939,6 +967,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
     private void updateWifiLabel() {
+        if (!isTopBarShowText) {
+            if (btnWifi != null) btnWifi.setText("");
+            return;
+        }
         String text = getString(R.string.wifi);
         try {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -959,7 +991,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         } catch (Exception ignored) {
         }
-        btnWifi.setText(text);
+        if (btnWifi != null) btnWifi.setText(text);
     }
 
     private void open(Intent i) {
@@ -1061,5 +1093,124 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.run();
         });
         rows.addView(row);
+    }
+
+    // ---- Settings & Top Bar Preferences ----------------------------------------------------------
+
+    private void updatePeekOffset() {
+        if ("none".equals(peekDepthPref)) {
+            peekOffset = 0f;
+        } else if ("balanced".equals(peekDepthPref)) {
+            peekOffset = 140f * density;
+        } else {
+            peekOffset = 220f * density; // default: ultra low peek (wallpaper takes ~95% of screen)
+        }
+    }
+
+    private void applyTopBarStyle(boolean showText) {
+        isTopBarShowText = showText;
+        TextView btnCalendar = findViewById(R.id.btnCalendar);
+        TextView btnDevices = findViewById(R.id.btnDevices);
+        TextView btnSettings = findViewById(R.id.btnSettings);
+
+        int padStart = (int) ((showText ? 16 : 11) * density);
+        int padEnd = (int) ((showText ? 20 : 11) * density);
+        int drawPad = (int) ((showText ? 9 : 0) * density);
+
+        TextView[] pills = new TextView[]{btnCalendar, btnDevices, btnWifi, btnSettings};
+        for (TextView p : pills) {
+            if (p != null) {
+                p.setPadding(padStart, 0, padEnd, 0);
+                p.setCompoundDrawablePadding(drawPad);
+            }
+        }
+
+        if (btnCalendar != null) btnCalendar.setText(showText ? "Calendar" : "");
+        if (btnDevices != null) btnDevices.setText(showText ? "Devices" : "");
+        if (btnSettings != null) btnSettings.setText(showText ? getString(R.string.settings) : "");
+        updateWifiLabel();
+    }
+
+    private void showSettings() {
+        if (settingsOverlay == null) {
+            settingsOverlay = findViewById(R.id.settingsOverlay);
+            findViewById(R.id.btnSettingsClose).setOnClickListener(v -> hideSettings());
+
+            btnTopStyleText = findViewById(R.id.btnTopStyleText);
+            btnTopStyleIcon = findViewById(R.id.btnTopStyleIcon);
+            btnPeekUltra = findViewById(R.id.btnPeekUltra);
+            btnPeekBalanced = findViewById(R.id.btnPeekBalanced);
+            btnPeekNone = findViewById(R.id.btnPeekNone);
+            btnWallAuto = findViewById(R.id.btnWallAuto);
+            btnWallDay = findViewById(R.id.btnWallDay);
+            btnWallNight = findViewById(R.id.btnWallNight);
+
+            btnTopStyleText.setOnClickListener(v -> setTopBarStyle(true));
+            btnTopStyleIcon.setOnClickListener(v -> setTopBarStyle(false));
+
+            btnPeekUltra.setOnClickListener(v -> setPeekDepth("ultra"));
+            btnPeekBalanced.setOnClickListener(v -> setPeekDepth("balanced"));
+            btnPeekNone.setOnClickListener(v -> setPeekDepth("none"));
+
+            btnWallAuto.setOnClickListener(v -> setWallpaperTheme("auto"));
+            btnWallDay.setOnClickListener(v -> setWallpaperTheme("day"));
+            btnWallNight.setOnClickListener(v -> setWallpaperTheme("night"));
+
+            findViewById(R.id.btnSysSettings).setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+            findViewById(R.id.btnSysWifi).setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
+            findViewById(R.id.btnSysApps).setOnClickListener(v -> open(new Intent(Settings.ACTION_MANAGE_ALL_APPLICATIONS_SETTINGS)));
+        }
+
+        updateSettingsUI();
+        settingsOverlay.setVisibility(View.VISIBLE);
+        settingsOverlay.setAlpha(0f);
+        settingsOverlay.animate().alpha(1f).setDuration(220).start();
+        findViewById(R.id.btnSettingsClose).requestFocus();
+    }
+
+    private void hideSettings() {
+        if (settingsOverlay == null || settingsOverlay.getVisibility() != View.VISIBLE) return;
+        settingsOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
+            settingsOverlay.setVisibility(View.GONE);
+            View btn = findViewById(R.id.btnSettings);
+            if (btn != null) btn.requestFocus();
+        }).start();
+    }
+
+    private void updateSettingsUI() {
+        if (btnTopStyleText == null) return;
+        btnTopStyleText.setSelected(isTopBarShowText);
+        btnTopStyleIcon.setSelected(!isTopBarShowText);
+
+        btnPeekUltra.setSelected("ultra".equals(peekDepthPref));
+        btnPeekBalanced.setSelected("balanced".equals(peekDepthPref));
+        btnPeekNone.setSelected("none".equals(peekDepthPref));
+
+        String wTheme = getSharedPreferences("tvhome_prefs", MODE_PRIVATE).getString("wallpaper_theme", "auto");
+        btnWallAuto.setSelected("auto".equals(wTheme));
+        btnWallDay.setSelected("day".equals(wTheme));
+        btnWallNight.setSelected("night".equals(wTheme));
+    }
+
+    private void setTopBarStyle(boolean showText) {
+        getSharedPreferences("tvhome_prefs", MODE_PRIVATE).edit().putBoolean("top_bar_show_text", showText).apply();
+        applyTopBarStyle(showText);
+        updateSettingsUI();
+    }
+
+    private void setPeekDepth(String depth) {
+        peekDepthPref = depth;
+        getSharedPreferences("tvhome_prefs", MODE_PRIVATE).edit().putString("dock_peek_depth", depth).apply();
+        updatePeekOffset();
+        if (isDockPeeking) {
+            setDockPeek(true, true);
+        }
+        updateSettingsUI();
+    }
+
+    private void setWallpaperTheme(String theme) {
+        getSharedPreferences("tvhome_prefs", MODE_PRIVATE).edit().putString("wallpaper_theme", theme).apply();
+        updateWallpaper();
+        updateSettingsUI();
     }
 }
