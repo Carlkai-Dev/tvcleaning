@@ -1,0 +1,44 @@
+# Xiaomi MiTV-AXSO0 (Android 9): what was done and how to undo it
+
+Set up on 2026-10-18 over ADB (TV at `192.168.1.104`, port 5555). Nothing was uninstalled; every
+package was disabled for user 0, and `backup/` (local only) holds the pre-change package list,
+`getprop` and all settings.
+
+All commands need the TV's IP, and the Python venv from the repo README:
+`export TV_HOST=192.168.1.104`
+
+## What was disabled (`debloat.txt`, 25 packages)
+Telemetry (miui analytics, xiaomi statistic, Google feedback and bugreport), PatchWall and the
+sponsored/recommendation services, the TV Manager cleaner, handbook, firmware update service,
+preloaded music/games/movies/gallery, unused streaming apps (YouTube Music, Sony LIV, ZEE5,
+India TV, Journey), the voice assistant and Chromecast built-in. Google's stock launcher is
+disabled as well (by `build-and-install.sh`).
+
+Kept on purpose: Netflix, Prime Video, YouTube, JioHotstar, NetMirror, SmartTube, Send Files to TV,
+Video Manager, Mi Cast/Miracast, Play Store/Services, the keyboard, the TV app and every HDMI/AV/tuner
+input service, remote and Bluetooth services.
+
+## Re-enable one app
+```
+tools/venv/bin/python -I tools/tv.py "pm enable com.google.android.katniss"
+```
+(voice assistant; use any package name from `debloat.txt`). Or delete its line from `debloat.txt`
+so it stays enabled next time. Firmware updates: `pm enable com.xiaomi.mitv.updateservice`.
+
+## Undo everything
+`my-tv/restore.sh` re-enables every package in the list, brings back the stock launcher as home
+and resets animation scales.
+
+## Change the dock
+Edit `launcher/app/src/main/res/values/config.xml`, the `dock_apps` list (left to right, four
+slots): currently SmartTube, YouTube, Prime Video, JioHotstar. Use package names from
+`tools/venv/bin/python -I tools/tv.py "pm list packages"`. Use `hidden_apps` to drop tiles from the
+grid (e.g. `com.mitv.gallery`). Then run `my-tv/build-and-install.sh`.
+
+## Change the wallpaper
+The launcher background is `launcher/app/src/main/res/drawable-nodpi/wallpaper.jpg`, a generated dark
+aurora (indigo to teal, darker at the bottom so the dock stays readable). To change it, replace that
+file with your own 1920x1080 JPG (keep it under about 300 KB; the TV has about 1 GB of RAM), then
+run `my-tv/build-and-install.sh`. Dark images work best, since the text is white. For plain black
+again, set `android:background="#FF000000"` on the root view in
+`launcher/app/src/main/res/layout/activity_main.xml`.

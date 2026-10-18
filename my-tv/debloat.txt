@@ -1,0 +1,40 @@
+# Xiaomi MiTV-AXSO0 (dangal), Android 9. Choices made by the owner on 2026-10-18.
+# Apply: TV_HOST=192.168.1.104 tools/disable.sh backup/debloat.txt
+# Undo:  TV_HOST=192.168.1.104 tools/restore.sh backup/debloat.txt
+
+# telemetry / analytics
+com.miui.tv.analytics
+com.xiaomi.statistic
+com.google.android.feedback
+com.google.android.tv.bugreportsender
+
+# manufacturer content and ad services
+com.mitv.tvhome.atv   # PatchWall, Xiaomi's ad-filled home (replaced by our launcher)
+com.xm.webcontent
+com.xiaomi.floatingframe
+com.google.android.tvrecommendations
+com.google.android.leanbacklauncher.recommendations
+android.autoinstalls.config.xioami.dangal
+
+# background services (cleaner, handbook, firmware updates: owner chose to disable)
+com.xiaomi.mitv.tvmanager
+com.xiaomi.mitv.handbook
+com.xiaomi.mitv.updateservice
+
+# preloaded apps
+com.xiaomi.mimusic2
+com.google.android.play.games
+com.google.android.videos
+com.mitv.gallery
+
+# streaming / other apps the owner does not use
+com.google.android.youtube.tvmusic
+com.sonyliv
+com.graymatrix.did
+com.gxnet.castle.indiatv
+com.journey.indiab
+
+# voice assistant and Chromecast: owner chose to disable
+com.google.android.katniss
+com.google.android.speech.pumpkin
+com.google.android.apps.mediashell
