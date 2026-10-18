@@ -37,4 +37,22 @@
     <string name="cant_open">Can\'t open %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
     <string name="dream_name">Clock</string>
+    <string name="wifi_disabled">Wi-Fi is off. Open network settings to enable it.</string>
+    <string name="wifi_permission_needed">Allow location access to list nearby networks.</string>
+    <string name="wifi_location_needed">Android requires location to scan for networks.</string>
+    <string name="wifi_location_settings">Location settings</string>
+    <string name="wifi_scanning">Searching for networks…</string>
+    <string name="wifi_no_networks">No networks found. Try refreshing.</string>
+    <string name="wifi_open">Open</string>
+    <string name="wifi_secured">Secured</string>
+    <string name="wifi_refresh">Refresh networks</string>
+    <string name="wifi_more_settings">Network settings…</string>
+    <string name="wifi_system_step">On this TV, complete the connection in Android settings.</string>
+    <string name="wifi_choose_in_system">Select %1$s in Android network settings.</string>
+    <string name="wifi_password">Password</string>
+    <string name="wifi_confirm_help">Android will ask you to confirm saving this network.</string>
+    <string name="wifi_continue">Continue</string>
+    <string name="wifi_bad_password">Check the password and try again.</string>
+    <string name="wifi_saved">Network saved. Android will manage the connection.</string>
+    <string name="wifi_save_failed">Could not save the network. Open network settings to retry.</string>
 </resources>

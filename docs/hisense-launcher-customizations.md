@@ -1,7 +1,46 @@
-# Hisense launcher customizations (2.9)
+# Hisense launcher customizations (2.10)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
+
+## Header dropdowns in 2.10
+
+Inputs and Wi-Fi share a translucent surface based on the dock colors, rounded
+corners, typography and inset selection rows. Each 256 dp wide list aligns with
+its button's right edge, opens 10 dp below it, and scrolls within a 216 dp height
+so it stays above the dock title. Back returns focus to the originating button.
+
+Wi-Fi lists nearby networks, merges duplicate access points by SSID and security,
+sorts the connected network first and then by signal strength, and provides a
+manual refresh and network-settings shortcut. Android requires location access
+and location enabled for scans; the UI handles missing permission, Wi-Fi off,
+empty results and scan throttling. A scan is requested only on opening or manual
+refresh. The broadcast receiver and single scan timeout are removed on dismissal
+or leaving Home. There is no background service or periodic scanning.
+
+On Android 11+ implementations with a dedicated `ACTION_WIFI_ADD_NETWORKS`
+handler, personal WPA2/WPA3, open and OWE networks can be proposed to Android for
+user confirmation. Passwords are not saved by Home and the field is cleared when
+the dialog closes. Enterprise/legacy security uses system settings instead.
+
+**Hisense limitation:** this TV resolves that action to
+`com.android.tv.settings/.connectivity.NetworkActivity`, the generic network page.
+It does not provide the proposed-network confirmation flow. Home therefore shows
+the available networks but delegates the final selection and password entry to
+Android settings, with an explicit explanation. It does not collect a password
+that this TV cannot use. The dedicated confirmation branch cannot be exercised
+on this device. See Android's [save-network API](https://developer.android.com/develop/connectivity/wifi/wifi-save-network-passpoint-config).
+
+![Inputs dropdown with the dock glass styling](launcher-inputs-2.10.png)
+
+Validation: `assembleDebug` succeeded. On-device checks covered list scrolling,
+Back/focus restoration, repeated opening and closing, Wi-Fi results, and delegation
+of a selected nearby network to Android settings without changing the active
+connection. Saved app order and hidden packages were unchanged. `lintDebug` is
+blocked by 41 existing project errors (including the missing Leanback launcher
+filter, drawable/color resource typing and older API resource attributes); no
+findings remain in the two new Java classes. The new strings include English,
+Spanish and German translations.
 
 ## Header and app-title alignment in 2.9
 

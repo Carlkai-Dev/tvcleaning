@@ -69,6 +69,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Rect heroInk = new Rect();
     private TextView greeting;
     private TopButton btnWifi;
+    private HeaderDropdown inputDropdown;
+    private WifiDropdown wifiDropdown;
+    private boolean pendingWifiPermissionResult;
     // Static so they survive the activity being destroyed while another app is open (low-memory TVs,
     // or Developer options → "Don't keep activities"); they only reset when the process dies.
     private static int lastFocused = 0;
@@ -183,7 +186,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
-        btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
+        wifiDropdown = new WifiDropdown(this, root, btnWifi);
+        btnWifi.setOnClickListener(v -> wifiDropdown.show());
         btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
         btnSettings.setOnFocusChangeListener((v, focused) -> settingsRightPresses = 0);
         btnSettings.setContentDescription(getString(R.string.settings_hidden_hint));
@@ -242,12 +246,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (!intent.hasCategory(Intent.CATEGORY_HOME)) return;
+        if (inputDropdown != null) inputDropdown.window.dismiss();
+        if (wifiDropdown != null) wifiDropdown.dismiss();
+        if (hiddenPopup != null) hiddenPopup.dismiss();
+        grid.post(() -> focusTile(lastDockPosition));
+    }
+
+    @Override
     protected void onPause() {
         settingsRightPresses = 0;
         pendingFocusPosition = RecyclerView.NO_POSITION;
         grid.stopScroll();
         adapter.updateDockSpacing(grid, RecyclerView.NO_POSITION, false);
         if (hiddenPopup != null) hiddenPopup.dismiss();
+        if (inputDropdown != null) inputDropdown.window.dismiss();
+        if (wifiDropdown != null) wifiDropdown.dismiss();
         dismissAppMenu(null);
         // Leaving Home never commits an unfinished rearrangement.
         if (moving) finishMoving(false);
@@ -684,17 +700,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
     private void showInputs() {
+        if (inputDropdown != null && inputDropdown.window.isShowing()) return;
         View anchor = findViewById(R.id.btnInputs);
-        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
-        LinearLayout rows = panel.findViewById(R.id.rows);
-
-        // Compact: as wide as the Inputs pill (a touch wider so "HDMI 1" fits), hanging right below it.
-        int width = Math.max(anchor.getWidth(), (int) (150 * density));
-        final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
-        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
-        popup.setOutsideTouchable(true);
-        popup.setAnimationStyle(0);
-        popup.setElevation(0f);
+        inputDropdown = new HeaderDropdown(this, root, anchor);
+        LinearLayout rows = inputDropdown.rows;
+        final PopupWindow popup = inputDropdown.window;
+        popup.setOnDismissListener(() -> {
+            inputDropdown = null;
+            anchor.requestFocus();
+        });
 
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         boolean sawNonHdmi = false;
@@ -752,19 +766,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
 
-        // Fit the widest row: TVs that report a status on every port (Sony) would otherwise squeeze the names out.
-        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        popup.setWidth(Math.max(width, panel.getMeasuredWidth()));
-
-        // Drop in: fade and unfold from the top edge.
-        panel.setAlpha(0f);
-        panel.setPivotY(0f);
-        panel.setScaleY(0.92f);
-        panel.setTranslationY(-8 * density);
-        popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
-        panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
-                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
-        rows.getChildAt(0).requestFocus();
+        inputDropdown.show();
     }
 
     private void addSeparator(LinearLayout rows) {
@@ -781,6 +783,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
         ((TextView) row.findViewById(R.id.title)).setText(title);
         TextView status = row.findViewById(R.id.status);
+        status.setFontVariationSettings("'wght' 400");
         View dot = row.findViewById(R.id.dot);
         // This TV reports "standby" for every port whether or not something is plugged in, so only
         // definite states are shown.
@@ -798,6 +801,40 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             action.run();
         });
+        HeaderDropdown.containNavigation(row);
         rows.addView(row);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == WifiDropdown.LOCATION_REQUEST && wifiDropdown != null) {
+            pendingWifiPermissionResult = true;
+            showWifiAfterPermission();
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && pendingWifiPermissionResult) showWifiAfterPermission();
+    }
+
+    private void showWifiAfterPermission() {
+        // Wait for the permission window to close and the normal resume/focus work to finish.
+        root.post(() -> {
+            if (pendingWifiPermissionResult && hasWindowFocus() && !isFinishing()) {
+                pendingWifiPermissionResult = false;
+                btnWifi.requestFocus();
+                wifiDropdown.showAfterPermission();
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == WifiDropdown.SAVE_REQUEST && wifiDropdown != null)
+            wifiDropdown.onSaveResult(resultCode, data);
     }
 }

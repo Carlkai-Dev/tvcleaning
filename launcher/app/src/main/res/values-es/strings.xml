@@ -17,4 +17,22 @@
     <string name="move_saved">Orden guardado</string>
     <string name="move_cancelled">Cambios cancelados</string>
     <string name="move_save_failed">No se pudo guardar. Intenta de nuevo o pulsa Atrás para cancelar.</string>
+    <string name="wifi_disabled">Wi-Fi está desactivado. Actívalo en los ajustes de red.</string>
+    <string name="wifi_permission_needed">Permite el acceso a la ubicación para ver las redes cercanas.</string>
+    <string name="wifi_location_needed">Android requiere la ubicación para buscar redes.</string>
+    <string name="wifi_location_settings">Ajustes de ubicación</string>
+    <string name="wifi_scanning">Buscando redes…</string>
+    <string name="wifi_no_networks">No se encontraron redes. Intenta actualizar.</string>
+    <string name="wifi_open">Abierta</string>
+    <string name="wifi_secured">Protegida</string>
+    <string name="wifi_refresh">Actualizar redes</string>
+    <string name="wifi_more_settings">Ajustes de red…</string>
+    <string name="wifi_system_step">En esta TV, completa la conexión en los ajustes de Android.</string>
+    <string name="wifi_choose_in_system">Selecciona %1$s en los ajustes de red de Android.</string>
+    <string name="wifi_password">Contraseña</string>
+    <string name="wifi_confirm_help">Android te pedirá confirmar que deseas guardar esta red.</string>
+    <string name="wifi_continue">Continuar</string>
+    <string name="wifi_bad_password">Revisa la contraseña e intenta de nuevo.</string>
+    <string name="wifi_saved">Red guardada. Android gestionará la conexión.</string>
+    <string name="wifi_save_failed">No se pudo guardar la red. Intenta desde los ajustes de red.</string>
 </resources>

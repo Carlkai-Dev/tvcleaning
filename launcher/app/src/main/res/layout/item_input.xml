@@ -30,7 +30,8 @@
         android:textSize="15sp"
         android:fontFamily="@font/outfit"
         android:fontVariationSettings="'wght' 500"
-        android:singleLine="true" />
+        android:singleLine="true"
+        android:ellipsize="end" />
 
     <View
         android:id="@+id/dot"

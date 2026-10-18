@@ -19,4 +19,22 @@
     <string name="not_available">Auf diesem TV nicht verfügbar</string>
     <string name="cant_open">%1$s lässt sich nicht öffnen</string>
     <string name="date_format">EEEE, d. MMMM</string>
+    <string name="wifi_disabled">WLAN ist ausgeschaltet. Aktiviere es in den Netzwerkeinstellungen.</string>
+    <string name="wifi_permission_needed">Erlaube den Standortzugriff, um Netzwerke in der Nähe anzuzeigen.</string>
+    <string name="wifi_location_needed">Android benötigt den Standort für die Netzwerksuche.</string>
+    <string name="wifi_location_settings">Standorteinstellungen</string>
+    <string name="wifi_scanning">Netzwerke werden gesucht…</string>
+    <string name="wifi_no_networks">Keine Netzwerke gefunden. Versuche die Liste zu aktualisieren.</string>
+    <string name="wifi_open">Offen</string>
+    <string name="wifi_secured">Geschützt</string>
+    <string name="wifi_refresh">Netzwerke aktualisieren</string>
+    <string name="wifi_more_settings">Netzwerkeinstellungen…</string>
+    <string name="wifi_system_step">Schließe die Verbindung auf diesem Fernseher in den Android-Einstellungen ab.</string>
+    <string name="wifi_choose_in_system">Wähle %1$s in den Android-Netzwerkeinstellungen aus.</string>
+    <string name="wifi_password">Passwort</string>
+    <string name="wifi_confirm_help">Android bittet dich, das Speichern dieses Netzwerks zu bestätigen.</string>
+    <string name="wifi_continue">Weiter</string>
+    <string name="wifi_bad_password">Prüfe das Passwort und versuche es erneut.</string>
+    <string name="wifi_saved">Netzwerk gespeichert. Android verwaltet die Verbindung.</string>
+    <string name="wifi_save_failed">Das Netzwerk konnte nicht gespeichert werden. Versuche es in den Netzwerkeinstellungen.</string>
 </resources>
