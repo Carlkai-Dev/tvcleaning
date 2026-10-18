@@ -7,7 +7,7 @@
 #
 # Stock launcher: com.google.android.apps.tv.launcherx (pass it to restore.sh, the default is wrong here).
 # Live TV app: com.tcl.tv (keep it, it also owns HDMI/antenna playback). Keep com.tcl.tvinput,
-# com.tcl.suspension (input menu), com.tcl.dashboard, com.tcl.settings, com.tcl.system.server,
+# com.tcl.suspension (Quick Panel, also the remote's Input button), com.tcl.settings, com.tcl.system.server,
 # com.tcl.keyhelp, com.tcl.autopair, com.tcl.tcl_bt_rcu_service (remote) and com.tcl.providers.config.
 # Unlike the G10, com.tcl.ttvs ships enabled here; it carries TCL's BI analytics service.
 #
@@ -35,6 +35,7 @@ com.tcl.waterfall.overseas             # TCL content "waterfall" recommendations
 com.tcl.partnercustomizer              # TCL tweaks to Google TV home rows
 com.tcl.messagebox                     # TCL pushed messages and promos
 com.tcl.usercenter                     # TCL account sign-in
+com.tcl.dashboard                      # "TCL Home" panel, gift box and promos; no remote key uses it
 
 # Telemetry and background services
 com.tcl.ttvs                           # TCL BI/awareness/identifier services
@@ -66,6 +67,15 @@ com.tcl.smartalexa                     # Alexa
 com.google.android.apps.mediashell     # Chromecast built-in
 # com.tcl.airplay2                     # AirPlay, together with the next line
 # com.mediatek.AirplayAPK
+
+# Microphone (owner's choice): no far-field mic on this set (odm.tcl.micmanager.enable=false), so
+# the voice remote is the only mic. With the assistants above disabled, also block RECORD_AUDIO:
+#   for p in com.google.android.apps.tv.launcherx com.google.android.gms com.google.android.gsf \
+#            com.google.android.sss.authbridge com.google.android.youtube.tv; do
+#     pm revoke $p android.permission.RECORD_AUDIO; appops set $p RECORD_AUDIO ignore; done
+#   appops set --uid com.android.systemui RECORD_AUDIO ignore   # system-fixed, revoke is refused
+#   cmd appops write-settings
+# Undo: pm grant <pkg> android.permission.RECORD_AUDIO; appops reset <pkg>
 
 # Unclear, left enabled: com.tcl.eva (EvaService, RemoterService), com.mediatek.backgrounddetection,
 # com.tcl.micmanager, com.tcl.externaldevice.update (peripheral updater), smartconnect.tv

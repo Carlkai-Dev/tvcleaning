@@ -128,6 +128,15 @@
                 android:layout_marginBottom="6dp"
                 android:orientation="horizontal">
 
+                <!-- Shown only when the TV has a Live TV app and a built-in tuner. -->
+                <TextView
+                    android:id="@+id/btnLiveTv"
+                    style="@style/TopButton"
+                    android:text="@string/live_tv"
+                    android:drawableStart="@drawable/ic_livetv"
+                    android:visibility="gone"
+                    android:nextFocusDown="@+id/grid" />
+
                 <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"

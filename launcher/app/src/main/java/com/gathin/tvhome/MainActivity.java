@@ -158,8 +158,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             s.setSpring(new SpringForce().setStiffness(260f).setDampingRatio(0.58f));
         }
 
+        View btnLiveTv = findViewById(R.id.btnLiveTv);
         View btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
+        if (liveTvIntent() != null) {
+            btnLiveTv.setVisibility(View.VISIBLE);
+            btnLiveTv.setOnClickListener(v -> {
+                Intent liveTv = liveTvIntent();
+                if (liveTv != null) open(liveTv);
+            });
+        }
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
@@ -169,9 +177,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnInputs) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && (v.getId() == R.id.btnLiveTv
+                    || (v.getId() == R.id.btnInputs && btnLiveTv.getVisibility() != View.VISIBLE))) return true;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
         };
+        btnLiveTv.setOnKeyListener(pillKeys);
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
@@ -422,6 +432,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * The Live TV app opened on the built-in tuner (antenna/cable) rather than the last source, or just
+     * the app when no system tuner is listed. Null when the TV has no Live TV app configured.
+     */
+    private Intent liveTvIntent() {
+        Intent liveTv = liveTvPkg.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg);
+        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+        if (liveTv == null || tim == null) return liveTv;
+        // Prefer a hardware tuner: the framework names those ".../HW<id>". System apps such as AirPlay
+        // also register software inputs of type TUNER, and may sort first (seen on TCL).
+        String tunerId = null;
+        boolean tunerIsHw = false;
+        for (TvInputInfo info : tim.getTvInputList()) {
+            if (info.getType() != TvInputInfo.TYPE_TUNER
+                    || (info.getServiceInfo().applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) continue;
+            String id = info.getId();
+            boolean hw = id.matches(".*/HW\\d+$");
+            if (tunerId == null || (hw && !tunerIsHw) || (hw == tunerIsHw && id.compareTo(tunerId) < 0)) {
+                tunerId = id;
+                tunerIsHw = hw;
+            }
+        }
+        if (tunerId == null) return liveTv;
+        return new Intent(Intent.ACTION_VIEW)
+                .setDataAndType(TvContract.buildChannelUriForPassthroughInput(tunerId), "vnd.android.cursor.item/channel")
+                .setPackage(liveTvPkg);
+    }
+
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
     private void showInputs() {
         View anchor = findViewById(R.id.btnInputs);
@@ -438,7 +476,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         boolean sawNonHdmi = false;
-        String tunerId = null;
         if (tim != null) {
             List<TvInputInfo> inputs = new ArrayList<>(tim.getTvInputList());
             // HDMI ports first in port order, then AV and the rest.
@@ -457,11 +494,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             boolean hdmiStateBogus = hdmiPorts > 1 && hdmiConnected == hdmiPorts;
             for (TvInputInfo info : inputs) {
-                if (info.getType() == TvInputInfo.TYPE_TUNER
-                        && (info.getServiceInfo().applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0
-                        && (tunerId == null || info.getId().compareTo(tunerId) < 0)) {
-                    tunerId = info.getId();
-                }
                 if (!info.isPassthroughInput()) continue;
                 CharSequence l = info.loadLabel(this);
                 String label = l == null ? info.getId() : l.toString();
@@ -476,12 +508,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                                 TvContract.buildChannelUriForPassthroughInput(id), "vnd.android.cursor.item/channel")));
             }
         }
-        Intent liveTv = liveTvPkg.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg);
-        if (liveTv != null && tunerId != null) {
-            liveTv = new Intent(Intent.ACTION_VIEW)
-                    .setDataAndType(TvContract.buildChannelUriForPassthroughInput(tunerId), "vnd.android.cursor.item/channel")
-                    .setPackage(liveTvPkg);
-        }
+        Intent liveTv = liveTvIntent();
         if (liveTv != null) {
             if (rows.getChildCount() > 0) addSeparator(rows);
             final Intent liveTvIntent = liveTv;
