@@ -61,4 +61,15 @@
     <string name="launcher_version">Launcher-Version</string>
     <string name="launcher_device">Gerätemodell</string>
     <string name="launcher_android">Android-Version</string>
+    <string name="launcher_glass">Glass</string>
+    <string name="greeting_style">Stil</string>
+    <string name="greeting_schedule">Tageszeit</string>
+    <string name="greeting_daily">Tagesspruch</string>
+    <string name="greeting_personal">Persönlich</string>
+    <string name="greeting_hidden">Ausgeblendet</string>
+    <string name="greeting_your_name">Dein Name</string>
+    <string name="greeting_name_empty">Nicht festgelegt</string>
+    <string name="greeting_name_hint">Optional · bis zu 24 Zeichen</string>
+    <string name="greeting_save_name">Speichern</string>
+    <string name="greeting_daily_help">Jeden Tag ein neuer Spruch. Persönliche Sprüche erscheinen nur mit gespeichertem Namen. Zum Entfernen den Namen leer lassen.</string>
 </resources>

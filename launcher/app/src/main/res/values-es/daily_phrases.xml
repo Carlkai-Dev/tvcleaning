@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string-array name="daily_phrases">
+        <item>Un paso pequeño sigue siendo un paso.</item>
+        <item>Haz espacio para lo que disfrutas.</item>
+        <item>También mereces un descanso.</item>
+        <item>Empieza con lo que puedas hacer hoy.</item>
+        <item>Tu ritmo es un buen punto de partida.</item>
+        <item>El progreso también puede ser silencioso.</item>
+        <item>La curiosidad abre nuevas puertas.</item>
+        <item>Hoy puedes volver a intentarlo.</item>
+        <item>Date tiempo para crecer.</item>
+        <item>Celebra algo pequeño hoy.</item>
+        <item>Hacer una pausa también tiene valor.</item>
+        <item>Elige algo que sea importante para ti.</item>
+        <item>Una pequeña decisión puede iniciar algo bueno.</item>
+        <item>Trátate con cariño en el camino.</item>
+        <item>Siempre hay espacio para comenzar de nuevo.</item>
+        <item>Deja que hoy tenga su propio ritmo.</item>
+        <item>Un momento de calma puede cambiar tu día.</item>
+        <item>Guarda tiempo para lo que te gusta.</item>
+        <item>Aprender requiere paciencia.</item>
+        <item>No hace falta que todo sea perfecto para empezar.</item>
+        <item>Disfruta de las pequeñas cosas a tu alcance.</item>
+        <item>Algunos días, estar presente es suficiente.</item>
+        <item>Da el siguiente paso a tu ritmo.</item>
+        <item>Descansar también es parte de avanzar.</item>
+        <item>Deja un poco de espacio para lo inesperado.</item>
+        <item>Una nueva perspectiva puede empezar aquí.</item>
+        <item>Los pequeños esfuerzos se van sumando.</item>
+        <item>Hay muchas formas de avanzar.</item>
+        <item>Encuentra algo bueno a tu alrededor.</item>
+        <item>Empezar despacio también es empezar.</item>
+        <item>Respira y ponte cómodo.</item>
+        <item>Hoy puede traer una sorpresa agradable.</item>
+        <item>Tu tiempo también merece un poco de alegría.</item>
+        <item>Dedica atención a algo que te guste.</item>
+        <item>Haz tuyo este momento.</item>
+        <item>Una pausa puede ayudarte a ver con claridad.</item>
+        <item>El siguiente capítulo puede comenzar despacio.</item>
+        <item>Guarda un poco de espacio para la curiosidad.</item>
+        <item>Permítete disfrutar de este momento.</item>
+        <item>Cada día ofrece algo por descubrir.</item>
+    </string-array>
+    <string-array name="personal_daily_phrases">
+        <item>Hoy también puedes avanzar, %1$s.</item>
+        <item>Haz espacio para lo que disfrutas, %1$s.</item>
+        <item>También mereces un descanso, %1$s.</item>
+        <item>Ve a tu ritmo, %1$s.</item>
+        <item>Hoy es una nueva oportunidad, %1$s.</item>
+        <item>Trátate con cariño hoy, %1$s.</item>
+        <item>Tus pequeños esfuerzos cuentan, %1$s.</item>
+        <item>Respira y ponte cómodo, %1$s.</item>
+        <item>Hay algo nuevo por descubrir, %1$s.</item>
+        <item>Guarda un momento para ti, %1$s.</item>
+        <item>Un poco de calma puede ayudarte, %1$s.</item>
+        <item>Disfruta de las pequeñas cosas, %1$s.</item>
+        <item>Puedes volver a empezar, %1$s.</item>
+        <item>Date tiempo para crecer, %1$s.</item>
+        <item>Haz tuyo este momento, %1$s.</item>
+        <item>Tu ritmo también es válido, %1$s.</item>
+        <item>Deja que la curiosidad te guíe, %1$s.</item>
+        <item>Empezar despacio también cuenta, %1$s.</item>
+        <item>Celebra un pequeño avance, %1$s.</item>
+        <item>Hoy también hay espacio para la alegría, %1$s.</item>
+    </string-array>
+</resources>

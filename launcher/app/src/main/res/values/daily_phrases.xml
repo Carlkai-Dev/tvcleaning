@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string-array name="daily_phrases">
+        <item>One small step still moves you forward.</item>
+        <item>Make room for what you enjoy.</item>
+        <item>You deserve a moment of rest.</item>
+        <item>Start with what you can do today.</item>
+        <item>Your pace is a good place to begin.</item>
+        <item>Progress can be quiet.</item>
+        <item>A little curiosity opens new doors.</item>
+        <item>Today is a chance to try again.</item>
+        <item>Give yourself time to grow.</item>
+        <item>Celebrate something small today.</item>
+        <item>There is value in taking a pause.</item>
+        <item>Choose one thing that matters to you.</item>
+        <item>Good things can begin with a small choice.</item>
+        <item>Be kind to yourself along the way.</item>
+        <item>There is room for a fresh start.</item>
+        <item>Let today have its own rhythm.</item>
+        <item>A calm moment can change your day.</item>
+        <item>Keep some time for the things you love.</item>
+        <item>Learning takes patience.</item>
+        <item>You can begin before everything is perfect.</item>
+        <item>Enjoy the little things within reach.</item>
+        <item>Some days, showing up is enough.</item>
+        <item>Take the next step at your own pace.</item>
+        <item>Rest is part of moving forward.</item>
+        <item>Leave a little space for possibility.</item>
+        <item>A new perspective can start here.</item>
+        <item>Small efforts add up over time.</item>
+        <item>There is no single way to make progress.</item>
+        <item>Notice something good around you.</item>
+        <item>A gentle start is still a start.</item>
+        <item>Take a breath and make yourself at home.</item>
+        <item>Today can hold a pleasant surprise.</item>
+        <item>Your time deserves a little joy.</item>
+        <item>Give your attention to something you love.</item>
+        <item>Make this moment your own.</item>
+        <item>A pause can make room for clarity.</item>
+        <item>The next chapter can begin slowly.</item>
+        <item>Keep a little room for wonder.</item>
+        <item>Let yourself enjoy this moment.</item>
+        <item>Every day offers something to discover.</item>
+    </string-array>
+    <string-array name="personal_daily_phrases">
+        <item>Today, one small step is enough, %1$s.</item>
+        <item>Make room for what you enjoy, %1$s.</item>
+        <item>You deserve a moment of rest, %1$s.</item>
+        <item>Go at your own pace, %1$s.</item>
+        <item>Today is a fresh opportunity, %1$s.</item>
+        <item>Be kind to yourself today, %1$s.</item>
+        <item>Your small efforts matter, %1$s.</item>
+        <item>Take a breath and settle in, %1$s.</item>
+        <item>There is something new to discover, %1$s.</item>
+        <item>Keep some time for yourself, %1$s.</item>
+        <item>A quiet moment can help, %1$s.</item>
+        <item>Enjoy the little things today, %1$s.</item>
+        <item>You can start again, %1$s.</item>
+        <item>Give yourself time to grow, %1$s.</item>
+        <item>Make this moment your own, %1$s.</item>
+        <item>Your pace is enough, %1$s.</item>
+        <item>Let curiosity lead the way, %1$s.</item>
+        <item>A gentle start still counts, %1$s.</item>
+        <item>Celebrate a little progress, %1$s.</item>
+        <item>There is room for joy today, %1$s.</item>
+    </string-array>
+</resources>

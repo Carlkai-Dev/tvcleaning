@@ -99,11 +99,13 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             opacity = LauncherOptions.dockOpacity;
             tint.setColor(withOpacity(0x3014161A));
             surfaceGradient = new LinearGradient(0, 0, 0, gradientHeight,
-                    new int[]{withOpacity(0x3CFFFFFF), withOpacity(0x23FFFFFF),
+                    LauncherOptions.glass ? new int[]{0x16FFFFFF, 0x05FFFFFF, 0x02FFFFFF, 0x08FFFFFF}
+                    : new int[]{withOpacity(0x3CFFFFFF), withOpacity(0x23FFFFFF),
                             withOpacity(0x17FFFFFF), withOpacity(0x20FFFFFF)},
                     new float[]{0f, 0.34f, 0.78f, 1f}, Shader.TileMode.CLAMP);
             edgeGradient = new LinearGradient(0, 0, 0, gradientHeight,
-                    new int[]{0x70FFFFFF, 0x20FFFFFF, 0x40FFFFFF},
+                    LauncherOptions.glass ? new int[]{0xB0FFFFFF, 0x30FFFFFF, 0x70FFFFFF}
+                    : new int[]{0x70FFFFFF, 0x20FFFFFF, 0x40FFFFFF},
                     new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP);
             band.setShader(surfaceGradient);
             edge.setShader(edgeGradient);

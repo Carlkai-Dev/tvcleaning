@@ -2,6 +2,7 @@ package com.gathin.tvhome;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -17,6 +18,10 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.EditText;
+import android.text.InputFilter;
+import android.text.InputType;
+import android.text.TextUtils;
 
 /** Settings views exist only while this small anchored panel is open. */
 final class LauncherSettings {
@@ -25,6 +30,7 @@ final class LauncherSettings {
     private final Runnable apply;
     private final SharedPreferences prefs;
     private Dialog dialog;
+    private AlertDialog nameDialog;
     private LinearLayout panel;
     private LinearLayout rows;
     private int page;
@@ -53,7 +59,8 @@ final class LauncherSettings {
             if (key == KeyEvent.KEYCODE_BACK) {
                 downPresses = 0;
                 if (event.getAction() == KeyEvent.ACTION_UP) {
-                    if (page != 0) render(0, page == 1 ? 0 : page == 2 ? 1 : 3);
+                    if (page == 4) render(1, 1);
+                    else if (page != 0) render(0, page == 1 ? 0 : page == 2 ? 1 : 3);
                     else dismiss();
                 }
                 return true;
@@ -93,7 +100,10 @@ final class LauncherSettings {
         window.setLayout(dp(280), -2);
     }
 
-    void dismiss() { if (dialog != null) dialog.dismiss(); }
+    void dismiss() {
+        if (nameDialog != null) nameDialog.dismiss();
+        if (dialog != null) dialog.dismiss();
+    }
 
     private void render(int destination, int selected) {
         page = destination;
@@ -101,7 +111,7 @@ final class LauncherSettings {
         panel.removeAllViews();
         TextView heading = text(12, 0xFFDFDFE5);
         heading.setText(page == 1 ? R.string.launcher_clock : page == 2 ? R.string.launcher_appearance
-                : page == 3 ? R.string.launcher_information : R.string.settings);
+                : page == 3 ? R.string.launcher_information : page == 4 ? R.string.launcher_greeting : R.string.settings);
         heading.setPadding(dp(12), dp(5), dp(12), dp(10));
         panel.addView(heading);
         ScrollView scroll = new ScrollView(activity);
@@ -119,15 +129,34 @@ final class LauncherSettings {
         } else if (page == 1) {
             cycle("clock_format", R.string.launcher_clock_format,
                     new int[]{R.string.launcher_12h, R.string.launcher_24h});
-            toggle("clock_greeting", R.string.launcher_greeting);
+            row("greeting", R.string.launcher_greeting, "›", () -> render(4, 0));
             toggle("clock_date", R.string.launcher_date);
         } else if (page == 2) {
             cycle("appearance_halo", R.string.launcher_halo,
                     new int[]{R.string.launcher_normal, R.string.launcher_soft, R.string.launcher_off});
             cycle("appearance_dock", R.string.launcher_dock,
-                    new int[]{R.string.launcher_current, R.string.launcher_lighter, R.string.launcher_opaque});
+                    new int[]{R.string.launcher_current, R.string.launcher_lighter, R.string.launcher_opaque,
+                            R.string.launcher_glass});
             cycle("appearance_motion", R.string.launcher_motion,
                     new int[]{R.string.launcher_normal, R.string.launcher_reduced, R.string.launcher_off});
+        } else if (page == 4) {
+            int mode = prefs.getInt("greeting_mode", prefs.getBoolean("clock_greeting", true) ? 0 : 3);
+            int[] choices = {R.string.greeting_schedule, R.string.greeting_daily,
+                    R.string.greeting_personal, R.string.greeting_hidden};
+            row("greeting_mode", R.string.greeting_style, activity.getString(choices[Math.floorMod(mode, 4)]), () -> {
+                int previous = prefs.getInt("greeting_mode", prefs.getBoolean("clock_greeting", true) ? 0 : 3);
+                int next = (Math.floorMod(previous, 4) + 1) % 4;
+                prefs.edit().putInt("greeting_mode", next).apply();
+                apply.run();
+                updateValue("greeting_mode", R.string.greeting_style, activity.getString(choices[next]));
+            });
+            String name = prefs.getString("greeting_name", "").trim();
+            row("greeting_name", R.string.greeting_your_name,
+                    name.isEmpty() ? activity.getString(R.string.greeting_name_empty) : name, this::editName);
+            TextView help = text(11, 0xFFDFDFE5);
+            help.setText(R.string.greeting_daily_help);
+            help.setPadding(dp(12), dp(10), dp(12), dp(6));
+            rows.addView(help);
         } else {
             String version;
             try { version = activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0).versionName; }
@@ -174,12 +203,18 @@ final class LauncherSettings {
         row.setClickable(true);
         TextView title = text(15, Color.WHITE);
         title.setText(label);
+        title.setSingleLine(true);
+        title.setEllipsize(TextUtils.TruncateAt.END);
         title.setDuplicateParentStateEnabled(true);
         title.setTextColor(activity.getColorStateList(R.color.menu_text));
         row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         TextView detail = text(12, Color.WHITE);
         detail.setId(android.R.id.text2);
         detail.setText(value);
+        detail.setSingleLine(true);
+        detail.setMaxWidth(dp(140));
+        detail.setEllipsize(TextUtils.TruncateAt.END);
+        detail.setPadding(dp(8), 0, 0, 0);
         detail.setGravity(Gravity.END);
         detail.setDuplicateParentStateEnabled(true);
         detail.setTextColor(title.getTextColors());
@@ -199,6 +234,42 @@ final class LauncherSettings {
         item.setBackgroundResource(R.drawable.input_row_bg);
         item.setTextColor(activity.getColorStateList(R.color.menu_text));
         rows.addView(item, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    private void editName() {
+        if (nameDialog != null) return;
+        EditText input = new EditText(activity);
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(24)});
+        input.setHint(R.string.greeting_name_hint);
+        input.setText(prefs.getString("greeting_name", ""));
+        input.setSelection(input.length());
+        LinearLayout content = new LinearLayout(activity);
+        content.setPadding(dp(20), dp(8), dp(20), dp(8));
+        content.addView(input, new LinearLayout.LayoutParams(-1, -2));
+        nameDialog = new AlertDialog.Builder(activity)
+                .setTitle(R.string.greeting_your_name)
+                .setView(content)
+                .setPositiveButton(R.string.greeting_save_name, (d, which) -> {
+                    String name = input.getText().toString().trim().replaceAll("\\s+", " ");
+                    prefs.edit().putString("greeting_name", name).apply();
+                    apply.run();
+                    if (rows != null) updateValue("greeting_name", R.string.greeting_your_name,
+                            name.isEmpty() ? activity.getString(R.string.greeting_name_empty) : name);
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .create();
+        nameDialog.setOnDismissListener(d -> {
+            nameDialog = null;
+            if (rows != null) {
+                View nameRow = rows.findViewWithTag("greeting_name");
+                if (nameRow != null) nameRow.requestFocus();
+            }
+        });
+        nameDialog.show();
+        nameDialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        input.requestFocus();
     }
 
     private TextView text(int size, int color) {

@@ -69,6 +69,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Rect heroAnchor = new Rect();
     private final Rect heroInk = new Rect();
     private TextView greeting;
+    private DailyGreeting dailyGreeting;
+    private int greetingMode = -1;
     private TopButton btnWifi;
     private HeaderDropdown inputDropdown;
     private WifiDropdown wifiDropdown;
@@ -134,6 +136,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
                 ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
+        dailyGreeting = new DailyGreeting(this);
         btnWifi = findViewById(R.id.btnWifi);
 
         grid = findViewById(R.id.grid);
@@ -678,7 +681,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ampm.setFormat12Hour("a");
         ampm.setFormat24Hour("a");
         ampm.setVisibility(use24 ? View.GONE : View.VISIBLE);
-        greeting.setVisibility(prefs.getBoolean("clock_greeting", true) ? View.VISIBLE : View.INVISIBLE);
+        updateGreeting();
         int dateVisibility = prefs.getBoolean("clock_date", true) ? View.VISIBLE : View.GONE;
         findViewById(R.id.date).setVisibility(dateVisibility);
         findViewById(R.id.dateSeparator).setVisibility(dateVisibility);
@@ -701,14 +704,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void updateGreeting() {
-        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        int res;
-        if (hour < 5) res = R.string.good_night;
-        else if (hour < 12) res = R.string.good_morning;
-        else if (hour < 17) res = R.string.good_afternoon;
-        else if (hour < 22) res = R.string.good_evening;
-        else res = R.string.good_night;
-        String message = getString(res);
+        int mode = dailyGreeting.mode();
+        if (mode != greetingMode) {
+            greeting.setAllCaps(mode == 0);
+            greeting.setVisibility(mode == 3 ? View.INVISIBLE : View.VISIBLE);
+            greetingMode = mode;
+        }
+        String message = dailyGreeting.message(Calendar.getInstance());
         if (!android.text.TextUtils.equals(greeting.getText(), message))
             greeting.setText(OpticalGreeting.format(message));
     }

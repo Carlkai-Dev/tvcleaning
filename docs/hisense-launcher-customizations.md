@@ -1,7 +1,39 @@
-# Hisense launcher customizations (2.11.2)
+# Hisense launcher customizations (2.12)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
+
+## Glass and localized daily greetings in 2.12
+
+Appearance → Dock glass adds a fourth finish, **Glass**, with a nearly transparent
+surface and a clearer edge. Existing finish indices and saved selections remain
+unchanged. It reuses cached gradients and the existing drawing passes; there is
+no live blur, background service, additional bitmap or continuous animation.
+
+Clock → Greeting now opens a focused submenu with Time of day, Daily phrase,
+Personalized and Hidden styles, plus an optional name (up to 24 characters).
+Forty general phrases and twenty name-based phrases are supplied in English and
+Spanish. Android selects the resources from the TV language; other languages
+fall back to English. There is no independent language selector.
+
+Daily phrase mixes the name-based pool only when a name is saved. Personalized
+uses that pool exclusively when a name exists and otherwise shows a general
+phrase. Clearing the name removes it from eligibility immediately. Selection
+uses the local calendar day and a persisted random seed, so restarting the
+launcher does not change today's phrase. Each pool completes a nonrepeating
+cycle before repeating. The existing minute refresh handles day changes with no
+new timer, network requests or scheduled jobs. Loaded phrases are cached.
+Long greetings ellipsize before the header buttons rather than overlapping them.
+
+Validation: debug build and installation on the Hisense; remote/touch navigation
+through the new submenu, native name entry/save, named greeting rendering,
+Glass selection and visual inspection, and phrase stability after process
+restart. A host harness executed the actual DailyGreeting class with resource
+and preference stubs using both shipped language arrays, checking complete
+40/20/60-day cycles, date changes, restart stability, empty-name fallback and
+name clearing. The TV's system language and clock were not changed. Existing
+preferences were restored after QA, including app order and hidden apps; the
+temporary test name was removed. No RAM/CPU benchmark is claimed.
 
 ## Ancestor clipping and optical spacing in 2.11.2
 

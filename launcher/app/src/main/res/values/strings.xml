@@ -80,4 +80,15 @@
     <string name="launcher_device">Device model</string>
     <string name="launcher_android">Android version</string>
     <string name="launcher_info_value" translatable="false">%1$s\n%2$s</string>
+    <string name="launcher_glass">Glass</string>
+    <string name="greeting_style">Style</string>
+    <string name="greeting_schedule">Time of day</string>
+    <string name="greeting_daily">Daily phrase</string>
+    <string name="greeting_personal">Personalized</string>
+    <string name="greeting_hidden">Hidden</string>
+    <string name="greeting_your_name">Your name</string>
+    <string name="greeting_name_empty">Not set</string>
+    <string name="greeting_name_hint">Optional · up to 24 characters</string>
+    <string name="greeting_save_name">Save</string>
+    <string name="greeting_daily_help">A new phrase each day. Name-based phrases appear only with a saved name. Leave the name blank to remove it.</string>
 </resources>
