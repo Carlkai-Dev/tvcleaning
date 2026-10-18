@@ -1,0 +1,31 @@
+# Xiaomi MiTV-MSSP3 (codename machuca), Android TV 11 (SDK 30), firmware RTT2.211214.001.1065,
+# MediaTek. Tested from Windows 11 with tools\disable.ps1.
+# Live TV app: com.mediatek.wwtv.tvcenter (the launcher's default live_tv_package).
+# Stock launcher: com.google.android.tvlauncher (disabled by build-and-install once launcher/ is home).
+#
+# Apply:   tools\disable.ps1 -TvHost <tv ip> examples\xiaomi-mitv-mssp3\debloat.txt
+# Undo:    tools\restore.ps1 -TvHost <tv ip> examples\xiaomi-mitv-mssp3\debloat.txt
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Notes from this firmware:
+# - restore.ps1 brings back the stock launcher but not the screensaver. The stock one is Ambient mode:
+#   tools\tv.py 'settings put secure screensaver_components com.google.android.backdrop/.Backdrop'
+# - Disabled out of the box (left alone, not in this list): calendar/contacts providers,
+#   print spooler, Google TTS, Play Games.
+# - No com.miui.tv.analytics / com.xiaomi.statistic here: Xiaomi telemetry rides in tvmanager (Firebase).
+# - Default IME is already Gboard.
+# - Kept on purpose: Chromecast built-in (com.google.android.apps.mediashell), Google Assistant
+#   (katniss), Ambient mode (backdrop), firmware updates, Miracast (com.mediatek.androidbox),
+#   the MediaTek TV input stack (com.mediatek.tvinput*, mitv.service) and Mi Bluetooth (remote).
+
+# PatchWall and Mi content / promos
+com.mitv.tvhome.atv                         # PatchWall (also holds the Mi account login)
+com.xm.webcontent
+com.xiaomi.floatingframe
+
+# Xiaomi background services
+com.xiaomi.mitv.tvmanager                   # "TV Manager" cleaner, Firebase analytics, starts at boot
+android.autoinstalls.config.xiaomi.amelie   # Play auto-install of partner apps
+
+# Google recommendation rows on the stock home
+com.google.android.tvrecommendations

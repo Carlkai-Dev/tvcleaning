@@ -99,6 +99,7 @@ Lists that people have tested and contributed live in [`examples/`](examples/):
 |---|---|
 | Xiaomi Mi TV 4A (MiTV-MOOQ1) | Android TV 10 |
 | Xiaomi MiTV-AXSO0 | Android TV 9 |
+| Xiaomi MiTV-MSSP3 | Android TV 11 |
 | TCL 55" 4K Google TV, 2023 (G10) | Google TV 12 |
 | SANYO ATV R2 | Android TV 9 |
 | OnePlus TV (D00) | Google TV 14 |
@@ -204,6 +205,9 @@ Things that bit us or contributors, so they don't bite you.
   first batch command into gibberish. `tv.py` now strips it, and the `.ps1` scripts pipe clean UTF-8.
 - **Git Bash rewrites paths** like `/data/local/tmp` into Windows paths. The scripts set
   `MSYS_NO_PATHCONV=1` for you. Set `JAVA_HOME` and `ANDROID_HOME` before building there.
+- **"Allow USB debugging?" comes back** although `adb devices` already works. `tv.py` used to make
+  its own key; it now reuses `~/.android/adbkey` when that exists. Each attempt with an unaccepted
+  key queues one more prompt on the TV: dismiss them all (Back) before testing with key presses.
 
 **Working on the TV**
 
@@ -212,6 +216,12 @@ Things that bit us or contributors, so they don't bite you.
 - **Large pushes hang** through the Python client. Use `tools/b64push.py` for APKs.
 - **Screenshots come out empty** while Live TV or an HDMI input is on screen, seen on TCL. Press
   Home before `screencap`.
+- **Play Protect blocks the launcher** ("Appli non sécurisée bloquée", built for an older Android)
+  and `pm install` hangs, then fails with `INSTALL_FAILED_VERIFICATION_FAILURE`. Seen on a Xiaomi
+  with Android TV 11 while the launcher targeted SDK 29; it now targets 34 and installs cleanly.
+- **`adb exec-out screencap -p` gives a broken PNG** on MediaTek Xiaomi TVs: the binary prints
+  `Init wrapper sys mutex successful` on stdout first. Save to a file on the TV and pull it:
+  `screencap -p /data/local/tmp/s.png`.
 - **Disable the stock launcher only after the new one is installed**, or the Home button lands on
   a factory test app.
 - **No on-screen keyboard** after switching launchers, seen on Xiaomi: the default input method
