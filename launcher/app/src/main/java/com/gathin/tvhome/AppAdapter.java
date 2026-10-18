@@ -70,8 +70,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
     }
 
-    static final float FOCUS_SCALE = 1.10f;
-    static final float MENU_SCALE = 1.20f;
+    static final float FOCUS_SCALE = 1.16f;
+    static final float MENU_SCALE = 1.24f;
 
     private final Context ctx;
     private final TileListener listener;

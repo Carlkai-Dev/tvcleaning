@@ -1,4 +1,4 @@
-# Hisense launcher customizations (2.6)
+# Hisense launcher customizations (2.7)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
@@ -115,6 +115,28 @@ The 2.6 frame counter stayed unchanged during a three-second idle sample after s
 
 ![Six-app dock](launcher-dock-2.6.png)
 ![Six-column app grid](launcher-grid-2.6.png)
+
+## Larger proportions and softer glass in 2.7
+
+Cards now measure 132 by 78 dp: about 6.5% wider and 11.4% taller than 2.6.
+The six-column content extends 26 dp farther on each side while the header retains its alignment.
+The viewport still leaves a 24 dp inset for edge zooms. The dock covers about 95% of the tested screen width.
+Corner radius, label placement, row height and highlight bounds follow the larger cards.
+
+Focused cards scale to 1.16x and long-press previews to 1.24x. Home and the contextual preview both use
+aspect-preserving center-crop fitting, lightly trimming wide banner edges to fill the taller frame without letterboxing.
+The tested dock logos remain legible and intact. Existing user ordering, including replacements in the dock, takes precedence.
+
+The highlight has a thinner, softer rim and two faint contour strokes; the dock's secondary inner rim was removed.
+Cached gradients remain the only glass simulation: no bitmap blur, continuous animation or additional dependency was added.
+
+Verified the dock and next grid row at both horizontal edges, including long-press previews and returning from the header.
+Preview bounds remained inside the screen with space for the halo; the stored order and hidden-package set were unchanged.
+A Home memory snapshot before interaction was 59,739 KiB PSS (about 58.3 MiB), and a settled three-second idle sample
+produced no new frames. This is a point-in-time observation rather than a controlled comparison with 2.6.
+
+![Larger cards and wider dock](launcher-dock-2.7.png)
+![Enlarged edge preview with the softened halo](launcher-menu-2.7.png)
 
 ## Hisense configuration
 

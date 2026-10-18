@@ -153,15 +153,14 @@
             </LinearLayout>
         </RelativeLayout>
 
-        <!-- Extra horizontal viewport room lets edge tiles zoom without cutting their corners.
-             Matching grid padding preserves the original card positions and column spacing.
-             The wrapper still clips vertically so scrolling apps cannot overlap the header. -->
+        <!-- A wider grid gives six taller tiles room to lift. The 24 dp internal inset
+             protects edge halos; the header keeps its existing alignment. -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginStart="-24dp"
-            android:layout_marginEnd="-24dp"
+            android:layout_marginStart="-50dp"
+            android:layout_marginEnd="-50dp"
             android:layout_marginTop="10dp">
 
             <androidx.recyclerview.widget.RecyclerView

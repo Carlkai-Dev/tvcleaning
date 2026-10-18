@@ -20,9 +20,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint innerEdge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
-    private final RectF inset = new RectF();
     private final Matrix shaderPosition = new Matrix();
     private LinearGradient surfaceGradient;
     private LinearGradient edgeGradient;
@@ -34,9 +32,6 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         tint.setColor(0x3014161A);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(0.8f * density);
-        innerEdge.setStyle(Paint.Style.STROKE);
-        innerEdge.setStrokeWidth(0.6f * density);
-        innerEdge.setColor(0x12FFFFFF);
     }
 
     @Override
@@ -77,10 +72,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         if (Math.abs(gradientHeight - rect.height()) > 0.5f) {
             gradientHeight = rect.height();
             surfaceGradient = new LinearGradient(0, 0, 0, gradientHeight,
-                    new int[]{0x48FFFFFF, 0x2AFFFFFF, 0x1CFFFFFF, 0x27FFFFFF},
+                    new int[]{0x3CFFFFFF, 0x23FFFFFF, 0x17FFFFFF, 0x20FFFFFF},
                     new float[]{0f, 0.34f, 0.78f, 1f}, Shader.TileMode.CLAMP);
             edgeGradient = new LinearGradient(0, 0, 0, gradientHeight,
-                    new int[]{0x88FFFFFF, 0x24FFFFFF, 0x50FFFFFF},
+                    new int[]{0x70FFFFFF, 0x20FFFFFF, 0x40FFFFFF},
                     new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP);
             band.setShader(surfaceGradient);
             edge.setShader(edgeGradient);
@@ -91,8 +86,5 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         c.drawRoundRect(rect, radius, radius, tint);
         c.drawRoundRect(rect, radius, radius, band);
         c.drawRoundRect(rect, radius, radius, edge);
-        inset.set(rect);
-        inset.inset(1.5f * density, 1.5f * density);
-        c.drawRoundRect(inset, radius - 1.5f * density, radius - 1.5f * density, innerEdge);
     }
 }

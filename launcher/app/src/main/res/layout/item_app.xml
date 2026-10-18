@@ -28,7 +28,7 @@
                 android:id="@+id/banner"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="fitCenter"
+                android:scaleType="centerCrop"
                 android:contentDescription="@null" />
 
             <ImageView
@@ -73,7 +73,7 @@
         android:layout_width="@dimen/tile_width"
         android:layout_height="18dp"
         android:layout_gravity="center_horizontal|top"
-        android:layout_marginTop="78dp"
+        android:layout_marginTop="86dp"
         android:gravity="center"
         android:singleLine="true"
         android:ellipsize="end"

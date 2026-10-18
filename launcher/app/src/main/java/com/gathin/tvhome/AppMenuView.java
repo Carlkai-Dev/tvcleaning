@@ -53,7 +53,7 @@ final class AppMenuView extends FrameLayout {
         if (artwork != null && artwork.getConstantState() != null)
             artwork = artwork.getConstantState().newDrawable().mutate();
         preview.setImageDrawable(artwork);
-        preview.setScaleType(entry.banner != null ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_INSIDE);
+        preview.setScaleType(entry.banner != null ? ImageView.ScaleType.CENTER_CROP : ImageView.ScaleType.CENTER_INSIDE);
         preview.setContentDescription(entry.label);
         previewCard = new FrameLayout(context);
         float tileRadius = getResources().getDimension(R.dimen.tile_radius);
