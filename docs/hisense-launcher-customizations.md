@@ -1,4 +1,4 @@
-# Hisense launcher customizations (2.3)
+# Hisense launcher customizations (2.3.1)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
@@ -29,6 +29,14 @@ uses the same highlight and continues from the scale reached while holding OK.
 Verified on the TV: the three header pills each measured 224 by 84 screen pixels,
 with 20-pixel gaps and the same vertical position. Checked the input menu, Wi-Fi,
 Settings, focused cards and contextual previews. The app order was unchanged.
+
+### Edge clipping fix in 2.3.1
+
+The grid viewport extends 24 dp farther on each horizontal side, with matching internal padding.
+This preserves card positions, column spacing and dock geometry while leaving room for the 1.2x long-press scale.
+Vertical clipping remains enabled to keep scrolling apps out of the header.
+Verified first and last columns in the dock and app grid, including the long-press menus;
+the saved app order was unchanged.
 
 ## Hisense configuration
 
