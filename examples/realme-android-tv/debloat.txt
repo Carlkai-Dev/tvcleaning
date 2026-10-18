@@ -1,0 +1,26 @@
+# Retail model: realme 100 cm (40-inch) Full HD LED Smart Android TV
+# Android-reported manufacturer: Changhong (firmware identifier)
+# Android-reported model: AI PONT (firmware-reported name; retail brand: realme)
+# Device: redwood
+# Android version: 14 (SDK 34)
+# Firmware build: UKNV.260514.001
+# Stock launcher: com.google.android.tvlauncher
+# These packages have been disabled on this device.
+# Restore packages and stock launcher with:
+# TV_HOST=192.168.1.51 tools/restore.sh examples/realme-android-tv/debloat.txt
+
+# Stock launcher
+com.google.android.tvlauncher
+
+# Manufacturer help and voice integrations
+com.homwee.help
+com.homwee.alexacontrol
+
+# Anoki ACR opt-in
+tv.anoki.acr.anokiacroptin
+
+# Google Assistant / voice search
+com.google.android.katniss
+
+# Accessibility screen reader (re-enable if needed)
+com.google.android.marvin.talkback
