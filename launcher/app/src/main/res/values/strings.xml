@@ -55,4 +55,29 @@
     <string name="wifi_bad_password">Check the password and try again.</string>
     <string name="wifi_saved">Network saved. Android will manage the connection.</string>
     <string name="wifi_save_failed">Could not save the network. Open network settings to retry.</string>
+    <string name="launcher_clock">Clock</string>
+    <string name="launcher_appearance">Appearance</string>
+    <string name="launcher_display">Display settings</string>
+    <string name="launcher_advanced">Advanced settings</string>
+    <string name="launcher_information">Launcher information</string>
+    <string name="launcher_clock_format">Time format</string>
+    <string name="launcher_12h">12 hours</string>
+    <string name="launcher_24h">24 hours</string>
+    <string name="launcher_greeting">Greeting</string>
+    <string name="launcher_date">Date</string>
+    <string name="launcher_halo">Icon halo</string>
+    <string name="launcher_dock">Dock glass</string>
+    <string name="launcher_motion">Animations</string>
+    <string name="launcher_normal">Normal</string>
+    <string name="launcher_soft">Soft</string>
+    <string name="launcher_off">Off</string>
+    <string name="launcher_on">On</string>
+    <string name="launcher_current">Standard</string>
+    <string name="launcher_lighter">More transparent</string>
+    <string name="launcher_opaque">More opaque</string>
+    <string name="launcher_reduced">Reduced</string>
+    <string name="launcher_version">Launcher version</string>
+    <string name="launcher_device">Device model</string>
+    <string name="launcher_android">Android version</string>
+    <string name="launcher_info_value" translatable="false">%1$s\n%2$s</string>
 </resources>

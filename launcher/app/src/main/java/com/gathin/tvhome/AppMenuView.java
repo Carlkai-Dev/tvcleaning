@@ -156,9 +156,9 @@ final class AppMenuView extends FrameLayout {
         if (!openingStarted) {
             openingStarted = true;
             previewCard.animate().scaleX(AppAdapter.MENU_SCALE).scaleY(AppAdapter.MENU_SCALE)
-                    .setDuration(220).start();
+                    .setDuration(LauncherOptions.duration(220)).start();
             panel.setTranslationY(8 * density);
-            panel.animate().alpha(1f).translationY(0).setDuration(180).start();
+            panel.animate().alpha(1f).translationY(0).setDuration(LauncherOptions.duration(180)).start();
         }
     }
 

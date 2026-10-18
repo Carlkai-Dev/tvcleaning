@@ -56,9 +56,11 @@ public class GlassView extends View {
         // Broad, faint strokes build a soft halo without an offscreen blur texture.
         glow.setStrokeWidth(4f * density);
         glow.setColor(0x08DCEAFF);
+        glow.setAlpha((int) (8 * LauncherOptions.halo));
         canvas.drawRoundRect(rect, innerRadius, innerRadius, glow);
         glow.setStrokeWidth(2f * density);
         glow.setColor(0x10DCEAFF);
+        glow.setAlpha((int) (16 * LauncherOptions.halo));
         canvas.drawRoundRect(rect, innerRadius, innerRadius, glow);
         canvas.drawRoundRect(rect, innerRadius, innerRadius, fill);
         canvas.drawRoundRect(rect, innerRadius, innerRadius, specular);

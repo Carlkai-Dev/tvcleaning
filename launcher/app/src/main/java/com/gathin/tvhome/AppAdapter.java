@@ -235,7 +235,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (card == null) continue;
             float offset = dockOffsetFor(grid.getChildAdapterPosition(item));
             if (Math.abs(card.getTranslationX() - offset) < 0.1f) continue;
-            if (animate) card.animate().translationX(offset).setDuration(200)
+            if (animate) card.animate().translationX(offset).setDuration(LauncherOptions.duration(200))
                     .setInterpolator(dockEase).start();
             else {
                 card.animate().cancel();
@@ -431,10 +431,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                     if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
                         view.animate().scaleX(MENU_SCALE).scaleY(MENU_SCALE)
                                 .setInterpolator(ease)
-                                .setDuration(ViewConfiguration.getLongPressTimeout()).start();
+                                .setDuration(LauncherOptions.duration(ViewConfiguration.getLongPressTimeout())).start();
                     } else if (event.getAction() == KeyEvent.ACTION_UP) {
                         view.animate().scaleX(FOCUS_SCALE).scaleY(FOCUS_SCALE)
-                                .setInterpolator(ease).setDuration(160).start();
+                                .setInterpolator(ease).setDuration(LauncherOptions.duration(160)).start();
                     }
                     return false; // Android still distinguishes click from long click.
                 }
@@ -446,16 +446,16 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
-                highlight.animate().alpha(focused ? 1f : 0f).setDuration(focused ? 130 : 100).start();
+                highlight.animate().alpha(focused ? 1f : 0f).setDuration(LauncherOptions.duration(focused ? 130 : 100)).start();
                 float s = focused ? FOCUS_SCALE : 1.0f;
                 view.animate().scaleX(s).scaleY(s)
-                        .setDuration(focused ? 200 : 160)
+                        .setDuration(LauncherOptions.duration(focused ? 200 : 160))
                         .setInterpolator(ease)
                         .start();
                 view.setElevation(focused ? 3f * density : 0f);
                 name.animate().alpha(focused ? 1f : 0f)
                         .translationY(focused ? density * 2f : -density * 4f)
-                        .setDuration(160).start();
+                        .setDuration(LauncherOptions.duration(160)).start();
                 int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);

@@ -99,6 +99,7 @@
                         android:textAllCaps="true" />
 
                     <View
+                        android:id="@+id/dateSeparator"
                         android:layout_width="1dp"
                         android:layout_height="20dp"
                         android:layout_gravity="center_vertical"

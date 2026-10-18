@@ -27,6 +27,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private LinearGradient surfaceGradient;
     private LinearGradient edgeGradient;
     private float gradientHeight = -1;
+    private float opacity = -1;
 
     DockDecoration(int dockSize, float density) {
         this.dockSize = dockSize;
@@ -72,10 +73,13 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         rect.inset(-23 * density, -VERTICAL_PADDING_DP * density);
         float radius = 26 * density;
         // Scrolling only translates the cached shaders; focus scaling never resizes the dock.
-        if (Math.abs(gradientHeight - rect.height()) > 0.5f) {
+        if (Math.abs(gradientHeight - rect.height()) > 0.5f || opacity != LauncherOptions.dockOpacity) {
             gradientHeight = rect.height();
+            opacity = LauncherOptions.dockOpacity;
+            tint.setColor(withOpacity(0x3014161A));
             surfaceGradient = new LinearGradient(0, 0, 0, gradientHeight,
-                    new int[]{0x3CFFFFFF, 0x23FFFFFF, 0x17FFFFFF, 0x20FFFFFF},
+                    new int[]{withOpacity(0x3CFFFFFF), withOpacity(0x23FFFFFF),
+                            withOpacity(0x17FFFFFF), withOpacity(0x20FFFFFF)},
                     new float[]{0f, 0.34f, 0.78f, 1f}, Shader.TileMode.CLAMP);
             edgeGradient = new LinearGradient(0, 0, 0, gradientHeight,
                     new int[]{0x70FFFFFF, 0x20FFFFFF, 0x40FFFFFF},
@@ -89,5 +93,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         c.drawRoundRect(rect, radius, radius, tint);
         c.drawRoundRect(rect, radius, radius, band);
         c.drawRoundRect(rect, radius, radius, edge);
+    }
+
+    private int withOpacity(int color) {
+        int alpha = Math.min(255, (int) ((color >>> 24) * opacity));
+        return (alpha << 24) | (color & 0x00FFFFFF);
     }
 }

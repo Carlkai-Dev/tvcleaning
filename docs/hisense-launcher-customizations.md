@@ -1,7 +1,45 @@
-# Hisense launcher customizations (2.10.1)
+# Hisense launcher customizations (2.11)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
+
+## Launcher settings in 2.11
+
+Settings now opens a lightweight anchored panel with four entries:
+
+- **Clock:** 12/24-hour format, greeting visibility and date visibility.
+- **Appearance:** icon halo (normal/soft/off), dock surface (standard/more
+  transparent/more opaque), and animations (normal/reduced/off). Press OK to
+  cycle a value; changes apply immediately and persist locally.
+- **Display settings:** opens `Settings.ACTION_DISPLAY_SETTINGS`. On this Hisense
+  it opens the native Picture panel with Picture Mode, Brightness, Color, Clarity
+  and Calibration Settings. It does not alter any picture values itself.
+- **Advanced settings:** opens the television's Android settings.
+
+When Advanced settings has focus, five separate Down presses replace the menu
+with launcher version, manufacturer/model and Android version. Holding Down
+counts once; another key or moving focus clears the sequence. Back returns to
+the main menu, and Back again closes it. The separate five-Right hidden-app
+shortcut on the Home Settings button remains intact. No restore-defaults option
+is included.
+
+The dialog views are created on demand and released on dismissal. Appearance
+values are cached in a context-free helper: no preference reads during drawing,
+no new image assets, dependencies, services or periodic tasks. Existing animation
+durations honor the chosen mode, including app focus, long-press previews,
+dropdowns and scrolling. The focus rim remains visible with the halo disabled.
+
+Validation: debug APK built successfully; on-device checks covered clock toggles,
+all appearance value cycles, persisted preferences after process recreation,
+the hidden-info counter/reset/held-key behavior, Back navigation, and both native
+settings destinations. The native Picture panel was verified by its visible
+Picture/Color controls (Hisense can show it as an overlay over Home). App order
+and hidden packages were retained. Project-wide lint still reports the 41
+previous errors documented for 2.10; no new Java API/resource errors were found
+in the settings implementation.
+
+![Launcher settings](launcher-settings-2.11.png)
+![Appearance submenu](launcher-appearance-2.11.png)
 
 ## First-use move help in 2.10.1
 

@@ -36,6 +36,7 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.TextClock;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -71,6 +72,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TopButton btnWifi;
     private HeaderDropdown inputDropdown;
     private WifiDropdown wifiDropdown;
+    private LauncherSettings launcherSettings;
     private boolean pendingWifiPermissionResult;
     // Static so they survive the activity being destroyed while another app is open (low-memory TVs,
     // or Developer options → "Don't keep activities"); they only reset when the process dies.
@@ -116,6 +118,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        LauncherOptions.load(this);
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
         COLUMNS = Math.max(1, getResources().getInteger(R.integer.columns));
@@ -188,7 +191,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs.setOnClickListener(v -> showInputs());
         wifiDropdown = new WifiDropdown(this, root, btnWifi);
         btnWifi.setOnClickListener(v -> wifiDropdown.show());
-        btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        launcherSettings = new LauncherSettings(this, btnSettings, this::applyLauncherOptions);
+        btnSettings.setOnClickListener(v -> launcherSettings.show());
         btnSettings.setOnFocusChangeListener((v, focused) -> settingsRightPresses = 0);
         btnSettings.setContentDescription(getString(R.string.settings_hidden_hint));
 
@@ -216,6 +220,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
+        applyLauncherOptions();
 
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         if (cm != null) cm.registerDefaultNetworkCallback(networkCallback);
@@ -231,7 +236,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
         adapter.reload();
-        if (!homeShown) grid.scheduleLayoutAnimation();
+        if (!homeShown && LauncherOptions.motion != 2) grid.scheduleLayoutAnimation();
         homeShown = true;
         updateGreeting();
         updateWifiLabel();
@@ -249,6 +254,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (!intent.hasCategory(Intent.CATEGORY_HOME)) return;
+        if (launcherSettings != null) launcherSettings.dismiss();
         if (inputDropdown != null) inputDropdown.window.dismiss();
         if (wifiDropdown != null) wifiDropdown.dismiss();
         if (hiddenPopup != null) hiddenPopup.dismiss();
@@ -257,6 +263,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onPause() {
+        if (launcherSettings != null) launcherSettings.dismiss();
         settingsRightPresses = 0;
         pendingFocusPosition = RecyclerView.NO_POSITION;
         grid.stopScroll();
@@ -310,7 +317,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         root.addView(appMenu, new FrameLayout.LayoutParams(-1, -1));
         appMenu.requestFocus();
-        card.animate().scaleX(AppAdapter.FOCUS_SCALE).scaleY(AppAdapter.FOCUS_SCALE).setDuration(180).start();
+        card.animate().scaleX(AppAdapter.FOCUS_SCALE).scaleY(AppAdapter.FOCUS_SCALE).setDuration(LauncherOptions.duration(180)).start();
     }
 
     private void dismissAppMenu(String focusKey) {
@@ -430,7 +437,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hiddenPopup = popup;
         panel.setAlpha(0f);
         popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.END);
-        panel.animate().alpha(1f).setDuration(160).start();
+        panel.animate().alpha(1f).setDuration(LauncherOptions.duration(160)).start();
         rows.getChildAt(0).requestFocus();
     }
 
@@ -524,7 +531,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Dock: park it at the bottom of the screen and show the top shelf for this app.
             int decoratedTop = item.getTop() - (int) (6 * density);
             int dy = decoratedTop - grid.getPaddingTop();
-            if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy, navigationEase, 200);
+            if (Math.abs(dy) > 1) scrollGrid(dy);
             showHero(position);
         } else {
             hideHero();
@@ -534,7 +541,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int dy = bottom > grid.getHeight() - grid.getPaddingBottom()
                     ? bottom - (grid.getHeight() - grid.getPaddingBottom())
                     : top < grid.getPaddingTop() ? top - grid.getPaddingTop() : 0;
-            if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy, navigationEase, 200);
+            if (Math.abs(dy) > 1) scrollGrid(dy);
         }
     }
 
@@ -567,16 +574,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!heroShown) {
             heroName.setAlpha(1f);
             setAmbient(color);
-            ambient.animate().alpha(1f).setDuration(240).start();
+            ambient.animate().alpha(1f).setDuration(LauncherOptions.duration(240)).start();
             heroShown = true;
         } else if (changed) {
             heroName.setAlpha(0.7f);
-            heroName.animate().alpha(1f).setDuration(150).start();
+            heroName.animate().alpha(1f).setDuration(LauncherOptions.duration(150)).start();
             if (color != ambientColor) setAmbient(color);
-            ambient.animate().alpha(1f).setDuration(180).start();
+            ambient.animate().alpha(1f).setDuration(LauncherOptions.duration(180)).start();
         } else {
-            heroName.animate().alpha(1f).setDuration(150).start();
-            ambient.animate().alpha(1f).setDuration(180).start();
+            heroName.animate().alpha(1f).setDuration(LauncherOptions.duration(150)).start();
+            ambient.animate().alpha(1f).setDuration(LauncherOptions.duration(180)).start();
         }
     }
 
@@ -591,8 +598,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         heroShown = false;
-        heroName.animate().alpha(0f).setDuration(160).start();
-        ambient.animate().alpha(0f).setDuration(300).start();
+        heroName.animate().alpha(0f).setDuration(LauncherOptions.duration(160)).start();
+        ambient.animate().alpha(0f).setDuration(LauncherOptions.duration(300)).start();
     }
 
     // ---- navigation ------------------------------------------------------------------------------
@@ -654,10 +661,44 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         // The shared listener will focus the latest requested tile once it is attached.
         pendingFocusPosition = pos;
-        grid.smoothScrollToPosition(pos);
+        if (LauncherOptions.motion == 2) grid.scrollToPosition(pos);
+        else grid.smoothScrollToPosition(pos);
     }
 
     // ---- top bar ---------------------------------------------------------------------------------
+
+    private void applyLauncherOptions() {
+        LauncherOptions.load(this);
+        android.content.SharedPreferences prefs = getSharedPreferences("home", MODE_PRIVATE);
+        boolean use24 = prefs.getInt("clock_format", 0) == 1;
+        TextClock clock = findViewById(R.id.clock);
+        clock.setFormat12Hour(use24 ? "HH:mm" : "h:mm");
+        clock.setFormat24Hour(use24 ? "HH:mm" : "h:mm");
+        TextClock ampm = findViewById(R.id.ampm);
+        ampm.setFormat12Hour("a");
+        ampm.setFormat24Hour("a");
+        ampm.setVisibility(use24 ? View.GONE : View.VISIBLE);
+        greeting.setVisibility(prefs.getBoolean("clock_greeting", true) ? View.VISIBLE : View.INVISIBLE);
+        int dateVisibility = prefs.getBoolean("clock_date", true) ? View.VISIBLE : View.GONE;
+        findViewById(R.id.date).setVisibility(dateVisibility);
+        findViewById(R.id.dateSeparator).setVisibility(dateVisibility);
+        grid.getLayoutAnimation().getAnimation().setDuration(LauncherOptions.duration(240));
+        invalidateAppearance(root);
+    }
+
+    private void invalidateAppearance(View view) {
+        view.invalidate();
+        if (view instanceof ViewGroup) {
+            ViewGroup parent = (ViewGroup) view;
+            for (int i = 0; i < parent.getChildCount(); i++) invalidateAppearance(parent.getChildAt(i));
+        }
+    }
+
+    private void scrollGrid(int dy) {
+        int duration = (int) LauncherOptions.duration(200);
+        if (duration == 0) grid.scrollBy(0, dy);
+        else grid.smoothScrollBy(0, dy, navigationEase, duration);
+    }
 
     private void updateGreeting() {
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);

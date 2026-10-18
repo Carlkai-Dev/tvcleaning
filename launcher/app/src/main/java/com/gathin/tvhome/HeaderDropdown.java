@@ -41,7 +41,7 @@ final class HeaderDropdown {
         panel.setAlpha(0);
         panel.setTranslationY(-4 * density);
         window.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.END);
-        panel.animate().alpha(1).translationY(0).setDuration(160).start();
+        panel.animate().alpha(1).translationY(0).setDuration(LauncherOptions.duration(160)).start();
         for (int i = 0; i < rows.getChildCount(); i++) {
             View row = rows.getChildAt(i);
             if (row.isFocusable()) {
