@@ -13,8 +13,8 @@ stock launcher back.
 
 ## Quick start
 
-1. On the TV: Settings → Device Preferences → About → press OK on **Build** seven times → back →
-   Developer options → turn on **USB debugging** (and Network/ADB debugging if your TV shows it).
+1. On the TV: Settings â†’ Device Preferences â†’ About â†’ press OK on **Build** seven times â†’ back â†’
+   Developer options â†’ turn on **USB debugging** (and Network/ADB debugging if your TV shows it).
    Keep the TV on and on the same Wi-Fi as your computer.
 2. Open Claude Code (or your assistant of choice) on your computer and paste the prompt from
    [`PROMPT.md`](PROMPT.md), filling in your TV model.
@@ -60,6 +60,21 @@ TV_HOST=192.168.1.50 launcher/build-and-install.sh
 
 Needs JDK 17 and the Android SDK (platform 34, build-tools 34.0.0). On macOS:
 `brew install openjdk@17 android-commandlinetools && sdkmanager "platforms;android-34" "build-tools;34.0.0"`.
+
+## Organising apps from the remote
+
+Hold **OK** on an app for **Move**, **App info**, **In dock** and **Remove from Home**.
+Move with the D-pad, press **OK** to save, or **Back** to cancel. Dock tiles move within the
+dock and other tiles move within the grid. **In dock** replaces a dock slot; the displaced app
+remains available. Removing a dock tile leaves an **Add app** slot.
+
+**App library** below the grid lists installed apps with TV or ordinary Android launcher entries,
+including hidden shortcuts. Choose one to add it to Home, or open an **Add app** dock slot to
+choose its replacement. These choices survive returning Home and restarting the launcher.
+Removing a shortcut never uninstalls the app or clears its data.
+
+The menus use native Android dialogs. This feature adds no permissions, network access, blur,
+background services or dependencies. See [real-TV validation](docs/app-library.md).
 
 ## Talking to the TV by hand
 
