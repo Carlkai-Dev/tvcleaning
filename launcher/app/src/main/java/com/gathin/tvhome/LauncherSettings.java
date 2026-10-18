@@ -70,7 +70,7 @@ final class LauncherSettings {
             }
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             View focus = dialog.getCurrentFocus();
-            boolean last = page == 0 && focus != null && "advanced".equals(focus.getTag());
+            boolean last = page == 0 && focus != null && isLastAvailableRow(focus);
             if (last && key == KeyEvent.KEYCODE_DPAD_DOWN) {
                 if (event.getRepeatCount() == 0 && ++downPresses == 5) render(3, 0);
                 return true;
@@ -131,8 +131,8 @@ final class LauncherSettings {
         if (page == 0) {
             row("clock", R.string.launcher_clock, "›", () -> render(1, 0));
             row("appearance", R.string.launcher_appearance, "›", () -> render(2, 0));
-            row("display", R.string.launcher_display, "↗", () -> open(Settings.ACTION_DISPLAY_SETTINGS));
-            row("advanced", R.string.launcher_advanced, "↗", () -> open(Settings.ACTION_SETTINGS));
+            shortcut("display", R.string.launcher_display, Settings.ACTION_DISPLAY_SETTINGS);
+            shortcut("advanced", R.string.launcher_advanced, Settings.ACTION_SETTINGS);
         } else if (page == 1) {
             cycle("clock_format", R.string.launcher_clock_format,
                     new int[]{R.string.launcher_12h, R.string.launcher_24h});
@@ -174,7 +174,25 @@ final class LauncherSettings {
             info(R.string.launcher_created_by, "Gathin23");
             info(R.string.launcher_tuned_by, "YouLop09");
         }
-        rows.getChildAt(Math.min(selected, rows.getChildCount() - 1)).requestFocus();
+        for (int i = Math.min(selected, rows.getChildCount() - 1); i >= 0; i--) {
+            View row = rows.getChildAt(i);
+            if (row.isEnabled() && row.isFocusable()) { row.requestFocus(); break; }
+        }
+    }
+
+    private boolean isLastAvailableRow(View focus) {
+        for (int i = rows.getChildCount() - 1; i >= 0; i--) {
+            View row = rows.getChildAt(i);
+            if (row.isEnabled() && row.isFocusable()) return row == focus;
+        }
+        return false;
+    }
+
+    private void shortcut(String key, int label, String action) {
+        boolean available = SystemShortcut.canOpen(activity, new Intent(action));
+        View item = row(key, label, available ? "↗" : activity.getString(R.string.shortcut_unavailable),
+                () -> open(action));
+        if (!available) SystemShortcut.disable(item);
     }
 
     private void cycle(String key, int label, int[] choices) {
@@ -298,10 +316,10 @@ final class LauncherSettings {
     private int dp(int value) { return (int) (value * density); }
 
     private void open(String action) {
-        dismiss();
-        try { activity.startActivity(new Intent(action)); }
-        catch (android.content.ActivityNotFoundException | SecurityException e) {
+        if (SystemShortcut.open(activity, new Intent(action))) dismiss();
+        else {
             Toast.makeText(activity, R.string.not_available, Toast.LENGTH_SHORT).show();
+            render(0, 0);
         }
     }
 }

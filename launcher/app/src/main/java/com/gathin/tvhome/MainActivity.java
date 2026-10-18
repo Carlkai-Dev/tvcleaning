@@ -746,11 +746,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void open(Intent i) {
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try {
-            startActivity(i);
-        } catch (ActivityNotFoundException e) {
+        if (!SystemShortcut.open(this, i))
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
-        }
     }
 
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
@@ -800,9 +797,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 int state = hdmi && hdmiStateBogus ? -1 : tim.getInputState(id);
                 if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);
                 if (!hdmi) sawNonHdmi = true;
-                addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, label, state,
-                        () -> open(new Intent(Intent.ACTION_VIEW).setDataAndType(
-                                TvContract.buildChannelUriForPassthroughInput(id), "vnd.android.cursor.item/channel")));
+                Intent inputIntent = new Intent(Intent.ACTION_VIEW).setDataAndType(
+                        TvContract.buildChannelUriForPassthroughInput(id), "vnd.android.cursor.item/channel");
+                addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, label, state, inputIntent);
             }
         }
         Intent liveTv = liveTvPkg.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg);
@@ -814,7 +811,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (liveTv != null) {
             if (rows.getChildCount() > 0) addSeparator(rows);
             final Intent liveTvIntent = liveTv;
-            addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> open(liveTvIntent));
+            addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, liveTvIntent);
         }
         if (rows.getChildCount() == 0) {
             Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();
@@ -833,7 +830,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rows.addView(line, lp);
     }
 
-    private void addInputRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, int state, Runnable action) {
+    private void addInputRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, int state, Intent intent) {
         View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
         ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
         ((TextView) row.findViewById(R.id.title)).setText(title);
@@ -852,9 +849,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             status.setVisibility(View.GONE);
             dot.setVisibility(View.GONE);
         }
-        row.setOnClickListener(v -> {
+        boolean available = SystemShortcut.canOpen(this, intent);
+        if (!available) {
+            status.setVisibility(View.VISIBLE);
+            status.setText(R.string.shortcut_unavailable);
+            dot.setVisibility(View.GONE);
+            SystemShortcut.disable(row);
+            row.setContentDescription(title + ": " + getString(R.string.shortcut_unavailable));
+        } else row.setOnClickListener(v -> {
             popup.dismiss();
-            action.run();
+            open(intent);
         });
         HeaderDropdown.containNavigation(row);
         rows.addView(row);

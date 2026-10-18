@@ -93,4 +93,5 @@
     <string name="greeting_daily_help">A new phrase each day. Name-based phrases appear only with a saved name. Leave the name blank to remove it.</string>
     <string name="launcher_created_by">Created by</string>
     <string name="launcher_tuned_by">Tuned by</string>
+    <string name="shortcut_unavailable">Unavailable</string>
 </resources>

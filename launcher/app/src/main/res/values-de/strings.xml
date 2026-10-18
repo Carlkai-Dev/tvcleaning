@@ -74,4 +74,5 @@
     <string name="greeting_daily_help">Jeden Tag ein neuer Spruch. Persönliche Sprüche erscheinen nur mit gespeichertem Namen. Zum Entfernen den Namen leer lassen.</string>
     <string name="launcher_created_by">Erstellt von</string>
     <string name="launcher_tuned_by">Angepasst von</string>
+    <string name="shortcut_unavailable">Nicht verfügbar</string>
 </resources>

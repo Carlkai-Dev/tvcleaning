@@ -3,6 +3,33 @@
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
 
+## Device-dependent shortcuts
+
+External display/advanced settings, HDMI/AV/Live TV entries and Wi-Fi settings
+shortcuts now check Android's resolved activity before enabling the row. A
+handler must exist, be enabled and accessible to this app, and require no
+permission the launcher lacks. Unsupported rows remain visible with a localized
+Unavailable label, dimmed and excluded from remote focus and clicks. A
+disconnected HDMI port remains selectable when its screen is supported.
+
+Launches recheck availability and handle activity removal or permission changes
+without a crash. A missing settings screen keeps the launcher menu open. The
+five-Down information gesture uses the last enabled Settings row, so it also
+works on devices without display or advanced-settings handlers. Wi-Fi network
+selection requires an accessible native settings page or a supported Android
+save dialog; the existing Android confirmation and TV fallback remain intact.
+Checks run when menus are constructed/refreshed or shortcuts are used, without
+background polling. This refinement retains version 2.12.1 / code 20.
+
+Validation: successful debug build and installation; 17 host checks executed
+the actual SystemShortcut class against framework stubs for missing, disabled,
+non-exported and permission-protected handlers, valid handlers, launch-time
+failures and disabled row state. On the Hisense, picture/advanced settings and
+native network settings opened successfully; HDMI entries remained enabled;
+the information gesture still opened the credits. Other OEM devices were not
+available for validation. Existing preferences and network configuration were
+preserved.
+
 ## Consistent transparency in 2.12.1
 
 Header pills and the Inputs, Wi-Fi, Settings and hidden-app panels now share the

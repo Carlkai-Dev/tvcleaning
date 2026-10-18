@@ -144,6 +144,8 @@ final class WifiDropdown {
         View oldFocus = rows.findFocus();
         Object focusedKey = oldFocus == null ? null : oldFocus.getTag();
         rows.removeAllViews();
+        boolean settingsAvailable = SystemShortcut.canOpen(activity, new Intent(Settings.ACTION_WIFI_SETTINGS));
+        boolean saveAvailable = Build.VERSION.SDK_INT >= 30 && supportsSaveDialog();
         heading(activity.getString(R.string.wifi));
         if (!canScan()) {
             int message = wifi == null || !wifi.isWifiEnabled() ? R.string.wifi_disabled
@@ -151,8 +153,7 @@ final class WifiDropdown {
                     ? R.string.wifi_permission_needed : R.string.wifi_location_needed;
             heading(activity.getString(message));
             if (message == R.string.wifi_location_needed)
-                row("location", activity.getString(R.string.wifi_location_settings), "", false,
-                        () -> openSettings(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                shortcutRow("location", R.string.wifi_location_settings, Settings.ACTION_LOCATION_SOURCE_SETTINGS);
         } else {
             String current = currentSsid();
             Map<String, ScanResult> unique = new HashMap<>();
@@ -175,18 +176,21 @@ final class WifiDropdown {
                 boolean connected = network.SSID.equals(current);
                 String status = activity.getString(connected ? R.string.connected
                         : "open".equals(security(network)) ? R.string.wifi_open : R.string.wifi_secured);
-                row(network.SSID + '\n' + security(network), network.SSID, status, connected,
+                boolean available = connected || settingsAvailable
+                        || (saveAvailable && !"system".equals(security(network)));
+                View item = row(network.SSID + '\n' + security(network), network.SSID,
+                        available ? status : activity.getString(R.string.shortcut_unavailable), connected,
                         () -> { if (!connected) select(network); });
+                if (!available) SystemShortcut.disable(item);
             }
-            if (!supportsSaveDialog()) heading(activity.getString(R.string.wifi_system_step));
+            if (!saveAvailable) heading(activity.getString(R.string.wifi_system_step));
             row("refresh", activity.getString(R.string.wifi_refresh), "", false, this::requestScan);
         }
-        row("settings", activity.getString(R.string.wifi_more_settings), "", false,
-                () -> openSettings(Settings.ACTION_WIFI_SETTINGS));
+        shortcutRow("settings", R.string.wifi_more_settings, Settings.ACTION_WIFI_SETTINGS);
         // Preserve the selected network when the one-shot scan arrives.
         if (focusedKey != null) {
             View replacement = rows.findViewWithTag(focusedKey);
-            if (replacement != null) replacement.requestFocus();
+            if (replacement != null && replacement.isEnabled() && replacement.isFocusable()) replacement.requestFocus();
             else for (int i = 0; i < rows.getChildCount(); i++)
                 if (rows.getChildAt(i).isFocusable()) { rows.getChildAt(i).requestFocus(); break; }
         }
@@ -204,7 +208,14 @@ final class WifiDropdown {
         dropdown.rows.addView(label, new LinearLayout.LayoutParams(-1, -2));
     }
 
-    private void row(String key, String title, String state, boolean connected, Runnable action) {
+    private void shortcutRow(String key, int title, String action) {
+        boolean available = SystemShortcut.canOpen(activity, new Intent(action));
+        View item = row(key, activity.getString(title),
+                available ? "" : activity.getString(R.string.shortcut_unavailable), false, () -> openSettings(action));
+        if (!available) SystemShortcut.disable(item);
+    }
+
+    private View row(String key, String title, String state, boolean connected, Runnable action) {
         View row = activity.getLayoutInflater().inflate(R.layout.item_input, dropdown.rows, false);
         row.setTag(key);
         ((ImageView) row.findViewById(R.id.icon)).setImageResource(R.drawable.ic_wifi);
@@ -217,6 +228,7 @@ final class WifiDropdown {
         row.setOnClickListener(v -> action.run());
         HeaderDropdown.containNavigation(row);
         dropdown.rows.addView(row);
+        return row;
     }
 
     private String security(ScanResult network) {
@@ -234,7 +246,8 @@ final class WifiDropdown {
         if (Build.VERSION.SDK_INT < 30) return false;
         ResolveInfo handler = activity.getPackageManager().resolveActivity(new Intent(Settings.ACTION_WIFI_ADD_NETWORKS), 0);
         // AOSP TV routes this action to its generic network page, ignoring the proposed credentials.
-        return handler != null && handler.activityInfo != null
+        return SystemShortcut.canOpen(activity, new Intent(Settings.ACTION_WIFI_ADD_NETWORKS))
+                && handler != null && handler.activityInfo != null
                 && !handler.activityInfo.name.endsWith(".connectivity.NetworkActivity");
     }
 
@@ -302,10 +315,10 @@ final class WifiDropdown {
     }
 
     private void openSettings(String action) {
-        dismiss();
-        try { activity.startActivity(new Intent(action)); }
-        catch (android.content.ActivityNotFoundException | SecurityException e) {
+        if (SystemShortcut.open(activity, new Intent(action))) dismiss();
+        else {
             Toast.makeText(activity, R.string.not_available, Toast.LENGTH_SHORT).show();
+            render();
         }
     }
 }
