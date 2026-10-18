@@ -22,6 +22,7 @@ prompt that did it is in this repo so you can do the same with yours.
 - [Supported TVs](#supported-tvs)
 - [Doing it by hand](#doing-it-by-hand)
 - [The launcher](#the-launcher)
+- [LG TVs (webOS)](#lg-tvs-webos)
 - [Troubleshooting](#troubleshooting)
 - [Questions people ask](#questions-people-ask)
 - [Contributing](#contributing)
@@ -90,8 +91,11 @@ phoning home, no apps you never asked for.
 Anything running **Android TV** or **Google TV**: Xiaomi and Redmi, TCL, Hisense, Sony, OnePlus,
 Realme, Nvidia Shield and most others.
 
-Not supported: Samsung (Tizen), LG (webOS) and Amazon Fire TV. They run different systems or
-won't let a third-party launcher take over Home.
+**LG (webOS)** gets the launcher but no debloat, through LG's Developer Mode. See
+[LG TVs (webOS)](#lg-tvs-webos).
+
+Not supported: Samsung (Tizen) and Amazon Fire TV. They run different systems or won't let a
+third-party launcher take over Home.
 
 Lists that people have tested and contributed live in [`examples/`](examples/):
 
@@ -188,6 +192,29 @@ tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components
 
 It starts after the TV's "screen off" idle time (`settings get system screen_off_timeout`).
 </details>
+
+## LG TVs (webOS)
+
+[`webos-launcher/`](webos-launcher/) is the same launcher rebuilt as a webOS web app, tested on an
+LG OLED C6 with webOS 26. It installs through LG's own **Developer Mode** app, so nothing is rooted
+and firmware updates keep working.
+
+![The launcher on an LG OLED C6](docs/webos-launcher.jpg)
+
+webOS is stricter than Android TV, which changes three things:
+
+- **No debloat.** There's no ADB-style package disabling; switch off LG's ads in the TV's settings.
+- **The app list comes from your computer.** webOS won't let an app list installed apps, so
+  `sync-apps.py` reads them over the TV's remote-control service and bundles them in.
+- **Home still opens LG's home.** webOS doesn't allow replacing it. A small watcher on an always-on
+  device on your network (a Mac, a Raspberry Pi) sends Home straight back to the launcher in about
+  a tenth of a second. Without it, a number-key shortcut opens the launcher.
+
+It adds one thing the Android version doesn't have yet: hold OK on a tile to rearrange the dock
+and grid from the remote.
+
+Setup, the Home-button watcher and troubleshooting are in
+[`webos-launcher/README.md`](webos-launcher/README.md).
 
 ## Troubleshooting
 
