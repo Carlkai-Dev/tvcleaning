@@ -28,11 +28,17 @@ final class AppMenuView extends FrameLayout {
     private final MenuIcon[] icons = new MenuIcon[3];
     private int selected;
     private boolean confirmDown;
+    private final Rect anchor;
+    private final float density;
+    private final FrameLayout previewCard;
+    private final LinearLayout panel;
+    private boolean openingStarted;
 
     AppMenuView(Context context, AppAdapter.Entry entry, Rect tile, float initialScale, Listener listener) {
         super(context);
         this.listener = listener;
-        float density = getResources().getDisplayMetrics().density;
+        anchor = new Rect(tile);
+        density = getResources().getDisplayMetrics().density;
         setBackgroundColor(0x99000000);
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -47,10 +53,12 @@ final class AppMenuView extends FrameLayout {
         preview.setImageDrawable(artwork);
         preview.setScaleType(entry.banner != null ? ImageView.ScaleType.FIT_XY : ImageView.ScaleType.CENTER_INSIDE);
         preview.setContentDescription(entry.label);
-        FrameLayout previewCard = new FrameLayout(context);
+        previewCard = new FrameLayout(context);
         previewCard.setBackground(round(0xFF16161A, 16 * density, 0, 0));
         previewCard.setClipToOutline(true);
         previewCard.setElevation(16 * density);
+        previewCard.setScaleX(initialScale);
+        previewCard.setScaleY(initialScale);
         previewCard.addView(preview, new LayoutParams(-1, -1));
         GlassView previewHighlight = new GlassView(context, null);
         previewCard.addView(previewHighlight, new LayoutParams(-1, -1));
@@ -59,7 +67,9 @@ final class AppMenuView extends FrameLayout {
         previewLayout.topMargin = tile.top;
         addView(previewCard, previewLayout);
 
-        LinearLayout panel = new LinearLayout(context);
+        panel = new LinearLayout(context);
+        // Never render the panel at FrameLayout's default (0, 0) while waiting for layout.
+        panel.setAlpha(0f);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding((int) (7 * density), (int) (5 * density),
                 (int) (7 * density), (int) (5 * density));
@@ -103,25 +113,27 @@ final class AppMenuView extends FrameLayout {
         addView(panel, panelLayout);
         updateSelection();
 
-        post(() -> {
-            panel.measure(MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(getHeight(), MeasureSpec.AT_MOST));
-            int gap = (int) (28 * density), margin = (int) (24 * density);
-            int x = tile.right + gap;
-            if (x + panelWidth > getWidth() - margin) x = tile.left - gap - panelWidth;
-            panelLayout.leftMargin = Math.max(margin, Math.min(x, getWidth() - panelWidth - margin));
-            panelLayout.topMargin = Math.max(margin,
-                    Math.min(tile.centerY() - panel.getMeasuredHeight() / 2,
-                            getHeight() - panel.getMeasuredHeight() - margin));
-            panel.setLayoutParams(panelLayout);
-            previewCard.setScaleX(initialScale);
-            previewCard.setScaleY(initialScale);
+    }
+
+    @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        // Position synchronously using measured dimensions, before this frame can be drawn.
+        // No posted callback or second layout is needed to move the panel from the origin.
+        int panelWidth = panel.getMeasuredWidth(), panelHeight = panel.getMeasuredHeight();
+        int gap = (int) (28 * density), margin = (int) (24 * density);
+        int x = anchor.right + gap;
+        if (x + panelWidth > getWidth() - margin) x = anchor.left - gap - panelWidth;
+        x = Math.max(margin, Math.min(x, getWidth() - panelWidth - margin));
+        int y = Math.max(margin, Math.min(anchor.centerY() - panelHeight / 2,
+                getHeight() - panelHeight - margin));
+        panel.layout(x, y, x + panelWidth, y + panelHeight);
+        if (!openingStarted) {
+            openingStarted = true;
             previewCard.animate().scaleX(AppAdapter.MENU_SCALE).scaleY(AppAdapter.MENU_SCALE)
                     .setDuration(220).start();
-            panel.setAlpha(0f);
             panel.setTranslationY(8 * density);
             panel.animate().alpha(1f).translationY(0).setDuration(180).start();
-        });
+        }
     }
 
     private void updateSelection() {

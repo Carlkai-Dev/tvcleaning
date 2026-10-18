@@ -1,4 +1,4 @@
-# Hisense launcher customizations (2.3.1)
+# Hisense launcher customizations (2.3.2)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
@@ -37,6 +37,14 @@ This preserves card positions, column spacing and dock geometry while leaving ro
 Vertical clipping remains enabled to keep scrolling apps out of the header.
 Verified first and last columns in the dock and app grid, including the long-press menus;
 the saved app order was unchanged.
+
+### Menu opening fix in 2.3.2
+
+The contextual panel starts transparent and receives its final bounds synchronously in `onLayout`,
+before its opening animation starts. Its position no longer depends on a posted callback and a second
+layout pass, preventing an initial flash at the screen origin. The preview also starts at the held tile's scale.
+Recorded long-press openings at both dock edges on the TV and checked all 238 recorded frames;
+the menu did not appear in the empty top-left region beside the clock.
 
 ## Hisense configuration
 
