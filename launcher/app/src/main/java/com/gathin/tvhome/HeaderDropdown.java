@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.ScrollView;
 
 /** A bounded, scrollable glass list. No blur, bitmap or idle animation. */
 final class HeaderDropdown {
@@ -23,6 +24,8 @@ final class HeaderDropdown {
         density = activity.getResources().getDisplayMetrics().density;
         panel = activity.getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         rows = panel.findViewById(R.id.rows);
+        // A focused row must settle fully inside the viewport, including its rounded selection.
+        ((ScrollView) panel.findViewById(R.id.popupScroll)).setSmoothScrollingEnabled(false);
         window = new PopupWindow(panel, (int) (256 * density), -2, true);
         window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         window.setOutsideTouchable(true);

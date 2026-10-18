@@ -71,6 +71,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         // Reserve clearance for the fully enlarged tile and its compact halo.
         // Card scale/translation intentionally do not enter these fixed dock bounds.
         rect.inset(-23 * density, -VERTICAL_PADDING_DP * density);
+        // Fade the glass before its top enters the clipped viewport; never leave a cut-off strip.
+        float visibility = Math.max(0f, Math.min(1f, rect.top / (20f * density)));
+        if (visibility == 0f) return;
         float radius = 26 * density;
         // Scrolling only translates the cached shaders; focus scaling never resizes the dock.
         if (Math.abs(gradientHeight - rect.height()) > 0.5f || opacity != LauncherOptions.dockOpacity) {
@@ -90,6 +93,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         shaderPosition.setTranslate(0, rect.top);
         surfaceGradient.setLocalMatrix(shaderPosition);
         edgeGradient.setLocalMatrix(shaderPosition);
+        tint.setAlpha((int) (Math.min(255, 48 * opacity) * visibility));
+        band.setAlpha((int) (255 * visibility));
+        edge.setAlpha((int) (255 * visibility));
         c.drawRoundRect(rect, radius, radius, tint);
         c.drawRoundRect(rect, radius, radius, band);
         c.drawRoundRect(rect, radius, radius, edge);

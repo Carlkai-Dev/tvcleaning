@@ -1,7 +1,34 @@
-# Hisense launcher customizations (2.11)
+# Hisense launcher customizations (2.11.1)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
+
+## Scrolling and text corrections in 2.11.1
+
+Inputs and Wi-Fi now place the glass panel's 10 dp inset outside the ScrollView.
+The actual scrolling viewport has no padding for Android's focus-reveal logic to
+ignore. Directional scrolling settles immediately so a newly selected row and
+its rounded highlight are fully visible at either edge.
+
+The app grid extends 20 dp upward inside its existing wrapper, with matching
+parent clipping disabled. Its bottom and the parked dock/title positions remain
+unchanged. Dock glass fades over the final 20 dp before its top reaches the
+viewport boundary, rather than drawing a clipped strip while leaving the screen.
+This uses paint alpha during existing scroll redraws, without another animation
+or background task.
+
+The greeting uses natural letter spacing with kerning enabled, removing the
+extra spacing between consecutive letters such as the O pair in AFTERNOON.
+
+![Fully visible selection after scrolling Inputs](launcher-input-scroll-2.11.1.png)
+![Dock remains complete while navigating lower rows](launcher-grid-scroll-2.11.1.png)
+
+Validation: debug build and installation succeeded. On the TV, eight focused
+rows in Inputs and eight in Wi-Fi retained their full 84-pixel height, including
+scrolling down and returning upward in Inputs. Four lower app rows and the return
+to the dock were checked, with selected cards clear of the screen bottom. Actual
+screenshots confirm the parked dock/title position and compact greeting. The
+complete Home preferences XML was unchanged after these checks.
 
 ## Launcher settings in 2.11
 
