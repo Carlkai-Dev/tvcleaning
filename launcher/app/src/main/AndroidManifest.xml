@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      Android 11 (API 30) introduced package visibility filtering: queryIntentActivities()
+      only returns packages this app can "see". Without these declarations the launcher
+      resolves almost nothing, so the dock silently falls back to alphabetical order and
+      the grid comes up empty. Harmless on Android 10 and older, required on 11+.
+      The intent filter below matches what AppAdapter reload() probes for.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+        </intent>
+        <!-- Live TV / tuner app, offered in the Inputs menu. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+        </intent>
+    </queries>
+
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
