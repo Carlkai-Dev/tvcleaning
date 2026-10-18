@@ -171,10 +171,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         View btnCalendar = findViewById(R.id.btnCalendar);
-        View btnDevices = findViewById(R.id.btnDevices);
         View btnSettings = findViewById(R.id.btnSettings);
         btnCalendar.setOnClickListener(v -> showCalendar());
-        btnDevices.setOnClickListener(v -> showDevices());
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         btnSettings.setOnClickListener(v -> showSettings());
         isTopBarShowText = prefs.getBoolean("top_bar_show_text", true);
@@ -196,7 +194,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return false;
         };
         btnCalendar.setOnKeyListener(pillKeys);
-        btnDevices.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
 
@@ -315,10 +312,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (calendarOverlay != null && calendarOverlay.getVisibility() == View.VISIBLE) {
             hideCalendar();
-            return;
-        }
-        if (devicesOverlay != null && devicesOverlay.getVisibility() == View.VISIBLE) {
-            hideDevices();
             return;
         }
         View focused = getCurrentFocus();
@@ -519,230 +512,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    // ---- Devices Overlay -------------------------------------------------------------------------
 
-    private View devicesOverlay;
-    private LinearLayout devicesContainer;
-    private HueManager.LightState hueLight1State = new HueManager.LightState();
-    private HueManager.LightState hueLight2State = new HueManager.LightState();
-    private boolean hueControlsSetup = false;
-
-    private void showDevices() {
-        if (devicesOverlay == null) {
-            devicesOverlay = findViewById(R.id.devicesOverlay);
-            devicesContainer = findViewById(R.id.devicesContainer);
-            findViewById(R.id.btnDevClose).setOnClickListener(v -> hideDevices());
-            findViewById(R.id.tvDevRefresh).setOnClickListener(v -> {
-                populateDevices();
-                refreshHueStatus();
-            });
-        }
-        grid.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-        ((ViewGroup) findViewById(R.id.topButtons)).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
-
-        if (!hueControlsSetup) {
-            setupHueControls();
-            hueControlsSetup = true;
-        }
-
-        populateDevices();
-        refreshHueStatus();
-
-        devicesOverlay.setAlpha(0f);
-        devicesOverlay.setVisibility(View.VISIBLE);
-        devicesOverlay.animate().alpha(1f).setDuration(220).start();
-        findViewById(R.id.btnDevClose).requestFocus();
-    }
-
-    private void hideDevices() {
-        if (devicesOverlay == null || devicesOverlay.getVisibility() != View.VISIBLE) return;
-        devicesOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
-            devicesOverlay.setVisibility(View.GONE);
-            grid.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-            ((ViewGroup) findViewById(R.id.topButtons)).setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
-            View btn = findViewById(R.id.btnDevices);
-            if (btn != null) btn.requestFocus();
-        }).start();
-    }
-
-    private void setupHueControls() {
-        TextView btnSceneCinema = findViewById(R.id.btnSceneCinema);
-        TextView btnSceneNight = findViewById(R.id.btnSceneNight);
-        TextView btnSceneReading = findViewById(R.id.btnSceneReading);
-        TextView btnSceneFull = findViewById(R.id.btnSceneFull);
-        TextView btnHueMasterOn = findViewById(R.id.btnHueMasterOn);
-        TextView btnHueMasterOff = findViewById(R.id.btnHueMasterOff);
-        TextView btnHueLight1 = findViewById(R.id.btnHueLight1);
-        TextView btnHueLight2 = findViewById(R.id.btnHueLight2);
-
-        if (btnSceneCinema == null) return;
-
-        btnSceneCinema.setOnClickListener(v -> {
-            Toast.makeText(this, "🎬 Sinema Ambiyansı (%15) Uygulanıyor...", Toast.LENGTH_SHORT).show();
-            HueManager.applyScene("cinema", new HueManager.HueCallback() {
-                @Override
-                public void onSuccess(String response) { refreshHueStatus(); }
-                @Override
-                public void onError(Exception e) {
-                    Toast.makeText(MainActivity.this, "Hue Bağlantı Hatası", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-
-        btnSceneNight.setOnClickListener(v -> {
-            Toast.makeText(this, "🌙 Gece Lambası (%5) Uygulanıyor...", Toast.LENGTH_SHORT).show();
-            HueManager.applyScene("night", new HueManager.HueCallback() {
-                @Override
-                public void onSuccess(String response) { refreshHueStatus(); }
-                @Override
-                public void onError(Exception e) {
-                    Toast.makeText(MainActivity.this, "Hue Bağlantı Hatası", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-
-        btnSceneReading.setOnClickListener(v -> {
-            Toast.makeText(this, "📖 Okuma / Çalışma Modu (%70) Uygulanıyor...", Toast.LENGTH_SHORT).show();
-            HueManager.applyScene("reading", new HueManager.HueCallback() {
-                @Override
-                public void onSuccess(String response) { refreshHueStatus(); }
-                @Override
-                public void onError(Exception e) {
-                    Toast.makeText(MainActivity.this, "Hue Bağlantı Hatası", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-
-        btnSceneFull.setOnClickListener(v -> {
-            Toast.makeText(this, "☀️ Tam Aydınlatma (%100) Uygulanıyor...", Toast.LENGTH_SHORT).show();
-            HueManager.applyScene("full", new HueManager.HueCallback() {
-                @Override
-                public void onSuccess(String response) { refreshHueStatus(); }
-                @Override
-                public void onError(Exception e) {
-                    Toast.makeText(MainActivity.this, "Hue Bağlantı Hatası", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-
-        btnHueMasterOn.setOnClickListener(v -> {
-            Toast.makeText(this, "💡 Tüm Işıklar Açılıyor...", Toast.LENGTH_SHORT).show();
-            HueManager.setAllLights(true, 254, new HueManager.HueCallback() {
-                @Override
-                public void onSuccess(String response) { refreshHueStatus(); }
-                @Override
-                public void onError(Exception e) {
-                    Toast.makeText(MainActivity.this, "Hue Bağlantı Hatası", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-
-        btnHueMasterOff.setOnClickListener(v -> {
-            Toast.makeText(this, "🌑 Tüm Işıklar Kapatılıyor...", Toast.LENGTH_SHORT).show();
-            HueManager.setAllLights(false, -1, new HueManager.HueCallback() {
-                @Override
-                public void onSuccess(String response) { refreshHueStatus(); }
-                @Override
-                public void onError(Exception e) {
-                    Toast.makeText(MainActivity.this, "Hue Bağlantı Hatası", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-
-        btnHueLight1.setOnClickListener(v -> {
-            boolean nextState = !hueLight1State.on;
-            HueManager.setLightState("8", nextState, 200, new HueManager.HueCallback() {
-                @Override
-                public void onSuccess(String response) { refreshHueStatus(); }
-                @Override
-                public void onError(Exception e) {
-                    Toast.makeText(MainActivity.this, "Hue Bağlantı Hatası", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-
-        btnHueLight2.setOnClickListener(v -> {
-            boolean nextState = !hueLight2State.on;
-            HueManager.setLightState("10", nextState, 200, new HueManager.HueCallback() {
-                @Override
-                public void onSuccess(String response) { refreshHueStatus(); }
-                @Override
-                public void onError(Exception e) {
-                    Toast.makeText(MainActivity.this, "Hue Bağlantı Hatası", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-    }
-
-    private void refreshHueStatus() {
-        HueManager.fetchStatus((connected, l1, l2) -> {
-            View dot = findViewById(R.id.dotHueStatus);
-            TextView tvStatus = findViewById(R.id.tvHueBridgeStatus);
-            TextView btnL1 = findViewById(R.id.btnHueLight1);
-            TextView btnL2 = findViewById(R.id.btnHueLight2);
-
-            if (dot == null || tvStatus == null) return;
-
-            if (connected) {
-                dot.setBackgroundColor(0xFF34D399);
-                tvStatus.setText("Köprü: 192.168.236.62 • Bağlı");
-                tvStatus.setTextColor(0xFFA7F3D0);
-
-                if (l1 != null) {
-                    hueLight1State = l1;
-                    int pct = Math.round((l1.bri / 254f) * 100);
-                    btnL1.setText("Şömine Sol (8): " + (l1.on ? "AÇIK (%" + pct + ")" : "KAPALI"));
-                    btnL1.setTextColor(l1.on ? 0xFF34D399 : 0x99FFFFFF);
-                }
-                if (l2 != null) {
-                    hueLight2State = l2;
-                    int pct = Math.round((l2.bri / 254f) * 100);
-                    btnL2.setText("Şömine Sağ (10): " + (l2.on ? "AÇIK (%" + pct + ")" : "KAPALI"));
-                    btnL2.setTextColor(l2.on ? 0xFF34D399 : 0x99FFFFFF);
-                }
-            } else {
-                dot.setBackgroundColor(0xFFEF4444);
-                tvStatus.setText("Köprü: 192.168.236.62 • Bağlantı Bekleniyor");
-                tvStatus.setTextColor(0xFFFCA5A5);
-            }
-        });
-    }
-
-    private void populateDevices() {
-        if (devicesContainer == null) return;
-        devicesContainer.removeAllViews();
-
-        String[][] devList = new String[][]{
-                {"DAAK Node Hub (vaytniga / S9+)", "Ağ Omurgası & Hue Gateway • Tailscale", "100.72.106.12 • 192.168.34.12", "Aktif (Online • Hub)", "#34D399"},
-                {"Philips Hue Bridge (Şömine)", "Zigbee Akıllı Ev Aydınlatma • 2 Lambalı", "192.168.236.62 (eth0 tether)", "Aktif (Online • 2 Işık)", "#34D399"},
-                {"MYA-L11 (Kırık Mac)", "24/7 Sunucu • Docker Engine • FastDrop • Hermes", "100.106.212.28 • 192.168.34.46", "Aktif (Online)", "#34D399"},
-                {"MacBook Pro M3 (kai)", "Ana Çalışma & Geliştirme Cihazı • Antigravity", "100.102.108.7 • 192.168.34.194", "Aktif (Online)", "#34D399"},
-                {"LOLILE (PC Master)", "Windows 11 Pro • Workstation • RM-OS Vault & Stremio Server", "100.69.25.110 • 192.168.1.57", "Aktif (Online • Stremio 11470)", "#34D399"},
-                {"DAAK-DNS (Linux Core)", "DNS Çözücü & Cloudflare Connector", "100.114.210.93", "Aktif (Online)", "#34D399"},
-                {"TCL 4K Smart TV Pro (Nigtutio)", "Salon 4K Ekranı • Android 11 (Bu Cihaz)", "100.66.111.125 • 192.168.34.182", "Aktif (Online)", "#38BDF8"},
-                {"Keenetic Hopper (Vaytniga Wi-Fi)", "5GHz Wi-Fi Router • LAN Ağ Omurgası", "192.168.34.1", "Aktif (Online)", "#34D399"}
-        };
-
-        for (String[] d : devList) {
-            View row = getLayoutInflater().inflate(R.layout.item_device_row, devicesContainer, false);
-            TextView name = row.findViewById(R.id.devName);
-            TextView role = row.findViewById(R.id.devRole);
-            TextView ip = row.findViewById(R.id.devIp);
-            TextView statusText = row.findViewById(R.id.devStatusText);
-            View dot = row.findViewById(R.id.devStatusDot);
-
-            name.setText(d[0]);
-            role.setText(d[1]);
-            ip.setText(d[2]);
-            statusText.setText(d[3]);
-            int col = Color.parseColor(d[4]);
-            statusText.setTextColor(col);
-            dot.setBackgroundColor(col);
-
-            row.setOnClickListener(v -> Toast.makeText(this, d[0] + "\n" + d[2], Toast.LENGTH_SHORT).show());
-            devicesContainer.addView(row);
-        }
-    }
 
     private void setDockPeek(boolean peek, boolean animate) {
         if (isDockPeeking == peek && dockPeekAnimator == null) return;
@@ -1110,14 +880,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void applyTopBarStyle(boolean showText) {
         isTopBarShowText = showText;
         TextView btnCalendar = findViewById(R.id.btnCalendar);
-        TextView btnDevices = findViewById(R.id.btnDevices);
         TextView btnSettings = findViewById(R.id.btnSettings);
 
         int padStart = (int) ((showText ? 16 : 11) * density);
         int padEnd = (int) ((showText ? 20 : 11) * density);
         int drawPad = (int) ((showText ? 9 : 0) * density);
 
-        TextView[] pills = new TextView[]{btnCalendar, btnDevices, btnWifi, btnSettings};
+        TextView[] pills = new TextView[]{btnCalendar, btnWifi, btnSettings};
         for (TextView p : pills) {
             if (p != null) {
                 p.setPadding(padStart, 0, padEnd, 0);
@@ -1126,7 +895,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         if (btnCalendar != null) btnCalendar.setText(showText ? "Calendar" : "");
-        if (btnDevices != null) btnDevices.setText(showText ? "Devices" : "");
         if (btnSettings != null) btnSettings.setText(showText ? getString(R.string.settings) : "");
         updateWifiLabel();
     }
