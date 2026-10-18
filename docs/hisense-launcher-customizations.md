@@ -1,7 +1,21 @@
-# Hisense launcher customizations (2.8)
+# Hisense launcher customizations (2.9)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
+
+## Header and app-title alignment in 2.9
+
+The greeting, clock and selected app title share the dock's 16 dp left margin.
+Settings ends at its matching right margin. The three header buttons retain their
+equal dimensions and spacing, with their centers aligned to the clock details.
+The app title uses 32 sp text and places its visible bottom 24 dp above the parked
+dock, including labels with descenders. It stays anchored while cards zoom and
+when returning from the header. The dock and card geometry are unchanged.
+
+This uses existing text views and layout calculations, without new images,
+dependencies or continuously running effects.
+
+![Aligned clock, controls and selected app title](launcher-alignment-2.9.png)
 
 ## Remote control
 
@@ -191,3 +205,5 @@ adb shell input keyevent KEYCODE_HOME
 - Confirmed the saved order matched the pre-update order after the tests.
 
 Network addresses, ADB keys, device dumps, accounts and local build paths are not part of this branch.
+
+Validation for 2.9: built and installed on the Hisense; checked the visible title position for all six dock apps, equal header button bounds and gaps, navigation between the header and dock, and return from native settings. Saved app order and hidden packages were unchanged.

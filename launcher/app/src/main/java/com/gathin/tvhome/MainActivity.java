@@ -65,6 +65,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private GradientDrawable ambientGlow;
     private int ambientColor;
     private boolean heroShown;
+    private final Rect heroAnchor = new Rect();
+    private final Rect heroInk = new Rect();
     private TextView greeting;
     private TopButton btnWifi;
     // Static so they survive the activity being destroyed while another app is open (low-memory TVs,
@@ -170,6 +172,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
             }
+            if (heroShown) positionHeroName();
             if (pendingFocusPosition != RecyclerView.NO_POSITION
                     && grid.findViewHolderForAdapterPosition(pendingFocusPosition) != null)
                 grid.post(() -> {
@@ -493,9 +496,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         adapter.updateDockSpacing(grid, position, true);
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
-        // Geometry is only used for scrolling and the title; each card owns its highlight.
-        Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
-        root.offsetDescendantRectToMyCoords(card, r);
         View item = (View) card.getParent();
         if (position < COLUMNS) {
             lastDockPosition = position;
@@ -503,7 +503,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int decoratedTop = item.getTop() - (int) (6 * density);
             int dy = decoratedTop - grid.getPaddingTop();
             if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy, navigationEase, 200);
-            showHero(position, r.top - dy);
+            showHero(position);
         } else {
             hideHero();
             // Keep the scaled card visible when moving through the app grid.
@@ -518,30 +518,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     // ---- top shelf -------------------------------------------------------------------------------
 
-    private void showHero(int position, float dockTopInRoot) {
+    private void positionHeroName() {
+        heroAnchor.set(0, 0, grid.getWidth(), grid.getHeight());
+        root.offsetDescendantRectToMyCoords(grid, heroAnchor);
+        // The parked row has 6 dp of decoration and 8 dp of item padding above its artwork.
+        float dockTop = heroAnchor.top + grid.getPaddingTop()
+                + (6f + 8f - DockDecoration.VERTICAL_PADDING_DP) * density;
+        String text = heroName.getText().toString();
+        heroName.getPaint().getTextBounds(text, 0, text.length(), heroInk);
+        // Anchor the visible ink, including descenders, 24 dp above the fixed dock edge.
+        // Paint metrics are available before the first TextView layout, unlike getHeight().
+        float baseline = dockTop - 24f * density - heroInk.bottom;
+        heroName.setY(baseline + heroName.getPaint().ascent());
+    }
+
+    private void showHero(int position) {
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
-        float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
         // Replace stale callbacks immediately when the user crosses several icons quickly.
         heroName.animate().cancel();
         ambient.animate().cancel();
         heroName.setText(label);
-        heroName.setY(y);
+        heroName.setTranslationX(0f);
+        positionHeroName();
         if (!heroShown) {
-            heroName.setTranslationX(0f);
-            heroName.animate().alpha(1f).setDuration(180).start();
+            heroName.setAlpha(1f);
             setAmbient(color);
             ambient.animate().alpha(1f).setDuration(240).start();
             heroShown = true;
         } else if (changed) {
             heroName.setAlpha(0.7f);
-            heroName.setTranslationX(4 * density);
-            heroName.animate().alpha(1f).translationX(0f).setDuration(150).start();
+            heroName.animate().alpha(1f).setDuration(150).start();
             if (color != ambientColor) setAmbient(color);
             ambient.animate().alpha(1f).setDuration(180).start();
         } else {
-            heroName.animate().alpha(1f).translationX(0f).setDuration(150).start();
+            heroName.animate().alpha(1f).setDuration(150).start();
             ambient.animate().alpha(1f).setDuration(180).start();
         }
     }
@@ -590,7 +602,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Rect buttonBounds = new Rect(0, 0, button.getWidth(), button.getHeight());
                     root.offsetDescendantRectToMyCoords(button, buttonBounds);
                     int delta = Math.abs(center - buttonBounds.centerX());
-                    if (delta < distance) { nearest = button; distance = delta; }
+                    if (delta <= distance) { nearest = button; distance = delta; }
                 }
                 lastDockPosition = position;
                 nearest.requestFocus();

@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.RecyclerView;
 /** Translucent dock glass. Cached gradients need no bitmap, blur pass or idle animation. */
 public class DockDecoration extends RecyclerView.ItemDecoration {
 
+    static final float VERTICAL_PADDING_DP = 19f;
+
     private final int dockSize;
     private final float density;
     private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -67,7 +69,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         if (!any) return;
         // Reserve clearance for the fully enlarged tile and its compact halo.
         // Card scale/translation intentionally do not enter these fixed dock bounds.
-        rect.inset(-23 * density, -19 * density);
+        rect.inset(-23 * density, -VERTICAL_PADDING_DP * density);
         float radius = 26 * density;
         // Scrolling only translates the cached shaders; focus scaling never resizes the dock.
         if (Math.abs(gradientHeight - rect.height()) > 0.5f) {
