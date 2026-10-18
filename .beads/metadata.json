@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "tv_vibehack",
+  "project_id": "832363d8-acc6-4401-b276-76e054e000bf"
+}

@@ -8,3 +8,10 @@ launcher/local.properties
 # your own TV's dumps (serial, android_id, device names) stay local
 backup/
 .DS_Store
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*
