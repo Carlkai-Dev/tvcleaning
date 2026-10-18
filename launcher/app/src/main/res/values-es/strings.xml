@@ -4,8 +4,9 @@
     <string name="app_menu_uninstall">Desinstalar</string>
     <string name="app_menu_hide">Ocultar</string>
     <string name="app_menu_close_hint">Atrás para cerrar</string>
-    <string name="settings_hidden_hint">Ajustes. Mantén OK para mostrar las apps ocultas.</string>
-    <string name="app_hidden_hint">App oculta. Mantén OK en Ajustes para volver a mostrarla.</string>
+    <string name="settings_hidden_hint">Ajustes. Pulsa Derecha cinco veces aquí para acceder a las apps ocultas.</string>
+    <string name="app_hidden_hint">App oculta. Selecciona Ajustes y pulsa Derecha cinco veces para acceder.</string>
+    <string name="hidden_list_help">OK: abrir · Mantén OK: mostrar en Home</string>
     <string name="system_app_hide_instead">Es una app del sistema y no se puede desinstalar aquí. Puedes ocultarla.</string>
     <string name="uninstall_unavailable">No se pudo abrir la pantalla de desinstalación de Android.</string>
     <string name="hidden_apps_title">Apps ocultas</string>

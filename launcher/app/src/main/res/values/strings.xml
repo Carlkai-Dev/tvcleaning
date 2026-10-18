@@ -4,8 +4,9 @@
     <string name="app_menu_uninstall">Uninstall</string>
     <string name="app_menu_hide">Hide</string>
     <string name="app_menu_close_hint">Back to close</string>
-    <string name="settings_hidden_hint">Settings. Hold OK to show hidden apps.</string>
-    <string name="app_hidden_hint">App hidden. Hold OK on Settings to show it again.</string>
+    <string name="settings_hidden_hint">Settings. Press Right five times here for hidden apps.</string>
+    <string name="app_hidden_hint">App hidden. Select Settings and press Right five times to access it.</string>
+    <string name="hidden_list_help">OK: open · Hold OK: show on Home</string>
     <string name="system_app_hide_instead">This is a system app and cannot be uninstalled here. You can hide it instead.</string>
     <string name="uninstall_unavailable">Cannot open the Android uninstall screen for this app.</string>
     <string name="hidden_apps_title">Hidden apps</string>

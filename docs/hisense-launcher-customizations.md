@@ -1,4 +1,4 @@
-# Hisense launcher customizations (2.3.2)
+# Hisense launcher customizations (2.4)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
@@ -10,7 +10,9 @@ It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 1
 - The first four visible apps make up the dock. Apps can move between the dock and the grid.
 - **Uninstall**: opens Android's uninstall confirmation. System apps are kept intact and show an explanation instead.
 - **Hide**: removes an app from Home without disabling or uninstalling it.
-- Hold OK on **Settings** to list hidden apps and show them again.
+- Focus **Settings** and press **Right five separate times** to open the hidden-app dropdown.
+- Press OK on a hidden app to open it while keeping it hidden from Home.
+- Hold OK on a dropdown item to show it on Home again. Back closes the list.
 
 The order and hidden-app list are saved locally. Newly installed apps appear after the saved order.
 Leaving Home cancels a pending move. English and Spanish resources are included; the system language selects them.
@@ -45,6 +47,20 @@ before its opening animation starts. Its position no longer depends on a posted 
 layout pass, preventing an initial flash at the screen origin. The preview also starts at the held tile's scale.
 Recorded long-press openings at both dock edges on the TV and checked all 238 recorded frames;
 the menu did not appear in the empty top-left region beside the clock.
+
+## Hidden-app dropdown in 2.4
+
+The minimal, scrollable list opens below Settings and is aligned with its right edge.
+Five consecutive Right key presses while Settings is focused replace the previous Settings long-press shortcut.
+Key-repeat events from holding Right do not advance the counter. Other keys, focus changes,
+leaving Home and closing the dropdown reset the sequence.
+Opening an app from the list does not change its hidden status. Holding OK on a list item restores it to Home.
+
+![Hidden-app dropdown anchored to Settings](hidden-apps-2.4.png)
+
+Verified on the TV: four presses keep the list closed, the fifth opens it, key repeats do not count as
+additional presses, and changing buttons resets the count. Confirmed a hidden app opens while remaining hidden
+and can be restored using the dropdown. After testing, the app order and hidden-app list matched their prior state.
 
 ## Hisense configuration
 

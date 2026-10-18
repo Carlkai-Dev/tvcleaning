@@ -1,7 +1,6 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -34,6 +33,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -78,6 +78,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String movingKey;
     private TextView moveHint;
     private AppMenuView appMenu;
+    private int settingsRightPresses;
+    private PopupWindow hiddenPopup;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
@@ -163,16 +165,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
-        btnSettings.setOnLongClickListener(v -> {
-            showHiddenApps();
-            return true;
-        });
+        btnSettings.setOnFocusChangeListener((v, focused) -> settingsRightPresses = 0);
         btnSettings.setContentDescription(getString(R.string.settings_hidden_hint));
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (v.getId() == R.id.btnSettings && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                // Count separate presses, not the repeat events from holding Right.
+                if (event.getRepeatCount() == 0 && ++settingsRightPresses == 5) {
+                    settingsRightPresses = 0;
+                    showHiddenApps();
+                }
+                return true;
+            }
+            settingsRightPresses = 0;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnInputs) return true;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
@@ -210,6 +218,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onPause() {
+        settingsRightPresses = 0;
+        if (hiddenPopup != null) hiddenPopup.dismiss();
         dismissAppMenu(null);
         // Leaving Home never commits an unfinished rearrangement.
         if (moving) finishMoving(false);
@@ -289,28 +299,102 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void showHiddenApps() {
+        if (hiddenPopup != null && hiddenPopup.isShowing()) return;
         List<String> packages = new ArrayList<>(adapter.userHiddenPackages());
-        Collections.sort(packages);
+        Collections.sort(packages, (a, b) -> hiddenAppLabel(a).compareToIgnoreCase(hiddenAppLabel(b)));
         if (packages.isEmpty()) {
             Toast.makeText(this, R.string.no_hidden_apps, Toast.LENGTH_SHORT).show();
             return;
         }
-        String[] labels = new String[packages.size()];
-        for (int i = 0; i < packages.size(); i++) {
-            String label = packages.get(i);
-            try {
-                label = getPackageManager().getApplicationLabel(
-                        getPackageManager().getApplicationInfo(packages.get(i), 0)).toString();
-            } catch (PackageManager.NameNotFoundException ignored) { }
-            labels[i] = getString(R.string.show_hidden_app, label);
+        View anchor = findViewById(R.id.btnSettings);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setBackgroundResource(R.drawable.glass_panel);
+        int inset = (int) (6 * density);
+        panel.setPadding(inset, inset, inset, inset);
+        TextView heading = new TextView(this);
+        heading.setText(R.string.hidden_apps_title);
+        heading.setTextSize(12);
+        heading.setTextColor(0xFFBDBDC8);
+        heading.setGravity(Gravity.CENTER_VERTICAL);
+        heading.setPadding((int) (12 * density), 0, 0, 0);
+        panel.addView(heading, new LinearLayout.LayoutParams(-1, (int) (32 * density)));
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(false);
+        scroll.setVerticalScrollBarEnabled(false);
+        LinearLayout rows = new LinearLayout(this);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(rows, new ScrollView.LayoutParams(-1, -2));
+        Rect anchorRect = new Rect(0, 0, anchor.getWidth(), anchor.getHeight());
+        root.offsetDescendantRectToMyCoords(anchor, anchorRect);
+        int available = root.getHeight() - anchorRect.bottom - (int) (96 * density);
+        int listHeight = Math.min(packages.size() * (int) (44 * density),
+                Math.min((int) (264 * density), Math.max((int) (44 * density), available)));
+        panel.addView(scroll, new LinearLayout.LayoutParams(-1, listHeight));
+        TextView hint = new TextView(this);
+        hint.setText(R.string.hidden_list_help);
+        hint.setTextColor(0xFFBDBDC8);
+        hint.setTextSize(10);
+        hint.setGravity(Gravity.CENTER);
+        panel.addView(hint, new LinearLayout.LayoutParams(-1, (int) (30 * density)));
+        final PopupWindow popup = new PopupWindow(panel, (int) (264 * density), -2, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        popup.setOutsideTouchable(true);
+        popup.setAnimationStyle(0);
+        popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
+        popup.setOnDismissListener(() -> {
+            hiddenPopup = null;
+            settingsRightPresses = 0;
+            anchor.requestFocus();
+        });
+        for (String pkg : packages) {
+            TextView row = new TextView(this);
+            row.setText(hiddenAppLabel(pkg));
+            row.setTextSize(16);
+            row.setTypeface(getResources().getFont(R.font.outfit));
+            row.setTextColor(getColorStateList(R.drawable.pill_text));
+            row.setBackgroundResource(R.drawable.input_row_bg);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding((int) (12 * density), 0, (int) (12 * density), 0);
+            row.setSingleLine(true);
+            row.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            row.setFocusable(true);
+            row.setOnClickListener(v -> {
+                Intent launch = getPackageManager().getLeanbackLaunchIntentForPackage(pkg);
+                if (launch == null) launch = getPackageManager().getLaunchIntentForPackage(pkg);
+                popup.dismiss();
+                if (launch != null) open(launch);
+                else Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+            });
+            row.setOnLongClickListener(v -> {
+                if (adapter.setHidden(pkg, false)) {
+                    adapter.reload();
+                    popup.dismiss();
+                    Toast.makeText(this, R.string.app_shown, Toast.LENGTH_SHORT).show();
+                } else Toast.makeText(this, R.string.move_save_failed, Toast.LENGTH_LONG).show();
+                return true;
+            });
+            row.setOnKeyListener((v, code, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                int index = rows.indexOfChild(v);
+                if (code == KeyEvent.KEYCODE_DPAD_UP && index == 0) return true;
+                if (code == KeyEvent.KEYCODE_DPAD_DOWN && index == rows.getChildCount() - 1) return true;
+                return code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT;
+            });
+            rows.addView(row, new LinearLayout.LayoutParams(-1, (int) (44 * density)));
         }
-        new AlertDialog.Builder(this).setTitle(R.string.hidden_apps_title)
-                .setItems(labels, (dialog, which) -> {
-                    if (adapter.setHidden(packages.get(which), false)) {
-                        refreshApps(lastFocusedKey, lastFocused);
-                        Toast.makeText(this, R.string.app_shown, Toast.LENGTH_SHORT).show();
-                    } else Toast.makeText(this, R.string.move_save_failed, Toast.LENGTH_LONG).show();
-                }).setNegativeButton(android.R.string.cancel, null).show();
+        hiddenPopup = popup;
+        panel.setAlpha(0f);
+        popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.END);
+        panel.animate().alpha(1f).setDuration(160).start();
+        rows.getChildAt(0).requestFocus();
+    }
+
+    private String hiddenAppLabel(String pkg) {
+        try {
+            return getPackageManager().getApplicationLabel(
+                    getPackageManager().getApplicationInfo(pkg, 0)).toString();
+        } catch (PackageManager.NameNotFoundException ignored) { return pkg; }
     }
 
     private void beginMoving(int position) {
