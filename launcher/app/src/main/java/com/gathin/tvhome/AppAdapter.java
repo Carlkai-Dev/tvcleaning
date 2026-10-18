@@ -45,6 +45,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         /** Called for D-pad Up/Down on a tile. Return true when handled. */
         boolean onTileVerticalKey(int position, int keyCode);
+
+        void onInputsTileClicked();
     }
 
     static final class Entry {
@@ -53,14 +55,27 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final String pkg;
         final Drawable banner;
         final Drawable icon;
+        final boolean isStremio;
+        final String stremioType;
+        final String stremioId;
+        android.graphics.Bitmap posterBitmap;
         int ambient;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
+            this(label, component, banner, icon, false, null, null, 0);
+        }
+
+        Entry(String label, ComponentName component, Drawable banner, Drawable icon,
+              boolean isStremio, String stremioType, String stremioId, int ambient) {
             this.label = label;
             this.component = component;
-            this.pkg = component.getPackageName();
+            this.pkg = component != null ? component.getPackageName() : "com.stremio.one";
             this.banner = banner;
             this.icon = icon;
+            this.isStremio = isStremio;
+            this.stremioType = stremioType;
+            this.stremioId = stremioId;
+            this.ambient = ambient;
         }
     }
 
@@ -98,18 +113,78 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             String label = String.valueOf(ri.loadLabel(pm));
             fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
         }
-        Collections.sort(fresh, (a, b) -> {
-            int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
-            if (fa >= 0 || fb >= 0) {
-                if (fa < 0) return 1;
-                if (fb < 0) return -1;
-                return Integer.compare(fa, fb);
+        fresh.add(new Entry("Inputs", new ComponentName("com.gathin.tvhome.inputs", "InputsActivity"),
+                ctx.getDrawable(R.drawable.banner_inputs), ctx.getDrawable(R.drawable.ic_input)));
+
+        // Row 0: Dock Core Apps
+        List<Entry> row0 = new ArrayList<>();
+        List<Entry> otherApps = new ArrayList<>();
+        for (String fav : favourites) {
+            for (Entry e : fresh) {
+                if (fav.equals(e.pkg) && !row0.contains(e)) {
+                    row0.add(e);
+                    break;
+                }
             }
-            return a.label.compareToIgnoreCase(b.label);
-        });
+        }
+        for (Entry e : fresh) {
+            if (!row0.contains(e)) otherApps.add(e);
+        }
+        Collections.sort(otherApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
+
+        // Row 1: Stremio Quick Stream Shelf
+        List<Entry> stremioRow = new ArrayList<>();
+        stremioRow.add(new Entry("Deadpool & Wolverine", null,
+                ctx.getDrawable(R.drawable.banner_stremio_deadpool), null,
+                true, "movie", "tt6263850", 0xFFDC2626));
+        stremioRow.add(new Entry("Spider-Man: Across Spider-Verse", null,
+                ctx.getDrawable(R.drawable.banner_stremio_spiderman), null,
+                true, "movie", "tt9362722", 0xFF9333EA));
+        stremioRow.add(new Entry("Dune: Part Two", null,
+                ctx.getDrawable(R.drawable.banner_stremio_dune), null,
+                true, "movie", "tt15239678", 0xFFD97706));
+        stremioRow.add(new Entry("The Penguin", null,
+                ctx.getDrawable(R.drawable.banner_stremio_penguin), null,
+                true, "series", "tt15435876", 0xFF0284C7));
+        stremioRow.add(new Entry("Breaking Bad", null,
+                ctx.getDrawable(R.drawable.banner_stremio_breakingbad), null,
+                true, "series", "tt0903747", 0xFF059669));
+
         items.clear();
-        items.addAll(fresh);
+        items.addAll(row0);
+        items.addAll(stremioRow);
+        items.addAll(otherApps);
         notifyDataSetChanged();
+
+        fetchStremioPostersAsync(stremioRow);
+    }
+
+    private void fetchStremioPostersAsync(List<Entry> entries) {
+        new Thread(() -> {
+            for (int i = 0; i < entries.size(); i++) {
+                Entry e = entries.get(i);
+                if (!e.isStremio || e.stremioId == null) continue;
+                try {
+                    java.net.URL url = new java.net.URL("https://images.metahub.space/poster/medium/" + e.stremioId + "/img.jpg");
+                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(3000);
+                    conn.setReadTimeout(4000);
+                    conn.connect();
+                    if (conn.getResponseCode() == 200) {
+                        Bitmap bmp = android.graphics.BitmapFactory.decodeStream(conn.getInputStream());
+                        if (bmp != null) {
+                            e.posterBitmap = bmp;
+                            final int idx = items.indexOf(e);
+                            if (idx >= 0 && ctx instanceof MainActivity) {
+                                ((MainActivity) ctx).runOnUiThread(() -> notifyItemChanged(idx));
+                            }
+                        }
+                    }
+                    conn.disconnect();
+                } catch (Exception ignored) {
+                }
+            }
+        }).start();
     }
 
     @NonNull
@@ -127,7 +202,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.setAlpha(0f);
         h.card.setScaleX(1f);
         h.card.setScaleY(1f);
-        if (e.banner != null) {
+        if (e.posterBitmap != null) {
+            h.banner.setImageBitmap(e.posterBitmap);
+            h.banner.setVisibility(View.VISIBLE);
+            h.icon.setVisibility(View.GONE);
+            h.label.setVisibility(View.GONE);
+        } else if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
             h.banner.setVisibility(View.VISIBLE);
             h.icon.setVisibility(View.GONE);
@@ -140,8 +220,31 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.label.setText(e.label);
             h.label.setVisibility(View.VISIBLE);
         }
-        h.card.setOnClickListener(v -> launch(e));
+        h.card.setOnClickListener(v -> {
+            if ("com.gathin.tvhome.inputs".equals(e.pkg)) {
+                if (listener != null) listener.onInputsTileClicked();
+            } else if (e.isStremio) {
+                Intent i = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("stremio:///detail/" + e.stremioType + "/" + e.stremioId));
+                i.setPackage("com.stremio.one");
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    ctx.startActivity(i);
+                } catch (Exception ex) {
+                    Intent fallback = ctx.getPackageManager().getLeanbackLaunchIntentForPackage("com.stremio.one");
+                    if (fallback != null) {
+                        fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        ctx.startActivity(fallback);
+                    } else {
+                        Toast.makeText(ctx, "Stremio yüklü değil", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            } else {
+                launch(e);
+            }
+        });
         h.card.setOnLongClickListener(v -> {
+            if (e.isStremio || "com.gathin.tvhome.inputs".equals(e.pkg)) return true;
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
@@ -177,6 +280,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     int ambientColorAt(int position) {
         if (position < 0 || position >= items.size()) return 0xFF444444;
         Entry e = items.get(position);
+        if ("com.gathin.tvhome.inputs".equals(e.pkg)) return 0xFF2563EB;
         if (e.ambient == 0) e.ambient = vividColor(e.banner != null ? e.banner : e.icon);
         return e.ambient;
     }

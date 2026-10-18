@@ -1,5 +1,8 @@
 package com.gathin.tvhome;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -25,11 +28,15 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LayoutAnimationController;
+import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,10 +47,14 @@ import androidx.dynamicanimation.animation.SpringForce;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * tvOS style home: black, a pinned dock row, an app grid, and one glass highlight that springs between tiles.
@@ -66,6 +77,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean heroShown;
     private TextView greeting;
     private TextView btnWifi;
+    private ImageView wallpaper;
+    private int currentWallpaperRes = 0;
+    private boolean isDockPeeking = false;
+    private ValueAnimator dockPeekAnimator;
+    private float peekOffset;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
     private boolean glassShown;
@@ -78,6 +94,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateWifiLabel();
+            updateWallpaper();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -87,6 +104,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
+        peekOffset = 115f * density;
         COLUMNS = Math.max(1, getResources().getInteger(R.integer.columns));
         liveTvPkg = getString(R.string.live_tv_package).trim();
 
@@ -102,22 +120,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
         btnWifi = findViewById(R.id.btnWifi);
+        wallpaper = findViewById(R.id.wallpaper);
+        updateWallpaper();
 
         grid = findViewById(R.id.grid);
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
-        grid.addItemDecoration(new DockDecoration(COLUMNS, density));
+        grid.addItemDecoration(new DockDecoration(COLUMNS * 2, density));
         grid.setLayoutAnimation(new LayoutAnimationController(
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
-        adapter = new AppAdapter(this, this, COLUMNS);
+        adapter = new AppAdapter(this, this, COLUMNS * 2);
         grid.setAdapter(adapter);
 
-        // tvOS layout: push the dock row to the bottom of the screen; the grid hides below until you press Down.
+        // tvOS layout: 2-row dock sits at the bottom, giving maximum space for the wallpaper above.
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             int h = b - t;
-            int dockRow = (int) ((145 + 6 + 12) * density);   // item height plus DockDecoration offsets
-            int want = Math.max(0, h - dockRow - (int) (30 * density));
+            int want = Math.max(0, h - (int) ((225 + 24) * density));
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
             }
@@ -134,16 +153,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
 
-        // Liquid feel: soft springs on the highlight's position.
+        // Liquid feel: smooth, stable, non-bouncy springs on highlight position.
         springX = new SpringAnimation(glass, DynamicAnimation.TRANSLATION_X);
         springY = new SpringAnimation(glass, DynamicAnimation.TRANSLATION_Y);
         for (SpringAnimation s : new SpringAnimation[]{springX, springY}) {
-            s.setSpring(new SpringForce().setStiffness(260f).setDampingRatio(0.58f));
+            s.setSpring(new SpringForce().setStiffness(360f).setDampingRatio(SpringForce.DAMPING_RATIO_NO_BOUNCY));
         }
 
-        View btnInputs = findViewById(R.id.btnInputs);
+        View btnCalendar = findViewById(R.id.btnCalendar);
+        View btnDevices = findViewById(R.id.btnDevices);
         View btnSettings = findViewById(R.id.btnSettings);
-        btnInputs.setOnClickListener(v -> showInputs());
+        btnCalendar.setOnClickListener(v -> showCalendar());
+        btnDevices.setOnClickListener(v -> showDevices());
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
 
@@ -152,18 +173,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnInputs) return true;
-            return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnCalendar) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                focusTile(lastFocused);
+                return true;
+            }
+            return false;
         };
-        btnInputs.setOnKeyListener(pillKeys);
+        btnCalendar.setOnKeyListener(pillKeys);
+        btnDevices.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
 
-        // Hide the glass when focus leaves the tiles.
+        // Hide the glass/hero and peek the dock when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
             boolean onTile = newF != null && newF.getId() == R.id.card;
-            if (!onTile) hideGlass();
+            if (!onTile) {
+                hideGlass();
+                hideHero();
+                setDockPeek(true, true);
+            } else {
+                setDockPeek(false, true);
+            }
         });
+    }
+
+    @Override
+    public void onInputsTileClicked() {
+        showInputs();
     }
 
     @Override
@@ -178,13 +216,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.scheduleLayoutAnimation();
         updateGreeting();
         updateWifiLabel();
+        updateWallpaper();
         handler.postDelayed(minuteTick, MINUTE_MS);
 
-        // Return to the tile we left from, or the first one.
+        // Start in peek mode at the top so the wallpaper photo is in the foreground
         grid.post(() -> {
-            View focused = getCurrentFocus();
-            if (focused != null && grid.findContainingViewHolder(focused) != null) return;
-            focusTile(lastFocused);
+            View btn = findViewById(R.id.btnCalendar);
+            if (btn != null) btn.requestFocus();
+            setDockPeek(true, false);
         });
     }
 
@@ -196,7 +235,320 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onBackPressed() {
-        // Home screen: Back goes nowhere.
+        if (calendarOverlay != null && calendarOverlay.getVisibility() == View.VISIBLE) {
+            hideCalendar();
+            return;
+        }
+        if (devicesOverlay != null && devicesOverlay.getVisibility() == View.VISIBLE) {
+            hideDevices();
+            return;
+        }
+        View focused = getCurrentFocus();
+        if (focused != null && focused.getId() == R.id.card) {
+            if (lastFocused >= COLUMNS * 2) {
+                // Return from apps grid to the dock
+                focusTile(0);
+            } else {
+                // Return from dock to top bar (peek mode, full photo view)
+                View btn = findViewById(R.id.btnCalendar);
+                if (btn != null) btn.requestFocus();
+            }
+        }
+    }
+
+    // ---- Calendar Overlay ------------------------------------------------------------------------
+
+    private View calendarOverlay;
+    private TextView tvCalMonthYear, tvCalSubtitle;
+    private TableLayout calGridTable;
+    private int calYear = 2026, calMonth = Calendar.OCTOBER;
+
+    private static final class CalEvent {
+        final String badge;
+        final String title;
+        final int color;
+        CalEvent(String badge, String title, int color) {
+            this.badge = badge;
+            this.title = title;
+            this.color = color;
+        }
+    }
+    private static final Map<Integer, CalEvent> OCT_EVENTS = new HashMap<>();
+    static {
+        OCT_EVENTS.put(20, new CalEvent("Contabilidad", "MARTES, 20 OCT — Contabilidad Sınavı (Aula 03, 13:30)", 0xFFA855F7));
+        OCT_EVENTS.put(22, new CalEvent("Estadística", "JUEVES, 22 OCT — Estadística Sınavı (Aula 27, 13:35)", 0xFF38BDF8));
+        OCT_EVENTS.put(23, new CalEvent("Finanzas", "VIERNES, 23 OCT — Finanzas I Sınavı (Aula 26, 13:40)", 0xFF10B981));
+        OCT_EVENTS.put(26, new CalEvent("Stocks&PERT", "LUNES, 26 OCT — IEE Práctica 3: Stocks & PERT (13:30)", 0xFFF59E0B));
+        OCT_EVENTS.put(29, new CalEvent("Microeconomía", "JUEVES, 29 OCT — Microeconomía Sınavı (Aula 31, 13:40)", 0xFFEF4444));
+        OCT_EVENTS.put(30, new CalEvent("Intro Economía", "VIERNES, 30 OCT — Intro Economía Sınavı (13:40)", 0xFFEAB308));
+    }
+
+    private void showCalendar() {
+        if (calendarOverlay == null) {
+            calendarOverlay = findViewById(R.id.calendarOverlay);
+            tvCalMonthYear = findViewById(R.id.tvCalMonthYear);
+            tvCalSubtitle = findViewById(R.id.tvCalSubtitle);
+            calGridTable = findViewById(R.id.calGridTable);
+            findViewById(R.id.btnCalClose).setOnClickListener(v -> hideCalendar());
+            findViewById(R.id.btnCalPrev).setOnClickListener(v -> {
+                calMonth--;
+                if (calMonth < 0) { calMonth = 11; calYear--; }
+                renderCalendar();
+                v.requestFocus();
+            });
+            findViewById(R.id.btnCalNext).setOnClickListener(v -> {
+                calMonth++;
+                if (calMonth > 11) { calMonth = 0; calYear++; }
+                renderCalendar();
+                v.requestFocus();
+            });
+            findViewById(R.id.btnCalToday).setOnClickListener(v -> {
+                Calendar c = Calendar.getInstance();
+                calYear = c.get(Calendar.YEAR);
+                calMonth = c.get(Calendar.MONTH);
+                renderCalendar();
+                v.requestFocus();
+            });
+        }
+        grid.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        ((ViewGroup) findViewById(R.id.topButtons)).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+
+        Calendar c = Calendar.getInstance();
+        calYear = c.get(Calendar.YEAR);
+        calMonth = c.get(Calendar.MONTH);
+        renderCalendar();
+        calendarOverlay.setAlpha(0f);
+        calendarOverlay.setVisibility(View.VISIBLE);
+        calendarOverlay.animate().alpha(1f).setDuration(220).start();
+    }
+
+    private void hideCalendar() {
+        if (calendarOverlay == null || calendarOverlay.getVisibility() != View.VISIBLE) return;
+        calendarOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
+            calendarOverlay.setVisibility(View.GONE);
+            grid.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            ((ViewGroup) findViewById(R.id.topButtons)).setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            View btn = findViewById(R.id.btnCalendar);
+            if (btn != null) btn.requestFocus();
+        }).start();
+    }
+
+    private void renderCalendar() {
+        Calendar cal = Calendar.getInstance();
+        int todayYear = cal.get(Calendar.YEAR);
+        int todayMonth = cal.get(Calendar.MONTH);
+        int todayDay = cal.get(Calendar.DAY_OF_MONTH);
+
+        cal.set(Calendar.YEAR, calYear);
+        cal.set(Calendar.MONTH, calMonth);
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
+        tvCalMonthYear.setText(sdf.format(cal.getTime()));
+        tvCalSubtitle.setText(todayDay + " " + new SimpleDateFormat("MMMM", Locale.getDefault()).format(cal.getTime()).toUpperCase(Locale.getDefault()) + " — Planlanan Etkinlik Yok");
+
+        calGridTable.removeAllViews();
+
+        int firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK) - 1; // 0=Sunday
+        int daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+
+        Calendar prevCal = (Calendar) cal.clone();
+        prevCal.add(Calendar.MONTH, -1);
+        int daysInPrevMonth = prevCal.getActualMaximum(Calendar.DAY_OF_MONTH);
+
+        int dayCounter = 1;
+        int nextMonthDayCounter = 1;
+        View viewToFocus = null;
+
+        for (int row = 0; row < 5; row++) {
+            TableRow tr = new TableRow(this);
+            TableLayout.LayoutParams trLp = new TableLayout.LayoutParams(
+                    TableLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+            tr.setLayoutParams(trLp);
+
+            for (int col = 0; col < 7; col++) {
+                View cell = getLayoutInflater().inflate(R.layout.item_cal_day, tr, false);
+                TextView tvDayNum = cell.findViewById(R.id.tvDayNum);
+                View dotToday = cell.findViewById(R.id.dotToday);
+                View eventBadge = cell.findViewById(R.id.eventBadge);
+                View eventDot = cell.findViewById(R.id.eventDot);
+                TextView eventText = cell.findViewById(R.id.eventText);
+
+                TableRow.LayoutParams cellLp = new TableRow.LayoutParams(0, TableRow.LayoutParams.MATCH_PARENT, 1f);
+                cell.setLayoutParams(cellLp);
+
+                int cellIndex = row * 7 + col;
+                if (cellIndex < firstDayOfWeek) {
+                    int pDay = daysInPrevMonth - (firstDayOfWeek - 1 - cellIndex);
+                    tvDayNum.setText(String.valueOf(pDay));
+                    tvDayNum.setTextColor(0x38FFFFFF);
+                    cell.setAlpha(0.35f);
+                    cell.setFocusable(false);
+                    cell.setClickable(false);
+                } else if (dayCounter <= daysInMonth) {
+                    final int d = dayCounter;
+                    tvDayNum.setText(String.valueOf(d));
+                    cell.setFocusable(true);
+                    cell.setClickable(true);
+                    if (row == 0) {
+                        cell.setNextFocusUpId(R.id.btnCalToday);
+                    }
+                    boolean isToday = (calYear == todayYear && calMonth == todayMonth && d == todayDay);
+                    if (isToday) {
+                        dotToday.setVisibility(View.VISIBLE);
+                        dotToday.setBackgroundColor(0xFF38BDF8);
+                        tvDayNum.setTextColor(0xFF38BDF8);
+                        viewToFocus = cell;
+                    }
+
+                    if (calYear == 2026 && calMonth == Calendar.OCTOBER && OCT_EVENTS.containsKey(d)) {
+                        CalEvent ev = OCT_EVENTS.get(d);
+                        eventBadge.setVisibility(View.VISIBLE);
+                        eventDot.setBackgroundColor(ev.color);
+                        eventText.setText(ev.badge);
+                        eventText.setTextColor(ev.color);
+                    }
+
+                    cell.setOnFocusChangeListener((v, hasFocus) -> {
+                        if (hasFocus) {
+                            if (calYear == 2026 && calMonth == Calendar.OCTOBER && OCT_EVENTS.containsKey(d)) {
+                                tvCalSubtitle.setText(OCT_EVENTS.get(d).title);
+                                tvCalSubtitle.setTextColor(OCT_EVENTS.get(d).color);
+                            } else {
+                                tvCalSubtitle.setText(d + " " + sdf.format(cal.getTime()).toUpperCase(Locale.getDefault()) + " — Planlanan etkinlik yok");
+                                tvCalSubtitle.setTextColor(0xFF38BDF8);
+                            }
+                        }
+                    });
+
+                    dayCounter++;
+                } else {
+                    tvDayNum.setText(String.valueOf(nextMonthDayCounter++));
+                    tvDayNum.setTextColor(0x38FFFFFF);
+                    cell.setAlpha(0.35f);
+                    cell.setFocusable(false);
+                    cell.setClickable(false);
+                }
+
+                tr.addView(cell);
+            }
+            calGridTable.addView(tr);
+        }
+
+        if (viewToFocus != null) {
+            final View f = viewToFocus;
+            f.post(f::requestFocus);
+        }
+    }
+
+    // ---- Devices Overlay -------------------------------------------------------------------------
+
+    private View devicesOverlay;
+    private LinearLayout devicesContainer;
+
+    private void showDevices() {
+        if (devicesOverlay == null) {
+            devicesOverlay = findViewById(R.id.devicesOverlay);
+            devicesContainer = findViewById(R.id.devicesContainer);
+            findViewById(R.id.btnDevClose).setOnClickListener(v -> hideDevices());
+            findViewById(R.id.tvDevRefresh).setOnClickListener(v -> populateDevices());
+        }
+        grid.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        ((ViewGroup) findViewById(R.id.topButtons)).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+
+        populateDevices();
+        devicesOverlay.setAlpha(0f);
+        devicesOverlay.setVisibility(View.VISIBLE);
+        devicesOverlay.animate().alpha(1f).setDuration(220).start();
+        findViewById(R.id.btnDevClose).requestFocus();
+    }
+
+    private void hideDevices() {
+        if (devicesOverlay == null || devicesOverlay.getVisibility() != View.VISIBLE) return;
+        devicesOverlay.animate().alpha(0f).setDuration(180).withEndAction(() -> {
+            devicesOverlay.setVisibility(View.GONE);
+            grid.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            ((ViewGroup) findViewById(R.id.topButtons)).setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            View btn = findViewById(R.id.btnDevices);
+            if (btn != null) btn.requestFocus();
+        }).start();
+    }
+
+    private void populateDevices() {
+        if (devicesContainer == null) return;
+        devicesContainer.removeAllViews();
+
+        String[][] devList = new String[][]{
+                {"MYA-L11 (Kırık Mac)", "24/7 Sunucu • Docker Engine • FastDrop • Hermes", "100.106.212.28 • 192.168.34.46", "Aktif (Online)", "#34D399"},
+                {"MacBook Pro M3 (kai)", "Ana Çalışma & Geliştirme Cihazı • Antigravity", "100.102.108.7 • 192.168.34.194", "Aktif (Online)", "#34D399"},
+                {"Vaytniga (Telefon)", "Mobil Düğüm • Sensör & İletişim", "100.72.106.12", "Aktif (Online)", "#34D399"},
+                {"LOLILE (PC Master)", "Windows 11 Pro • Workstation • RM-OS Vault & Stremio Server", "100.69.25.110 • 192.168.1.57", "Aktif (Online • Stremio 11470)", "#34D399"},
+                {"DAAK-DNS (Linux Core)", "DNS Çözücü & Cloudflare Connector", "100.114.210.93", "Aktif (Online)", "#34D399"},
+                {"TCL 4K Smart TV Pro (Nigtutio)", "Salon 4K Ekranı • Android 11 (Bu Cihaz)", "100.66.111.125 • 192.168.34.182", "Aktif (Online)", "#38BDF8"},
+                {"Keenetic Hopper (Vaytniga Wi-Fi)", "5GHz Wi-Fi Router • LAN Ağ Omurgası", "192.168.34.1", "Aktif (Online)", "#34D399"}
+        };
+
+        for (String[] d : devList) {
+            View row = getLayoutInflater().inflate(R.layout.item_device_row, devicesContainer, false);
+            TextView name = row.findViewById(R.id.devName);
+            TextView role = row.findViewById(R.id.devRole);
+            TextView ip = row.findViewById(R.id.devIp);
+            TextView statusText = row.findViewById(R.id.devStatusText);
+            View dot = row.findViewById(R.id.devStatusDot);
+
+            name.setText(d[0]);
+            role.setText(d[1]);
+            ip.setText(d[2]);
+            statusText.setText(d[3]);
+            int col = Color.parseColor(d[4]);
+            statusText.setTextColor(col);
+            dot.setBackgroundColor(col);
+
+            row.setOnClickListener(v -> Toast.makeText(this, d[0] + "\n" + d[2], Toast.LENGTH_SHORT).show());
+            devicesContainer.addView(row);
+        }
+    }
+
+    private void setDockPeek(boolean peek, boolean animate) {
+        if (isDockPeeking == peek && dockPeekAnimator == null) return;
+        isDockPeeking = peek;
+        final float targetY = peek ? peekOffset : 0f;
+
+        if (dockPeekAnimator != null) {
+            dockPeekAnimator.cancel();
+            dockPeekAnimator = null;
+        }
+
+        if (!animate) {
+            grid.setTranslationY(targetY);
+            return;
+        }
+
+        final float startY = grid.getTranslationY();
+        if (Math.abs(startY - targetY) < 1f) return;
+
+        dockPeekAnimator = ValueAnimator.ofFloat(startY, targetY);
+        dockPeekAnimator.setDuration(peek ? 240 : 260);
+        dockPeekAnimator.setInterpolator(new DecelerateInterpolator(1.8f));
+        dockPeekAnimator.addUpdateListener(anim -> {
+            grid.setTranslationY((float) anim.getAnimatedValue());
+        });
+        dockPeekAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                dockPeekAnimator = null;
+                if (!isDockPeeking) {
+                    RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(lastFocused);
+                    if (vh != null) {
+                        View card = vh.itemView.findViewById(R.id.card);
+                        if (card != null && card.isFocused()) {
+                            onTileFocused(lastFocused, card);
+                        }
+                    }
+                }
+            }
+        });
+        dockPeekAnimator.start();
     }
 
     // ---- glass highlight -------------------------------------------------------------------------
@@ -204,14 +556,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onTileFocused(int position, View card) {
         lastFocused = position;
-        // Tile rect in root coordinates, using layout positions (ignores the scale animation).
+        // Tile rect in root coordinates, normalized by subtracting current grid translation.
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
         float pad = 6f * density;        // matches GlassView's glow inset
         float w = card.getWidth() * AppAdapter.FOCUS_SCALE + 2 * pad;
         float h = card.getHeight() * AppAdapter.FOCUS_SCALE + 2 * pad;
         float x = r.exactCenterX() - w / 2f;
-        float y = r.exactCenterY() - h / 2f;
+        float y = r.exactCenterY() - h / 2f - grid.getTranslationY();
 
         ViewGroup.LayoutParams lp = glass.getLayoutParams();
         if (lp.width != (int) w || lp.height != (int) h) {
@@ -234,17 +586,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(y);
         }
         View item = (View) card.getParent();
-        if (position < COLUMNS) {
-            // Dock: park it at the bottom of the screen and show the top shelf for this app.
-            int decoratedTop = item.getTop() - (int) (6 * density);
-            int dy = decoratedTop - grid.getPaddingTop();
+        int dockCapacity = COLUMNS * 2;
+        int row = position / COLUMNS;
+        if (position < dockCapacity) {
+            // Dock (Rows 0 and 1): Both rows sit together parked at grid.getPaddingTop()
+            RecyclerView.ViewHolder vh0 = grid.findViewHolderForAdapterPosition(0);
+            int dockTop = (vh0 != null) ? vh0.itemView.getTop() : (item.getTop() - row * (int) (106 * density));
+            int dy = dockTop - (int) (6 * density) - grid.getPaddingTop();
             if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy);
-            showHero(position, r.top - dy);
+            showHero(position, r.top - dy - grid.getTranslationY());
         } else {
             hideHero();
-            // Scroll just enough so the whole glass (not only the tile) is visible.
-            Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-            grid.requestChildRectangleOnScreen(item, want, false);
+            // Deterministic row positioning: every app row r >= 2 aligns to the exact same screen Y
+            int targetY = grid.getHeight() - (int) ((130 + 24) * density);
+            int dy = item.getTop() - targetY;
+            if (Math.abs(dy) > 2) grid.smoothScrollBy(0, dy);
         }
     }
 
@@ -354,6 +710,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         greeting.setText(res);
     }
 
+    private void updateWallpaper() {
+        Calendar now = Calendar.getInstance();
+        int hour = now.get(Calendar.HOUR_OF_DAY);
+        int minute = now.get(Calendar.MINUTE);
+        int timeInMinutes = hour * 60 + minute;
+        // Day cycle: 07:00 (420 min) to 19:30 (1170 min)
+        boolean isDay = (timeInMinutes >= 420 && timeInMinutes < 1170);
+        int targetRes = isDay ? R.drawable.wallpaper_day : R.drawable.wallpaper_night;
+
+        if (wallpaper == null) return;
+
+        if (currentWallpaperRes == 0) {
+            currentWallpaperRes = targetRes;
+            wallpaper.setImageResource(targetRes);
+            wallpaper.setAlpha(1f);
+        } else if (currentWallpaperRes != targetRes) {
+            currentWallpaperRes = targetRes;
+            wallpaper.animate().alpha(0f).setDuration(400).withEndAction(() -> {
+                wallpaper.setImageResource(targetRes);
+                wallpaper.animate().alpha(1f).setDuration(600).start();
+            }).start();
+        }
+    }
+
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
     private void updateWifiLabel() {
         String text = getString(R.string.wifi);
@@ -390,12 +770,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
     private void showInputs() {
-        View anchor = findViewById(R.id.btnInputs);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
 
-        // Compact: as wide as the Inputs pill (a touch wider so "HDMI 1" fits), hanging right below it.
-        int width = Math.max(anchor.getWidth(), (int) (150 * density));
+        int width = (int) (240 * density);
         final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
         popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
         popup.setOutsideTouchable(true);
@@ -442,7 +820,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPivotY(0f);
         panel.setScaleY(0.92f);
         panel.setTranslationY(-8 * density);
-        popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
+        popup.showAtLocation(root, Gravity.CENTER, 0, 0);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         rows.getChildAt(0).requestFocus();
