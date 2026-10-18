@@ -1,0 +1,26 @@
+{
+  "device": "Sony K-85XR70 (China)",
+  "android": "14 / API 34",
+  "firmware": "114.602.170.1",
+  "test_date": "2026-10-18",
+  "sample": "18 injected Left/Right keys, 0.12 seconds between keys; short sample only",
+  "display": "1920x1080",
+  "frames": 292,
+  "reported_janky_frames": 0,
+  "frame_time_p95_ms": 8,
+  "gpu_time_p95_ms": 4,
+  "memory_after_navigation_pss_kib": 88816,
+  "idle_cpu_percent_sample": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "navigation_cpu_percent_of_one_core_sample": [
+    26.4,
+    29.0,
+    28.0,
+    29.0,
+    29.0
+  ],
+  "validation_scope": "TV sample taken before the final hero-title callback cleanup; final source compiled, final title cleanup awaiting awake-TV validation."
+}

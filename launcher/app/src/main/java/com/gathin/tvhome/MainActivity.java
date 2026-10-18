@@ -1,5 +1,7 @@
 package com.gathin.tvhome;
 
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -64,6 +66,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView heroName;
     private GradientDrawable ambientGlow;
     private int ambientColor;
+    private ValueAnimator ambientAnimator;
     private boolean heroShown;
     private TextView greeting;
     private TextView btnWifi;
@@ -215,6 +218,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(minuteTick);
+        stopAmbientAnimation();
+        ambient.animate().cancel();
+        heroName.animate().cancel();
     }
 
     @Override
@@ -282,6 +288,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- top shelf -------------------------------------------------------------------------------
 
     private void showHero(int position, float dockTopInRoot) {
+        // A quick return to the same label must cancel the previous label's pending fade callback.
+        heroName.animate().cancel();
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
         float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
@@ -302,14 +310,41 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 heroName.setTranslationX(12 * density);
                 heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
             }).start();
-            if (color != ambientColor) {
-                ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
-                    setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(500).start();
-                }).start();
-            }
+            transitionAmbient(color);
         } else {
             heroName.setY(y);
+            heroName.setAlpha(1f);
+            heroName.setTranslationX(0f);
+            transitionAmbient(color);
+        }
+    }
+
+    private void transitionAmbient(int color) {
+        // Continue from the displayed colour when another app is focused mid-transition.
+        stopAmbientAnimation();
+        ambient.animate().cancel();
+        if (color == ambientColor) {
+            ambient.animate().alpha(1f).setDuration(180).start();
+            return;
+        }
+        if (!getResources().getBoolean(R.bool.animate_ambient_color)) {
+            ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
+                setAmbient(color);
+                ambient.animate().alpha(1f).setDuration(500).start();
+            }).start();
+            return;
+        }
+        ambient.animate().alpha(1f).setDuration(180).start();
+        ambientAnimator = ValueAnimator.ofObject(new ArgbEvaluator(), ambientColor, color);
+        ambientAnimator.setDuration(360);
+        ambientAnimator.addUpdateListener(animation -> setAmbient((int) animation.getAnimatedValue()));
+        ambientAnimator.start();
+    }
+
+    private void stopAmbientAnimation() {
+        if (ambientAnimator != null) {
+            ambientAnimator.cancel();
+            ambientAnimator = null;
         }
     }
 
@@ -321,7 +356,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void hideHero() {
         if (!heroShown) return;
+        stopAmbientAnimation();
+        ambient.animate().cancel();
         heroShown = false;
+        heroName.animate().cancel();
         heroName.animate().alpha(0f).setDuration(160).start();
         ambient.animate().alpha(0f).setDuration(300).start();
     }

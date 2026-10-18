@@ -24,4 +24,7 @@
 
     <!-- Tiles per row in the grid; the dock always has this many slots. -->
     <integer name="columns">4</integer>
+
+    <!-- Smooth colour interpolation; false retains the previous fade-out/change/fade-in. -->
+    <bool name="animate_ambient_color">true</bool>
 </resources>

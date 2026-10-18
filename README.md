@@ -189,6 +189,9 @@ tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components
 It starts after the TV's "screen off" idle time (`settings get system screen_off_timeout`).
 </details>
 
+The dock's ambient background colour interpolates between focused apps over 360 ms. Set
+`animate_ambient_color` to `false` in `config.xml` to retain the previous fade-out/change/fade-in.
+
 ## Troubleshooting
 
 Things that bit us or contributors, so they don't bite you.
