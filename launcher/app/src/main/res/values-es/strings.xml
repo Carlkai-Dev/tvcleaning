@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_menu_move">Mover</string>
+    <string name="app_menu_uninstall">Desinstalar</string>
+    <string name="app_menu_hide">Ocultar</string>
+    <string name="app_menu_close_hint">Atrás para cerrar</string>
+    <string name="settings_hidden_hint">Ajustes. Mantén OK para mostrar las apps ocultas.</string>
+    <string name="app_hidden_hint">App oculta. Mantén OK en Ajustes para volver a mostrarla.</string>
+    <string name="system_app_hide_instead">Es una app del sistema y no se puede desinstalar aquí. Puedes ocultarla.</string>
+    <string name="uninstall_unavailable">No se pudo abrir la pantalla de desinstalación de Android.</string>
+    <string name="hidden_apps_title">Apps ocultas</string>
+    <string name="no_hidden_apps">No hay apps ocultas. Mantén OK sobre una app para ocultarla.</string>
+    <string name="show_hidden_app">Mostrar %1$s</string>
+    <string name="app_shown">App visible de nuevo</string>
+    <string name="move_help">Moviendo %1$s · Flechas: mover · OK: guardar · Atrás: cancelar\nLas primeras cuatro apps aparecen en la barra</string>
+    <string name="move_saved">Orden guardado</string>
+    <string name="move_cancelled">Cambios cancelados</string>
+    <string name="move_save_failed">No se pudo guardar. Intenta de nuevo o pulsa Atrás para cancelar.</string>
+</resources>

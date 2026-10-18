@@ -1,6 +1,5 @@
 package com.gathin.tvhome;
 
-import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -12,13 +11,12 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
-import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
+import android.view.ViewConfiguration;
 import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -33,15 +31,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 /**
- * App tiles. The first {@link MainActivity#COLUMNS} positions are the pinned dock (favourites, fixed order),
- * the rest is alphabetical.
+ * App tiles. The first {@link MainActivity#COLUMNS} positions form the dock.
+ * The saved user order takes precedence over the default favourites and alphabetical order.
  */
 public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     interface TileListener {
         void onTileFocused(int position, View card);
+        void onTileMenuRequested(int position, View card);
 
         /** Called for D-pad Up/Down on a tile. Return true when handled. */
         boolean onTileVerticalKey(int position, int keyCode);
@@ -65,6 +66,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     static final float FOCUS_SCALE = 1.10f;
+    static final float MENU_SCALE = 1.20f;
 
     private final Context ctx;
     private final TileListener listener;
@@ -74,6 +76,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final List<Entry> items = new ArrayList<>();
+    private List<Entry> moveSnapshot;
 
     AppAdapter(Context ctx, TileListener listener, int dockSize) {
         this.ctx = ctx;
@@ -90,11 +93,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
+        Set<String> userHidden = userHiddenPackages();
         List<Entry> fresh = new ArrayList<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
+            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg) || userHidden.contains(pkg)) continue;
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
@@ -110,6 +114,21 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             }
             return a.label.compareToIgnoreCase(b.label);
         });
+        List<String> saved = new ArrayList<>();
+        try {
+            JSONArray order = new JSONArray(ctx.getSharedPreferences("home", Context.MODE_PRIVATE)
+                    .getString("app_order", "[]"));
+            for (int i = 0; i < order.length(); i++) saved.add(order.getString(i));
+        } catch (JSONException ignored) { }
+        if (!saved.isEmpty()) {
+            // Stable sort: newly installed apps retain their default relative order at the end.
+            Collections.sort(fresh, (a, b) -> {
+                int ia = saved.indexOf(a.component.flattenToShortString());
+                int ib = saved.indexOf(b.component.flattenToShortString());
+                return Integer.compare(ia < 0 ? Integer.MAX_VALUE : ia,
+                        ib < 0 ? Integer.MAX_VALUE : ib);
+            });
+        }
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
@@ -146,14 +165,71 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            int current = h.getBindingAdapterPosition();
+            if (current != RecyclerView.NO_POSITION) listener.onTileMenuRequested(current, h.card);
             return true;
         });
+    }
+
+    void beginMove() {
+        moveSnapshot = new ArrayList<>(items);
+    }
+
+    void move(int from, int to) {
+        if (from < 0 || to < 0 || from >= items.size() || to >= items.size()) return;
+        Collections.swap(items, from, to);
+        // Rebind dock/grid labels as well as positions when crossing the dock boundary.
+        notifyDataSetChanged();
+    }
+
+    boolean finishMove(boolean save) {
+        if (save) {
+            JSONArray order = new JSONArray();
+            List<String> keys = new ArrayList<>();
+            for (Entry entry : items) keys.add(entry.component.flattenToShortString());
+            // Keep hidden apps in the stored order so showing them again preserves their place.
+            try {
+                JSONArray previous = new JSONArray(ctx.getSharedPreferences("home", Context.MODE_PRIVATE)
+                        .getString("app_order", "[]"));
+                Set<String> userHidden = userHiddenPackages();
+                for (int i = 0; i < previous.length(); i++) {
+                    String key = previous.getString(i);
+                    ComponentName component = ComponentName.unflattenFromString(key);
+                    if (component != null && userHidden.contains(component.getPackageName()) && !keys.contains(key))
+                        keys.add(Math.min(i, keys.size()), key);
+                }
+            } catch (JSONException ignored) { }
+            for (String key : keys) order.put(key);
+            if (!ctx.getSharedPreferences("home", Context.MODE_PRIVATE).edit()
+                    .putString("app_order", order.toString()).commit()) return false;
+        } else if (moveSnapshot != null) {
+            items.clear();
+            items.addAll(moveSnapshot);
+            notifyDataSetChanged();
+        }
+        moveSnapshot = null;
+        return true;
+    }
+
+    Entry entryAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position) : null;
+    }
+
+    Set<String> userHiddenPackages() {
+        return new HashSet<>(ctx.getSharedPreferences("home", Context.MODE_PRIVATE)
+                .getStringSet("hidden_packages", Collections.emptySet()));
+    }
+
+    boolean setHidden(String pkg, boolean hide) {
+        Set<String> packages = userHiddenPackages();
+        if (hide) {
+            // Snapshot the current default order the first time a tile is hidden.
+            if (!ctx.getSharedPreferences("home", Context.MODE_PRIVATE).contains("app_order")
+                    && !finishMove(true)) return false;
+            packages.add(pkg);
+        } else packages.remove(pkg);
+        return ctx.getSharedPreferences("home", Context.MODE_PRIVATE).edit()
+                .putStringSet("hidden_packages", packages).commit();
     }
 
     private void launch(Entry e) {
@@ -272,6 +348,16 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             card.setClipToOutline(true);
 
             card.setOnKeyListener((view, keyCode, event) -> {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                        || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+                        view.animate().scaleX(MENU_SCALE).scaleY(MENU_SCALE)
+                                .setDuration(ViewConfiguration.getLongPressTimeout()).start();
+                    } else if (event.getAction() == KeyEvent.ACTION_UP) {
+                        view.animate().scaleX(FOCUS_SCALE).scaleY(FOCUS_SCALE).setDuration(180).start();
+                    }
+                    return false; // Android still distinguishes click from long click.
+                }
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
                 if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
                 int pos = getBindingAdapterPosition();

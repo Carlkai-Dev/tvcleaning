@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_menu_move">Move</string>
+    <string name="app_menu_uninstall">Uninstall</string>
+    <string name="app_menu_hide">Hide</string>
+    <string name="app_menu_close_hint">Back to close</string>
+    <string name="settings_hidden_hint">Settings. Hold OK to show hidden apps.</string>
+    <string name="app_hidden_hint">App hidden. Hold OK on Settings to show it again.</string>
+    <string name="system_app_hide_instead">This is a system app and cannot be uninstalled here. You can hide it instead.</string>
+    <string name="uninstall_unavailable">Cannot open the Android uninstall screen for this app.</string>
+    <string name="hidden_apps_title">Hidden apps</string>
+    <string name="no_hidden_apps">No hidden apps. Hold OK on an app to hide it.</string>
+    <string name="show_hidden_app">Show %1$s</string>
+    <string name="app_shown">App visible again</string>
+    <string name="move_help">Moving %1$s · Arrows: move · OK: save · Back: cancel\nThe first four apps appear in the dock</string>
+    <string name="move_saved">App order saved</string>
+    <string name="move_cancelled">Changes cancelled</string>
+    <string name="move_save_failed">Could not save. Try again or press Back to cancel.</string>
     <string name="app_name">Home</string>
     <string name="inputs">Inputs</string>
     <string name="wifi">Wi-Fi</string>

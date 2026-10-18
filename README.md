@@ -1,5 +1,9 @@
 # tv-vibehack
 
+This branch includes a long-press app menu, persistent app ordering, hiding and restoring apps,
+and configuration tested on Hisense Google TV. See [the customization guide](docs/hisense-launcher-customizations.md)
+for remote controls, validation and restoring Google TV.
+
 **Your TV, minus the ads.**
 
 Strip the bloatware from any Android TV or Google TV over Wi-Fi, and replace the ad-filled home
