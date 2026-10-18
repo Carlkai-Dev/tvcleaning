@@ -8,3 +8,13 @@ launcher/local.properties
 # your own TV's dumps (serial, android_id, device names) stay local
 backup/
 .DS_Store
+# webOS launcher: pairing key, build output and files generated from your own TV
+webos-launcher/.lgtv-key.json
+webos-launcher/build/
+webos-launcher/venv/
+webos-launcher/app/apps.js
+webos-launcher/app/icons/
+webos-launcher/app/fonts/
+webos-launcher/app/icon.png
+webos-launcher/app/largeIcon.png
+webos-launcher/__pycache__/
