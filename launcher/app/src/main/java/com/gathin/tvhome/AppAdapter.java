@@ -147,6 +147,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.setText(e.label);
         h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
+        h.highlight.animate().cancel();
+        h.highlight.setAlpha(focused ? 1f : 0f);
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
         h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
@@ -328,6 +330,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final ImageView icon;
         final TextView label;
         final TextView name;
+        final GlassView highlight;
 
         Holder(View v, TileListener listener) {
             super(v);
@@ -336,6 +339,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             icon = v.findViewById(R.id.icon);
             label = v.findViewById(R.id.label);
             name = v.findViewById(R.id.name);
+            highlight = v.findViewById(R.id.tileGlass);
 
             final float density = v.getResources().getDisplayMetrics().density;
             final float radius = density * 16f;
@@ -365,6 +369,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
+                highlight.animate().alpha(focused ? 1f : 0f).setDuration(focused ? 160 : 120).start();
                 float s = focused ? FOCUS_SCALE : 1.0f;
                 view.animate().scaleX(s).scaleY(s)
                         .setDuration(focused ? 260 : 180)

@@ -29,7 +29,7 @@ final class AppMenuView extends FrameLayout {
     private int selected;
     private boolean confirmDown;
 
-    AppMenuView(Context context, AppAdapter.Entry entry, Rect tile, Listener listener) {
+    AppMenuView(Context context, AppAdapter.Entry entry, Rect tile, float initialScale, Listener listener) {
         super(context);
         this.listener = listener;
         float density = getResources().getDisplayMetrics().density;
@@ -47,13 +47,17 @@ final class AppMenuView extends FrameLayout {
         preview.setImageDrawable(artwork);
         preview.setScaleType(entry.banner != null ? ImageView.ScaleType.FIT_XY : ImageView.ScaleType.CENTER_INSIDE);
         preview.setContentDescription(entry.label);
-        preview.setBackground(round(0xFF16161A, 20 * density, 0x66FFFFFF, density));
-        preview.setClipToOutline(true);
-        preview.setElevation(16 * density);
+        FrameLayout previewCard = new FrameLayout(context);
+        previewCard.setBackground(round(0xFF16161A, 16 * density, 0, 0));
+        previewCard.setClipToOutline(true);
+        previewCard.setElevation(16 * density);
+        previewCard.addView(preview, new LayoutParams(-1, -1));
+        GlassView previewHighlight = new GlassView(context, null);
+        previewCard.addView(previewHighlight, new LayoutParams(-1, -1));
         LayoutParams previewLayout = new LayoutParams(tile.width(), tile.height());
         previewLayout.leftMargin = tile.left;
         previewLayout.topMargin = tile.top;
-        addView(preview, previewLayout);
+        addView(previewCard, previewLayout);
 
         LinearLayout panel = new LinearLayout(context);
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -110,9 +114,9 @@ final class AppMenuView extends FrameLayout {
                     Math.min(tile.centerY() - panel.getMeasuredHeight() / 2,
                             getHeight() - panel.getMeasuredHeight() - margin));
             panel.setLayoutParams(panelLayout);
-            preview.setScaleX(AppAdapter.FOCUS_SCALE);
-            preview.setScaleY(AppAdapter.FOCUS_SCALE);
-            preview.animate().scaleX(AppAdapter.MENU_SCALE).scaleY(AppAdapter.MENU_SCALE)
+            previewCard.setScaleX(initialScale);
+            previewCard.setScaleY(initialScale);
+            previewCard.animate().scaleX(AppAdapter.MENU_SCALE).scaleY(AppAdapter.MENU_SCALE)
                     .setDuration(220).start();
             panel.setAlpha(0f);
             panel.setTranslationY(8 * density);

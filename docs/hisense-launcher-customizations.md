@@ -1,4 +1,4 @@
-# Hisense launcher customizations (2.2)
+# Hisense launcher customizations (2.3)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
@@ -15,6 +15,20 @@ It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 1
 The order and hidden-app list are saved locally. Newly installed apps appear after the saved order.
 Leaving Home cancels a pending move. English and Spanish resources are included; the system language selects them.
 The contextual menu uses dimming, rounded panels, vector icons and scale animation without real-time blur or new dependencies.
+
+## Visual corrections in 2.3
+
+Inputs, Wi-Fi and Settings use equally sized pills, equal gaps and centered icon/label groups.
+The greeting and clock share their starting edge. Each app card now owns its inset glass highlight,
+so the artwork and rim share clipping, rounded corners and scale animations. The contextual preview
+uses the same highlight and continues from the scale reached while holding OK.
+
+![Aligned header and fitted focus highlight](launcher-home-2.3.png)
+![Contextual menu with the highlight retained](launcher-menu-2.3.png)
+
+Verified on the TV: the three header pills each measured 224 by 84 screen pixels,
+with 20-pixel gaps and the same vertical position. Checked the input menu, Wi-Fi,
+Settings, focused cards and contextual previews. The app order was unchanged.
 
 ## Hisense configuration
 

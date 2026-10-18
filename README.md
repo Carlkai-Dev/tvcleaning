@@ -1,6 +1,6 @@
 # tv-vibehack
 
-This branch includes a long-press app menu, persistent app ordering, hiding and restoring apps,
+This branch includes a long-press app menu, persistent app ordering, hiding and restoring apps, aligned header controls,
 and configuration tested on Hisense Google TV. See [the customization guide](docs/hisense-launcher-customizations.md)
 for remote controls, validation and restoring Google TV.
 
@@ -78,8 +78,8 @@ A home screen that is yours again:
 - **A top shelf** showing the focused app's name in large type, with an ambient glow in a colour
   taken from the app's own artwork.
 - **The rest of your apps in a grid** that slides up when you press Down.
-- **One floating glass highlight** that springs from tile to tile instead of each tile drawing its
-  own border. The focused tile lifts slightly and shows its name.
+- **A fitted glass highlight** inside the focused tile. The artwork and highlight scale together
+  when the tile lifts or opens its app menu.
 - **Three frosted buttons**: Inputs (a dropdown of HDMI ports, AV and Live TV), Wi-Fi (showing the
   network you're on) and Settings.
 - **A greeting, a large thin clock and the date**, set in

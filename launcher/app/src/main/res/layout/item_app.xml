@@ -47,6 +47,12 @@
             android:textSize="13sp"
             android:fontFamily="@font/outfit"
             android:visibility="gone" />
+        <com.gathin.tvhome.GlassView
+            android:id="@+id/tileGlass"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0"
+            android:importantForAccessibility="no" />
     </FrameLayout>
 
     <TextView

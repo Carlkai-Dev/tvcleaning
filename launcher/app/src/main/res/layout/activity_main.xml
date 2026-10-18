@@ -50,12 +50,12 @@
                     android:id="@+id/greeting"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
                     android:textColor="#8CFFFFFF"
                     android:textSize="12sp"
+                    android:includeFontPadding="false"
                     android:fontFamily="@font/outfit"
                     android:fontVariationSettings="'wght' 500"
-                    android:letterSpacing="0.22"
+                    android:letterSpacing="0.14"
                     android:textAllCaps="true" />
 
                 <LinearLayout
@@ -128,21 +128,22 @@
                 android:layout_marginBottom="6dp"
                 android:orientation="horizontal">
 
-                <TextView
+                <com.gathin.tvhome.TopButton
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
+                    android:layout_marginStart="0dp"
                     android:text="@string/inputs"
                     android:drawableStart="@drawable/ic_input"
                     android:nextFocusDown="@+id/grid" />
 
-                <TextView
+                <com.gathin.tvhome.TopButton
                     android:id="@+id/btnWifi"
                     style="@style/TopButton"
                     android:text="@string/wifi"
                     android:drawableStart="@drawable/ic_wifi"
                     android:nextFocusDown="@+id/grid" />
 
-                <TextView
+                <com.gathin.tvhome.TopButton
                     android:id="@+id/btnSettings"
                     style="@style/TopButton"
                     android:text="@string/settings"
@@ -172,11 +173,4 @@
         </FrameLayout>
     </LinearLayout>
 
-    <!-- The single floating glass highlight that springs between tiles. -->
-    <com.gathin.tvhome.GlassView
-        android:id="@+id/glass"
-        android:layout_width="10dp"
-        android:layout_height="10dp"
-        android:alpha="0"
-        android:importantForAccessibility="no" />
 </FrameLayout>
