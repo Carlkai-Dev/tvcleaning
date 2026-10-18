@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -45,6 +46,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         /** Called for D-pad Up/Down on a tile. Return true when handled. */
         boolean onTileVerticalKey(int position, int keyCode);
+
+        /** Long-press (hold OK) on a tile: show the dock / hide menu. */
+        void onTileMenu(int position, View card);
     }
 
     static final class Entry {
@@ -69,24 +73,111 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Context ctx;
     private final TileListener listener;
     private final int dockSize;
-    /** Dock order (res/values/config.xml, dock_apps). */
-    private final List<String> favourites;
+    private static final String PREFS = "layout";
+    private static final String KEY_DOCK = "dock";
+    private static final String KEY_HIDDEN = "hidden";
+    private final SharedPreferences prefs;
+    private final List<String> defaultDock;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
-    private final Set<String> hidden;
+    private final Set<String> configHidden;
+    /** Dock order: the user's choice if they made one, else res/values/config.xml (dock_apps). */
+    private List<String> favourites;
+    /** configHidden plus whatever the user hid from the remote. */
+    private Set<String> hidden;
+    /** Installed dock apps in dock order, filled by reload(). */
+    private final List<String> dockInstalled = new ArrayList<>();
     private final List<Entry> items = new ArrayList<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize) {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
-        this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
-        this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
+        this.prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.defaultDock = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
+        this.configHidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
+        loadLayout();
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
     }
 
+    private void loadLayout() {
+        String saved = prefs.getString(KEY_DOCK, null);
+        favourites = saved == null ? defaultDock
+                : saved.isEmpty() ? new ArrayList<String>() : Arrays.asList(saved.split(","));
+        hidden = new HashSet<>(configHidden);
+        hidden.addAll(prefs.getStringSet(KEY_HIDDEN, Collections.<String>emptySet()));
+    }
+
+    // ---- dock / hide edits from the remote (kept in SharedPreferences, applied on the next reload) ----
+
+    String pkgAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position).pkg : null;
+    }
+
+    /** Index of the app in the dock, or -1 when it is not pinned. */
+    int dockIndex(String pkg) {
+        return dockInstalled.indexOf(pkg);
+    }
+
+    int dockCount() {
+        return dockInstalled.size();
+    }
+
+    /** Pins an app at the end of the dock. False when the dock is full. */
+    boolean pin(String pkg) {
+        if (dockInstalled.contains(pkg)) return true;
+        if (dockInstalled.size() >= dockSize) return false;
+        List<String> next = new ArrayList<>(dockInstalled);
+        next.add(pkg);
+        saveDock(next);
+        return true;
+    }
+
+    void unpin(String pkg) {
+        List<String> next = new ArrayList<>(dockInstalled);
+        next.remove(pkg);
+        saveDock(next);
+    }
+
+    /** Moves a dock app one slot left (-1) or right (+1). */
+    void moveInDock(String pkg, int delta) {
+        int from = dockInstalled.indexOf(pkg), to = from + delta;
+        if (from < 0 || to < 0 || to >= dockInstalled.size()) return;
+        List<String> next = new ArrayList<>(dockInstalled);
+        Collections.swap(next, from, to);
+        saveDock(next);
+    }
+
+    void hide(String pkg) {
+        Set<String> user = new HashSet<>(prefs.getStringSet(KEY_HIDDEN, Collections.<String>emptySet()));
+        user.add(pkg);
+        prefs.edit().putStringSet(KEY_HIDDEN, user).apply();
+        List<String> next = new ArrayList<>(dockInstalled);
+        if (next.remove(pkg)) saveDock(next);
+    }
+
+    /** How many apps the user hid from the remote (config.xml ones don't count). */
+    int userHiddenCount() {
+        return prefs.getStringSet(KEY_HIDDEN, Collections.<String>emptySet()).size();
+    }
+
+    void unhideAll() {
+        prefs.edit().remove(KEY_HIDDEN).apply();
+    }
+
+    private void saveDock(List<String> next) {
+        prefs.edit().putString(KEY_DOCK, join(next)).apply();
+    }
+
+    private static String join(List<String> l) {
+        StringBuilder sb = new StringBuilder();
+        for (String s : l) sb.append(sb.length() == 0 ? "" : ",").append(s);
+        return sb.toString();
+    }
+
     void reload() {
+        loadLayout();
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
@@ -113,6 +204,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         });
         items.clear();
         items.addAll(fresh);
+        dockInstalled.clear();
+        for (Entry e : fresh) {
+            if (favourites.contains(e.pkg) && dockInstalled.size() < dockSize) dockInstalled.add(e.pkg);
+        }
         notifyDataSetChanged();
     }
 
@@ -147,17 +242,29 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            int pos = h.getBindingAdapterPosition();
+            if (listener != null && pos != RecyclerView.NO_POSITION) listener.onTileMenu(pos, v);
             return true;
         });
     }
 
+    /** App info screen for a package (uninstall, permissions, storage). */
+    void openAppInfo(String pkg) {
+        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            ctx.startActivity(i);
+        } catch (ActivityNotFoundException ignored) {
+        }
+    }
+
+    /** Tile clicks before this uptime are ignored: the OK press that picked a menu row must not also open the app. */
+    static long ignoreLaunchUntil;
+
     private void launch(Entry e) {
+        if (android.os.SystemClock.uptimeMillis() < ignoreLaunchUntil) {
+            return;
+        }
         Intent i = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)
@@ -274,8 +381,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
             card.setOnKeyListener((view, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
                 int pos = getBindingAdapterPosition();
+                if (keyCode == KeyEvent.KEYCODE_MENU) {   // the remote's Menu button opens the same menu as holding OK
+                    if (listener != null && pos != RecyclerView.NO_POSITION) listener.onTileMenu(pos, view);
+                    return true;
+                }
+                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
                 return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileVerticalKey(pos, keyCode);
             });
 

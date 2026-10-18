@@ -332,6 +332,70 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glass.animate().alpha(0f).setDuration(160).start();
     }
 
+    // ---- tile menu (hold OK on a tile) -----------------------------------------------------------
+
+    @Override
+    public void onTileMenu(int position, View card) {
+        final String pkg = adapter.pkgAt(position);
+        if (pkg == null) return;
+        final String key = adapter.keyAt(position);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = new PopupWindow(panel, (int) (270 * density), ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
+        popup.setAnimationStyle(0);
+        popup.setElevation(0f);
+
+        TextView title = new TextView(this);
+        title.setText(adapter.labelAt(position));
+        title.setTextColor(0xFFFFFFFF);
+        title.setTextSize(17);
+        title.setTypeface(getResources().getFont(R.font.outfit));
+        title.setSingleLine(true);
+        title.setPadding((int) (12 * density), (int) (8 * density), (int) (12 * density), (int) (8 * density));
+        rows.addView(title);
+
+        int dockIdx = adapter.dockIndex(pkg);
+        if (dockIdx >= 0) {
+            if (dockIdx > 0) addInputRow(rows, popup, R.drawable.ic_left, getString(R.string.move_left), -1,
+                    () -> editLayout(key, () -> adapter.moveInDock(pkg, -1)));
+            if (dockIdx < adapter.dockCount() - 1) addInputRow(rows, popup, R.drawable.ic_right, getString(R.string.move_right), -1,
+                    () -> editLayout(key, () -> adapter.moveInDock(pkg, 1)));
+            addInputRow(rows, popup, R.drawable.ic_unpin, getString(R.string.remove_from_dock), -1,
+                    () -> editLayout(key, () -> adapter.unpin(pkg)));
+        } else {
+            addInputRow(rows, popup, R.drawable.ic_pin, getString(R.string.add_to_dock), -1, () -> {
+                if (adapter.pin(pkg)) editLayout(key, () -> { });
+                else Toast.makeText(this, R.string.dock_full, Toast.LENGTH_SHORT).show();
+            });
+        }
+        addSeparator(rows);
+        addInputRow(rows, popup, R.drawable.ic_hide, getString(R.string.hide_app), -1,
+                () -> editLayout(null, () -> adapter.hide(pkg)));
+        int hiddenN = adapter.userHiddenCount();
+        if (hiddenN > 0) addInputRow(rows, popup, R.drawable.ic_show, getString(R.string.show_hidden, hiddenN), -1,
+                () -> editLayout(key, adapter::unhideAll));
+        addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.app_info), -1, () -> adapter.openAppInfo(pkg));
+
+        panel.setAlpha(0f);
+        panel.setScaleX(0.96f);
+        panel.setScaleY(0.96f);
+        popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(160).start();
+        rows.getChildAt(1).requestFocus();
+    }
+
+    /** Applies a dock / hide edit, reloads the grid and keeps focus on the app (or its slot when hidden). */
+    private void editLayout(String followKey, Runnable edit) {
+        final int slot = lastFocused;
+        edit.run();
+        adapter.reload();
+        grid.post(() -> {
+            int pos = adapter.positionOf(followKey);
+            focusTile(pos >= 0 ? pos : slot);
+        });
+    }
+
     // ---- navigation ------------------------------------------------------------------------------
 
     @Override
@@ -518,7 +582,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void addInputRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, int state, Runnable action) {
         View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
-        ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
+        ImageView iconView = row.findViewById(R.id.icon);
+        if (iconRes != 0) iconView.setImageResource(iconRes);
+        else iconView.setVisibility(View.GONE);
         ((TextView) row.findViewById(R.id.title)).setText(title);
         TextView status = row.findViewById(R.id.status);
         View dot = row.findViewById(R.id.dot);
@@ -535,6 +601,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dot.setVisibility(View.GONE);
         }
         row.setOnClickListener(v -> {
+            AppAdapter.ignoreLaunchUntil = android.os.SystemClock.uptimeMillis() + 700;
             popup.dismiss();
             action.run();
         });

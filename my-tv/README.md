@@ -29,7 +29,17 @@ so it stays enabled next time. Firmware updates: `pm enable com.xiaomi.mitv.upda
 `my-tv/restore.sh` re-enables every package in the list, brings back the stock launcher as home
 and resets animation scales.
 
-## Change the dock
+## Change the dock from the remote
+Press the remote's **Menu** button (or hold **OK**) on any tile:
+
+- Dock app: Move left, Move right, Remove from dock.
+- Other app: Add to dock (the dock has four slots; remove one first when it is full).
+- Any app: Hide app, App info (uninstall, permissions). "Show N hidden" appears once you have hidden something.
+
+Your choices are saved on the TV and win over `config.xml`. To go back to the `config.xml` defaults:
+`tools/venv/bin/python -I tools/tv.py "pm clear com.gathin.tvhome"`.
+
+## Change the dock defaults
 Edit `launcher/app/src/main/res/values/config.xml`, the `dock_apps` list (left to right, four
 slots): currently SmartTube, YouTube, Prime Video, JioHotstar. Use package names from
 `tools/venv/bin/python -I tools/tv.py "pm list packages"`. Use `hidden_apps` to drop tiles from the
