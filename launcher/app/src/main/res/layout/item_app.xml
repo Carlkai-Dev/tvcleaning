@@ -13,44 +13,57 @@
         android:layout_height="101dp"
         android:layout_gravity="center_horizontal|top"
         android:background="@drawable/tile_bg"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:focusable="true"
         android:clickable="true">
 
-        <ImageView
-            android:id="@+id/banner"
+        <FrameLayout
+            android:id="@+id/artwork"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="centerCrop"
-            android:contentDescription="@null" />
+            android:background="@drawable/tile_bg">
 
-        <ImageView
-            android:id="@+id/icon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center"
-            android:layout_marginBottom="14dp"
-            android:visibility="gone"
-            android:contentDescription="@null" />
+            <ImageView
+                android:id="@+id/banner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="@null" />
 
-        <TextView
-            android:id="@+id/label"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="8dp"
-            android:gravity="center"
-            android:singleLine="true"
-            android:ellipsize="end"
-            android:textColor="#FFFFFFFF"
-            android:textSize="13sp"
-            android:fontFamily="@font/outfit"
-            android:visibility="gone" />
+            <ImageView
+                android:id="@+id/icon"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:layout_marginBottom="14dp"
+                android:visibility="gone"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="8dp"
+                android:gravity="center"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#FFFFFFFF"
+                android:textSize="13sp"
+                android:fontFamily="@font/outfit"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- Artwork size + 6 dp per side, matching GlassView.HALO_INSET_DP.
+             Explicit centered bounds keep the halo's fade layer clear of the artwork edges. -->
         <com.gathin.tvhome.GlassView
             android:id="@+id/tileGlass"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_width="192dp"
+            android:layout_height="113dp"
+            android:layout_gravity="center"
             android:alpha="0"
             android:importantForAccessibility="no" />
     </FrameLayout>

@@ -39,6 +39,8 @@ final class AppMenuView extends FrameLayout {
         this.listener = listener;
         anchor = new Rect(tile);
         density = getResources().getDisplayMetrics().density;
+        setClipChildren(false);
+        setClipToPadding(false);
         setBackgroundColor(0x99000000);
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -55,13 +57,21 @@ final class AppMenuView extends FrameLayout {
         preview.setContentDescription(entry.label);
         previewCard = new FrameLayout(context);
         previewCard.setBackground(round(0xFF16161A, 16 * density, 0, 0));
-        previewCard.setClipToOutline(true);
+        previewCard.setClipChildren(false);
+        previewCard.setClipToPadding(false);
         previewCard.setElevation(16 * density);
         previewCard.setScaleX(initialScale);
         previewCard.setScaleY(initialScale);
-        previewCard.addView(preview, new LayoutParams(-1, -1));
+        FrameLayout artworkFrame = new FrameLayout(context);
+        artworkFrame.setBackground(round(0xFF16161A, 16 * density, 0, 0));
+        artworkFrame.setClipToOutline(true);
+        artworkFrame.addView(preview, new LayoutParams(-1, -1));
+        previewCard.addView(artworkFrame, new LayoutParams(-1, -1));
         GlassView previewHighlight = new GlassView(context, null);
-        previewCard.addView(previewHighlight, new LayoutParams(-1, -1));
+        int haloRoom = (int) (GlassView.HALO_INSET_DP * density);
+        LayoutParams highlightLayout = new LayoutParams(tile.width() + 2 * haloRoom,
+                tile.height() + 2 * haloRoom, Gravity.CENTER);
+        previewCard.addView(previewHighlight, highlightLayout);
         LayoutParams previewLayout = new LayoutParams(tile.width(), tile.height());
         previewLayout.leftMargin = tile.left;
         previewLayout.topMargin = tile.top;

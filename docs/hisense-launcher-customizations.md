@@ -1,4 +1,4 @@
-# Hisense launcher customizations (2.4)
+# Hisense launcher customizations (2.5)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
@@ -61,6 +61,28 @@ Opening an app from the list does not change its hidden status. Holding OK on a 
 Verified on the TV: four presses keep the list closed, the fifth opens it, key repeats do not count as
 additional presses, and changing buttons resets the count. Confirmed a hidden app opens while remaining hidden
 and can be restored using the dropdown. After testing, the app order and hidden-app list matched their prior state.
+
+## Translucent dock and focus halo in 2.5
+
+The dock combines translucent graphite tint, a soft vertical reflection and a fine gradient rim.
+The existing ambient background remains visible through it. The gradients are cached by dock height;
+scrolling only translates them. No background capture, blur texture, dependency or continuous animation was added.
+Dock placement, tile dimensions and the four-app layout are unchanged.
+
+The focus highlight uses a finer rim, faint contour strokes and reduced surface gloss to preserve logo contrast.
+Artwork is clipped inside a separate frame while the highlight has 6 dp of space on every side.
+Both remain children of the same scaled card, including the contextual preview, so the halo follows focus
+and long-press zoom. Focus settling has a smaller overshoot, and the hold/release scales use deceleration.
+
+![Translucent dock and contour halo](launcher-dock-2.5.png)
+![The same halo retained in the contextual menu](launcher-menu-2.5.png)
+
+Verified on the TV: both dock edges and both edges of the next grid row, their contextual previews,
+and moving an app followed by cancelling. The order and hidden-app preferences matched their initial state.
+All 265 frames of the recorded dock-menu openings were checked for the previous top-left flash; none appeared.
+The frame counter stayed unchanged over a three-second idle interval after navigation settled.
+One memory snapshot after these interactions was about 71.5 MiB PSS; this is an observation,
+not a controlled memory comparison with an earlier version.
 
 ## Hisense configuration
 

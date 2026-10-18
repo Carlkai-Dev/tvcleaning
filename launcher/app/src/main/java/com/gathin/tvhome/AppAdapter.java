@@ -18,6 +18,7 @@ import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.ViewConfiguration;
 import android.view.animation.OvershootInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -343,22 +344,26 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
             final float density = v.getResources().getDisplayMetrics().density;
             final float radius = density * 16f;
-            card.setOutlineProvider(new ViewOutlineProvider() {
+            View artwork = v.findViewById(R.id.artwork);
+            artwork.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
                     outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radius);
                 }
             });
-            card.setClipToOutline(true);
+            // Clip the image only. The halo has its own 6 dp margin inside the scaled parent.
+            artwork.setClipToOutline(true);
 
             card.setOnKeyListener((view, keyCode, event) -> {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
                         || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
                     if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
                         view.animate().scaleX(MENU_SCALE).scaleY(MENU_SCALE)
+                                .setInterpolator(new DecelerateInterpolator())
                                 .setDuration(ViewConfiguration.getLongPressTimeout()).start();
                     } else if (event.getAction() == KeyEvent.ACTION_UP) {
-                        view.animate().scaleX(FOCUS_SCALE).scaleY(FOCUS_SCALE).setDuration(180).start();
+                        view.animate().scaleX(FOCUS_SCALE).scaleY(FOCUS_SCALE)
+                                .setInterpolator(new DecelerateInterpolator()).setDuration(180).start();
                     }
                     return false; // Android still distinguishes click from long click.
                 }
@@ -372,8 +377,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 highlight.animate().alpha(focused ? 1f : 0f).setDuration(focused ? 160 : 120).start();
                 float s = focused ? FOCUS_SCALE : 1.0f;
                 view.animate().scaleX(s).scaleY(s)
-                        .setDuration(focused ? 260 : 180)
-                        .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
+                        .setDuration(focused ? 220 : 180)
+                        .setInterpolator(new OvershootInterpolator(focused ? 0.6f : 0f))
                         .start();
                 name.animate().alpha(focused ? 1f : 0f)
                         .translationY(focused ? density * 4f : -density * 6f)
