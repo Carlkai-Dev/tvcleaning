@@ -13,3 +13,12 @@ on that firmware, grouped and commented. These are starting points: comment out 
 
 To add your TV, see [CONTRIBUTING.md](../CONTRIBUTING.md). The quickest way to get a list is to
 run the prompt in [PROMPT.md](../PROMPT.md) and copy the packages your assistant disabled.
+
+## Initial compatibility reports
+
+These reports document short device tests and known HOME behavior; they are not
+multi-day-validated debloat lists.
+
+- [Xiaomi MiTV-MOSR4](xiaomi-mi-tv-mosr4/README.md): Android 11, verified app package
+  names and HOME/Setup-Recovery behavior, with a device screenshot and restoration
+  results. Reboot, playback, HDMI switching and long-term behavior remain untested.
