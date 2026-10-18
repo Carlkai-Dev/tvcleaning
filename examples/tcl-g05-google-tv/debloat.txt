@@ -7,7 +7,7 @@
 #
 # Stock launcher: com.google.android.apps.tv.launcherx (pass it to restore.sh, the default is wrong here).
 # Live TV app: com.tcl.tv (keep it, it also owns HDMI/antenna playback). Keep com.tcl.tvinput,
-# com.tcl.suspension (Quick Panel, also the remote's Input button), com.tcl.settings, com.tcl.system.server,
+# com.tcl.settings, com.tcl.system.server,
 # com.tcl.keyhelp, com.tcl.autopair, com.tcl.tcl_bt_rcu_service (remote) and com.tcl.providers.config.
 # Unlike the G10, com.tcl.ttvs ships enabled here; it carries TCL's BI analytics service.
 #
@@ -36,6 +36,8 @@ com.tcl.partnercustomizer              # TCL tweaks to Google TV home rows
 com.tcl.messagebox                     # TCL pushed messages and promos
 com.tcl.usercenter                     # TCL account sign-in
 com.tcl.dashboard                      # "TCL Home" panel, gift box and promos; no remote key uses it
+com.tcl.suspension                     # Quick Panel; the remote's Input key stops working, use the
+                                       # launcher's Live TV / Inputs pills. HDMI and antenna still play.
 
 # Telemetry and background services
 com.tcl.ttvs                           # TCL BI/awareness/identifier services
