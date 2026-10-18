@@ -215,11 +215,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     public void onBindViewHolder(@NonNull Holder h, int position) {
         Entry e = items.get(position);
         h.name.setText(e.label);
-        h.name.setVisibility(View.VISIBLE);   // names are always visible directly under shortcuts
-        h.name.setAlpha(0.85f);
-        h.name.setTranslationY(0f);
-        h.card.setScaleX(1f);
-        h.card.setScaleY(1f);
+        boolean focused = h.card.isFocused();
+        float density = h.itemView.getResources().getDisplayMetrics().density;
+        h.name.setVisibility(View.VISIBLE);
+        h.name.setAlpha(focused ? 1.0f : 0.0f);
+        h.name.setTranslationY(focused ? 0f : -density * 4f);
+        h.name.setScaleX(focused ? 1.04f : 1.0f);
+        h.name.setScaleY(focused ? 1.04f : 1.0f);
+        h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
+        h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
         if (e.posterBitmap != null) {
             h.banner.setImageBitmap(e.posterBitmap);
             h.banner.setVisibility(View.VISIBLE);
@@ -384,10 +388,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                         .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
                         .start();
                 name.animate()
-                        .alpha(focused ? 1.0f : 0.85f)
+                        .alpha(focused ? 1.0f : 0.0f)
+                        .translationY(focused ? 0f : -density * 4f)
                         .scaleX(focused ? 1.04f : 1.0f)
                         .scaleY(focused ? 1.04f : 1.0f)
-                        .setDuration(180).start();
+                        .setDuration(focused ? 200 : 150).start();
                 int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);

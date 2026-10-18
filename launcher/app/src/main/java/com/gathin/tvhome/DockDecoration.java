@@ -50,9 +50,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             float l = child.getLeft() + card.getLeft();
             float t = child.getTop() + card.getTop() + child.getTranslationY();
             float r = l + card.getWidth();
-            float b = (name != null && name.getVisibility() == View.VISIBLE)
-                    ? (child.getTop() + name.getBottom() + child.getTranslationY())
-                    : (t + card.getHeight());
+            float b = t + card.getHeight() + 26 * density;
             if (!any) {
                 rect.set(l, t, r, b);
                 any = true;
