@@ -1,0 +1,37 @@
+# ==============================================================================
+# OnePlus Y1 43" (Model: Y Series, Device: shibuya, Android 11, Build: RTO9.231122.002)
+# Debloat Package List tailored to user preferences.
+#
+# Packages are disabled for user 0 (pm disable-user --user 0), never uninstalled.
+# Undo with: TV_HOST=192.168.1.82 tools/restore.sh examples/oneplus-tv-y1/debloat.txt
+# ==============================================================================
+
+# --- Manufacturer Telemetry & Analytics ---
+com.google.android.feedback
+android.autoinstalls.config.skyworth
+
+# --- Ad Services & Recommendation Rows ---
+com.google.android.leanbacklauncher.partnercustomizer
+com.google.android.tvrecommendations
+
+# --- Retail Demos & Factory Testing Tools ---
+com.smartdevice.common.demonow
+fusion.android.tv.demo
+com.coocaa.factory
+com.mediatek.testpq
+com.mediatek.tv.factory
+com.airoha.ble.ota
+
+# --- Redundant Background Bloat ---
+com.Smartdevice.emanual
+com.mstar.android.tv.disclaimercustomization
+com.google.android.syncadapters.calendar
+com.android.providers.calendar
+com.google.android.boot.appsplashscreen
+
+# --- Unused Preloaded / Streaming Apps (Confirmed by User) ---
+com.vodafone.vodafoneplay
+com.viacom18.tv.voot
+com.jio.media.stb.ondemand
+com.google.android.play.games
+com.google.android.videos

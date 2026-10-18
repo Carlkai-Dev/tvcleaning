@@ -4,8 +4,28 @@ set -euo pipefail
 cd "$(dirname "$0")"
 : "${TV_HOST:?set TV_HOST to the TV IP address, e.g. TV_HOST=192.168.1.50 $0}"
 STOCK_LAUNCHER="${STOCK_LAUNCHER:-com.google.android.tvlauncher}"
-export JAVA_HOME="${JAVA_HOME:-$(/usr/libexec/java_home -v 17 2>/dev/null || echo /opt/homebrew/opt/openjdk@17)}"
-export ANDROID_HOME="${ANDROID_HOME:-$([ -d ~/Library/Android/sdk ] && echo ~/Library/Android/sdk || echo /opt/homebrew/share/android-commandlinetools)}"
+if [ -z "${JAVA_HOME:-}" ]; then
+  if [ -d "/usr/lib/jvm/java-17-openjdk-amd64" ]; then
+    export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
+  elif command -v /usr/libexec/java_home >/dev/null 2>&1; then
+    export JAVA_HOME="$(/usr/libexec/java_home -v 17 2>/dev/null)"
+  else
+    export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
+  fi
+fi
+
+if [ -z "${ANDROID_HOME:-}" ]; then
+  if [ -d "/opt/android-sdk" ]; then
+    export ANDROID_HOME="/opt/android-sdk"
+  elif [ -d "$HOME/Android/Sdk" ]; then
+    export ANDROID_HOME="$HOME/Android/Sdk"
+  elif [ -d "$HOME/Library/Android/sdk" ]; then
+    export ANDROID_HOME="$HOME/Library/Android/sdk"
+  else
+    export ANDROID_HOME="/opt/homebrew/share/android-commandlinetools"
+  fi
+fi
+
 export PATH="$JAVA_HOME/bin:$PATH"
 [ -f local.properties ] || echo "sdk.dir=$ANDROID_HOME" > local.properties
 ./gradlew assembleDebug -q --console=plain

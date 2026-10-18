@@ -102,6 +102,7 @@ Lists that people have tested and contributed live in [`examples/`](examples/):
 | TCL 55" 4K Google TV, 2023 (G10) | Google TV 12 |
 | SANYO ATV R2 | Android TV 9 |
 | OnePlus TV (D00) | Google TV 14 |
+| OnePlus Y1 43" (Y Series, shibuya) | Android TV 11 |
 
 Your TV not here? The prompt works regardless, it discovers the bloat itself. If you add your
 list afterwards, the next person with your model skips that step. See
@@ -152,7 +153,25 @@ AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM
 video, no network, no background services.
 
 **Configure** it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
-the dock order, apps to hide, your TV's Live TV package, and the number of columns.
+- **Dock apps and order**: Edit `<string-array name="dock_apps">` to specify your favourite four apps in order.
+- **Hidden apps**: Add package names to `<string-array name="hidden_apps">` to omit them from the scrollable grid.
+- **Live TV / Tuner**: Set `<string name="live_tv_package">` to your TV's tuner app (`com.mediatek.wwtv.tvcenter` on OnePlus Y1).
+
+**Customizing the wallpaper**:
+The launcher uses a pitch-black background (`#000000`) for high contrast and minimum memory usage. To use a custom wallpaper image:
+1. Place your wallpaper image (e.g. `wallpaper.jpg`) into `launcher/app/src/main/res/drawable/`.
+2. In [`launcher/app/src/main/res/layout/activity_main.xml`](launcher/app/src/main/res/layout/activity_main.xml), change `android:background="#000000"` on the root `FrameLayout` to `android:background="@drawable/wallpaper"`.
+3. Re-run `TV_HOST=<your_tv_ip> launcher/build-and-install.sh`.
+
+**Re-enabling any disabled app**:
+To re-enable any single package on the TV at any time:
+```bash
+tools/venv/bin/python tools/tv.py 'pm enable <package.name>'
+```
+To restore all packages on OnePlus Y1 and switch back to the stock launcher:
+```bash
+./tools/restore_oneplus_y1.sh
+```
 
 **Build and install** with one command:
 
