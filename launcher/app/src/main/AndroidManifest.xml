@@ -15,6 +15,7 @@
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/banner"
         android:theme="@style/Theme.TvHome"
+        android:usesCleartextTraffic="true"
         android:allowBackup="false">
 
         <activity
@@ -24,7 +25,7 @@
             android:stateNotNeeded="true"
             android:excludeFromRecents="true"
             android:clearTaskOnLaunch="true"
-            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|locale|fontScale|density"
             android:screenOrientation="landscape">
             <intent-filter android:priority="100">
                 <action android:name="android.intent.action.MAIN" />

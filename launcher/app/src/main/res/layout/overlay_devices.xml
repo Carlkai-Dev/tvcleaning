@@ -21,7 +21,7 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp">
+            android:layout_marginBottom="16dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -49,7 +49,7 @@
                         android:nextFocusLeft="@id/btnDevClose"
                         android:nextFocusRight="@id/tvDevRefresh"
                         android:nextFocusUp="@id/btnDevClose"
-                        android:nextFocusDown="@id/devicesContainer" />
+                        android:nextFocusDown="@id/btnSceneCinema" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -71,7 +71,7 @@
                     android:fontFamily="@font/outfit"
                     android:fontVariationSettings="'wght' 400"
                     android:letterSpacing="0.08"
-                    android:text="DAAK FABRIC SEVILLA // CANLI DÜĞÜM VE BAĞLANTI DURUMU"
+                    android:text="DAAK FABRIC SEVILLA // CANLI DÜĞÜM, HUE AYDINLATMA VE DAAKNODE KONTROLÜ"
                     android:textAllCaps="true"
                     android:textColor="#34D399"
                     android:textSize="13sp" />
@@ -87,10 +87,10 @@
                 android:nextFocusLeft="@id/btnDevClose"
                 android:nextFocusRight="@id/tvDevRefresh"
                 android:nextFocusUp="@id/tvDevRefresh"
-                android:nextFocusDown="@id/devicesContainer" />
+                android:nextFocusDown="@id/btnSceneReading" />
         </RelativeLayout>
 
-        <!-- Devices Grid -->
+        <!-- Devices & Hue Controls Scroll -->
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -99,10 +99,239 @@
             android:scrollbars="none">
 
             <LinearLayout
-                android:id="@+id/devicesContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
+                android:orientation="vertical">
+
+                <!-- DAAK NODE & PHILIPS HUE CARD -->
+                <LinearLayout
+                    android:id="@+id/cardHue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp"
+                    android:background="@drawable/device_card_bg"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <!-- Hue Header -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="14dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/outfit"
+                                android:fontVariationSettings="'wght' 600"
+                                android:letterSpacing="-0.01"
+                                android:text="DAAK Smart Home • Philips Hue"
+                                android:textColor="#FFFFFFFF"
+                                android:textSize="19sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:background="#2634D399"
+                                android:fontFamily="@font/outfit"
+                                android:fontVariationSettings="'wght' 500"
+                                android:paddingStart="8dp"
+                                android:paddingTop="2dp"
+                                android:paddingEnd="8dp"
+                                android:paddingBottom="2dp"
+                                android:text="Şömine Üstü"
+                                android:textColor="#34D399"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/dotHueStatus"
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:background="#34D399" />
+
+                            <TextView
+                                android:id="@+id/tvHueBridgeStatus"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:fontFamily="@font/outfit"
+                                android:fontVariationSettings="'wght' 400"
+                                android:text="Köprü: 192.168.236.62 • Bağlı"
+                                android:textColor="#A7F3D0"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+                    </RelativeLayout>
+
+                    <!-- Row 1: Sahneler (Scenes) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/btnSceneCinema"
+                            style="@style/TopButton"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="0dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="🎬 Sinema (%15)"
+                            android:textSize="13sp"
+                            android:nextFocusLeft="@id/btnSceneCinema"
+                            android:nextFocusRight="@id/btnSceneNight"
+                            android:nextFocusUp="@id/btnDevClose"
+                            android:nextFocusDown="@id/btnHueMasterOn" />
+
+                        <TextView
+                            android:id="@+id/btnSceneNight"
+                            style="@style/TopButton"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="0dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="🌙 Gece (%5)"
+                            android:textSize="13sp"
+                            android:nextFocusLeft="@id/btnSceneCinema"
+                            android:nextFocusRight="@id/btnSceneReading"
+                            android:nextFocusUp="@id/btnDevClose"
+                            android:nextFocusDown="@id/btnHueMasterOff" />
+
+                        <TextView
+                            android:id="@+id/btnSceneReading"
+                            style="@style/TopButton"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="0dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="📖 Okuma (%70)"
+                            android:textSize="13sp"
+                            android:nextFocusLeft="@id/btnSceneNight"
+                            android:nextFocusRight="@id/btnSceneFull"
+                            android:nextFocusUp="@id/tvDevRefresh"
+                            android:nextFocusDown="@id/btnHueLight1" />
+
+                        <TextView
+                            android:id="@+id/btnSceneFull"
+                            style="@style/TopButton"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="0dp"
+                            android:layout_marginEnd="0dp"
+                            android:layout_weight="1"
+                            android:text="☀️ Tam (%100)"
+                            android:textSize="13sp"
+                            android:nextFocusLeft="@id/btnSceneReading"
+                            android:nextFocusRight="@id/btnSceneFull"
+                            android:nextFocusUp="@id/tvDevRefresh"
+                            android:nextFocusDown="@id/btnHueLight2" />
+                    </LinearLayout>
+
+                    <!-- Row 2: Master & Individual Controls -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/btnHueMasterOn"
+                            style="@style/TopButton"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="0dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="💡 Tümünü Aç"
+                            android:textSize="13sp"
+                            android:nextFocusLeft="@id/btnHueMasterOn"
+                            android:nextFocusRight="@id/btnHueMasterOff"
+                            android:nextFocusUp="@id/btnSceneCinema"
+                            android:nextFocusDown="@id/devicesContainer" />
+
+                        <TextView
+                            android:id="@+id/btnHueMasterOff"
+                            style="@style/TopButton"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="0dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1"
+                            android:text="🌑 Tümünü Kapat"
+                            android:textSize="13sp"
+                            android:nextFocusLeft="@id/btnHueMasterOn"
+                            android:nextFocusRight="@id/btnHueLight1"
+                            android:nextFocusUp="@id/btnSceneNight"
+                            android:nextFocusDown="@id/devicesContainer" />
+
+                        <TextView
+                            android:id="@+id/btnHueLight1"
+                            style="@style/TopButton"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="0dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_weight="1.2"
+                            android:text="Şömine Sol (8): AÇIK"
+                            android:textSize="12sp"
+                            android:nextFocusLeft="@id/btnHueMasterOff"
+                            android:nextFocusRight="@id/btnHueLight2"
+                            android:nextFocusUp="@id/btnSceneReading"
+                            android:nextFocusDown="@id/devicesContainer" />
+
+                        <TextView
+                            android:id="@+id/btnHueLight2"
+                            style="@style/TopButton"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="0dp"
+                            android:layout_marginEnd="0dp"
+                            android:layout_weight="1.2"
+                            android:text="Şömine Sağ (10): AÇIK"
+                            android:textSize="12sp"
+                            android:nextFocusLeft="@id/btnHueLight1"
+                            android:nextFocusRight="@id/btnHueLight2"
+                            android:nextFocusUp="@id/btnSceneFull"
+                            android:nextFocusDown="@id/devicesContainer" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Section Title for Nodes -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:fontFamily="@font/outfit"
+                    android:fontVariationSettings="'wght' 500"
+                    android:letterSpacing="0.06"
+                    android:text="RM-OS DÜĞÜM &amp; AĞ CİHAZLARI"
+                    android:textColor="#8CFFFFFF"
+                    android:textSize="13sp" />
+
+                <!-- Devices List -->
+                <LinearLayout
+                    android:id="@+id/devicesContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
         </ScrollView>
     </LinearLayout>
 </FrameLayout>

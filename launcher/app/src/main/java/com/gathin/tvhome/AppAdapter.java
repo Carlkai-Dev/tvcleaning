@@ -89,6 +89,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final List<Entry> items = new ArrayList<>();
+    private static final java.util.Map<String, Bitmap> POSTER_CACHE = new java.util.HashMap<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize) {
         this.ctx = ctx;
@@ -150,6 +151,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 ctx.getDrawable(R.drawable.banner_stremio_breakingbad), null,
                 true, "series", "tt0903747", 0xFF059669));
 
+        for (Entry e : stremioRow) {
+            if (e.stremioId != null && POSTER_CACHE.containsKey(e.stremioId)) {
+                e.posterBitmap = POSTER_CACHE.get(e.stremioId);
+            }
+        }
+
         items.clear();
         items.addAll(row0);
         items.addAll(stremioRow);
@@ -164,6 +171,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             for (int i = 0; i < entries.size(); i++) {
                 Entry e = entries.get(i);
                 if (!e.isStremio || e.stremioId == null) continue;
+                if (POSTER_CACHE.containsKey(e.stremioId)) continue;
                 try {
                     java.net.URL url = new java.net.URL("https://images.metahub.space/poster/medium/" + e.stremioId + "/img.jpg");
                     java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
@@ -173,6 +181,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                     if (conn.getResponseCode() == 200) {
                         Bitmap bmp = android.graphics.BitmapFactory.decodeStream(conn.getInputStream());
                         if (bmp != null) {
+                            POSTER_CACHE.put(e.stremioId, bmp);
                             e.posterBitmap = bmp;
                             final int idx = items.indexOf(e);
                             if (idx >= 0 && ctx instanceof MainActivity) {
