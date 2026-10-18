@@ -70,7 +70,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
     }
 
-    static final float FOCUS_SCALE = 1.16f;
+    static final float FOCUS_SCALE = 1.20f;
     static final float MENU_SCALE = 1.24f;
 
     private final Context ctx;
@@ -85,6 +85,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final int artworkHeight;
     private final int iconSize;
     private List<Entry> moveSnapshot;
+    private int focusedDockPosition = RecyclerView.NO_POSITION;
+    private final DecelerateInterpolator dockEase = new DecelerateInterpolator(1.5f);
 
     AppAdapter(Context ctx, TileListener listener, int dockSize) {
         this.ctx = ctx;
@@ -192,6 +194,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
         h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
+        h.card.setTranslationX(dockOffsetFor(position));
+        h.card.setElevation(focused ? 3f * ctx.getResources().getDisplayMetrics().density : 0f);
         h.name.setTranslationY(focused ? 2f * ctx.getResources().getDisplayMetrics().density
                 : -4f * ctx.getResources().getDisplayMetrics().density);
         h.card.setContentDescription(e.label);
@@ -214,6 +218,30 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (current != RecyclerView.NO_POSITION) listener.onTileMenuRequested(current, h.card);
             return true;
         });
+    }
+
+    private float dockOffsetFor(int position) {
+        if (focusedDockPosition == RecyclerView.NO_POSITION || position < 0 || position >= dockSize
+                || Math.abs(position - focusedDockPosition) != 1) return 0f;
+        return (position < focusedDockPosition ? -5f : 5f) * ctx.getResources().getDisplayMetrics().density;
+    }
+
+    /** Only the immediate neighbours move; dock geometry and the saved app order stay fixed. */
+    void updateDockSpacing(RecyclerView grid, int position, boolean animate) {
+        focusedDockPosition = position >= 0 && position < dockSize ? position : RecyclerView.NO_POSITION;
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View item = grid.getChildAt(i);
+            View card = item.findViewById(R.id.card);
+            if (card == null) continue;
+            float offset = dockOffsetFor(grid.getChildAdapterPosition(item));
+            if (Math.abs(card.getTranslationX() - offset) < 0.1f) continue;
+            if (animate) card.animate().translationX(offset).setDuration(200)
+                    .setInterpolator(dockEase).start();
+            else {
+                card.animate().cancel();
+                card.setTranslationX(offset);
+            }
+        }
     }
 
     void beginMove() {
@@ -421,9 +449,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 highlight.animate().alpha(focused ? 1f : 0f).setDuration(focused ? 130 : 100).start();
                 float s = focused ? FOCUS_SCALE : 1.0f;
                 view.animate().scaleX(s).scaleY(s)
-                        .setDuration(focused ? 180 : 140)
+                        .setDuration(focused ? 200 : 160)
                         .setInterpolator(ease)
                         .start();
+                view.setElevation(focused ? 3f * density : 0f);
                 name.animate().alpha(focused ? 1f : 0f)
                         .translationY(focused ? density * 2f : -density * 4f)
                         .setDuration(160).start();

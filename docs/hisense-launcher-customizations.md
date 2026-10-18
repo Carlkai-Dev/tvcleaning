@@ -1,4 +1,4 @@
-# Hisense launcher customizations (2.7)
+# Hisense launcher customizations (2.8)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
@@ -137,6 +137,28 @@ produced no new frames. This is a point-in-time observation rather than a contro
 
 ![Larger cards and wider dock](launcher-dock-2.7.png)
 ![Enlarged edge preview with the softened halo](launcher-menu-2.7.png)
+
+## Dock breathing room and neighbour motion in 2.8
+
+The dock reserves 23 dp horizontally and 19 dp vertically around the unscaled card bounds.
+Focused cards now grow by 20% over 200 ms, preserving their vertical centre. Together with the narrower
+contour glow, the reserved area leaves roughly 8–10 dp of visible clearance around a focused edge card.
+Long-press previews retain their 1.24x scale.
+
+Only the immediate dock neighbours move 5 dp away from the selection over the same eased interval.
+Their offsets reset when focus leaves the dock, on pause, and when a holder is rebound for another row.
+The app order is never changed by this motion. A small native 3 dp elevation gives the selected card a shadow;
+the halo uses narrower strokes instead of spreading into the surrounding gap. The existing property animations
+and cached gradients remain in use; no custom blur pass, new image asset or dependency was introduced.
+
+Verified all six focused positions, neighbour offsets, reset on the header, contextual menus at the left,
+centre and right, move/cancel across rows, scrolling through recycled rows, rapid left/right input and returning
+from Settings. Saved ordering and hidden packages matched the pre-update state.
+Dock edge detection in screenshots at the left, centre and right returned identical pixel coordinates
+for all four edges. A settled three-second idle sample produced no new frames.
+
+![Dock clearance and compact focus halo](launcher-dock-2.8.png)
+![Middle selection with neighbours moved apart](launcher-dock-centre-2.8.png)
 
 ## Hisense configuration
 

@@ -54,11 +54,11 @@ public class GlassView extends View {
         rect.set(inset, inset, getWidth() - inset, getHeight() - inset);
         float innerRadius = radius - 0.8f * density;
         // Broad, faint strokes build a soft halo without an offscreen blur texture.
-        glow.setStrokeWidth(9f * density);
-        glow.setColor(0x04DCEAFF);
-        canvas.drawRoundRect(rect, innerRadius, innerRadius, glow);
-        glow.setStrokeWidth(5f * density);
+        glow.setStrokeWidth(4f * density);
         glow.setColor(0x08DCEAFF);
+        canvas.drawRoundRect(rect, innerRadius, innerRadius, glow);
+        glow.setStrokeWidth(2f * density);
+        glow.setColor(0x10DCEAFF);
         canvas.drawRoundRect(rect, innerRadius, innerRadius, glow);
         canvas.drawRoundRect(rect, innerRadius, innerRadius, fill);
         canvas.drawRoundRect(rect, innerRadius, innerRadius, specular);

@@ -243,6 +243,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         settingsRightPresses = 0;
         pendingFocusPosition = RecyclerView.NO_POSITION;
         grid.stopScroll();
+        adapter.updateDockSpacing(grid, RecyclerView.NO_POSITION, false);
         if (hiddenPopup != null) hiddenPopup.dismiss();
         dismissAppMenu(null);
         // Leaving Home never commits an unfinished rearrangement.
@@ -489,6 +490,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onTileFocused(int position, View card) {
+        adapter.updateDockSpacing(grid, position, true);
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
         // Geometry is only used for scrolling and the title; each card owns its highlight.
@@ -575,6 +577,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
             if (position < COLUMNS) {
                 pendingFocusPosition = RecyclerView.NO_POSITION;
+                adapter.updateDockSpacing(grid, RecyclerView.NO_POSITION, true);
                 Rect bounds = new Rect(0, 0, grid.getWidth(), grid.getHeight());
                 root.offsetDescendantRectToMyCoords(grid, bounds);
                 int contentWidth = grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight();
