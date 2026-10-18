@@ -42,3 +42,13 @@ file with your own 1920x1080 JPG (keep it under about 300 KB; the TV has about 1
 run `my-tv/build-and-install.sh`. Dark images work best, since the text is white. For plain black
 again, set `android:background="#FF000000"` on the root view in
 `launcher/app/src/main/res/layout/activity_main.xml`.
+
+## Screensaver
+The launcher includes an "Aurora Clock" screensaver: four aurora scenes (`dream_1.jpg` to `dream_4.jpg`
+in `drawable-nodpi/`) crossfade every 16 s with a slow pan and zoom, under a thin clock and date that move
+every minute. It is selected on this TV with
+`settings put secure screensaver_components com.gathin.tvhome/.ClockDream`. It starts after the TV's idle
+timeout (5 minutes here; Settings > Device Preferences > Screen saver > When to start). Any remote key
+wakes it. To preview it now: `am start -n com.android.systemui/.Somnambulator`. To go back to Xiaomi's:
+`settings put secure screensaver_components com.mitv.dream/com.mitv.dream.MiDream`. To change the scenes,
+replace the four JPGs (1280x720, under about 60 KB each) and run `my-tv/build-and-install.sh`.

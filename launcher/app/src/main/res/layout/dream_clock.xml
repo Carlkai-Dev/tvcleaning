@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Screensaver (ClockDream): clock and date that drift around a black screen over an ambient glow. -->
+<!-- Screensaver (ClockDream): slowly panning aurora scenes that crossfade, with a drifting clock and date. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FF000000">
 
-    <View
-        android:id="@+id/dreamAmbient"
+    <ImageView
+        android:id="@+id/sceneA"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:importantForAccessibility="no" />
+
+    <ImageView
+        android:id="@+id/sceneB"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:alpha="0"
+        android:importantForAccessibility="no" />
 
     <LinearLayout
         android:id="@+id/dreamContent"
