@@ -215,8 +215,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     public void onBindViewHolder(@NonNull Holder h, int position) {
         Entry e = items.get(position);
         h.name.setText(e.label);
-        h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
-        h.name.setAlpha(0f);
+        h.name.setVisibility(View.VISIBLE);   // names are always visible directly under shortcuts
+        h.name.setAlpha(0.85f);
+        h.name.setTranslationY(0f);
         h.card.setScaleX(1f);
         h.card.setScaleY(1f);
         if (e.posterBitmap != null) {
@@ -382,9 +383,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                         .setDuration(focused ? 260 : 180)
                         .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
                         .start();
-                name.animate().alpha(focused ? 1f : 0f)
-                        .translationY(focused ? density * 4f : -density * 6f)
-                        .setDuration(220).start();
+                name.animate()
+                        .alpha(focused ? 1.0f : 0.85f)
+                        .scaleX(focused ? 1.04f : 1.0f)
+                        .scaleY(focused ? 1.04f : 1.0f)
+                        .setDuration(180).start();
                 int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);

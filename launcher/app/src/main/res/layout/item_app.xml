@@ -54,15 +54,17 @@
         android:layout_width="160dp"
         android:layout_height="22dp"
         android:layout_gravity="center_horizontal|top"
-        android:layout_marginTop="97dp"
+        android:layout_marginTop="98dp"
         android:gravity="center"
         android:singleLine="true"
         android:ellipsize="end"
-        android:alpha="0"
-        android:translationY="-6dp"
+        android:alpha="0.85"
         android:textColor="#F2FFFFFF"
-        android:textSize="14sp"
+        android:textSize="13sp"
         android:fontFamily="@font/outfit"
-        android:fontVariationSettings="'wght' 500"
-        android:letterSpacing="0.02" />
+        android:fontVariationSettings="'wght' 450"
+        android:letterSpacing="0.01"
+        android:shadowColor="#CC000000"
+        android:shadowRadius="4"
+        android:shadowDy="1" />
 </FrameLayout>

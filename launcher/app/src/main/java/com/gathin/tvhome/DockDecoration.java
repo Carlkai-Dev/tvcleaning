@@ -33,7 +33,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         int pos = parent.getChildAdapterPosition(view);
         if (pos >= 0 && pos < dockSize) {
             outRect.top = (int) (6 * density);
-            outRect.bottom = (int) (6 * density);
+            outRect.bottom = (int) (14 * density);
         }
     }
 
@@ -45,11 +45,14 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             int pos = parent.getChildAdapterPosition(child);
             if (pos < 0 || pos >= dockSize) continue;
             View card = child.findViewById(R.id.card);
+            View name = child.findViewById(R.id.name);
             if (card == null) continue;
             float l = child.getLeft() + card.getLeft();
             float t = child.getTop() + card.getTop() + child.getTranslationY();
             float r = l + card.getWidth();
-            float b = t + card.getHeight();
+            float b = (name != null && name.getVisibility() == View.VISIBLE)
+                    ? (child.getTop() + name.getBottom() + child.getTranslationY())
+                    : (t + card.getHeight());
             if (!any) {
                 rect.set(l, t, r, b);
                 any = true;
@@ -58,9 +61,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             }
         }
         if (!any) return;
-        float pad = 14 * density;
+        float pad = 12 * density;
         rect.inset(-pad, -pad);
-        float radius = 26 * density;
+        float radius = 22 * density;
         c.drawRoundRect(rect, radius, radius, band);
         c.drawRoundRect(rect, radius, radius, edge);
     }

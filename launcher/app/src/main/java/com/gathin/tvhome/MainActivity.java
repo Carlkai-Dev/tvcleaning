@@ -127,10 +127,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
-        grid.addItemDecoration(new DockDecoration(COLUMNS * 2, density));
+        grid.addItemDecoration(new DockDecoration(COLUMNS, density));
         grid.setLayoutAnimation(new LayoutAnimationController(
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
-        adapter = new AppAdapter(this, this, COLUMNS * 2);
+        adapter = new AppAdapter(this, this, COLUMNS);
         grid.setAdapter(adapter);
 
         // tvOS layout: 2-row dock sits at the bottom, giving maximum space for the wallpaper above.
@@ -805,62 +805,37 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(y);
         }
         View item = (View) card.getParent();
-        int dockCapacity = COLUMNS * 2;
         int row = position / COLUMNS;
-        if (position < dockCapacity) {
-            // Dock (Rows 0 and 1): Both rows sit together parked at grid.getPaddingTop()
+        if (row == 0) {
+            // Row 0 (Favorites Bar): smoothly park grid at top padding
             RecyclerView.ViewHolder vh0 = grid.findViewHolderForAdapterPosition(0);
-            int dockTop = (vh0 != null) ? vh0.itemView.getTop() : (item.getTop() - row * (int) (106 * density));
+            int dockTop = (vh0 != null) ? vh0.itemView.getTop() : item.getTop();
             int dy = dockTop - (int) (6 * density) - grid.getPaddingTop();
-            float heroAnchorY;
-            if (vh0 != null) {
-                Rect r0 = new Rect(0, 0, vh0.itemView.getWidth(), vh0.itemView.getHeight());
-                root.offsetDescendantRectToMyCoords(vh0.itemView, r0);
-                heroAnchorY = r0.top - dy - grid.getTranslationY();
-            } else {
-                heroAnchorY = r.top - dy - grid.getTranslationY() - row * (int) (106 * density);
-            }
-            showHero(position, heroAnchorY);
+            if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy);
         } else {
-            hideHero();
-            // Deterministic row positioning: every app row r >= 2 aligns to the exact same screen Y
-            int targetY = grid.getHeight() - (int) ((130 + 24) * density);
-            int dy = item.getTop() - targetY;
-            if (Math.abs(dy) > 2) grid.smoothScrollBy(0, dy);
+            // Row 1+ (Stremio shelf and All Apps): smooth, natural scroll without violent jumps
+            Rect want = new Rect(0, -(int) (12 * density), item.getWidth(), item.getHeight() + (int) (26 * density));
+            grid.requestChildRectangleOnScreen(item, want, false);
         }
+        showHero(position, 0f);
     }
 
-    // ---- top shelf -------------------------------------------------------------------------------
+    // ---- top shelf & ambient ---------------------------------------------------------------------
 
     private void showHero(int position, float dockTopInRoot) {
-        String label = adapter.labelAt(position);
+        if (heroName != null) {
+            heroName.setVisibility(View.GONE);
+        }
         int color = adapter.ambientColorAt(position);
-        float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
-        boolean changed = !label.contentEquals(heroName.getText());
-
         if (!heroShown) {
-            heroName.setText(label);
-            heroName.setY(y);
-            heroName.setTranslationX(0f);
-            heroName.animate().alpha(1f).setDuration(260).start();
             setAmbient(color);
             ambient.animate().alpha(1f).setDuration(600).start();
             heroShown = true;
-        } else if (changed) {
-            heroName.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
-                heroName.setText(label);
-                heroName.setY(y);
-                heroName.setTranslationX(12 * density);
-                heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
+        } else if (color != ambientColor) {
+            ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
+                setAmbient(color);
+                ambient.animate().alpha(1f).setDuration(500).start();
             }).start();
-            if (color != ambientColor) {
-                ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
-                    setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(500).start();
-                }).start();
-            }
-        } else {
-            heroName.setY(y);
         }
     }
 
@@ -871,9 +846,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void hideHero() {
+        if (heroName != null) {
+            heroName.setVisibility(View.GONE);
+        }
         if (!heroShown) return;
         heroShown = false;
-        heroName.animate().alpha(0f).setDuration(160).start();
         ambient.animate().alpha(0f).setDuration(300).start();
     }
 
