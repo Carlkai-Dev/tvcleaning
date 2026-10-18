@@ -99,6 +99,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     };
 
+    /** True while we drive a scroll ourselves: the glass already heads for the final position. */
+    private boolean scripted;
+    private final Runnable scriptedDone = () -> scripted = false;
+
+    /** Refreshes the grid right away when an app is installed, updated or removed while Home is showing. */
+    private boolean resumed;
+    private final Runnable appsChanged = () -> {
+        if (!resumed) return;               // onResume reloads anyway
+        final String key = lastFocusedKey;
+        final int slot = lastFocused;
+        adapter.reload();
+        grid.post(() -> {
+            int pos = adapter.positionOf(key);
+            focusTile(pos >= 0 ? pos : slot);
+        });
+    };
+    private final android.content.BroadcastReceiver packageReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(android.content.Context c, Intent i) {
+            handler.removeCallbacks(appsChanged);
+            handler.postDelayed(appsChanged, 600);   // installs send several broadcasts; coalesce them
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -144,7 +168,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
-                if (!glassShown) return;
+                if (!glassShown || scripted) return;
                 glassTargetY -= dy;
                 if (springY.isRunning()) springY.animateToFinalPosition(glassTargetY);
                 else glass.setTranslationY(glassTargetY);
@@ -155,7 +179,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         springX = new SpringAnimation(glass, DynamicAnimation.TRANSLATION_X);
         springY = new SpringAnimation(glass, DynamicAnimation.TRANSLATION_Y);
         for (SpringAnimation s : new SpringAnimation[]{springX, springY}) {
-            s.setSpring(new SpringForce().setStiffness(260f).setDampingRatio(0.58f));
+            s.setSpring(new SpringForce().setStiffness(700f).setDampingRatio(1f));
         }
 
         View btnInputs = findViewById(R.id.btnInputs);
@@ -184,11 +208,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         if (cm != null) cm.registerDefaultNetworkCallback(networkCallback);
+        android.content.IntentFilter pf = new android.content.IntentFilter();
+        pf.addAction(Intent.ACTION_PACKAGE_ADDED);
+        pf.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        pf.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        pf.addDataScheme("package");
+        registerReceiver(packageReceiver, pf);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
@@ -214,6 +245,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        resumed = false;
         handler.removeCallbacks(minuteTick);
     }
 
@@ -222,6 +254,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onDestroy();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         if (cm != null) cm.unregisterNetworkCallback(networkCallback);
+        unregisterReceiver(packageReceiver);
     }
 
     @Override
@@ -251,32 +284,51 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             glass.setLayoutParams(lp);
             glass.setRadius(16f * density * AppAdapter.FOCUS_SCALE + pad);
         }
+        View item = (View) card.getParent();
+        // Work out the scroll first, so the glass can travel straight to where the tile will END UP.
+        int dy;
+        if (position < COLUMNS) {
+            // Dock: park it at the bottom of the screen and show the top shelf for this app.
+            dy = (item.getTop() - (int) (6 * density)) - grid.getPaddingTop();
+        } else {
+            // Scroll just enough so the whole glass and the name under it are visible.
+            Rect g = new Rect(0, 0, grid.getWidth(), grid.getHeight());
+            root.offsetDescendantRectToMyCoords(grid, g);
+            float top = r.top - pad * 2f;
+            float bottom = r.bottom + pad * 2f + 34 * density;
+            dy = 0;
+            if (bottom > g.bottom) dy = (int) (bottom - g.bottom);
+            else if (top < g.top) dy = (int) (top - g.top);
+        }
         glassTargetX = x;
-        glassTargetY = y;
+        glassTargetY = y - dy;
         if (!glassShown) {
             springX.cancel();
             springY.cancel();
             glass.setTranslationX(x);
             glass.setTranslationY(y);
-            glass.animate().alpha(1f).setDuration(180).start();
+            glass.animate().alpha(1f).setDuration(120).start();
             glassShown = true;
+            scripted = false;           // first focus: the glass follows the scroll normally
+            glassTargetY = y;
+            if (dy != 0) {
+                grid.smoothScrollBy(0, dy, new android.view.animation.DecelerateInterpolator(1.4f), 200);
+            }
         } else {
-            springX.animateToFinalPosition(x);
-            springY.animateToFinalPosition(y);
+            if (Math.abs(dy) > 1) {
+                scripted = true;
+                handler.removeCallbacks(scriptedDone);
+                handler.postDelayed(scriptedDone, 260);
+                grid.smoothScrollBy(0, dy, new android.view.animation.DecelerateInterpolator(1.4f), 200);
+            } else {
+                // The tile is already fully visible. RecyclerView's own focus handling may still start a
+                // scroll of its own, which drags the glass up and back; cancel it so only the glass moves.
+                grid.stopScroll();
+            }
+            springX.animateToFinalPosition(glassTargetX);
+            springY.animateToFinalPosition(glassTargetY);
         }
-        View item = (View) card.getParent();
-        if (position < COLUMNS) {
-            // Dock: park it at the bottom of the screen and show the top shelf for this app.
-            int decoratedTop = item.getTop() - (int) (6 * density);
-            int dy = decoratedTop - grid.getPaddingTop();
-            if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy);
-            showHero(position, r.top - dy);
-        } else {
-            hideHero();
-            // Scroll just enough so the whole glass (not only the tile) is visible.
-            Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-            grid.requestChildRectangleOnScreen(item, want, false);
-        }
+        if (position < COLUMNS) showHero(position, r.top - dy); else hideHero();
     }
 
     // ---- top shelf -------------------------------------------------------------------------------
@@ -291,21 +343,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             heroName.setText(label);
             heroName.setY(y);
             heroName.setTranslationX(0f);
-            heroName.animate().alpha(1f).setDuration(260).start();
+            heroName.animate().alpha(1f).setDuration(160).start();
             setAmbient(color);
-            ambient.animate().alpha(1f).setDuration(600).start();
+            ambient.animate().alpha(1f).setDuration(300).start();
             heroShown = true;
         } else if (changed) {
-            heroName.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
+            heroName.animate().alpha(0f).setDuration(70).withEndAction(() -> {
                 heroName.setText(label);
                 heroName.setY(y);
-                heroName.setTranslationX(12 * density);
-                heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
+                heroName.animate().alpha(1f).setDuration(110).start();
             }).start();
             if (color != ambientColor) {
-                ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
+                ambient.animate().alpha(0.5f).setDuration(90).withEndAction(() -> {
                     setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(500).start();
+                    ambient.animate().alpha(1f).setDuration(220).start();
                 }).start();
             }
         } else {
@@ -322,14 +373,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void hideHero() {
         if (!heroShown) return;
         heroShown = false;
-        heroName.animate().alpha(0f).setDuration(160).start();
-        ambient.animate().alpha(0f).setDuration(300).start();
+        heroName.animate().alpha(0f).setDuration(100).start();
+        ambient.animate().alpha(0f).setDuration(200).start();
     }
 
     private void hideGlass() {
         if (!glassShown) return;
         glassShown = false;
-        glass.animate().alpha(0f).setDuration(160).start();
+        glass.animate().alpha(0f).setDuration(100).start();
     }
 
     // ---- navigation ------------------------------------------------------------------------------
@@ -354,6 +405,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (adapter.getItemCount() == 0) return;
         final int pos = Math.max(0, Math.min(position, adapter.getItemCount() - 1));
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
+        if (vh == null) {
+            // Row just off screen (recycled): nudge by 2px so it is attached, then take the same single
+            // smooth move as any other tile instead of a long smoothScrollToPosition that overshoots.
+            int first = ((GridLayoutManager) grid.getLayoutManager()).findFirstVisibleItemPosition();
+            grid.scrollBy(0, pos < first ? -2 : 2);
+            vh = grid.findViewHolderForAdapterPosition(pos);
+        }
         if (vh != null) {
             View card = vh.itemView.findViewById(R.id.card);
             // Already focused (e.g. back from an app): no focus change fires, so restore the glass by hand.

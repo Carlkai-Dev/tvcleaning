@@ -19,7 +19,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
-import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -64,7 +63,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
     }
 
-    static final float FOCUS_SCALE = 1.10f;
+    static final float FOCUS_SCALE = 1.06f;
 
     private final Context ctx;
     private final TileListener listener;
@@ -90,8 +89,20 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
+        // Fallback: user-installed apps with only a phone-style launcher entry (no TV entry) are listed too.
+        Set<String> tvPkgs = new HashSet<>();
+        for (ResolveInfo ri : found) if (ri.activityInfo != null) tvPkgs.add(ri.activityInfo.packageName);
+        List<ResolveInfo> all = new ArrayList<>(found);
+        for (ResolveInfo ri : pm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)) {
+            if (ri.activityInfo == null) continue;
+            int fl = ri.activityInfo.applicationInfo.flags;
+            boolean userApp = (fl & android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0
+                    || (fl & android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0;
+            if (userApp && tvPkgs.add(ri.activityInfo.packageName)) all.add(ri);
+        }
         List<Entry> fresh = new ArrayList<>();
-        for (ResolveInfo ri : found) {
+        for (ResolveInfo ri : all) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
@@ -281,12 +292,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             card.setOnFocusChangeListener((view, focused) -> {
                 float s = focused ? FOCUS_SCALE : 1.0f;
                 view.animate().scaleX(s).scaleY(s)
-                        .setDuration(focused ? 260 : 180)
-                        .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
+                        .setDuration(focused ? 160 : 120)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f))
                         .start();
                 name.animate().alpha(focused ? 1f : 0f)
                         .translationY(focused ? density * 4f : -density * 6f)
-                        .setDuration(220).start();
+                        .setDuration(140).start();
                 int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);
