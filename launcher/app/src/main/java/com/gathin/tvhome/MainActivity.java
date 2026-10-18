@@ -448,11 +448,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ignoreMoveRelease = false; // The menu has already consumed the selection key-up.
         movingPosition = position;
         movingKey = adapter.keyAt(position);
-        moveHint.setVisibility(View.VISIBLE);
-        updateMoveHint();
+        android.content.SharedPreferences preferences = getSharedPreferences("home", MODE_PRIVATE);
+        boolean showHelp = !preferences.getBoolean("move_help_seen", false);
+        moveHint.setVisibility(showHelp ? View.VISIBLE : View.GONE);
+        if (showHelp) {
+            updateMoveHint();
+            preferences.edit().putBoolean("move_help_seen", true).apply();
+        }
     }
 
     private void updateMoveHint() {
+        if (moveHint.getVisibility() != View.VISIBLE) return;
         moveHint.setText(getString(R.string.move_help, adapter.labelAt(movingPosition), COLUMNS));
         moveHint.setContentDescription(moveHint.getText());
     }

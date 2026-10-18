@@ -1,7 +1,14 @@
-# Hisense launcher customizations (2.10)
+# Hisense launcher customizations (2.10.1)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
+
+## First-use move help in 2.10.1
+
+The move instructions appear during the first move session only. A local
+`move_help_seen` preference persists across process restarts and app updates.
+Later move sessions keep the instructions hidden; save/cancel feedback and
+directional controls are unchanged. Clearing app data resets first-use help.
 
 ## Header dropdowns in 2.10
 
