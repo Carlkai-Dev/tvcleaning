@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -162,7 +163,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
-        btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> showLauncherSettings());
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -420,6 +421,89 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } catch (ActivityNotFoundException e) {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void showLauncherSettings() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = new PopupWindow(panel, (int) (250 * density),
+                ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        popup.setOutsideTouchable(true);
+        popup.setOnDismissListener(() -> anchor.requestFocus());
+        addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.pinned_apps), -1,
+                this::showPinnedApps);
+        addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.tv_settings), -1,
+                () -> open(new Intent(Settings.ACTION_SETTINGS)));
+        popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    private void showPinnedApps() {
+        adapter.reload();
+        List<String> packages = adapter.dockPackages();
+        if (packages.isEmpty()) {
+            Toast.makeText(this, R.string.no_apps, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] slots = new String[packages.size()];
+        for (int i = 0; i < slots.length; i++) {
+            slots[i] = getString(R.string.pin_slot, i + 1, adapter.labelAt(i));
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.pinned_apps)
+                .setItems(slots, (dialog, slot) -> showPinnedAppPicker(slot))
+                .setNeutralButton(R.string.reset_pinned_apps, (dialog, which) -> {
+                    if (adapter.resetDock()) refreshDock(0);
+                    else Toast.makeText(this, R.string.dock_save_failed, Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(R.string.close, (dialog, which) ->
+                        findViewById(R.id.btnSettings).requestFocus())
+                .setOnCancelListener(dialog -> findViewById(R.id.btnSettings).requestFocus())
+                .show();
+    }
+
+    private void showPinnedAppPicker(int slot) {
+        List<AppAdapter.Entry> apps = adapter.availableApps();
+        List<String> packages = adapter.dockPackages();
+        if (slot < 0 || slot >= packages.size() || apps.isEmpty()) {
+            Toast.makeText(this, R.string.no_apps, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] labels = new String[apps.size()];
+        int selected = -1;
+        for (int i = 0; i < apps.size(); i++) {
+            labels[i] = apps.get(i).label;
+            if (apps.get(i).pkg.equals(packages.get(slot))) selected = i;
+        }
+        AlertDialog picker = new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.choose_pinned_app, slot + 1))
+                .setSingleChoiceItems(labels, selected, (dialog, which) -> {
+                    if (adapter.pinToDock(slot, apps.get(which).pkg)) {
+                        dialog.dismiss();
+                        refreshDock(slot);
+                    } else {
+                        Toast.makeText(this, R.string.dock_save_failed, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton(R.string.back, (dialog, which) -> showPinnedApps())
+                .setOnCancelListener(dialog -> showPinnedApps())
+                .create();
+        picker.show();
+        picker.getListView().requestFocus();
+        if (selected >= 0) picker.getListView().setSelection(selected);
+    }
+
+    private void refreshDock(int slot) {
+        hideGlass();
+        hideHero();
+        grid.stopScroll();
+        grid.clearFocus();
+        adapter.reload();
+        grid.scrollToPosition(0);
+        grid.post(() -> focusTile(slot));
+        Toast.makeText(this, R.string.dock_saved, Toast.LENGTH_SHORT).show();
     }
 
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */

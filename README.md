@@ -171,6 +171,14 @@ Without Homebrew, the script also finds a JDK 17 known to `/usr/libexec/java_hom
 `~/Library/Android/sdk`, Android Studio's default. A release build (`./gradlew assembleRelease`)
 is smaller and faster on 1 GB sets; sign it yourself before installing.
 
+**Pin apps from the TV:** open **Settings → Pinned apps**, select one of the dock
+positions, then choose an app. Selecting an app already pinned swaps the two positions.
+Changes are saved locally and survive app/device restarts; **Reset defaults** restores
+the order in `config.xml`. Disabled or uninstalled apps are skipped, with available
+apps filling the dock. **Settings → TV settings** still opens the system settings.
+
+![Launcher Settings with pinned-app controls](docs/launcher-pinned-apps.png)
+
 **Navigation** is deliberate: Up and Down move exactly one row, Up from the dock goes to the top
 buttons, the ends of the button row don't fall through to tiles, and the last focused app is
 remembered when you come back, even after the app list changes.

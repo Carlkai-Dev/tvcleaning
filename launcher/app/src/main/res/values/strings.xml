@@ -20,4 +20,14 @@
     <string name="cant_open">Can\'t open %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
     <string name="dream_name">Clock</string>
+    <string name="pinned_apps">Pinned apps</string>
+    <string name="tv_settings">TV settings</string>
+    <string name="pin_slot">%1$d. %2$s</string>
+    <string name="choose_pinned_app">App for slot %1$d</string>
+    <string name="reset_pinned_apps">Reset defaults</string>
+    <string name="close">Close</string>
+    <string name="back">Back</string>
+    <string name="no_apps">No apps available</string>
+    <string name="dock_saved">Pinned apps saved</string>
+    <string name="dock_save_failed">Unable to save pinned apps</string>
 </resources>

@@ -19,4 +19,15 @@
     <string name="not_available">Auf diesem TV nicht verfügbar</string>
     <string name="cant_open">%1$s lässt sich nicht öffnen</string>
     <string name="date_format">EEEE, d. MMMM</string>
+    <string name="dream_name">Uhr</string>
+    <string name="pinned_apps">Angeheftete Apps</string>
+    <string name="tv_settings">TV-Einstellungen</string>
+    <string name="pin_slot">%1$d. %2$s</string>
+    <string name="choose_pinned_app">App für Platz %1$d</string>
+    <string name="reset_pinned_apps">Standard wiederherstellen</string>
+    <string name="close">Schließen</string>
+    <string name="back">Zurück</string>
+    <string name="no_apps">Keine Apps verfügbar</string>
+    <string name="dock_saved">Angeheftete Apps gespeichert</string>
+    <string name="dock_save_failed">Angeheftete Apps konnten nicht gespeichert werden</string>
 </resources>

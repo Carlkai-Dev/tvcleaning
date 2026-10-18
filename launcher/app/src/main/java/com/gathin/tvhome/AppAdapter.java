@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
@@ -14,6 +15,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -26,6 +28,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,8 +74,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Context ctx;
     private final TileListener listener;
     private final int dockSize;
-    /** Dock order (res/values/config.xml, dock_apps). */
-    private final List<String> favourites;
+    private static final String PREFS = "launcher_settings";
+    private static final String DOCK_KEY = "pinned_apps";
+    private final SharedPreferences preferences;
+    /** Defaults are used until the user saves an order in Settings. */
+    private final List<String> defaultFavourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final List<Entry> items = new ArrayList<>();
@@ -79,7 +87,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
-        this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
+        this.preferences = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.defaultFavourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
@@ -91,16 +100,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         List<Entry> fresh = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
+            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg) || !seen.add(pkg)) continue;
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
             String label = String.valueOf(ri.loadLabel(pm));
             fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
         }
+        List<String> favourites = loadFavourites();
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
             if (fa >= 0 || fb >= 0) {
@@ -113,6 +124,62 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    private List<String> loadFavourites() {
+        try {
+            String saved = preferences.getString(DOCK_KEY, null);
+            if (saved == null) return defaultFavourites;
+            JSONArray array = new JSONArray(saved);
+            List<String> packages = new ArrayList<>();
+            for (int i = 0; i < array.length() && packages.size() < dockSize; i++) {
+                Object value = array.get(i);
+                if (!(value instanceof String) || ((String) value).trim().isEmpty()) {
+                    throw new JSONException("Invalid pinned app package");
+                }
+                String pkg = ((String) value).trim();
+                if (!packages.contains(pkg)) packages.add(pkg);
+            }
+            if (!packages.isEmpty()) return packages;
+            Log.w("TvHome", "Empty pinned app order; using defaults");
+        } catch (JSONException | ClassCastException e) {
+            Log.w("TvHome", "Invalid pinned app order; using defaults", e);
+        }
+        return defaultFavourites;
+    }
+
+    List<Entry> availableApps() {
+        List<Entry> apps = new ArrayList<>(items);
+        Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));
+        return apps;
+    }
+
+    List<String> dockPackages() {
+        List<String> packages = new ArrayList<>();
+        for (int i = 0; i < Math.min(dockSize, items.size()); i++) packages.add(items.get(i).pkg);
+        return packages;
+    }
+
+    boolean pinToDock(int slot, String pkg) {
+        List<String> packages = dockPackages();
+        if (slot < 0 || slot >= packages.size() || pkg == null) return false;
+        boolean available = false;
+        for (Entry entry : items) {
+            if (entry.pkg.equals(pkg)) {
+                available = true;
+                break;
+            }
+        }
+        if (!available) return false;
+        int previousSlot = packages.indexOf(pkg);
+        String replaced = packages.set(slot, pkg);
+        // Selecting an already pinned app swaps slots instead of creating a duplicate.
+        if (previousSlot >= 0 && previousSlot != slot) packages.set(previousSlot, replaced);
+        return preferences.edit().putString(DOCK_KEY, new JSONArray(packages).toString()).commit();
+    }
+
+    boolean resetDock() {
+        return preferences.edit().remove(DOCK_KEY).commit();
     }
 
     @NonNull
