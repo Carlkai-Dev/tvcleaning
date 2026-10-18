@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Needed on Android 10 to read the Wi-Fi network name; granted over adb at install time. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Control Center: "Free up memory". -->
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <!-- App menu: "Uninstall" (the system still asks you to confirm). -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
@@ -46,5 +48,24 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
+
+        <!-- Turn off now / sleep timer: an accessibility service that only performs "lock screen" (standby).
+             Many Android TVs have no device admin support, so this is the one standby route apps get.
+             Switched on over adb by build-and-install.sh. -->
+        <service
+            android:name=".SleepService"
+            android:label="@string/sleep_service_label"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/sleep_service" />
+        </service>
+        <receiver
+            android:name=".Sleep$Alarm"
+            android:exported="false" />
     </application>
 </manifest>

@@ -18,6 +18,7 @@ printf '%s\n' \
   "pm install -r /data/local/tmp/tvhome.apk" \
   "rm -f /data/local/tmp/tvhome.apk" \
   "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted" \
+  'svc=com.gathin.tvhome/com.gathin.tvhome.SleepService; cur=$(settings get secure enabled_accessibility_services); case "$cur" in *SleepService*) ;; null|"") settings put secure enabled_accessibility_services $svc ;; *) settings put secure enabled_accessibility_services "$cur:$svc" ;; esac; settings put secure accessibility_enabled 1; echo turn-off-ready' \
   "cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity" \
   "pm disable-user --user 0 $STOCK_LAUNCHER" \
   | "$PY" -I ../tools/tv.py --batch

@@ -40,6 +40,7 @@ Write-Host $out
 if ("$out" -match 'Error') { throw 'could not set the new launcher as home; the stock launcher was left untouched' }
 @(
     'pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted',
+    'svc=com.gathin.tvhome/com.gathin.tvhome.SleepService; cur=$(settings get secure enabled_accessibility_services); case "$cur" in *SleepService*) ;; null|"") settings put secure enabled_accessibility_services $svc ;; *) settings put secure enabled_accessibility_services "$cur:$svc" ;; esac; settings put secure accessibility_enabled 1; echo turn-off-ready',
     'cmd package set-home-activity --user 0 com.gathin.tvhome',
     "pm disable-user --user 0 $StockLauncher"
 ) | & $py -I ..\tools\tv.py --batch

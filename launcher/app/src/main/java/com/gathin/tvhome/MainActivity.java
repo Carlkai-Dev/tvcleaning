@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -9,6 +10,8 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
@@ -168,20 +171,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             s.setSpring(new SpringForce().setStiffness(260f).setDampingRatio(0.58f));
         }
 
+        View btnControl = findViewById(R.id.btnControl);
+        btnControl.setOnClickListener(v -> showControlCenter(v, Gravity.START));
         View btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnLongClickListener(v -> {
+            showControlCenter(v, Gravity.END);
+            return true;
+        });
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnInputs) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnControl) return true;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
         };
+        btnControl.setOnKeyListener(pillKeys);
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
@@ -617,6 +627,67 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int pos = adapter.positionOf(focusKey);
             focusTile(pos >= 0 ? pos : fallback);
         });
+    }
+
+    /** Control Center (the sliders button, or hold Settings): sleep timer, turn off, memory, sound, screensaver. */
+    private void showControlCenter(View anchor, int gravity) {
+        Menu m = new Menu(getString(R.string.control_center));
+        final TextView[] timerStatus = new TextView[1];
+        timerStatus[0] = m.add(getString(R.string.sleep_timer), sleepStatus(), null, () -> {
+            Sleep.cycle(this);
+            timerStatus[0].setText(sleepStatus());
+        });
+        m.add(getString(R.string.sleep_now), null, () -> Sleep.now(this));
+        m.add(getString(R.string.free_memory), getString(R.string.memory_free, availableMb()), this::freeMemory);
+        // The output can only be switched from the TV's own Sound settings; show which one is in use.
+        m.add(getString(R.string.sound_output), getString(soundbarConnected() ? R.string.soundbar : R.string.tv_speakers),
+                () -> open(new Intent(Settings.ACTION_SOUND_SETTINGS)));
+        m.add(getString(R.string.screensaver), null, () -> open(new Intent(Intent.ACTION_MAIN)
+                .setClassName("com.android.systemui", "com.android.systemui.Somnambulator")));
+        m.show(anchor, gravity, (int) (280 * density));
+    }
+
+    private long availableMb() {
+        ActivityManager am = getSystemService(ActivityManager.class);
+        if (am == null) return 0;
+        ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+        am.getMemoryInfo(mi);
+        return mi.availMem / (1024 * 1024);
+    }
+
+    /** A soundbar or receiver on HDMI ARC/eARC takes over the TV's sound while connected. */
+    private boolean soundbarConnected() {
+        AudioManager am = getSystemService(AudioManager.class);
+        if (am == null) return false;
+        for (AudioDeviceInfo d : am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+            if (d.getType() == AudioDeviceInfo.TYPE_HDMI_ARC) return true;
+        }
+        return false;
+    }
+
+    private String sleepStatus() {
+        int left = Sleep.minutesLeft(this);
+        return left > 0 ? getString(R.string.minutes_left, left) : getString(R.string.off);
+    }
+
+    /** Stops cached background apps (never system apps) and says how much memory came back. */
+    private void freeMemory() {
+        ActivityManager am = getSystemService(ActivityManager.class);
+        if (am == null) return;
+        ActivityManager.MemoryInfo before = new ActivityManager.MemoryInfo();
+        am.getMemoryInfo(before);
+        for (ApplicationInfo ai : getPackageManager().getInstalledApplications(0)) {
+            if ((ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0) continue;
+            if (ai.packageName.equals(getPackageName())) continue;
+            am.killBackgroundProcesses(ai.packageName);
+        }
+        handler.postDelayed(() -> {
+            ActivityManager.MemoryInfo after = new ActivityManager.MemoryInfo();
+            am.getMemoryInfo(after);
+            long freed = Math.max(0, after.availMem - before.availMem) / (1024 * 1024);
+            Toast.makeText(this, getString(R.string.memory_freed, freed, after.availMem / (1024 * 1024)),
+                    Toast.LENGTH_LONG).show();
+        }, 800);
     }
 
     /** A small glass menu in the style of the Inputs dropdown: an optional heading, then text rows. */
