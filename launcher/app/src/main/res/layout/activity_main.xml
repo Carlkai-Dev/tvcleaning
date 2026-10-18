@@ -147,29 +147,25 @@
                     android:id="@+id/btnCalendar"
                     style="@style/TopButton"
                     android:text="Calendar"
-                    android:drawableStart="@drawable/ic_calendar"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_calendar" />
 
                 <TextView
                     android:id="@+id/btnDevices"
                     style="@style/TopButton"
                     android:text="Devices"
-                    android:drawableStart="@drawable/ic_devices"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_devices" />
 
                 <TextView
                     android:id="@+id/btnWifi"
                     style="@style/TopButton"
                     android:text="@string/wifi"
-                    android:drawableStart="@drawable/ic_wifi"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_wifi" />
 
                 <TextView
                     android:id="@+id/btnSettings"
                     style="@style/TopButton"
                     android:text="@string/settings"
-                    android:drawableStart="@drawable/ic_settings"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_settings" />
             </LinearLayout>
         </RelativeLayout>
 

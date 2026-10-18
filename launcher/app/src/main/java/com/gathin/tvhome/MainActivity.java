@@ -176,7 +176,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnCalendar) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                focusTile(lastFocused);
+                setDockPeek(false, true);
+                int target = (lastFocused >= 0 && lastFocused < COLUMNS) ? lastFocused : 0;
+                focusTile(target);
                 return true;
             }
             return false;
@@ -242,6 +244,55 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(minuteTick);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int code = event.getKeyCode();
+            if (isPurpleOrMediaKey(code)) {
+                launchStremio();
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private boolean isPurpleOrMediaKey(int code) {
+        switch (code) {
+            case KeyEvent.KEYCODE_MEDIA_PLAY:
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+            case KeyEvent.KEYCODE_DVR:
+            case KeyEvent.KEYCODE_GUIDE:
+            case KeyEvent.KEYCODE_BUTTON_1:
+            case KeyEvent.KEYCODE_BUTTON_2:
+            case KeyEvent.KEYCODE_BUTTON_3:
+            case KeyEvent.KEYCODE_BUTTON_4:
+            case KeyEvent.KEYCODE_PROG_RED:
+            case KeyEvent.KEYCODE_PROG_GREEN:
+            case KeyEvent.KEYCODE_PROG_YELLOW:
+            case KeyEvent.KEYCODE_PROG_BLUE:
+            case KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU:
+            case KeyEvent.KEYCODE_LAST_CHANNEL:
+            case 284:
+            case 285:
+            case 286:
+            case 287:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private void launchStremio() {
+        try {
+            Intent i = getPackageManager().getLeanbackLaunchIntentForPackage("com.stremio.one");
+            if (i == null) i = getPackageManager().getLaunchIntentForPackage("com.stremio.one");
+            if (i != null) {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                startActivity(i);
+            }
+        } catch (Exception ignored) {}
     }
 
     @Override
@@ -761,8 +812,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             RecyclerView.ViewHolder vh0 = grid.findViewHolderForAdapterPosition(0);
             int dockTop = (vh0 != null) ? vh0.itemView.getTop() : (item.getTop() - row * (int) (106 * density));
             int dy = dockTop - (int) (6 * density) - grid.getPaddingTop();
-            if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy);
-            showHero(position, r.top - dy - grid.getTranslationY());
+            float heroAnchorY;
+            if (vh0 != null) {
+                Rect r0 = new Rect(0, 0, vh0.itemView.getWidth(), vh0.itemView.getHeight());
+                root.offsetDescendantRectToMyCoords(vh0.itemView, r0);
+                heroAnchorY = r0.top - dy - grid.getTranslationY();
+            } else {
+                heroAnchorY = r.top - dy - grid.getTranslationY() - row * (int) (106 * density);
+            }
+            showHero(position, heroAnchorY);
         } else {
             hideHero();
             // Deterministic row positioning: every app row r >= 2 aligns to the exact same screen Y

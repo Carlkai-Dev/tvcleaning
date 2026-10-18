@@ -133,6 +133,14 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         Collections.sort(otherApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
 
+        // Guarantee row0 has exactly COLUMNS items so rows stay aligned and Stremio shelf sits in row 1
+        while (row0.size() < MainActivity.COLUMNS && !otherApps.isEmpty()) {
+            row0.add(otherApps.remove(0));
+        }
+        while (row0.size() > MainActivity.COLUMNS) {
+            otherApps.add(0, row0.remove(row0.size() - 1));
+        }
+
         // Row 1: Stremio Quick Stream Shelf
         List<Entry> stremioRow = new ArrayList<>();
         stremioRow.add(new Entry("Deadpool & Wolverine", null,
