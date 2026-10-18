@@ -21,4 +21,5 @@ multi-day-validated debloat lists.
 
 - [Xiaomi MiTV-MOSR4](xiaomi-mi-tv-mosr4/README.md): Android 11, verified app package
   names and HOME/Setup-Recovery behavior, with a device screenshot and restoration
-  results. Reboot, playback, HDMI switching and long-term behavior remain untested.
+  results. One reboot was checked with the owner-selected configuration; playback,
+  actual casting, HDMI switching and long-term behavior remain untested.

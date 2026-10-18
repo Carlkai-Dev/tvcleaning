@@ -72,11 +72,41 @@ these commands are not a generic backup/restore procedure.
 - Dock selection opened all four configured apps; foreground activities matched.
 - Screenshots checked dock, grid, top-bar navigation boundaries and Inputs menu.
 - Actual HOME from Settings and explicit restoration were tested on the TV.
-- Only the two approved packages were disabled; no packages were uninstalled.
+- During the initial HOME workaround test, only the two approved HOME packages were
+  disabled; no packages were uninstalled.
 - An ADB disconnect prevented an earlier rollback. Connectivity later returned at
   the same IP; its cause was not established. No causal link to package changes was
   confirmed. A recovery procedure must report when it cannot reconnect or restore.
-- Reboot persistence, video playback, HDMI switching and multi-day stability remain
+- One subsequent owner-initiated reboot was checked as detailed below. Video playback,
+  actual Cast/Miracast connections, HDMI switching and multi-day stability remain
   untested. No stable `debloat.txt` is provided yet, following CONTRIBUTING.md.
+
+## Follow-up: one reboot checked
+
+After the initial report, the owner requested six additional unused packages be
+disabled: YouTube Music (`com.google.android.youtube.tvmusic`), Play Games
+(`com.google.android.play.games`), Google Assistant (`com.google.android.katniss`),
+PatchWall (`com.mitv.tvhome.atv`), Xiaomi Statistics (`com.xiaomi.statistic`) and
+Xiaomi Analytics (`com.miui.tv.analytics`). These are additional owner choices,
+not prerequisites established by this HOME report or a general debloat recommendation.
+
+The owner then rebooted the TV. Read-only inspection at `/proc/uptime` 315.52 seconds
+confirmed:
+
+- Model remained MiTV-MOSR4.
+- All eight expected packages (the two HOME packages plus the six above) remained
+  disabled for user 0; no unexpected disabled packages appeared.
+- No active service records belonged to those eight packages in the collected snapshot.
+- Both HOME resolution and the foreground activity were `com.gathin.tvhome/.MainActivity`.
+- The selected streaming apps, Cast/Miracast packages, Bluetooth/remote, Play services,
+  core TV packages and the original Gboard input method remained enabled/configured.
+
+The reboot result applies to that eight-package configuration. It is not an isolated
+reboot test of the original two-package workaround and does not establish long-term
+stability. Enabled package states do not prove playback, casting or HDMI functionality;
+those behaviors remain untested after reboot. No restoration was run in this check.
+
+The TV's LAN address changed after reboot; inspection resumed at its current address.
+No address or private device dump is published here.
 
 The report and screenshot contain no TV IP, serial, account data or ADB keys.
