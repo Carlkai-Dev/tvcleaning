@@ -7,6 +7,16 @@ Set TV_HOST to the TV's IP. Usage:
     tv.py --batch < commands.txt       one command per line, same connection
     tv.py --push <local> <remote>      small files only (see b64push.py for larger ones)
     tv.py --pull <remote> <local>
+
+Known limitation: Android 11 and newer require a TLS-wrapped ADB transport, and
+adb_shell 0.4.4 implements neither that nor the pairing handshake. On those TVs this
+client fails with
+
+    adb_shell.exceptions.InvalidCommandError: Unknown command: ... = 'STLS'
+
+Use the adb binary there instead: pair once via Developer options -> Wireless
+debugging -> Pair device with pairing code, then connect on the port it shows. Set
+TV_PORT (default 5555, correct for Android 10 and older).
 """
 import os
 import sys

@@ -17,12 +17,25 @@ My TV model is: <MODEL NAME HERE>. Work on the real device, step by step, and ve
 do with screenshots pulled from the TV. Ask me before anything that depends on my preferences.
 
 Connect
-- Find the TV on my network (hostname, ARP table, or ask me for the IP) and connect over ADB on port 5555.
-- If the stock adb binary fails with "No route to host" on macOS even though the port is open, that is
-  macOS Local Network privacy blocking adb. Don't debug it: use the Python `adb-shell` package in a venv
-  as the ADB client instead. If its file push hangs on larger files, transfer files as base64 chunks
+- Find the TV on my network (hostname, ARP table, or ask me for the IP) and work out which Android
+  version it runs: `adb shell getprop ro.build.version.sdk`, or ask me for the model.
+- Android 10 and older: connect over ADB on port 5555. Either the `adb` binary or the Python
+  `adb-shell` client in a venv will do; if the stock adb binary fails with "No route to host" on
+  macOS even though the port is open, that is macOS Local Network privacy blocking adb, so use the
+  Python client instead. If its file push hangs on larger files, transfer files as base64 chunks
   through the shell and verify the md5.
+- Android 11 or newer: do NOT use port 5555, it no longer exists. Tell me to open Developer
+  options -> Wireless debugging and read me the IP address & port it shows, then have me open
+  "Pair device with pairing code" and run `adb pair <ip>:<pairing port> <6-digit code>` while that
+  dialog is on screen (the code expires quickly). Then `adb connect <ip>:<connect port>`. The
+  pairing port and the connect port are different, and the connect port changes every time
+  Wireless debugging is toggled, so re-read it each session; `adb mdns services` lists it.
+  On this path use the `adb` binary: `tools/tv.py` cannot connect, because `adb-shell` 0.4.4
+  implements neither the TLS transport Android 11+ requires nor the pairing handshake, and you
+  will see `InvalidCommandError: Unknown command: 'STLS'` if you try.
 - Tell me when the "Allow USB debugging?" prompt will appear on the TV so I can accept it.
+- On Android 14, `adb install` hangs waiting for a confirmation dialog on the TV. Push the APK to
+  /data/local/tmp and run `pm install -r` over the shell instead.
 
 Back up first
 - Save the full package list, disabled-package list, getprop output and all settings to a backup folder
@@ -38,10 +51,18 @@ Debloat
 - Run `pm` commands one per shell call, chained commands may silently stop after the first.
 
 Launcher
+- If you cloned this repo, use `launcher/` rather than writing one from scratch, and just edit
+  `launcher/app/src/main/res/values/config.xml` for the dock, hidden apps and Live TV package.
 - Don't install a third-party launcher that charges for basics like wallpapers. Build a small native
   Android TV launcher instead (Java, AndroidX RecyclerView, minSdk matching the TV, debug build is fine),
   install it over ADB, set it as the default home and disable the stock launcher. If several apps claim
-  the HOME intent, set the default with `cmd package set-home-activity`.
+  the HOME intent, find out which with
+  `cmd package query-activities -c android.intent.category.HOME -a android.intent.action.MAIN`
+  and set the default with `cmd package set-home-activity`.
+- On Android 11+ the launcher must declare `<queries>` for `android.intent.category.LEANBACK_LAUNCHER`
+  or package visibility filtering will silently stop it resolving any apps: the configured dock is
+  ignored with no error and the grid comes up nearly empty. Its targetSdk must be 31 or higher, or
+  Android 14 refuses to install it.
 - Design, Apple TV 4K style: pitch black background; a dock row at the bottom of the screen inside a
   slightly lighter rounded band holding the four apps I pick (ask me which, and the order); the rest of
   the apps in a 4-column grid below that scrolls up when I press Down; one translucent "glass" highlight
@@ -65,3 +86,9 @@ Verify
 
 Expect to answer three or four checklist questions (which apps you use, which four go in the dock,
 whether to keep the voice assistant, Chromecast and firmware updates). Everything is reversible.
+
+Two habits worth keeping, both learned the hard way: disable packages in small batches and
+screenshot between them rather than in one pass, because a batch can take something load-bearing
+with it (on a TCL, `com.tcl.providers.config` dropped Wi-Fi) and you cannot tell which; and don't
+assume a package's name implies its role — `com.tcl.exhibit` and `com.tcl.suspension` turned out
+to be showroom demo modes, while `com.google.android.partnersetup` was the ad one.
