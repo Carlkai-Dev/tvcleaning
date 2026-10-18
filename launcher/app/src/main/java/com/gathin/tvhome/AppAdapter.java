@@ -1,9 +1,9 @@
 package com.gathin.tvhome;
 
-import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
@@ -12,8 +12,6 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
-import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -42,6 +40,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     interface TileListener {
         void onTileFocused(int position, View card);
 
+        /** Long press (hold OK) on a tile: open the tile menu. */
+        void onTileLongPress(int position, View card);
+
         /** Called for D-pad Up/Down on a tile. Return true when handled. */
         boolean onTileVerticalKey(int position, int keyCode);
     }
@@ -53,6 +54,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final Drawable banner;
         final Drawable icon;
         int ambient;
+        /** Installed by the user (not a system app), so the tile menu can offer Uninstall. */
+        boolean canUninstall;
+
+        String key() {
+            return component.flattenToShortString();
+        }
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
             this.label = label;
@@ -110,9 +117,19 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
             String label = String.valueOf(ri.loadLabel(pm));
-            fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
+            Entry entry = new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon);
+            entry.canUninstall = (ri.activityInfo.applicationInfo.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0;
+            fresh.add(entry);
         }
+        final List<String> saved = loadOrder();
         Collections.sort(fresh, (a, b) -> {
+            // A layout the user arranged wins; apps not in it yet (just installed) follow, in the default order.
+            int sa = saved.indexOf(a.key()), sb = saved.indexOf(b.key());
+            if (sa >= 0 || sb >= 0) {
+                if (sa < 0) return 1;
+                if (sb < 0) return -1;
+                return Integer.compare(sa, sb);
+            }
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
             if (fa >= 0 || fb >= 0) {
                 if (fa < 0) return 1;
@@ -124,6 +141,60 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    // ---- user layout: move tiles, remember the order -----------------------------------------------
+
+    private SharedPreferences prefs() {
+        return ctx.getSharedPreferences("layout", Context.MODE_PRIVATE);
+    }
+
+    private List<String> loadOrder() {
+        String s = prefs().getString("order", "");
+        return s.isEmpty() ? new ArrayList<>() : new ArrayList<>(Arrays.asList(s.split("\n")));
+    }
+
+    boolean hasCustomOrder() {
+        return !prefs().getString("order", "").isEmpty();
+    }
+
+    void saveOrder() {
+        StringBuilder sb = new StringBuilder();
+        for (Entry e : items) sb.append(e.key()).append('\n');
+        prefs().edit().putString("order", sb.toString().trim()).apply();
+    }
+
+    void resetOrder() {
+        prefs().edit().remove("order").apply();
+        reload();
+    }
+
+    Entry entryAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position) : null;
+    }
+
+    List<Entry> snapshot() {
+        return new ArrayList<>(items);
+    }
+
+    void restore(List<Entry> saved) {
+        items.clear();
+        items.addAll(saved);
+        notifyDataSetChanged();
+    }
+
+    /** Moves a tile; the ones in between shift by one place, like on a phone home screen. */
+    void move(int from, int to) {
+        if (from == to || from < 0 || to < 0 || from >= items.size() || to >= items.size()) return;
+        items.add(to, items.remove(from));
+        notifyItemMoved(from, to);
+        int lo = Math.min(from, to), hi = Math.max(from, to);
+        notifyItemRangeChanged(lo, hi - lo + 1);    // the dock has no labels, so tiles crossing it must rebind
+    }
+
+    void launchAt(int position) {
+        Entry e = entryAt(position);
+        if (e != null) launch(e);
     }
 
     @NonNull
@@ -157,12 +228,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            int pos = h.getBindingAdapterPosition();
+            if (pos != RecyclerView.NO_POSITION && listener != null) listener.onTileLongPress(pos, v);
             return true;
         });
     }
@@ -284,6 +351,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
             card.setOnKeyListener((view, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                // The remote's Menu or Info button opens the same tile menu as holding OK.
+                if ((keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_INFO) && event.getRepeatCount() == 0) {
+                    int p = getBindingAdapterPosition();
+                    if (p != RecyclerView.NO_POSITION && listener != null) listener.onTileLongPress(p, view);
+                    return true;
+                }
                 if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
                 int pos = getBindingAdapterPosition();
                 return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileVerticalKey(pos, keyCode);

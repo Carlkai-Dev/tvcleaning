@@ -99,6 +99,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     };
 
+    // Tile menu / move mode state (see "tile menu and move mode" below).
+    private boolean moving;
+    private List<AppAdapter.Entry> moveSnapshot;
+    private String moveStartKey;
+
     /** True while we drive a scroll ourselves: the glass already heads for the final position. */
     private boolean scripted;
     private final Runnable scriptedDone = () -> scripted = false;
@@ -106,7 +111,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Refreshes the grid right away when an app is installed, updated or removed while Home is showing. */
     private boolean resumed;
     private final Runnable appsChanged = () -> {
-        if (!resumed) return;               // onResume reloads anyway
+        if (!resumed || moving) return;     // onResume reloads anyway; a move in progress must not be reset
         final String key = lastFocusedKey;
         final int slot = lastFocused;
         adapter.reload();
@@ -246,6 +251,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        if (moving) endMove(false);
         handler.removeCallbacks(minuteTick);
     }
 
@@ -329,6 +335,137 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(glassTargetY);
         }
         if (position < COLUMNS) showHero(position, r.top - dy); else hideHero();
+    }
+
+    // ---- tile menu and move mode -----------------------------------------------------------------
+
+    @Override
+    public void onTileLongPress(int position, View card) {
+        if (!moving) showTileMenu(position, card);
+    }
+
+    private void showTileMenu(final int position, View card) {
+        final AppAdapter.Entry e = adapter.entryAt(position);
+        if (e == null) return;
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = new PopupWindow(panel, (int) (230 * density), ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
+        popup.setOutsideTouchable(true);
+        popup.setAnimationStyle(0);
+        popup.setElevation(0f);
+
+        addInputRow(rows, popup, R.drawable.ic_open, getString(R.string.menu_open), -1, () -> adapter.launchAt(position));
+        addInputRow(rows, popup, R.drawable.ic_move, getString(R.string.menu_move), -1, () -> startMove(position));
+        addInputRow(rows, popup, R.drawable.ic_info, getString(R.string.menu_info), -1,
+                () -> open(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.parse("package:" + e.pkg))));
+        if (e.canUninstall) {
+            addInputRow(rows, popup, R.drawable.ic_delete, getString(R.string.menu_uninstall), -1,
+                    () -> open(new Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:" + e.pkg))));
+        }
+        if (adapter.hasCustomOrder()) {
+            addSeparator(rows);
+            addInputRow(rows, popup, R.drawable.ic_reset, getString(R.string.menu_reset), -1, () -> {
+                adapter.resetOrder();
+                onceAfterLayout(() -> focusTile(Math.max(0, adapter.positionOf(e.key()))));
+            });
+        }
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int pw = Math.max((int) (230 * density), panel.getMeasuredWidth());
+        int ph = panel.getMeasuredHeight();
+        popup.setWidth(pw);
+
+        // Beside the tile: above it when the tile sits in the lower half (the dock), otherwise below it.
+        int[] loc = new int[2];
+        card.getLocationOnScreen(loc);
+        int margin = (int) (16 * density);
+        int rw = root.getWidth(), rh = root.getHeight();
+        int x = Math.max(margin, Math.min(rw - pw - margin, loc[0] + card.getWidth() / 2 - pw / 2));
+        boolean above = loc[1] + card.getHeight() / 2 > rh / 2;
+        int y = above ? loc[1] - ph - (int) (14 * density) : loc[1] + card.getHeight() + (int) (40 * density);
+        y = Math.max(margin, Math.min(rh - ph - margin, y));
+
+        panel.setAlpha(0f);
+        panel.setPivotY(above ? ph : 0f);
+        panel.setScaleY(0.92f);
+        popup.showAtLocation(root, Gravity.TOP | Gravity.START, x, y);
+        panel.animate().alpha(1f).scaleY(1f).setDuration(160)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+        rows.getChildAt(0).requestFocus();
+    }
+
+    private void startMove(int position) {
+        moving = true;
+        moveSnapshot = adapter.snapshot();
+        moveStartKey = adapter.keyAt(position);
+        greeting.setText(R.string.move_hint);
+    }
+
+    /** One step of a move: the tile swaps through the list in the direction pressed. */
+    private void moveStep(int keyCode) {
+        int pos = lastFocused, count = adapter.getItemCount(), t = pos;
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT: t = pos - 1; break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT: t = pos + 1; break;
+            case KeyEvent.KEYCODE_DPAD_UP: t = pos - COLUMNS; break;
+            case KeyEvent.KEYCODE_DPAD_DOWN: t = Math.min(pos + COLUMNS, count - 1); break;
+            default: return;
+        }
+        if (t < 0 || t >= count || t == pos) return;
+        adapter.move(pos, t);
+        lastFocused = t;
+        lastFocusedKey = adapter.keyAt(t);
+        final int target = t;
+        onceAfterLayout(() -> focusTile(target));
+    }
+
+    private void endMove(boolean save) {
+        if (!moving) return;
+        moving = false;
+        if (save) adapter.saveOrder();
+        else adapter.restore(moveSnapshot);
+        moveSnapshot = null;
+        updateGreeting();
+        final String key = save ? lastFocusedKey : moveStartKey;
+        onceAfterLayout(() -> {
+            int pos = adapter.positionOf(key);
+            focusTile(pos >= 0 ? pos : lastFocused);
+        });
+    }
+
+    /** Runs once after the grid has laid out its next change, before it is drawn (no flicker). */
+    private void onceAfterLayout(final Runnable r) {
+        final android.view.ViewTreeObserver vto = grid.getViewTreeObserver();
+        vto.addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                android.view.ViewTreeObserver o = grid.getViewTreeObserver();
+                if (o.isAlive()) o.removeOnPreDrawListener(this);
+                r.run();
+                return true;
+            }
+        });
+        grid.requestLayout();
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent ev) {
+        if (moving) {
+            int k = ev.getKeyCode();
+            boolean arrow = k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT
+                    || k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_DPAD_DOWN;
+            boolean ok = k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER;
+            if (arrow || ok || k == KeyEvent.KEYCODE_BACK) {
+                if (ev.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (arrow) moveStep(k);
+                    else if (ev.getRepeatCount() == 0) endMove(ok);
+                }
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(ev);
     }
 
     // ---- top shelf -------------------------------------------------------------------------------
