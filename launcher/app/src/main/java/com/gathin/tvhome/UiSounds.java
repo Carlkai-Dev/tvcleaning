@@ -32,6 +32,7 @@ final class UiSounds {
     private final int nav, select;
     private final boolean keepOutputAwake;
     private volatile AudioTrack keepAwake;
+    private Thread keepAwakeWriter;
 
     UiSounds(Context context) {
         this.context = context;
@@ -85,12 +86,17 @@ final class UiSounds {
         java.util.Random random = new java.util.Random(1);
         for (int i = 0; i < frames; i++) hiss[i] = (short) (random.nextInt(13) - 6);
         keepAwake = playing;
-        new Thread(() -> {
+        keepAwakeWriter = new Thread(() -> {
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);
-            // Blocks until the track has room; ends when pause() stops the track (write returns an error).
-            while (keepAwake == playing && playing.write(hiss, 0, frames) > 0) {
+            try {
+                // Blocks until the track has room; ends when pause() stops the track (write returns an error).
+                while (keepAwake == playing && playing.write(hiss, 0, frames) > 0) {
+                }
+            } catch (RuntimeException ignored) {
+                // The track was stopped underneath the write: just end.
             }
-        }, "KeepAudioAwake").start();
+        }, "KeepAudioAwake");
+        keepAwakeWriter.start();
     }
 
     /** Home screen left (an app opened or the TV sleeping): let the output go to standby again. */
@@ -101,8 +107,19 @@ final class UiSounds {
         try {
             track.pause();
             track.flush();
-            track.stop();
+            track.stop();   // unblocks a write() in progress
         } catch (IllegalStateException ignored) {
+        }
+        // Release only once the writer is out of write(): releasing a track another thread is writing to is a
+        // use-after-free in native code.
+        Thread writer = keepAwakeWriter;
+        keepAwakeWriter = null;
+        if (writer != null) {
+            try {
+                writer.join(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
         track.release();
     }
