@@ -19,4 +19,6 @@
     <string name="not_available">Auf diesem TV nicht verfügbar</string>
     <string name="cant_open">%1$s lässt sich nicht öffnen</string>
     <string name="date_format">EEEE, d. MMMM</string>
+    <string name="home_key_name">Home-Taste</string>
+    <string name="home_key_description">Öffnet diesen Startbildschirm, wenn du Home drückst.</string>
 </resources>
