@@ -175,6 +175,11 @@ is smaller and faster on 1 GB sets; sign it yourself before installing.
 buttons, the ends of the button row don't fall through to tiles, and the last focused app is
 remembered when you come back, even after the app list changes.
 
+**Arrange your apps.** Hold OK on a tile (or press Menu or Info on the remote) to open a menu: Open,
+Move, App info (force stop, uninstall, storage), Uninstall for apps you installed, and Reset layout.
+In Move mode the arrow keys slide the app through the grid and into or out of the dock, OK places it
+and Back cancels. Your arrangement is saved; apps you install later are added after it.
+
 <details>
 <summary><strong>Optional: the Clock screensaver</strong></summary>
 
