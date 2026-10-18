@@ -23,6 +23,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final Paint tint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
+    private final Rect visibleBounds = new Rect();
+    private final Rect canvasBounds = new Rect();
+    private final int[] screenLocation = new int[2];
     private final Matrix shaderPosition = new Matrix();
     private LinearGradient surfaceGradient;
     private LinearGradient edgeGradient;
@@ -53,7 +56,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
             int pos = parent.getChildAdapterPosition(child);
-            if (pos < 0 || pos >= dockSize) continue;
+            if (pos < 0 || pos >= dockSize) {
+                child.setAlpha(1f);
+                continue;
+            }
             View card = child.findViewById(R.id.card);
             if (card == null) continue;
             float l = child.getLeft() + card.getLeft();
@@ -71,8 +77,20 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         // Reserve clearance for the fully enlarged tile and its compact halo.
         // Card scale/translation intentionally do not enter these fixed dock bounds.
         rect.inset(-23 * density, -VERTICAL_PADDING_DP * density);
-        // Fade the glass before its top enters the clipped viewport; never leave a cut-off strip.
-        float visibility = Math.max(0f, Math.min(1f, rect.top / (20f * density)));
+        // Ancestors can clip a negative-margin child above the Canvas's reported local clip.
+        // Use the actual visible viewport, including ancestor clipping and the outline stroke.
+        if (!parent.getGlobalVisibleRect(visibleBounds)) return;
+        parent.getLocationOnScreen(screenLocation);
+        c.getClipBounds(canvasBounds);
+        float clipTop = Math.max(canvasBounds.top, visibleBounds.top - screenLocation[1]);
+        float visibility = Math.max(0f, Math.min(1f,
+                (rect.top - clipTop - density) / (12f * density)));
+        // The dock leaves as one surface; its cards must not leave cropped slivers behind the glass.
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            int position = parent.getChildAdapterPosition(child);
+            if (position >= 0 && position < dockSize) child.setAlpha(visibility);
+        }
         if (visibility == 0f) return;
         float radius = 26 * density;
         // Scrolling only translates the cached shaders; focus scaling never resizes the dock.

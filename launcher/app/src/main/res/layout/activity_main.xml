@@ -34,6 +34,7 @@
         android:paddingStart="56dp"
         android:paddingEnd="56dp"
         android:paddingTop="26dp"
+        android:clipChildren="false"
         android:clipToPadding="false">
 
         <RelativeLayout
@@ -169,7 +170,7 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <androidx.recyclerview.widget.RecyclerView
+            <com.gathin.tvhome.ViewportGrid
                 android:id="@+id/grid"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"

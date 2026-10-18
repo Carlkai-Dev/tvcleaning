@@ -708,7 +708,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else if (hour < 17) res = R.string.good_afternoon;
         else if (hour < 22) res = R.string.good_evening;
         else res = R.string.good_night;
-        greeting.setText(res);
+        String message = getString(res);
+        if (!android.text.TextUtils.equals(greeting.getText(), message))
+            greeting.setText(OpticalGreeting.format(message));
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */

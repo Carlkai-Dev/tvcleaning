@@ -1,7 +1,36 @@
-# Hisense launcher customizations (2.11.1)
+# Hisense launcher customizations (2.11.2)
 
 This branch adds an app-management menu and persistent Home ordering to the lightweight launcher.
 It was built and tested on a Hisense SmartTV 4K FFM (`lushan`) running Android 12.
+
+## Ancestor clipping and optical spacing in 2.11.2
+
+The previous viewport expansion was still clipped by the outer vertical
+LinearLayout. On-device geometry showed the grid beginning at screen Y=214 but
+its globally visible area beginning at Y=254. This cut the dock's top at the
+third app row. Disabling child clipping at that ancestor exposes the intended
+40 pixels. A dedicated `ViewportGrid` clips the complete scrolling surface to
+its own bounds while keeping individual cell clipping disabled for enlarged
+icons. This also prevents scrolled apps from painting over the header.
+
+Dock visibility now uses both the Canvas clip and the grid's globally visible
+rectangle, with a stroke allowance. The glass and dock cards fade together over
+the final 12 dp before reaching that boundary. Recycled holders reset their
+alpha. Temporary geometry probes were removed from the installed build.
+
+The greeting keeps the same font and text. A small optical span reduces the
+advance of the first O in each O/O pair, including GOOD and AFTERNOON. Actual
+screen pixels showed the AFTERNOON pair's gap reduce from three pixels to one.
+The formatted text is retained until the greeting changes, rather than rebuilt
+at every clock refresh.
+
+Validation: successful debug build and installation; compared global clipping
+geometry before/after; recorded downward/upward scrolling on the final APK;
+checked the third-row dock shape, return to Home and unchanged preferences.
+The final recording contains 369 frames; a sampled region between the clock
+and header controls remained free of scrolled app content in every frame.
+
+![Dock with its complete upper corners at the third app row](launcher-dock-2.11.2.png)
 
 ## Scrolling and text corrections in 2.11.1
 

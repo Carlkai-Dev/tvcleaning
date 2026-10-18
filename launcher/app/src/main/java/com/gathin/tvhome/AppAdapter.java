@@ -184,6 +184,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     @Override
     public void onBindViewHolder(@NonNull Holder h, int position) {
         Entry e = items.get(position);
+        h.itemView.setAlpha(1f);
         h.name.setText(e.label);
         h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
