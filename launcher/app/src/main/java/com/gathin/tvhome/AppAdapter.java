@@ -43,6 +43,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         /** Long press (hold OK) on a tile: open the tile menu. */
         void onTileLongPress(int position, View card);
 
+        /** Called for D-pad Left/Right on a tile. Return true to keep focus where it is (a row's end). */
+        boolean onTileHorizontalKey(int position, int keyCode);
+
         /** Called for D-pad Up/Down on a tile. Return true when handled. */
         boolean onTileVerticalKey(int position, int keyCode);
     }
@@ -356,6 +359,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                     int p = getBindingAdapterPosition();
                     if (p != RecyclerView.NO_POSITION && listener != null) listener.onTileLongPress(p, view);
                     return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    int hp = getBindingAdapterPosition();
+                    return listener != null && hp != RecyclerView.NO_POSITION && listener.onTileHorizontalKey(hp, keyCode);
                 }
                 if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
                 int pos = getBindingAdapterPosition();

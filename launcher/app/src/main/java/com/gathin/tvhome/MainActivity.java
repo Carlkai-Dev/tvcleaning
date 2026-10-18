@@ -329,7 +329,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else {
                 // The tile is already fully visible. RecyclerView's own focus handling may still start a
                 // scroll of its own, which drags the glass up and back; cancel it so only the glass moves.
-                grid.stopScroll();
+                if (grid.getScrollState() != RecyclerView.SCROLL_STATE_IDLE) grid.stopScroll();
             }
             springX.animateToFinalPosition(glassTargetX);
             springY.animateToFinalPosition(glassTargetY);
@@ -523,6 +523,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- navigation ------------------------------------------------------------------------------
 
     @Override
+    public boolean onTileHorizontalKey(int position, int keyCode) {
+        // At the ends of a row Android's focus finder would otherwise jump to the top-bar buttons.
+        if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) return position % COLUMNS == COLUMNS - 1 || position >= adapter.getItemCount() - 1;
+        return position % COLUMNS == 0;
+    }
+
+    @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
         int count = adapter.getItemCount();
         int target;
@@ -556,15 +563,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else card.requestFocus();
             return;
         }
-        // Not laid out yet: scroll there, then focus once the scroll settles.
+        // Not laid out yet: scroll there, then focus once the scroll settles. Focus and the listener removal
+        // run after the callback returns: doing them inside it re-enters RecyclerView's listener loop and
+        // crashed the launcher when keys arrived quickly.
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
-            public void onScrollStateChanged(@NonNull RecyclerView rv, int newState) {
+            public void onScrollStateChanged(@NonNull final RecyclerView rv, int newState) {
                 if (newState != RecyclerView.SCROLL_STATE_IDLE) return;
-                rv.removeOnScrollListener(this);
-                RecyclerView.ViewHolder h = rv.findViewHolderForAdapterPosition(pos);
-                View target = h != null ? h.itemView.findViewById(R.id.card) : rv.getChildAt(0);
-                if (target != null) target.requestFocus();
+                final RecyclerView.OnScrollListener self = this;
+                rv.post(() -> {
+                    rv.removeOnScrollListener(self);
+                    RecyclerView.ViewHolder h = rv.findViewHolderForAdapterPosition(pos);
+                    View target = h != null ? h.itemView.findViewById(R.id.card) : rv.getChildAt(0);
+                    if (target != null) target.requestFocus();
+                });
             }
         });
         grid.smoothScrollToPosition(pos);
