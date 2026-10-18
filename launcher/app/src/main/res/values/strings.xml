@@ -16,4 +16,6 @@
     <string name="good_night">Good night</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Offline</string>
+    <string name="stock_home_label">Amazon Home</string>
+    <string name="redirect_description">Opens this launcher when the stock home screen appears.</string>
 </resources>

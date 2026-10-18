@@ -24,4 +24,13 @@
 
     <!-- Tiles per row in the grid; the dock always has this many slots. -->
     <integer name="columns">4</integer>
+
+    <!-- Fire OS only: package of the stock home screen to redirect to this launcher (HomeRedirectService), and part
+         of its home activity's class name. Leave empty on Android TV / Google TV, where this launcher is the real
+         home. See examples/toshiba-fire-tv/config.xml. -->
+    <string name="stock_home_package" translatable="false"></string>
+    <string name="stock_home_class_hint" translatable="false">HomeActivity</string>
+
+    <!-- Register as a HOME screen. Set false on Fire OS, where the stock home can't be replaced. -->
+    <bool name="register_as_home">true</bool>
 </resources>

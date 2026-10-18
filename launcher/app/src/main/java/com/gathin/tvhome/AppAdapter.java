@@ -88,6 +88,19 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         List<Entry> fresh = new ArrayList<>();
+        // Dock apps without a leanback activity (e.g. Fire OS's Silk browser) are found via the plain launcher category.
+        Set<String> seen = new HashSet<>();
+        for (ResolveInfo ri : found) {
+            if (ri.activityInfo != null) seen.add(ri.activityInfo.packageName);
+        }
+        List<ResolveInfo> extra = new ArrayList<>(found);
+        for (ResolveInfo ri : pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)) {
+            if (ri.activityInfo != null && favourites.contains(ri.activityInfo.packageName)
+                    && seen.add(ri.activityInfo.packageName)) {
+                extra.add(ri);
+            }
+        }
+        found = extra;
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
@@ -97,6 +110,14 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             Drawable icon = ri.loadIcon(pm);
             String label = String.valueOf(ri.loadLabel(pm));
             fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
+        }
+        String stock = ctx.getString(R.string.stock_home_package).trim();
+        if (!stock.isEmpty()) {
+            try {
+                Drawable stockIcon = pm.getApplicationIcon(stock);
+                fresh.add(new Entry(ctx.getString(R.string.stock_home_label), new ComponentName(stock, "home"), null, stockIcon));
+            } catch (PackageManager.NameNotFoundException ignored) {
+            }
         }
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
@@ -153,6 +174,17 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     private void launch(Entry e) {
+        if (e.pkg.equals(ctx.getString(R.string.stock_home_package).trim())) {
+            HomeRedirectService.allowStockHome();
+            Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setPackage(e.pkg)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                ctx.startActivity(home);
+            } catch (Exception ex) {
+                Toast.makeText(ctx, "Can't open " + e.label, Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
         Intent i = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)

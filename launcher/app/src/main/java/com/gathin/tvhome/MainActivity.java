@@ -196,7 +196,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onBackPressed() {
-        // Home screen: Back goes nowhere.
+        // As the real home screen Back goes nowhere; when opened as a normal app (Fire OS) it returns to the stock home.
+        if (!getIntent().hasCategory(Intent.CATEGORY_HOME)) finish();
     }
 
     // ---- glass highlight -------------------------------------------------------------------------
