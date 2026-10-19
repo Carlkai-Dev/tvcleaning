@@ -1,40 +1,80 @@
+<div align="center">
+
 # tv-vibehack
 
 **Your TV, minus the ads.**
 
-Strip the bloatware from any Android TV or Google TV over Wi-Fi, and replace the ad-filled home
+[Start here](#choose-your-path) · [Quick start](#quick-start) · [TV compatibility](#supported-tvs) · [Restore](#restore-your-tv) · [Troubleshooting](#troubleshooting)
+
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-22c55e)](LICENSE)
+[![Launcher: Java](https://img.shields.io/badge/launcher-Java-f59e0b)](launcher/app/src/main/java/com/gathin/tvhome/)
+[![Launcher minimum: Android 8](https://img.shields.io/badge/launcher-Android%208%2B-3ddc84)](launcher/app/build.gradle)
+
+</div>
+
+Disable unwanted packages on compatible Android TV or Google TV devices over Wi-Fi, and replace the ad-filled home
 screen with a clean launcher that looks like an Apple TV.
 
-**No root, no cable, nothing uninstalled, and a one-line restore if you change your mind.**
+**No root. No cable. Packages are disabled, not uninstalled.** Keep your device-specific
+package list and original home-screen package for [restoring the stock experience](#restore-your-tv).
 
 ![Before: stock Google TV home with a sponsored ad. After: the tv-vibehack launcher](docs/stock-vs-new-side.jpg)
 
-It started as an afternoon fixing my parents' Mi TV, which showed them an advert before they
-could reach Netflix. The whole thing was done with Claude Code talking to the real TV, and the
-prompt that did it is in this repo so you can do the same with yours. The replies to the
-[tweet below](https://x.com/gathint/status/2111379569030939102) are where most of the TV lists in
-this repo came from.
+## Choose your path
 
-<p align="center">
-  <a href="https://x.com/gathint/status/2111379569030939102"><img src="docs/tweet.png" alt="The tweet: Vibe coded my parents' TV this afternoon. Before and after screenshots." width="380"></a>
-</p>
+| You want to… | Start with |
+|---|---|
+| Have a coding assistant guide the changes | [Quick start](#quick-start), then [`PROMPT.md`](PROMPT.md) |
+| Run the tools yourself | [Manual setup](#doing-it-by-hand) or [Windows](#windows) |
+| Change the dock, layout or language | [Launcher configuration](#the-launcher) |
+| Check your model before changing it | [Compatibility and contributed lists](#supported-tvs) |
+| Get the original home screen back | [Restore your TV](#restore-your-tv) |
+| Share what worked on your device | [Contribution guide](CONTRIBUTING.md) |
+
+**What this changes:** the TV's home screen and the packages you choose to disable.
+It does not remove ads inside streaming apps or change their subscriptions.
+The photos above are existing project examples, not a promise of identical results on every TV.
 
 ---
 
 ## Table of contents
 
+- [Before you start](#before-you-start)
 - [How it works](#how-it-works)
 - [Quick start](#quick-start)
 - [What you get](#what-you-get)
 - [Supported TVs](#supported-tvs)
 - [Doing it by hand](#doing-it-by-hand)
 - [The launcher](#the-launcher)
+- [Restore your TV](#restore-your-tv)
 - [Troubleshooting](#troubleshooting)
 - [Questions people ask](#questions-people-ask)
+- [Project story](#project-story)
 - [Contributing](#contributing)
 - [Licence](#licence)
 
 ---
+
+## Before you start
+
+| Requirement | Details |
+|---|---|
+| TV and network | Compatible Android TV / Google TV with ADB debugging available; computer and TV on the same local network |
+| Device access | Access to the TV's settings and remote to approve your computer |
+| Manual tooling | Python 3 plus the packages in [`tools/requirements.txt`](tools/requirements.txt), installed in a virtual environment |
+| Building the launcher | JDK 17, Android SDK platform 34 and build-tools 34.0.0; [setup below](#the-launcher) |
+| Recovery information | Save the original package/settings inventory, exact list of changes and original launcher package before changing the TV |
+
+Run commands from a local checkout of this repository. If you use Git:
+
+```bash
+git clone https://github.com/gathin23/tv-vibehack.git
+cd tv-vibehack
+```
+
+The guided prompt asks the assistant to create backups. The standalone disable and
+install scripts do **not** create that complete backup for you. Read a contributed
+list before applying it: firmware, apps and the features you want to keep can differ.
 
 ## How it works
 
@@ -44,7 +84,8 @@ After that, everything is standard Android tooling:
 
 1. **Back up** the list of installed packages and settings.
 2. **Disable** the manufacturer's telemetry, ad services, content rows and preloaded junk with
-   `pm disable-user`. Nothing is uninstalled, so a restore script can undo every step.
+   `pm disable-user`. Nothing is uninstalled; the restore helper re-enables listed packages.
+   See [restore scope](#restore-your-tv) for changes it does not roll back.
 3. **Install** a small native launcher and make it the default home screen.
 
 The bloat differs by brand, which is why the prompt asks your coding assistant to discover it
@@ -92,13 +133,16 @@ A home screen that is yours again:
   optional accessibility service maps it (`KEYCODE_TV`) to the system input switcher in any app.
   Install with `INPUT_KEY_SERVICE=1` to turn it on.
 
-And a TV that stops working against you: no sponsored rows, no "Discover" nags, no analytics
-phoning home, no apps you never asked for.
+The new home screen has no sponsored recommendation rows or "Discover" feed.
+Which manufacturer services stop running depends on the package list you apply;
+this is not a guarantee that every installed app stops collecting analytics.
 
 ## Supported TVs
 
-Anything running **Android TV** or **Google TV**: Xiaomi and Redmi, TCL, Hisense, Sony, OnePlus,
-Realme, Nvidia Shield and most others.
+Designed for **Android TV** and **Google TV**: Xiaomi and Redmi, TCL, Hisense, Sony, OnePlus,
+Realme, Nvidia Shield and others. The included launcher requires **Android 8.0 / API 26
+or newer** (`minSdk 26`). ADB access and launcher replacement depend on the device firmware;
+the model-specific reports below are a better starting point than a brand-wide guarantee.
 
 Not supported: Samsung (Tizen) and LG (webOS), which run different systems. Amazon Fire TV
 (Fire OS) takes the debloat half only: Fire OS won't let a third-party launcher take over Home,
@@ -130,13 +174,13 @@ Lists that people have tested and contributed live in [`examples/`](examples/):
 | Xiaomi MiTV-MOOR2 (venom, MediaTek) | Google TV 11 |
 | Xiaomi TV A Pro 75" 2026 (MiTV-MZTU0, river, MediaTek) | Google TV 14 |
 
-Your TV not here? The prompt works regardless, it discovers the bloat itself. If you add your
+Your TV not here? The prompt guides discovery of its packages; compatibility still needs to be checked on that device. If you add your
 list afterwards, the next person with your model skips that step. See
 [Contributing](#contributing).
 
 ## Doing it by hand
 
-Everything the assistant does, you can run yourself. The tools need Python 3 and nothing else.
+Everything the assistant does, you can run yourself. The Python tools need Python 3 and the dependencies below. Building the launcher also needs the [Android toolchain](#the-launcher).
 
 ```bash
 python3 -m venv tools/venv && tools/venv/bin/pip install -r tools/requirements.txt
@@ -178,7 +222,8 @@ Windows venv and disable MSYS path rewriting themselves.
 
 A small native Android TV app (`com.gathin.tvhome`, about 250 KB installed), written in plain Java with
 AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM: no blur, no
-video, no network, no background services.
+video backgrounds or Internet permission. Optional accessibility services handle remote
+buttons, and a dream service provides the screensaver.
 
 **Configure** it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
 the dock order, apps to hide, your TV's Live TV package, the number of columns, and how many grid
@@ -233,6 +278,32 @@ Optional: set `show_home_settings_shortcut` to `true` in `config.xml` and a **De
 appears at the end of the grid, opening Android's own home-screen picker so you can switch
 launchers from the sofa. Most Android TV firmware has no such page, and then the tile stays
 hidden. The stock launcher has to be enabled before it can be picked, see the restore instructions.
+
+## Restore your TV
+
+Keep the **same debloat list** you applied and the **original launcher package name**.
+For Bash, the helper's optional second argument is the stock launcher package; if
+omitted, it defaults to `com.google.android.tvlauncher`:
+
+```bash
+# Example for a Google TV device; use the stock package recorded for YOUR TV.
+TV_HOST=192.168.1.50 tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt com.google.android.apps.tv.launcherx
+```
+
+The example list is only appropriate if it is the list you actually applied.
+For Windows, use the existing [PowerShell restore example](#windows) and pass
+`-Stock` with your original package if it differs from the default.
+
+| The helper does | It does not |
+|---|---|
+| Re-enable packages in the supplied list | Reconstruct their original enabled/disabled state |
+| Re-enable and select the supplied stock launcher | Automatically discover the original launcher for restore |
+| Set three animation scales to `1.0` | Restore an arbitrary settings backup or original custom animation values |
+
+It leaves the custom launcher installed and does not undo optional accessibility
+or screensaver configuration. Review those settings separately if you enabled them.
+If the TV remains reachable, verify Home, inputs and the apps you use after restoring.
+The [troubleshooting notes](#troubleshooting) cover known launcher and connectivity issues.
 
 ## Troubleshooting
 
@@ -296,15 +367,17 @@ Things that bit us or contributors, so they don't bite you.
 ## Questions people ask
 
 **Is this safe? Can it brick the TV?**
-No. Nothing is flashed, rooted or deleted. Packages are disabled for the user profile, which
-lives in the data partition, not in the system image. The firmware is untouched. If something
-goes wrong, `tools/restore.sh` puts everything back, and even without the tools you can re-enable
-apps from the TV's own settings.
+The tools do not flash firmware, root the TV or uninstall system packages. They disable
+packages for a user profile, but disabling the wrong service can still interrupt Home,
+inputs or connectivity. Keep the original inventory and a device-specific recovery path.
+[`tools/restore.sh`](tools/restore.sh) re-enables the supplied list and stock launcher;
+its [scope is described above](#restore-your-tv). Where the firmware exposes the option,
+you can also re-enable apps from the TV's settings.
 
 **What about firmware updates?**
 Most lists disable the manufacturer's update service, so updates only arrive when you re-enable
-it on purpose. If an update does land, the worst case is that a package comes back enabled and
-you re-run the script.
+it on purpose. After an update, re-check the package list and Home behavior before reapplying changes;
+firmware can re-enable packages or change which components the TV needs.
 
 **Won't the apps break as their APIs change?**
 The streaming apps still update through the Play Store, which is left alone. The launcher
@@ -320,6 +393,19 @@ debugging off again afterwards and the launcher keeps working.
 Build it yourself with the one-line script above; it takes about a minute and you control what
 goes on your TV. We don't publish prebuilt binaries.
 
+## Project story
+
+It started as an afternoon fixing my parents' Mi TV, which showed them an advert before they
+could reach Netflix. The whole thing was done with Claude Code talking to the real TV, and the
+prompt that did it is in this repo so you can do the same with yours. The replies to the
+[tweet below](https://x.com/gathint/status/2111379569030939102) are where most of the TV lists in
+this repo came from.
+
+<p align="center">
+  <a href="https://x.com/gathint/status/2111379569030939102"><img src="docs/tweet.png" alt="The tweet: Vibe coded my parents' TV this afternoon. Before and after screenshots." width="380"></a>
+</p>
+
+
 ## Contributing
 
 The most useful contribution is your TV's debloat list, so the next person with that model
@@ -329,4 +415,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the format and the testing we ask for
 ## Licence
 
 MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
-`launcher/FONT-LICENSE-OFL.txt`.
+[`launcher/FONT-LICENSE-OFL.txt`](launcher/FONT-LICENSE-OFL.txt).
