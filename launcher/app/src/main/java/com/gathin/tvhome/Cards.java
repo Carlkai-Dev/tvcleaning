@@ -638,15 +638,29 @@ final class Cards {
      */
     @SuppressWarnings("deprecation")
     static String digest(PackageManager pm, String pkg) throws Exception {
+        return digest(pm.getPackageInfo(pkg, signerFlags()));
+    }
+
+    /** The PackageInfo flags {@link #digest(PackageInfo)} needs. */
+    @SuppressWarnings("deprecation")
+    static int signerFlags() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                ? PackageManager.GET_SIGNING_CERTIFICATES : PackageManager.GET_SIGNATURES;
+    }
+
+    /**
+     * The same digest from a PackageInfo read with {@link #signerFlags}: an installed package, or an
+     * APK file through getPackageArchiveInfo (the self-update check).
+     */
+    @SuppressWarnings("deprecation")
+    static String digest(PackageInfo pi) throws Exception {
         Signature[] sigs;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            PackageInfo pi = pm.getPackageInfo(pkg, PackageManager.GET_SIGNING_CERTIFICATES);
             SigningInfo info = pi.signingInfo;
             if (info == null) throw new CardException("package has no signing certificate");
             if (info.hasMultipleSigners()) throw new CardException("package has more than one signer");
             sigs = info.getApkContentsSigners();
         } else {
-            PackageInfo pi = pm.getPackageInfo(pkg, PackageManager.GET_SIGNATURES);
             sigs = pi.signatures;
         }
         if (sigs == null || sigs.length != 1) {
