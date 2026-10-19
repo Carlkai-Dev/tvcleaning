@@ -149,8 +149,8 @@ SANYO · Skyworth · Thomson · Toshiba Fire TV · Vu · Stellamore and XGIMI pr
 | Xiaomi MiTV-ASTP1 (maverick), China firmware 2.40.641.0514.cn, 1 GB RAM, 720p | Android TV 9 (CN build) |
 | Xiaomi MiTV-AXSO0 (dangal; Mi TV 4C Pro 2019 / 4A Pro) | Android TV 9 |
 | Xiaomi MiTV-MOOR2 (venom, MediaTek) | Google TV 11 |
-| Xiaomi Xiaomi Mi TV (MiTV-MOOQ0, croods) | Android TV 10 |
-| Xiaomi Xiaomi Mi TV (MiTV-MOOQ1) | Android TV 10 |
+| Xiaomi Mi TV (MiTV-MOOQ0, croods) | Android TV 10 |
+| Xiaomi Mi TV (MiTV-MOOQ1) | Android TV 10 |
 | Xiaomi MiTV-MOSR4 (irobot, MediaTek) | Google TV 11 |
 | Xiaomi MiTV-MSSP3 (machuca, MediaTek) | Android TV 11 |
 | Xiaomi TV A Pro 75" 2026 (MiTV-MZTU0, river, MediaTek) | Google TV 14 |
