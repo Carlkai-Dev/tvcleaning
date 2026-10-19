@@ -39,7 +39,7 @@ Bluetooth remote itself was not pressed.
 | Case | Result |
 |---|---|
 | Home on the launcher, or inside Netflix | Cover up 13–163 ms after the press, before Amazon's home draws; live launcher at 5–6 s |
-| Hardware `KEY_HOME` (IR receiver) inside NoTubeTV | Cover up 51 ms after Amazon's home starts; it finished drawing underneath at 780 ms; launcher at 5.3 s |
+| Hardware `KEY_HOME` (IR receiver) inside a streaming app | Cover up 51 ms after Amazon's home starts; it finished drawing underneath at 780 ms; launcher at 5.3 s |
 | Two D-pad presses on the cover | Replayed: focus moved two tiles |
 | Back out of an app opened from the launcher | Back on the launcher, no cover needed |
 | Settings menu: Applications, then Back | Opens, Back returns to the launcher |
