@@ -48,11 +48,22 @@ final class Config {
     final File wallpaper;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
+    /** Focus, select and edge sounds (still subject to the TV's own system-sounds setting). */
+    final boolean uiSounds;
+    /** Draw the glass frame on the focused tile; off leaves only the shadow and the sheen. */
+    final boolean glassFrame;
+    /** Lean the focused tile in the direction of travel, with the banner shifting inside it. */
+    final boolean tilt;
+    /** Background gradient colours, top to bottom; empty for the plain background colour. */
+    final int[] backgroundGradient;
+    /** Band behind the dock row, with alpha. */
+    final int dockBandColor;
 
     private Config(List<String> dockApps, List<String> hiddenApps, String liveTvPackage, String liveTvAction,
                    String sourcePanelService, String sourcePanelAction, int columns, int rowsBelowDock,
                    boolean shamsiDate, String vpnApp, boolean showHomeSettingsShortcut, int backgroundColor,
-                   File wallpaper, boolean overlayApplied) {
+                   File wallpaper, boolean overlayApplied, boolean uiSounds, boolean glassFrame,
+                   boolean tilt, int[] backgroundGradient, int dockBandColor) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.liveTvPackage = liveTvPackage;
@@ -67,6 +78,11 @@ final class Config {
         this.backgroundColor = backgroundColor;
         this.wallpaper = wallpaper;
         this.overlayApplied = overlayApplied;
+        this.uiSounds = uiSounds;
+        this.glassFrame = glassFrame;
+        this.tilt = tilt;
+        this.backgroundGradient = backgroundGradient;
+        this.dockBandColor = dockBandColor;
     }
 
     /** The folder the theme tools push into; null when external storage is unavailable. */
@@ -88,6 +104,11 @@ final class Config {
         String vpn = res.getString(R.string.vpn_app).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         int background = 0xFF000000;
+        boolean sounds = res.getBoolean(R.bool.ui_sounds);
+        boolean frame = res.getBoolean(R.bool.glass_frame);
+        boolean tilt = res.getBoolean(R.bool.tilt);
+        List<String> gradient = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.background_gradient)));
+        int band = parseColor(res.getString(R.string.dock_band_color), 0x16FFFFFF);
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -107,6 +128,11 @@ final class Config {
             vpn = string(json, "vpn_app", vpn);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             background = color(json, "background_color", background);
+            sounds = bool(json, "ui_sounds", sounds);
+            frame = bool(json, "glass_frame", frame);
+            tilt = bool(json, "tilt", tilt);
+            gradient = stringList(json, "background_gradient", gradient);
+            band = colorWithAlpha(json, "dock_band_color", band);
         }
         File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
         if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
@@ -115,7 +141,33 @@ final class Config {
 
         return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), shamsi, vpn, homeSettings, background,
-                wallpaper, applied);
+                wallpaper, applied, sounds, frame, tilt, gradientColors(gradient), band);
+    }
+
+    /** 2 or 3 valid opaque colours, or an empty array: anything else means "no gradient". */
+    private static int[] gradientColors(List<String> list) {
+        if (list.size() < 2 || list.size() > 3) return new int[0];
+        int[] out = new int[list.size()];
+        for (int i = 0; i < out.length; i++) {
+            Integer c = tryParse(list.get(i));
+            if (c == null) return new int[0];
+            out[i] = c | 0xFF000000;
+        }
+        return out;
+    }
+
+    private static Integer tryParse(String s) {
+        try {
+            return Color.parseColor(s.trim());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /** #RRGGBB or #AARRGGBB, alpha kept. */
+    private static int parseColor(String s, int fallback) {
+        Integer c = tryParse(s);
+        return c == null ? fallback : c;
     }
 
     /** Reads and parses the overlay; any problem means "no overlay", never a crash on the home screen. */
@@ -164,6 +216,12 @@ final class Config {
         } catch (IllegalArgumentException e) {
             return fallback;
         }
+    }
+
+    /** Like {@link #color} but keeps the alpha of an #AARRGGBB value. */
+    private static int colorWithAlpha(JSONObject o, String key, int fallback) {
+        Object v = o.opt(key);
+        return v instanceof String ? parseColor((String) v, fallback) : fallback;
     }
 
     private static List<String> stringList(JSONObject o, String key, List<String> fallback) {

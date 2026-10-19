@@ -34,6 +34,11 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `show_home_settings_shortcut` | bool | The "Default home" tile, where the TV has a home picker |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `wallpaper` | bool | Show `wallpaper.jpg` from the theme folder (`true`), or ignore it (`false`) |
+| `background_gradient` | list of 2 or 3 `#RRGGBB` | Vertical gradient behind everything, top to bottom, instead of `background_color` |
+| `dock_band_color` | `#AARRGGBB` | The band behind the dock row; keep it translucent over a gradient or wallpaper |
+| `glass_frame` | bool | The glass frame on the focused tile; `false` leaves the shadow and sheen |
+| `tilt` | bool | The focused tile leans the way you moved and its banner shifts inside it |
+| `ui_sounds` | bool | Focus, select and edge sounds (also off when the TV's system sounds are off) |
 
 ## Wallpapers
 
