@@ -36,6 +36,7 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `reduced_motion` | bool | Calmer motion for weak GPUs: stiff highlight spring, no tile overshoot, short fades, no entrance replay |
 | `vpn_app` | string | App the network pill opens when a VPN is configured; also shows a red "VPN off" badge while no VPN is up |
 | `show_home_settings_shortcut` | bool | The "Default home" tile, where the TV has a home picker |
+| `key_launch_map` | string | `KEYCODE=package` entries separated by `;` that open an app when a remote key is pressed, e.g. `KEYCODE_MEDIA_PLAY=com.zattoo.player` (keycode name or number); needs `INPUT_KEY_SERVICE=1`; empty: keys unchanged |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `wallpaper` | bool | Show `wallpaper.jpg` from the theme folder (`true`), or ignore it (`false`) |
 
