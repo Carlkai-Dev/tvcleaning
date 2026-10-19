@@ -1,0 +1,9 @@
+# Home switch, done by hand on this TV (not by build-and-install.sh's default order):
+#   1. install with STOCK_LAUNCHER=none (Google TV stays Home)
+#   2. pm disable-user --user 0 com.google.android.tungsten.setupwraith, then watch 5 minutes
+#   3. start com.gathin.tvhome, pm disable-user --user 0 com.google.android.apps.tv.launcherx,
+#      cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity, check where Home resolves
+# Undo (re-enables setupwraith; restore.sh then brings back launcherx as Home):
+#   TV_HOST=<ip> tools/restore.sh examples/sony-bravia-2-ii-s25m2/home.txt
+# Re-enable setupwraith before any factory reset.
+com.google.android.tungsten.setupwraith  # setup wizard; its RecoveryActivity also claims Home
