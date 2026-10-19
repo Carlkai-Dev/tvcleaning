@@ -1,0 +1,8 @@
+# Batch 2: shop demo mode
+com.sony.dtv.demosupport        # in-store demo mode
+com.sony.dtv.demosystemsupport  # in-store demo mode
+com.sony.dtv.multiscreendemo    # in-store demo
+# Not disableable: Sony's com.sony.dtv.applicationdisabler re-enables these at every boot (it also keeps
+# airplayapp and m2.devicecontrolservice enabled, and the UK channel apps disabled). Left alone.
+# com.sony.dtv.m2.seeds.iot
+# com.sony.dtv.m2.seeds.iot.remotestart

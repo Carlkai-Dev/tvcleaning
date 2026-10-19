@@ -1,0 +1,5 @@
+# Batch 1: tracking, ads, promos (nothing you use day to day)
+tv.samba.ssm                    # Samba TV: recognises what's on screen for ad targeting (10 MB, always running)
+com.sony.dtv.promos             # Sony promotions
+com.sony.dtv.sonyselect         # Sony Select: promoted-app picks
+com.google.android.feedback     # Google feedback reporter

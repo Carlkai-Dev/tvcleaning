@@ -1,0 +1,5 @@
+# Batch 4: preloaded apps you can reinstall or re-enable any time
+com.google.android.videos       # Google TV / Play Movies
+com.google.android.youtube.tvmusic  # YouTube Music
+com.google.android.play.games   # Play Games
+com.sonypicturescore            # Sony Pictures Core
