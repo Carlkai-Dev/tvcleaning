@@ -5,6 +5,8 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
@@ -54,6 +56,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private static final long MINUTE_MS = 60_000L;
+    private static final long SNAPSHOT_DELAY_MS = 1200L;
     private String liveTvPkg;
 
     private AppAdapter adapter;
@@ -90,11 +93,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             handler.post(MainActivity.this::updateWifiLabel);
         }
     };
+    private final Runnable takeSnapshot = () -> HomeWatchService.snapshot = snapshot();
     private final Runnable minuteTick = new Runnable() {
         @Override
         public void run() {
             updateGreeting();
             updateWifiLabel();
+            handler.postDelayed(takeSnapshot, SNAPSHOT_DELAY_MS);
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -102,7 +107,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Fonts.install(getLayoutInflater());
         setContentView(R.layout.activity_main);
+        HomeWatchService.start(this);
         density = getResources().getDisplayMetrics().density;
         COLUMNS = Math.max(1, getResources().getInteger(R.integer.columns));
         liveTvPkg = getString(R.string.live_tv_package).trim();
@@ -161,6 +168,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
+        // Streaming sticks (Fire TV) have no inputs and no tuner: drop the pill rather than show an empty menu.
+        if (!hasInputs()) btnInputs.setVisibility(View.GONE);
+        final View firstPill = btnInputs.getVisibility() == View.VISIBLE ? btnInputs : btnWifi;
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
 
@@ -169,7 +179,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnInputs) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v == firstPill) return true;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
         };
         btnInputs.setOnKeyListener(pillKeys);
@@ -189,6 +199,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        HomeWatchService.launcherShown();
+        handler.postDelayed(takeSnapshot, SNAPSHOT_DELAY_MS);
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
@@ -214,6 +226,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        handler.removeCallbacks(takeSnapshot);
         handler.removeCallbacks(minuteTick);
     }
 
@@ -222,6 +235,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onDestroy();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         if (cm != null) cm.unregisterNetworkCallback(networkCallback);
+    }
+
+    @Override
+    public void onUserInteraction() {
+        super.onUserInteraction();
+        // Re-take the cover frame once the screen settles, so a Home press shows the launcher as it was left.
+        handler.removeCallbacks(takeSnapshot);
+        handler.postDelayed(takeSnapshot, SNAPSHOT_DELAY_MS);
+    }
+
+    /** Half-size frame of the launcher for HomeWatchService's cover; null when there is nothing drawn yet. */
+    private Bitmap snapshot() {
+        View v = getWindow().getDecorView();
+        if (v.getWidth() == 0 || v.getHeight() == 0) return null;
+        Bitmap b = HomeWatchService.snapshot;
+        if (b == null || b.getWidth() != v.getWidth() / 2 || b.getHeight() != v.getHeight() / 2) {
+            b = Bitmap.createBitmap(v.getWidth() / 2, v.getHeight() / 2, Bitmap.Config.RGB_565);
+        }
+        Canvas c = new Canvas(b);
+        c.scale(0.5f, 0.5f);
+        v.draw(c);
+        return b;
     }
 
     @Override
@@ -420,6 +455,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } catch (ActivityNotFoundException e) {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private boolean hasInputs() {
+        // Streaming sticks still list the chipset's HDMI/AV ports (always disconnected), so count connected ones.
+        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+        if (tim != null) {
+            for (TvInputInfo info : tim.getTvInputList()) {
+                if (info.isPassthroughInput()
+                        && tim.getInputState(info.getId()) != TvInputManager.INPUT_STATE_DISCONNECTED) return true;
+            }
+        }
+        return !liveTvPkg.isEmpty() && getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg) != null;
     }
 
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
