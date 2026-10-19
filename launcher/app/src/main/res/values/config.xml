@@ -62,7 +62,11 @@
     <bool name="tilt">true</bool>
     <!-- Background as a vertical gradient, top to bottom, 2 or 3 colours (#RRGGBB). Empty: the plain
          background colour. A theme wallpaper is drawn over either. -->
-    <string-array name="background_gradient"></string-array>
+    <string-array name="background_gradient">
+        <item>#161A26</item>
+        <item>#0A0C12</item>
+        <item>#000000</item>
+    </string-array>
     <!-- Colour of the band behind the dock row, #AARRGGBB. Translucent so a gradient or wallpaper shows
          through; #16FFFFFF looks like the old solid #141416 on black. -->
     <string name="dock_band_color" translatable="false">#16FFFFFF</string>
