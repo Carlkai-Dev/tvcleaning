@@ -70,6 +70,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView grid;
     private FrameLayout root;
     private GlassView glass;
+    private ShadowView shadow;
     private View ambient;
     private TextView heroName;
     private GradientDrawable ambientGlow;
@@ -161,6 +162,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
         glass = findViewById(R.id.glass);
+        glass.setFrame(cfg.glassFrame);
+        shadow = findViewById(R.id.shadow);
+        glass.setFollower(shadow);
         ambient = findViewById(R.id.ambient);
         heroName = findViewById(R.id.heroName);
         ambientGlow = new GradientDrawable();
@@ -310,6 +314,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onResume();
         glassShown = false;
         glass.setAlpha(0f);
+        shadow.setAlpha(0f);
         heroShown = false;
         heroName.setAlpha(0f);
         ambient.setAlpha(0f);
@@ -363,9 +368,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Tile rect in root coordinates, using layout positions (ignores the scale animation).
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
-        float pad = 6f * density;        // matches GlassView's glow inset
-        float w = card.getWidth() * AppAdapter.FOCUS_SCALE + 2 * pad;
-        float h = card.getHeight() * AppAdapter.FOCUS_SCALE + 2 * pad;
+        float pad = 6f * density;                      // the glow around the glass
+        float inset = GlassView.INSET_DP * density;    // glow plus room for the shadow
+        float w = card.getWidth() * AppAdapter.FOCUS_SCALE + 2 * inset;
+        float h = card.getHeight() * AppAdapter.FOCUS_SCALE + 2 * inset;
         float x = r.exactCenterX() - w / 2f;
         float y = r.exactCenterY() - h / 2f;
 
@@ -374,8 +380,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lp.width = (int) w;
             lp.height = (int) h;
             glass.setLayoutParams(lp);
-            glass.setRadius(AppAdapter.cornerRadius(card.getWidth(), density) * AppAdapter.FOCUS_SCALE + pad);
+            ViewGroup.LayoutParams slp = shadow.getLayoutParams();
+            slp.width = lp.width;
+            slp.height = lp.height;
+            shadow.setLayoutParams(slp);
         }
+        float radius = AppAdapter.cornerRadius(card.getWidth(), density) * AppAdapter.FOCUS_SCALE + pad;
+        glass.setRadius(radius);
+        shadow.setRadius(radius);
         glassTargetX = x;
         glassTargetY = y;
         if (!glassShown) {
@@ -384,11 +396,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             glass.setTranslationX(x);
             glass.setTranslationY(y);
             glass.animate().alpha(1f).setDuration(180).start();
+            shadow.animate().alpha(1f).setDuration(180).start();
             glassShown = true;
         } else {
             springX.animateToFinalPosition(x);
             springY.animateToFinalPosition(y - glassScrollShift);
         }
+        glass.sweep();
         View item = (View) card.getParent();
         if (position < COLUMNS) {
             // Dock: park it at the bottom of the screen and show the top shelf for this app.
@@ -455,6 +469,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!glassShown) return;
         glassShown = false;
         glass.animate().alpha(0f).setDuration(160).start();
+        shadow.animate().alpha(0f).setDuration(160).start();
     }
 
     // ---- navigation ------------------------------------------------------------------------------
