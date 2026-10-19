@@ -28,20 +28,22 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 /**
- * App tiles. The first {@link MainActivity#COLUMNS} positions are the pinned dock (favourites, fixed order),
- * the rest is alphabetical.
+ * App tiles. The first {@link MainActivity#COLUMNS} positions are the dock. Configured favourites and alphabetical order are defaults until customized.
  */
 public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     interface TileListener {
         void onTileFocused(int position, View card);
+
+        void onTileLongPressed(int position, View card);
+
+        boolean onTileClicked();
 
         /** Called for a D-pad direction key on a tile. Return true when handled (focus stays put). */
         boolean onTileVerticalKey(int position, int keyCode);
@@ -98,9 +100,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Set<String> hidden;
     private final boolean showHomeSettings;
     private final List<Entry> items = new ArrayList<>();
+    private final AppOrderStore orderStore;
+    private String movingKey;
+    private String menuKey;
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
         this.ctx = ctx;
+        this.orderStore = new AppOrderStore(ctx);
         this.listener = listener;
         this.dockSize = dockSize;
         this.favourites = cfg.dockApps;
@@ -144,7 +150,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         items.clear();
         items.addAll(fresh);
-        notifyDataSetChanged();
+        applyOrder(orderStore.read());
     }
 
     @NonNull
@@ -172,9 +178,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     public void onBindViewHolder(@NonNull Holder h, int position) {
         Entry e = items.get(position);
         h.name.setText(e.label);
-        h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
-        boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
+        h.name.setVisibility(position < dockSize || movingKey != null ? View.INVISIBLE : View.VISIBLE);
+        // Move mode names the selected app in its persistent hint instead of duplicating a label underneath.
+        h.card.setActivated(e.component.flattenToShortString().equals(movingKey)
+                || e.component.flattenToShortString().equals(menuKey));
+        boolean focused = h.card.isFocused() || h.card.isActivated();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : 0f);
+        h.card.animate().cancel();
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
         h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
         if (e.banner != null) {
@@ -190,16 +200,74 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.label.setText(e.label);
             h.label.setVisibility(View.VISIBLE);
         }
-        h.card.setOnClickListener(v -> launch(e));
+        h.card.setContentDescription(e.label);
+        boolean moving = e.component.flattenToShortString().equals(movingKey);
+        android.graphics.drawable.GradientDrawable outline = null;
+        if (moving) {
+            float d = ctx.getResources().getDisplayMetrics().density;
+            outline = new android.graphics.drawable.GradientDrawable();
+            outline.setColor(Color.TRANSPARENT);
+            outline.setCornerRadius(cornerRadius(h.card.getLayoutParams().width, d));
+            outline.setStroke(Math.round(3 * d), Color.WHITE, 8 * d, 5 * d);
+        }
+        h.card.setForeground(outline);
+        h.card.setOnClickListener(v -> {
+            if (listener == null || !listener.onTileClicked()) launch(e);
+        });
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            int pos = h.getBindingAdapterPosition();
+            if (listener != null && pos != RecyclerView.NO_POSITION) listener.onTileLongPressed(pos, v);
             return true;
         });
+    }
+
+    List<String> keys() {
+        List<String> result = new ArrayList<>();
+        for (Entry entry : items) result.add(entry.component.flattenToShortString());
+        return result;
+    }
+
+    void applyOrder(List<String> order) {
+        List<String> keys = AppOrder.reconcile(keys(), order);
+        java.util.Map<String, Entry> entries = new java.util.HashMap<>();
+        for (Entry entry : items) entries.put(entry.component.flattenToShortString(), entry);
+        items.clear();
+        for (String key : keys) items.add(entries.get(key));
+        notifyDataSetChanged();
+    }
+
+    void move(int from, int to) {
+        if (from == to) return;
+        items.add(to, items.remove(from));
+        notifyItemMoved(from, to);
+        // Positions determine dock labels as well as decoration, even for displaced neighbours.
+        notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
+    }
+
+    void setMenuKey(String key) {
+        menuKey = key;
+        notifyItemRangeChanged(0, items.size());
+    }
+
+    void setMovingKey(String key) {
+        movingKey = key;
+        notifyItemRangeChanged(0, items.size());
+    }
+
+    boolean isApp(int position) {
+        return !items.get(position).component.equals(new ComponentName(ctx, HomeSettingsActivity.class));
+    }
+
+    void openAppSettings(String key) {
+        int position = positionOf(key);
+        if (position < 0 || !isApp(position)) return;
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:" + items.get(position).pkg));
+        try {
+            ctx.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (ActivityNotFoundException ignored) {
+            Toast.makeText(ctx, R.string.not_available, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void launch(Entry e) {
@@ -308,6 +376,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final ImageView icon;
         final TextView label;
         final TextView name;
+        boolean suppressConfirmRelease;
 
         Holder(View v, TileListener listener) {
             super(v);
@@ -328,6 +397,28 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             card.setClipToOutline(true);
 
             card.setOnKeyListener((view, keyCode, event) -> {
+                boolean confirm = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                        || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER || keyCode == KeyEvent.KEYCODE_BUTTON_A;
+                if (confirm) {
+                    if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0)
+                        suppressConfirmRelease = false;
+                    // Some remotes report an explicit long-press repeat instead of waiting for
+                    // View's timer. Handle both without allowing the release to launch the app.
+                    if (event.getAction() == KeyEvent.ACTION_DOWN && event.isLongPress()) {
+                        view.cancelLongPress();
+                        view.setPressed(false);
+                        suppressConfirmRelease = true;
+                        int pos = getBindingAdapterPosition();
+                        if (listener != null && pos != RecyclerView.NO_POSITION)
+                            listener.onTileLongPressed(pos, view);
+                        return true;
+                    }
+                    if (event.getAction() == KeyEvent.ACTION_UP && suppressConfirmRelease) {
+                        suppressConfirmRelease = false;
+                        view.setPressed(false);
+                        return true;
+                    }
+                }
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
                 if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN
                         && keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
@@ -336,7 +427,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
-                float s = focused ? FOCUS_SCALE : 1.0f;
+                boolean highlighted = focused || view.isActivated();
+                float s = highlighted ? FOCUS_SCALE : 1.0f;
                 view.animate().scaleX(s).scaleY(s)
                         .setDuration(focused ? 260 : 180)
                         .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))

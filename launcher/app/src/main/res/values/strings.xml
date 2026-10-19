@@ -26,4 +26,13 @@
     <string name="input_key_service_description">Opens the input switcher when the remote\'s Input button is pressed.</string>
     <string name="home_key_name">Home button</string>
     <string name="home_key_description">Makes the remote\'s Home button open this launcher.</string>
+    <string name="move_app">Move</string>
+    <string name="app_settings">App settings</string>
+    <string name="app_dock">Dock</string>
+    <string name="app_grid">Apps</string>
+    <string name="move_app_hint">Moving %1$s · %2$d of %3$d · %4$s\n← ↑ ↓ → Move · OK Save · Back Cancel</string>
+    <string name="saving_app_order">Saving order…</string>
+    <string name="app_order_saved">Order saved</string>
+    <string name="app_order_cancelled">Move cancelled</string>
+    <string name="app_order_failed">Couldn\'t save order. Press OK to retry or Back to cancel.</string>
 </resources>

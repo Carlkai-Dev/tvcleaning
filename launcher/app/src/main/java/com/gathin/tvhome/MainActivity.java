@@ -3,6 +3,8 @@ package com.gathin.tvhome;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
@@ -93,6 +95,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** App of the last focused tile, so focus follows it when the app list changes. */
     private static String lastFocusedKey;
     private float density;
+    private PopupWindow tileMenu;
+    private boolean restoreMenuFocus = true;
+    private boolean menuReleaseGuard;
+    private String movingKey;
+    private List<String> moveSnapshot;
+    private List<String> savingOrder;
+    private TextView moveHint;
+    private AppOrderStore orderStore;
+    private boolean savingOrderNow, paused = true, refreshPending;
+    private int focusRequest;
+    private boolean confirmDown;
+    private int normalGridBottomPadding;
+    private int moveAnimationRequest;
+    private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+                    && Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) return;
+            if (savingOrderNow) { refreshPending = true; return; }
+            dismissTileMenu(false);
+            if (movingKey != null) finishMove(false, false);
+            String key = lastFocusedKey;
+            int slot = lastFocused;
+            adapter.reload();
+            if (!paused) focusKey(key, slot);
+        }
+    };
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
@@ -186,6 +214,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
         adapter = new AppAdapter(this, this, COLUMNS, cfg);
         grid.setAdapter(adapter);
+        normalGridBottomPadding = grid.getPaddingBottom();
+        orderStore = new AppOrderStore(this);
+        moveHint = new TextView(this);
+        moveHint.setTextColor(Color.WHITE);
+        moveHint.setTextSize(15);
+        moveHint.setTypeface(getResources().getFont(R.font.outfit));
+        moveHint.setFontVariationSettings("'wght' 500");
+        moveHint.setGravity(Gravity.CENTER);
+        moveHint.setPadding(dp(18), dp(10), dp(18), dp(10));
+        moveHint.setBackgroundResource(R.drawable.glass_panel);
+        moveHint.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        moveHint.setVisibility(View.GONE);
+        FrameLayout.LayoutParams hintParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        hintParams.setMargins(dp(24), 0, dp(24), dp(8));
+        root.addView(moveHint, hintParams);
+        IntentFilter packages = new IntentFilter();
+        packages.addAction(Intent.ACTION_PACKAGE_ADDED);
+        packages.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        packages.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        packages.addDataScheme("package");
+        registerReceiver(packageChanges, packages);
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
         // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
@@ -304,6 +355,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        paused = false;
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
@@ -313,6 +365,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
         adapter.reload();
+        if (savingOrderNow && savingOrder != null) adapter.applyOrder(savingOrder);
         grid.scheduleLayoutAnimation();
         updateGreeting();
         updateWifiLabel();
@@ -330,12 +383,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        paused = true;
+        focusRequest++;
+        dismissTileMenu(false);
+        if (movingKey != null && !savingOrderNow) finishMove(false, false);
         handler.removeCallbacks(minuteTick);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(packageChanges);
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);
@@ -347,7 +405,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onBackPressed() {
-        // Home screen: Back goes nowhere.
+        if (tileMenu != null) dismissTileMenu(true);
+        else if (movingKey != null && !savingOrderNow) finishMove(false, true);
+        // Outside editing, Home's Back still goes nowhere.
     }
 
     // ---- glass highlight -------------------------------------------------------------------------
@@ -480,28 +540,331 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void focusTile(int position) {
-        if (adapter.getItemCount() == 0) return;
-        final int pos = Math.max(0, Math.min(position, adapter.getItemCount() - 1));
-        RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
-        if (vh != null) {
-            View card = vh.itemView.findViewById(R.id.card);
-            // Already focused (e.g. back from an app): no focus change fires, so restore the glass by hand.
-            if (card.isFocused()) onTileFocused(pos, card);
-            else card.requestFocus();
-            return;
+        if (adapter.getItemCount() == 0 || paused) return;
+        int pos = Math.max(0, Math.min(position, adapter.getItemCount() - 1));
+        String key = adapter.keyAt(pos);
+        int request = ++focusRequest;
+        RecyclerView.ViewHolder holder = grid.findViewHolderForAdapterPosition(pos);
+        if (holder == null) grid.scrollToPosition(pos);
+        requestTileFocus(key, request, 0);
+    }
+
+    private void requestTileFocus(String key, int request, int attempt) {
+        if (paused || request != focusRequest || tileMenu != null) return;
+        int pos = adapter.positionOf(key);
+        if (pos < 0) return;
+        RecyclerView.ViewHolder holder = grid.findViewHolderForAdapterPosition(pos);
+        if (holder != null && !grid.isComputingLayout() && !grid.hasPendingAdapterUpdates()) {
+            View card = holder.itemView.findViewById(R.id.card);
+            card.requestFocus();
+            // Moves/reloads need new geometry even when focus stayed on the same view.
+            onTileFocused(pos, card);
+        } else if (attempt < 12) {
+            grid.postOnAnimation(() -> requestTileFocus(key, request, attempt + 1));
         }
-        // Not laid out yet: scroll there, then focus once the scroll settles.
-        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(@NonNull RecyclerView rv, int newState) {
-                if (newState != RecyclerView.SCROLL_STATE_IDLE) return;
-                rv.removeOnScrollListener(this);
-                RecyclerView.ViewHolder h = rv.findViewHolderForAdapterPosition(pos);
-                View target = h != null ? h.itemView.findViewById(R.id.card) : rv.getChildAt(0);
-                if (target != null) target.requestFocus();
+    }
+
+    private void focusKey(String key, int fallback) {
+        grid.post(() -> {
+            if (paused || tileMenu != null) return;
+            int pos = adapter.positionOf(key);
+            focusTile(pos >= 0 ? pos : fallback);
+        });
+    }
+
+    // ---- app actions and remote reordering -------------------------------------------------------
+
+    private int dp(float value) { return Math.round(value * density); }
+
+    private static boolean isConfirm(int key) {
+        return key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
+                || key == KeyEvent.KEYCODE_NUMPAD_ENTER || key == KeyEvent.KEYCODE_BUTTON_A;
+    }
+
+    @Override
+    public boolean onTileClicked() {
+        if (movingKey != null) { saveMove(); return true; }
+        return tileMenu != null;
+    }
+
+    @android.annotation.SuppressLint("RtlHardcoded")
+    @Override
+    public void onTileLongPressed(int position, View card) {
+        if (movingKey != null || tileMenu != null || paused) return;
+        String key = adapter.keyAt(position);
+        if (key == null) return;
+        final int fallback = position;
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(8), dp(8), dp(8), dp(8));
+        panel.setBackgroundResource(R.drawable.glass_panel);
+        TextView title = new TextView(this);
+        title.setText(adapter.labelAt(position));
+        title.setTextSize(13);
+        title.setTextColor(0xFFCCCCD4);
+        title.setTypeface(getResources().getFont(R.font.outfit));
+        title.setFontVariationSettings("'wght' 400");
+        title.setSingleLine(true);
+        title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        title.setPadding(dp(12), dp(4), dp(12), dp(8));
+        panel.addView(title);
+        PopupWindow popup = new PopupWindow(panel, dp(240), ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        popup.setElevation(dp(16));
+        popup.setOutsideTouchable(true);
+        popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
+        tileMenu = popup;
+        restoreMenuFocus = true;
+        menuReleaseGuard = true;
+        TextView move = addAppAction(panel, R.string.move_app, R.drawable.ic_move, () -> {
+            dismissTileMenu(false);
+            beginMove(key);
+        });
+        if (adapter.isApp(position)) {
+            addAppAction(panel, R.string.app_settings, R.drawable.ic_settings, () -> {
+                dismissTileMenu(false);
+                adapter.openAppSettings(key);
+            });
+        }
+        popup.setOnDismissListener(() -> {
+            if (tileMenu == popup) tileMenu = null;
+            adapter.setMenuKey(null);
+            if (restoreMenuFocus && !paused) focusKey(key, fallback);
+        });
+        // Use transformed screen bounds so the gap starts at the focused tile's visible edge.
+        Rect tile = new Rect();
+        card.getGlobalVisibleRect(tile);
+        int[] screen = new int[2], window = new int[2];
+        root.getLocationOnScreen(screen);
+        root.getLocationInWindow(window);
+        int inset = dp(16), gap = dp(12);
+        int leftSpace = tile.left - screen[0] - inset - gap;
+        int rightSpace = screen[0] + root.getWidth() - inset - tile.right - gap;
+        boolean right = rightSpace >= dp(240) || (leftSpace < dp(240) && rightSpace >= leftSpace);
+        int width = Math.min(dp(240), Math.max(1, right ? rightSpace : leftSpace));
+        panel.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(root.getHeight() - inset * 2, View.MeasureSpec.AT_MOST));
+        int height = panel.getMeasuredHeight();
+        popup.setWidth(width);
+        popup.setHeight(height);
+        int x = right ? tile.right + gap : tile.left - gap - width;
+        int y = Math.max(screen[1] + inset, Math.min(tile.centerY() - height / 2,
+                screen[1] + root.getHeight() - inset - height));
+        adapter.setMenuKey(key);
+        popup.showAtLocation(root, Gravity.TOP | Gravity.LEFT,
+                x - screen[0] + window[0], y - screen[1] + window[1]);
+        panel.setAlpha(0f);
+        panel.setTranslationX(dp(right ? -6 : 6));
+        panel.animate().alpha(1f).translationX(0f).setDuration(160).start();
+        move.requestFocus();
+    }
+
+    private TextView addAppAction(LinearLayout panel, int title, int icon, Runnable action) {
+        TextView row = new TextView(this);
+        row.setText(title);
+        row.setTextSize(17);
+        row.setTextColor(getResources().getColorStateList(R.color.app_action_text, getTheme()));
+        row.setTypeface(getResources().getFont(R.font.outfit));
+        row.setFontVariationSettings("'wght' 500");
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setMinHeight(dp(52));
+        row.setPadding(dp(12), dp(10), dp(12), dp(10));
+        row.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
+        row.setCompoundDrawablePadding(dp(10));
+        row.setCompoundDrawableTintList(getResources().getColorStateList(R.color.app_action_text, getTheme()));
+        row.setBackgroundResource(R.drawable.input_row_bg);
+        row.setFocusable(true);
+        row.setClickable(true);
+        row.setOnClickListener(v -> action.run());
+        row.setOnKeyListener((v, code, event) -> {
+            if (isConfirm(code)) {
+                // The release of the long press must not activate the newly focused menu action.
+                if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0)
+                    menuReleaseGuard = false;
+                if (menuReleaseGuard) {
+                    if (event.getAction() == KeyEvent.ACTION_UP) menuReleaseGuard = false;
+                    return true;
+                }
+                if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) action.run();
+                return true;
+            }
+            if (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT) return true;
+            if (code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    int index = panel.indexOfChild(row);
+                    int next = code == KeyEvent.KEYCODE_DPAD_UP ? index - 1 : index + 1;
+                    if (next >= 1 && next < panel.getChildCount()) panel.getChildAt(next).requestFocus();
+                }
+                return true;
+            }
+            return false;
+        });
+        panel.addView(row, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return row;
+    }
+
+    private void dismissTileMenu(boolean restoreFocus) {
+        restoreMenuFocus = restoreFocus;
+        if (tileMenu != null) tileMenu.dismiss();
+    }
+
+    private void beginMove(String key) {
+        if (adapter.positionOf(key) < 0) return;
+        moveSnapshot = adapter.keys();
+        // Reserve room for the two-line remote hint so grid labels can scroll above it.
+        grid.setPadding(grid.getPaddingLeft(), grid.getPaddingTop(), grid.getPaddingRight(),
+                Math.max(normalGridBottomPadding, dp(100)));
+        movingKey = key;
+        confirmDown = false;
+        adapter.setMovingKey(key);
+        updateMoveHint();
+        moveHint.setVisibility(View.VISIBLE);
+        focusKey(key, 0);
+    }
+
+    private void updateMoveHint() {
+        int pos = adapter.positionOf(movingKey);
+        if (pos < 0) return;
+        moveHint.setText(savingOrderNow ? getString(R.string.saving_app_order)
+                : getString(R.string.move_app_hint, adapter.labelAt(pos), pos + 1,
+                adapter.getItemCount(), getString(pos < COLUMNS ? R.string.app_dock : R.string.app_grid)));
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (movingKey == null) return super.dispatchKeyEvent(event);
+        int code = event.getKeyCode();
+        if (isConfirm(code)) {
+            if (!savingOrderNow) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) confirmDown = true;
+                if (event.getAction() == KeyEvent.ACTION_UP) {
+                    boolean confirm = confirmDown && !event.isCanceled();
+                    confirmDown = false;
+                    if (confirm) saveMove();
+                }
+            }
+            return true;
+        }
+        if (code == KeyEvent.KEYCODE_BACK) {
+            if (!savingOrderNow && event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) finishMove(false, true);
+            return true;
+        }
+        AppOrder.Direction direction;
+        switch (code) {
+            case KeyEvent.KEYCODE_DPAD_LEFT: direction = AppOrder.Direction.LEFT; break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT: direction = AppOrder.Direction.RIGHT; break;
+            case KeyEvent.KEYCODE_DPAD_UP: direction = AppOrder.Direction.UP; break;
+            case KeyEvent.KEYCODE_DPAD_DOWN: direction = AppOrder.Direction.DOWN; break;
+            default: return super.dispatchKeyEvent(event);
+        }
+        if (event.getAction() == KeyEvent.ACTION_DOWN && !savingOrderNow) {
+            int from = adapter.positionOf(movingKey);
+            int to = AppOrder.target(from, adapter.getItemCount(), COLUMNS, direction);
+            if (to != from) {
+                animateMove(from, to);
+                updateMoveHint();
+                focusKey(movingKey, to);
+            }
+        }
+        return true;
+    }
+
+    private void animateMove(int from, int to) {
+        java.util.Map<String, android.graphics.Point> before = new java.util.HashMap<>();
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View child = grid.getChildAt(i);
+            int pos = grid.getChildAdapterPosition(child);
+            if (pos < 0) continue;
+            before.put(adapter.keyAt(pos), new android.graphics.Point(child.getLeft(), child.getTop()));
+            child.animate().cancel();
+            child.setTranslationX(0f);
+            child.setTranslationY(0f);
+        }
+        adapter.move(from, to);
+        grid.invalidateItemDecorations();
+        int animationRequest = ++moveAnimationRequest;
+        grid.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+            @Override public boolean onPreDraw() {
+                grid.getViewTreeObserver().removeOnPreDrawListener(this);
+                if (paused || movingKey == null || animationRequest != moveAnimationRequest) return true;
+                for (int i = 0; i < grid.getChildCount(); i++) {
+                    View child = grid.getChildAt(i);
+                    int pos = grid.getChildAdapterPosition(child);
+                    String key = adapter.keyAt(pos);
+                    android.graphics.Point old = before.get(key);
+                    if (old == null || key.equals(movingKey)) continue;
+                    child.setTranslationX(old.x - child.getLeft());
+                    child.setTranslationY(old.y - child.getTop());
+                    child.animate().translationX(0).translationY(0).setDuration(140).start();
+                }
+                return true;
             }
         });
-        grid.smoothScrollToPosition(pos);
+    }
+
+    private void saveMove() {
+        if (movingKey == null || savingOrderNow) return;
+        savingOrderNow = true;
+        savingOrder = adapter.keys();
+        final List<String> confirmed = new ArrayList<>(savingOrder);
+        updateMoveHint();
+        AppOrderStore.WRITER.execute(() -> {
+            boolean saved = orderStore.write(confirmed);
+            handler.post(() -> {
+                if (isDestroyed()) return;
+                savingOrderNow = false;
+                savingOrder = null;
+                if (saved) {
+                    finishMove(true, !paused);
+                } else if (paused) {
+                    finishMove(false, false);
+                } else {
+                    updateMoveHint();
+                    Toast.makeText(this, R.string.app_order_failed, Toast.LENGTH_LONG).show();
+                }
+                if (refreshPending) {
+                    refreshPending = false;
+                    if (movingKey != null) finishMove(false, false);
+                    String key = lastFocusedKey;
+                    int slot = lastFocused;
+                    adapter.reload();
+                    if (!paused) focusKey(key, slot);
+                }
+            });
+        });
+    }
+
+    private void finishMove(boolean saved, boolean restoreFocus) {
+        String key = movingKey;
+        int fallback = adapter.positionOf(key);
+        if (!saved && moveSnapshot != null) adapter.applyOrder(moveSnapshot);
+        movingKey = null;
+        moveAnimationRequest++;
+        moveSnapshot = null;
+        confirmDown = false;
+        adapter.setMovingKey(null);
+        moveHint.setVisibility(View.GONE);
+        grid.setPadding(grid.getPaddingLeft(), grid.getPaddingTop(), grid.getPaddingRight(), normalGridBottomPadding);
+        // Never leave a translation on a recycled item after cancelling mid-animation.
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View child = grid.getChildAt(i);
+            child.animate().cancel();
+            child.setTranslationX(0f);
+            child.setTranslationY(0f);
+        }
+        if (restoreFocus) {
+            focusKey(key, Math.max(0, fallback));
+            Toast.makeText(this, saved ? R.string.app_order_saved : R.string.app_order_cancelled,
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        dismissTileMenu(true);
+        if (movingKey != null && !savingOrderNow) finishMove(false, true);
     }
 
     // ---- top bar ---------------------------------------------------------------------------------

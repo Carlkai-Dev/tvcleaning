@@ -21,4 +21,13 @@
     <string name="date_format">EEEE  d MMMM</string>
     <string name="dream_name">นาฬิกา</string>
 
+    <string name="move_app">ย้าย</string>
+    <string name="app_settings">การตั้งค่าแอป</string>
+    <string name="app_dock">ด็อก</string>
+    <string name="app_grid">แอป</string>
+    <string name="move_app_hint">กำลังย้าย %1$s · %2$d จาก %3$d · %4$s\n← ↑ ↓ → ย้าย · OK บันทึก · ย้อนกลับ ยกเลิก</string>
+    <string name="saving_app_order">กำลังบันทึกลำดับ…</string>
+    <string name="app_order_saved">บันทึกลำดับแล้ว</string>
+    <string name="app_order_cancelled">ยกเลิกการย้ายแล้ว</string>
+    <string name="app_order_failed">บันทึกลำดับไม่ได้ กด OK เพื่อลองอีกครั้ง หรือกดย้อนกลับเพื่อยกเลิก</string>
 </resources>

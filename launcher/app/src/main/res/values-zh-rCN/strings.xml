@@ -20,4 +20,13 @@
     <string name="cant_open">无法打开 %1$s</string>
     <string name="date_format">M月d日 EEEE</string>
     <string name="dream_name">时钟</string>
+    <string name="move_app">移动</string>
+    <string name="app_settings">应用设置</string>
+    <string name="app_dock">程序坞</string>
+    <string name="app_grid">应用</string>
+    <string name="move_app_hint">正在移动 %1$s · 第 %2$d 项，共 %3$d 项 · %4$s\n← ↑ ↓ → 移动 · 确认 保存 · 返回 取消</string>
+    <string name="saving_app_order">正在保存顺序…</string>
+    <string name="app_order_saved">顺序已保存</string>
+    <string name="app_order_cancelled">已取消移动</string>
+    <string name="app_order_failed">无法保存顺序。按确认键重试，或按返回键取消。</string>
 </resources>

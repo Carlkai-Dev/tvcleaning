@@ -193,6 +193,14 @@ A small native Android TV app (`com.gathin.tvhome`, about 250 KB installed), wri
 AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM: no blur, no
 video, no network, no background services.
 
+**Reorder apps** from the remote: hold OK on a tile to open its menu, then choose **Move**.
+The menu appears beside that tile, switching sides near the screen edge. Use the D-pad to move
+it, OK to save, or Back to cancel the whole move. Apps shift to make room, including across the
+first-row dock. **App settings** remains in the same menu. Saved order survives restarts and
+app updates; newly discovered apps follow the saved apps. Leaving Home cancels an unconfirmed move.
+Once customized, your order takes precedence over the theme's dock order; theme colours, wallpaper,
+hidden apps, and column count still apply.
+
 **Configure** it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
 the dock order, apps to hide, your TV's Live TV package, the number of columns (tiles shrink to fit
 from 5 columns up), and how many grid rows stay visible under the dock (`rows_below_dock`). The Inputs button hides itself on sticks and

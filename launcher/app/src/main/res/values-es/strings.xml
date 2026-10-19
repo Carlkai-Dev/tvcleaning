@@ -20,4 +20,13 @@
     <string name="cant_open">No se puede abrir %1$s</string>
     <string name="date_format">EEEE d \'de\' MMMM</string>
     <string name="dream_name">Reloj</string>
+    <string name="move_app">Mover</string>
+    <string name="app_settings">Ajustes de la aplicación</string>
+    <string name="app_dock">Dock</string>
+    <string name="app_grid">Aplicaciones</string>
+    <string name="move_app_hint">Moviendo %1$s · %2$d de %3$d · %4$s\n← ↑ ↓ → Mover · OK Guardar · Atrás Cancelar</string>
+    <string name="saving_app_order">Guardando orden…</string>
+    <string name="app_order_saved">Orden guardado</string>
+    <string name="app_order_cancelled">Movimiento cancelado</string>
+    <string name="app_order_failed">No se pudo guardar el orden. Pulsa OK para reintentar o Atrás para cancelar.</string>
 </resources>
