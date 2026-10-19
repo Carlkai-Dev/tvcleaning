@@ -88,7 +88,7 @@ A home screen that is yours again:
 - **Three frosted buttons**: Inputs (a dropdown of HDMI ports, AV and Live TV), Wi-Fi (showing the
   network you're on) and Settings.
 - **A greeting, a large thin clock and the date**, set in
-  [Outfit](https://fonts.google.com/specimen/Outfit).
+  [Geist](https://fonts.google.com/specimen/Geist).
 - **A matching Clock screensaver**, optional, that drifts around the screen so nothing burns in.
 - **The remote's Input button can keep working.** On Google TV the stock launcher handled it; an
   optional accessibility service maps it (`KEYCODE_TV`) to the system input switcher in any app.
@@ -383,5 +383,5 @@ screensaver and more.
 
 ## Licence
 
-MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
+MIT, see [`LICENSE`](LICENSE). The Geist typeface is under the SIL Open Font License, see
 `launcher/FONT-LICENSE-OFL.txt`.
