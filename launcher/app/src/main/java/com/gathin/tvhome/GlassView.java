@@ -35,6 +35,7 @@ public class GlassView extends View {
     private final float density;
     private float radius;
     private boolean frame = true;
+    private boolean effects = true;
     private View follower;
     private float sheenProgress = -1f;   // -1: no sweep running
     private ValueAnimator sweep;
@@ -52,6 +53,12 @@ public class GlassView extends View {
     void setRadius(float px) {
         if (px == radius) return;
         radius = px;
+        invalidate();
+    }
+
+    /** False drops the outer glow (three extra strokes per frame); the slab and rim stay. */
+    void setEffects(boolean on) {
+        effects = on;
         invalidate();
     }
 
@@ -124,12 +131,14 @@ public class GlassView extends View {
         clip.addRoundRect(rect, radius, radius, Path.Direction.CW);
 
         if (frame) {
-            // Outer glow: three widening, fading strokes.
-            for (int i = 1; i <= 3; i++) {
-                glow.setStrokeWidth(i * 2f * density);
-                glow.setColor((0x30 / i) << 24 | 0xFFFFFF);
-                float o = i * density;
-                canvas.drawRoundRect(rect.left - o, rect.top - o, rect.right + o, rect.bottom + o, radius + o, radius + o, glow);
+            if (effects) {
+                // Outer glow: three widening, fading strokes.
+                for (int i = 1; i <= 3; i++) {
+                    glow.setStrokeWidth(i * 2f * density);
+                    glow.setColor((0x30 / i) << 24 | 0xFFFFFF);
+                    float o = i * density;
+                    canvas.drawRoundRect(rect.left - o, rect.top - o, rect.right + o, rect.bottom + o, radius + o, radius + o, glow);
+                }
             }
             canvas.drawRoundRect(rect, radius, radius, fill);
         }

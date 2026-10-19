@@ -105,6 +105,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Set<String> hidden;
     private final boolean showHomeSettings;
     private final boolean tilt;
+    private final boolean animations;
     private final UiSounds sounds;
     private final List<Entry> items = new ArrayList<>();
 
@@ -117,6 +118,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
         this.tilt = cfg.tilt;
+        this.animations = cfg.animations;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -176,7 +178,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         nameLp.width = w;
         nameLp.topMargin = h + Math.round(7 * density);
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener, tilt);
+        return new Holder(v, listener, tilt, animations);
     }
 
     @Override
@@ -322,16 +324,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final TextView label;
         final TextView name;
         private final boolean tilt;
+        private final boolean animations;
         private SpringAnimation rotX, rotY, shiftX, shiftY;
 
-        Holder(View v, TileListener listener, boolean tilt) {
+        Holder(View v, TileListener listener, boolean tilt, boolean animations) {
             super(v);
             card = v.findViewById(R.id.card);
             banner = v.findViewById(R.id.banner);
             icon = v.findViewById(R.id.icon);
             label = v.findViewById(R.id.label);
             name = v.findViewById(R.id.name);
-            this.tilt = tilt;
+            this.tilt = tilt && animations;   // the lean is a motion, so no animations means no lean
+            this.animations = animations;
 
             final float density = v.getResources().getDisplayMetrics().density;
             card.setOutlineProvider(new ViewOutlineProvider() {
@@ -365,13 +369,19 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
             card.setOnFocusChangeListener((view, focused) -> {
                 float s = focused ? FOCUS_SCALE : 1.0f;
-                view.animate().scaleX(s).scaleY(s)
-                        .setDuration(focused ? 260 : 180)
-                        .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
-                        .start();
-                name.animate().alpha(focused ? 1f : 0f)
-                        .translationY(focused ? density * 4f : -density * 6f)
-                        .setDuration(220).start();
+                float nameY = focused ? density * 4f : -density * 6f;
+                if (animations) {
+                    view.animate().scaleX(s).scaleY(s)
+                            .setDuration(focused ? 260 : 180)
+                            .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
+                            .start();
+                    name.animate().alpha(focused ? 1f : 0f).translationY(nameY).setDuration(220).start();
+                } else {
+                    view.setScaleX(s);
+                    view.setScaleY(s);
+                    name.setAlpha(focused ? 1f : 0f);
+                    name.setTranslationY(nameY);
+                }
                 if (focused) {
                     lean(arrivalKey, density);
                     arrivalKey = 0;

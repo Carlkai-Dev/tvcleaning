@@ -14,9 +14,13 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 |---|---|
 | `default/` | The built-in look written out as JSON, as a starting point for your own |
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour |
+| `lite/` | Lite mode: no animations, no effects, plain black. The fastest Home, for low-memory TVs |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock |
 
 ## Keys
+
+Choices made in the launcher's own settings screen (hold the Settings pill) are kept on the TV and win
+over a pushed theme until you reset them there.
 
 Every key is optional; a missing key keeps the value from `config.xml`, an unknown or wrongly typed key
 is ignored, and a file that doesn't parse is ignored as a whole, so a theme can never break Home.
@@ -38,6 +42,9 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `dock_band_color` | `#AARRGGBB` | The band behind the dock row; keep it translucent over a gradient or wallpaper |
 | `glass_frame` | bool | The glass frame on the focused tile; `false` leaves the shadow and sheen |
 | `tilt` | bool | The focused tile leans the way you moved and its banner shifts inside it |
+| `animations` | bool | Motion: the glass springing, tile zoom, fades, smooth scrolling; `false` makes every change instant |
+| `effects` | bool | The drop shadow, sheen, app-coloured glow and the glass's outer glow |
+| `lite` | bool | Lite mode: animations, effects and tilt off, plain background, no wallpaper; overrides those keys |
 | `ui_sounds` | bool | Focus, select and edge sounds (also off when the TV's system sounds are off) |
 
 ## Wallpapers

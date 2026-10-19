@@ -95,6 +95,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static String lastFocusedKey;
     private float density;
     private UiSounds sounds;
+    /** config animations: false makes every move and fade instant (and Lite mode sets it false). */
+    private boolean animations;
+    /** config effects: shadow, sheen and the ambient glow. */
+    private boolean effects;
     /** Set while onResume puts focus back: landing where you left off makes no sound. */
     private boolean quietFocus;
 
@@ -158,6 +162,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelAction = cfg.sourcePanelAction;
 
         sounds = new UiSounds(this, cfg.uiSounds);
+        animations = cfg.animations;
+        effects = cfg.effects;
         root = findViewById(R.id.root);
         if (cfg.backgroundGradient.length > 0) {
             root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, cfg.backgroundGradient));
@@ -169,7 +175,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glass.setFrame(cfg.glassFrame);
         shadow = findViewById(R.id.shadow);
         glass.setFollower(shadow);
+        glass.setEffects(effects);
         ambient = findViewById(R.id.ambient);
+        if (!effects) {
+            // Not drawn at all, rather than drawn transparent: the glow is a full-screen gradient.
+            shadow.setVisibility(View.GONE);
+            ambient.setVisibility(View.GONE);
+        }
         heroName = findViewById(R.id.heroName);
         ambientGlow = new GradientDrawable();
         ambientGlow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
@@ -194,8 +206,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
         grid.addItemDecoration(new DockDecoration(COLUMNS, density, cfg.dockBandColor));
-        grid.setLayoutAnimation(new LayoutAnimationController(
-                AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
+        if (animations) {
+            grid.setLayoutAnimation(new LayoutAnimationController(
+                    AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
+        }
         adapter = new AppAdapter(this, this, COLUMNS, cfg, sounds);
         grid.setAdapter(adapter);
 
@@ -349,7 +363,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sounds.refresh();
         quietFocus = true;
         adapter.reload();
-        grid.scheduleLayoutAnimation();
+        if (animations) grid.scheduleLayoutAnimation();
         updateGreeting();
         updateWifiLabel();
         updateInputsButton();
@@ -425,26 +439,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.cancel();
             glass.setTranslationX(x);
             glass.setTranslationY(y);
-            glass.animate().alpha(1f).setDuration(180).start();
-            shadow.animate().alpha(1f).setDuration(180).start();
+            fade(glass, 1f, 180);
+            fade(shadow, 1f, 180);
             glassShown = true;
-        } else {
+        } else if (animations) {
             springX.animateToFinalPosition(x);
             springY.animateToFinalPosition(y - glassScrollShift);
+        } else {
+            glass.setTranslationX(x);
+            glass.setTranslationY(y);
         }
-        glass.sweep();
+        if (animations && effects) glass.sweep();
         View item = (View) card.getParent();
         if (position < COLUMNS) {
             // Dock: park it at the bottom of the screen and show the top shelf for this app.
             int decoratedTop = item.getTop() - (int) (6 * density);
             int dy = decoratedTop - grid.getPaddingTop();
-            if (Math.abs(dy) > 1) grid.smoothScrollBy(0, dy);
+            if (Math.abs(dy) > 1) {
+                if (animations) grid.smoothScrollBy(0, dy);
+                else grid.scrollBy(0, dy);
+            }
             showHero(position, r.top - dy);
         } else {
             hideHero();
             // Scroll just enough so the whole glass (not only the tile) is visible.
             Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-            grid.requestChildRectangleOnScreen(item, want, false);
+            grid.requestChildRectangleOnScreen(item, want, !animations);
         }
     }
 
@@ -456,7 +476,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
 
-        if (!heroShown) {
+        if (!animations) {
+            heroName.setText(label);
+            heroName.setY(y);
+            heroName.setTranslationX(0f);
+            heroName.setAlpha(1f);
+            if (effects) {
+                setAmbient(color);
+                ambient.setAlpha(1f);
+            }
+            heroShown = true;
+        } else if (!heroShown) {
             heroName.setText(label);
             heroName.setY(y);
             heroName.setTranslationX(0f);
@@ -491,15 +521,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void hideHero() {
         if (!heroShown) return;
         heroShown = false;
-        heroName.animate().alpha(0f).setDuration(160).start();
-        ambient.animate().alpha(0f).setDuration(300).start();
+        fade(heroName, 0f, 160);
+        fade(ambient, 0f, 300);
     }
 
     private void hideGlass() {
         if (!glassShown) return;
         glassShown = false;
-        glass.animate().alpha(0f).setDuration(160).start();
-        shadow.animate().alpha(0f).setDuration(160).start();
+        fade(glass, 0f, 160);
+        fade(shadow, 0f, 160);
+    }
+
+    /** Fades to an alpha, or sets it at once when animations are off. */
+    private void fade(View v, float alpha, long ms) {
+        v.animate().cancel();
+        if (animations) v.animate().alpha(alpha).setDuration(ms).start();
+        else v.setAlpha(alpha);
     }
 
     // ---- navigation ------------------------------------------------------------------------------
@@ -538,6 +575,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void bump(View v, int keyCode) {
         sounds.bump();
+        if (!animations) return;
         float d = 7 * density;
         boolean horizontal = keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
         float sign = keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1;
@@ -557,6 +595,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Already focused (e.g. back from an app): no focus change fires, so restore the glass by hand.
             if (card.isFocused()) onTileFocused(pos, card);
             else card.requestFocus();
+            return;
+        }
+        if (!animations) {
+            // Jump there, and focus once the jump has been laid out.
+            grid.scrollToPosition(pos);
+            grid.post(() -> {
+                RecyclerView.ViewHolder h = grid.findViewHolderForAdapterPosition(pos);
+                if (h != null) h.itemView.findViewById(R.id.card).requestFocus();
+            });
             return;
         }
         // Not laid out yet: scroll there, then focus once the scroll settles.
@@ -771,14 +818,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max(width, panel.getMeasuredWidth()));
 
-        // Drop in: fade and unfold from the top edge.
-        panel.setAlpha(0f);
-        panel.setPivotY(0f);
-        panel.setScaleY(0.92f);
-        panel.setTranslationY(-8 * density);
         popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
-        panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
-                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+        if (animations) {
+            // Drop in: fade and unfold from the top edge.
+            panel.setAlpha(0f);
+            panel.setPivotY(0f);
+            panel.setScaleY(0.92f);
+            panel.setTranslationY(-8 * density);
+            panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+        }
         rows.getChildAt(0).requestFocus();
     }
 

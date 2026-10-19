@@ -58,6 +58,15 @@
     <!-- The glass frame (fill, rim and glow) on the focused tile. With it off, the shadow, the sheen and
          the tilt carry the focus on their own. -->
     <bool name="glass_frame">true</bool>
+    <!-- Motion: the glass springing between tiles, the tile zoom, fades and smooth scrolling. Off makes
+         every change instant. -->
+    <bool name="animations">true</bool>
+    <!-- Decoration: the drop shadow, the sheen, the app-coloured glow behind the dock and the glass's
+         outer glow. -->
+    <bool name="effects">true</bool>
+    <!-- Lite mode: animations, effects and tilt off, plain background, wallpaper off. The fastest Home,
+         for low-memory TVs. Overrides the switches above. -->
+    <bool name="lite">false</bool>
     <!-- The focused tile leans briefly in the direction you moved and its banner shifts inside it. -->
     <bool name="tilt">true</bool>
     <!-- Background as a vertical gradient, top to bottom, 2 or 3 colours (#RRGGBB). Empty: the plain

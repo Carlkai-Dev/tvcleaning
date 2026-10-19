@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.util.Log;
@@ -24,65 +25,53 @@ import java.util.List;
  * unknown or badly typed key is ignored, so a theme can change the dock and the look without a rebuild:
  * {@code tools/theme.sh themes/<name>} pushes a theme folder there and restarts Home.
  *
+ * Choices made in the launcher's own settings screen ({@link LauncherSettingsActivity}) are kept in
+ * shared preferences and applied last, so they survive a theme push; Lite mode then overrides the rest.
+ *
  * Read once in {@link MainActivity#onCreate}; nothing here touches the network.
  */
 final class Config {
     private static final String TAG = "TvHome.Config";
     static final String FILE_NAME = "config.json";
     static final String WALLPAPER_NAME = "wallpaper.jpg";
+    /** Choices made in the launcher's own settings screen; they win over config.xml and the theme. */
+    static final String PREFS = "launcher_settings";
+    /** Values of the "background" choice. */
+    static final String BG_GRADIENT = "gradient", BG_BLACK = "black";
 
-    final List<String> dockApps;
-    final List<String> hiddenApps;
-    final String liveTvPackage;
-    final String liveTvAction;
-    final String sourcePanelService;
-    final String sourcePanelAction;
-    final int columns;
-    final int rowsBelowDock;
-    final boolean shamsiDate;
-    final String vpnApp;
-    final boolean showHomeSettingsShortcut;
+    List<String> dockApps;
+    List<String> hiddenApps;
+    String liveTvPackage;
+    String liveTvAction;
+    String sourcePanelService;
+    String sourcePanelAction;
+    int columns;
+    int rowsBelowDock;
+    boolean shamsiDate;
+    String vpnApp;
+    boolean showHomeSettingsShortcut;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
-    final int backgroundColor;
+    int backgroundColor = 0xFF000000;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
-    final File wallpaper;
-    /** Whether the overlay file was present and parsed. */
-    final boolean overlayApplied;
+    File wallpaper;
     /** Focus, select and edge sounds (still subject to the TV's own system-sounds setting). */
-    final boolean uiSounds;
+    boolean uiSounds;
     /** Draw the glass frame on the focused tile; off leaves only the shadow and the sheen. */
-    final boolean glassFrame;
+    boolean glassFrame;
     /** Lean the focused tile in the direction of travel, with the banner shifting inside it. */
-    final boolean tilt;
+    boolean tilt;
     /** Background gradient colours, top to bottom; empty for the plain background colour. */
-    final int[] backgroundGradient;
+    int[] backgroundGradient;
     /** Band behind the dock row, with alpha. */
-    final int dockBandColor;
+    int dockBandColor;
+    /** Motion: glass springs, tile zoom, fades, smooth scrolling. Off makes every change instant. */
+    boolean animations;
+    /** Decoration: drop shadow, sheen, the app-coloured ambient glow and the glass's outer glow. */
+    boolean effects;
+    /** Lite mode: no animations, no effects, no tilt, plain background. The fastest Home. */
+    boolean lite;
 
-    private Config(List<String> dockApps, List<String> hiddenApps, String liveTvPackage, String liveTvAction,
-                   String sourcePanelService, String sourcePanelAction, int columns, int rowsBelowDock,
-                   boolean shamsiDate, String vpnApp, boolean showHomeSettingsShortcut, int backgroundColor,
-                   File wallpaper, boolean overlayApplied, boolean uiSounds, boolean glassFrame,
-                   boolean tilt, int[] backgroundGradient, int dockBandColor) {
-        this.dockApps = Collections.unmodifiableList(dockApps);
-        this.hiddenApps = Collections.unmodifiableList(hiddenApps);
-        this.liveTvPackage = liveTvPackage;
-        this.liveTvAction = liveTvAction;
-        this.sourcePanelService = sourcePanelService;
-        this.sourcePanelAction = sourcePanelAction;
-        this.columns = columns;
-        this.rowsBelowDock = rowsBelowDock;
-        this.shamsiDate = shamsiDate;
-        this.vpnApp = vpnApp;
-        this.showHomeSettingsShortcut = showHomeSettingsShortcut;
-        this.backgroundColor = backgroundColor;
-        this.wallpaper = wallpaper;
-        this.overlayApplied = overlayApplied;
-        this.uiSounds = uiSounds;
-        this.glassFrame = glassFrame;
-        this.tilt = tilt;
-        this.backgroundGradient = backgroundGradient;
-        this.dockBandColor = dockBandColor;
+    private Config() {
     }
 
     /** The folder the theme tools push into; null when external storage is unavailable. */
@@ -92,56 +81,91 @@ final class Config {
 
     static Config load(Context ctx) {
         Resources res = ctx.getResources();
+        Config c = new Config();
         List<String> dock = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.dock_apps)));
         List<String> hidden = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.hidden_apps)));
-        String liveTv = res.getString(R.string.live_tv_package).trim();
-        String liveTvAction = res.getString(R.string.live_tv_action).trim();
-        String panelService = res.getString(R.string.source_panel_service).trim();
-        String panelAction = res.getString(R.string.source_panel_action).trim();
-        int columns = res.getInteger(R.integer.columns);
-        int rowsBelow = res.getInteger(R.integer.rows_below_dock);
-        boolean shamsi = res.getBoolean(R.bool.shamsi_date);
-        String vpn = res.getString(R.string.vpn_app).trim();
-        boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
-        int background = 0xFF000000;
-        boolean sounds = res.getBoolean(R.bool.ui_sounds);
-        boolean frame = res.getBoolean(R.bool.glass_frame);
-        boolean tilt = res.getBoolean(R.bool.tilt);
+        c.liveTvPackage = res.getString(R.string.live_tv_package).trim();
+        c.liveTvAction = res.getString(R.string.live_tv_action).trim();
+        c.sourcePanelService = res.getString(R.string.source_panel_service).trim();
+        c.sourcePanelAction = res.getString(R.string.source_panel_action).trim();
+        c.columns = res.getInteger(R.integer.columns);
+        c.rowsBelowDock = res.getInteger(R.integer.rows_below_dock);
+        c.shamsiDate = res.getBoolean(R.bool.shamsi_date);
+        c.vpnApp = res.getString(R.string.vpn_app).trim();
+        c.showHomeSettingsShortcut = res.getBoolean(R.bool.show_home_settings_shortcut);
+        c.uiSounds = res.getBoolean(R.bool.ui_sounds);
+        c.glassFrame = res.getBoolean(R.bool.glass_frame);
+        c.tilt = res.getBoolean(R.bool.tilt);
+        c.animations = res.getBoolean(R.bool.animations);
+        c.effects = res.getBoolean(R.bool.effects);
+        c.lite = res.getBoolean(R.bool.lite);
         List<String> gradient = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.background_gradient)));
-        int band = parseColor(res.getString(R.string.dock_band_color), 0x16FFFFFF);
-        boolean applied = false;
+        c.dockBandColor = parseColor(res.getString(R.string.dock_band_color), 0x16FFFFFF);
 
         File dir = dir(ctx);
         File file = dir != null ? new File(dir, FILE_NAME) : null;
         JSONObject json = read(file);
         if (json != null) {
-            applied = true;
             dock = stringList(json, "dock_apps", dock);
             hidden = stringList(json, "hidden_apps", hidden);
-            liveTv = string(json, "live_tv_package", liveTv);
-            liveTvAction = string(json, "live_tv_action", liveTvAction);
-            panelService = string(json, "source_panel_service", panelService);
-            panelAction = string(json, "source_panel_action", panelAction);
-            columns = integer(json, "columns", columns, 1, 8);
-            rowsBelow = integer(json, "rows_below_dock", rowsBelow, 0, 3);
-            shamsi = bool(json, "shamsi_date", shamsi);
-            vpn = string(json, "vpn_app", vpn);
-            homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
-            background = color(json, "background_color", background);
-            sounds = bool(json, "ui_sounds", sounds);
-            frame = bool(json, "glass_frame", frame);
-            tilt = bool(json, "tilt", tilt);
+            c.liveTvPackage = string(json, "live_tv_package", c.liveTvPackage);
+            c.liveTvAction = string(json, "live_tv_action", c.liveTvAction);
+            c.sourcePanelService = string(json, "source_panel_service", c.sourcePanelService);
+            c.sourcePanelAction = string(json, "source_panel_action", c.sourcePanelAction);
+            c.columns = integer(json, "columns", c.columns, 1, 8);
+            c.rowsBelowDock = integer(json, "rows_below_dock", c.rowsBelowDock, 0, 3);
+            c.shamsiDate = bool(json, "shamsi_date", c.shamsiDate);
+            c.vpnApp = string(json, "vpn_app", c.vpnApp);
+            c.showHomeSettingsShortcut = bool(json, "show_home_settings_shortcut", c.showHomeSettingsShortcut);
+            c.backgroundColor = color(json, "background_color", c.backgroundColor);
+            c.uiSounds = bool(json, "ui_sounds", c.uiSounds);
+            c.glassFrame = bool(json, "glass_frame", c.glassFrame);
+            c.tilt = bool(json, "tilt", c.tilt);
+            c.animations = bool(json, "animations", c.animations);
+            c.effects = bool(json, "effects", c.effects);
+            c.lite = bool(json, "lite", c.lite);
             gradient = stringList(json, "background_gradient", gradient);
-            band = colorWithAlpha(json, "dock_band_color", band);
+            c.dockBandColor = colorWithAlpha(json, "dock_band_color", c.dockBandColor);
         }
-        File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
-        if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
+        c.dockApps = Collections.unmodifiableList(dock);
+        c.hiddenApps = Collections.unmodifiableList(hidden);
+        c.backgroundGradient = gradientColors(gradient);
+        c.wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
+        if (c.wallpaper != null && !(c.wallpaper.isFile() && c.wallpaper.length() > 0)) c.wallpaper = null;
         // A theme can also switch the wallpaper off while the file is still there.
-        if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
+        if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) c.wallpaper = null;
 
-        return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction,
-                Math.max(1, columns), Math.max(0, rowsBelow), shamsi, vpn, homeSettings, background,
-                wallpaper, applied, sounds, frame, tilt, gradientColors(gradient), band);
+        // The settings screen on the TV, last, so a choice made there survives the next theme push.
+        SharedPreferences p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        c.lite = p.getBoolean("lite", c.lite);
+        c.animations = p.getBoolean("animations", c.animations);
+        c.effects = p.getBoolean("effects", c.effects);
+        c.tilt = p.getBoolean("tilt", c.tilt);
+        c.glassFrame = p.getBoolean("glass_frame", c.glassFrame);
+        c.uiSounds = p.getBoolean("ui_sounds", c.uiSounds);
+        int cols = p.getInt("columns", 0);
+        if (cols >= 1 && cols <= 8) c.columns = cols;
+        String bg = p.getString("background", "");
+        if (BG_BLACK.equals(bg)) {
+            c.backgroundGradient = new int[0];
+            c.backgroundColor = 0xFF000000;
+            c.wallpaper = null;
+        } else if (BG_GRADIENT.equals(bg) && c.backgroundGradient.length == 0) {
+            c.backgroundGradient = gradientColors(Arrays.asList(res.getStringArray(R.array.background_gradient)));
+        }
+
+        // Lite wins over everything: the plainest, fastest Home, with the glass frame as the focus cue.
+        if (c.lite) {
+            c.animations = false;
+            c.effects = false;
+            c.tilt = false;
+            c.glassFrame = true;
+            c.backgroundGradient = new int[0];
+            c.wallpaper = null;
+        }
+        c.columns = Math.max(1, c.columns);
+        c.rowsBelowDock = Math.max(0, c.rowsBelowDock);
+        return c;
     }
 
     /** 2 or 3 valid opaque colours, or an empty array: anything else means "no gradient". */
