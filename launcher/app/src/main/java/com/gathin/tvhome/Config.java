@@ -50,8 +50,8 @@ final class Config {
     boolean shamsiDate;
     String vpnApp;
     boolean showHomeSettingsShortcut;
-    /** "Picture guide" row in the Settings pill's menu (config picture_guide). */
-    boolean pictureGuide;
+    /** Picture and Sound guide rows in the Settings pill's menu (config tv_guides). */
+    boolean tvGuides;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
     int backgroundColor = 0xFF000000;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
@@ -99,7 +99,7 @@ final class Config {
         c.shamsiDate = res.getBoolean(R.bool.shamsi_date);
         c.vpnApp = res.getString(R.string.vpn_app).trim();
         c.showHomeSettingsShortcut = res.getBoolean(R.bool.show_home_settings_shortcut);
-        c.pictureGuide = res.getBoolean(R.bool.picture_guide);
+        c.tvGuides = res.getBoolean(R.bool.tv_guides);
         c.uiSounds = res.getBoolean(R.bool.ui_sounds);
         c.glassFrame = res.getBoolean(R.bool.glass_frame);
         c.tilt = res.getBoolean(R.bool.tilt);
@@ -126,7 +126,7 @@ final class Config {
             c.shamsiDate = bool(json, "shamsi_date", c.shamsiDate);
             c.vpnApp = string(json, "vpn_app", c.vpnApp);
             c.showHomeSettingsShortcut = bool(json, "show_home_settings_shortcut", c.showHomeSettingsShortcut);
-            c.pictureGuide = bool(json, "picture_guide", c.pictureGuide);
+            c.tvGuides = bool(json, "tv_guides", c.tvGuides);
             c.backgroundColor = color(json, "background_color", c.backgroundColor);
             c.uiSounds = bool(json, "ui_sounds", c.uiSounds);
             c.glassFrame = bool(json, "glass_frame", c.glassFrame);

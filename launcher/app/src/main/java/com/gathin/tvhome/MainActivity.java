@@ -103,8 +103,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean animations;
     /** config effects: the ambient glow (and the glass's outer glow). */
     private boolean effects;
-    /** config picture_guide: the Picture guide row in the Settings menu. */
-    private boolean pictureGuide;
+    /** config tv_guides: the Picture and Sound guide rows in the Settings menu. */
+    private boolean tvGuides;
     /** config shadow_sheen, only with effects: the drop shadow and the focus sheen. */
     private boolean shadowSheen;
     /** {@link LauncherSettingsActivity#version} this screen was built with. */
@@ -176,7 +176,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         animations = cfg.animations;
         effects = cfg.effects;
         shadowSheen = effects && cfg.shadowSheen;
-        pictureGuide = cfg.pictureGuide;
+        tvGuides = cfg.tvGuides;
         root = findViewById(R.id.root);
         if (cfg.backgroundGradient.length > 0) {
             root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, cfg.backgroundGradient));
@@ -883,10 +883,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             returnToSettings = true;
             startActivity(new Intent(this, LauncherSettingsActivity.class));
         });
-        if (pictureGuide) {
+        if (tvGuides) {
             addInputRow(rows, popup, R.drawable.ic_picture, getString(R.string.picture_guide), -1, () -> {
                 returnToSettings = true;
-                startActivity(new Intent(this, PictureGuideActivity.class));
+                startActivity(GuideActivity.intent(this, false));
+            });
+            addInputRow(rows, popup, R.drawable.ic_sound, getString(R.string.sound_guide), -1, () -> {
+                returnToSettings = true;
+                startActivity(GuideActivity.intent(this, true));
             });
         }
         addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.tv_settings), -1, () -> {

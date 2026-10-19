@@ -50,6 +50,22 @@
         <item>Film mode|High</item>
         <item>HDR mode|Auto</item>
     </string-array>
+    <string name="sound_guide">Sound guide</string>
+    <string name="sound_guide_hint">For the TV\'s own speakers. Find them under Display &amp; Sound, Sound and Audio output.</string>
+    <string name="sound_guide_open">Open Sound settings</string>
+    <!-- Setting|recommended value, in the order of a Sony BRAVIA (2024-2025) Sound menu, TV speakers. -->
+    <string-array name="sound_guide_rows">
+        <item>Speakers|TV speakers</item>
+        <item>TV position|Wall Mount / Stand</item>
+        <item>Surround|Auto</item>
+        <item>Dialogue enhancer|High, or Max</item>
+        <item>Equaliser|Flat</item>
+        <item>Auto Volume|Auto</item>
+        <item>Balance|0</item>
+        <item>Post-processing|Dolby Audio processing</item>
+        <item>A/V sync|Auto</item>
+        <item>Digital audio out|LPCM (soundbars only)</item>
+    </string-array>
     <string name="set_lite">Lite mode</string>
     <string name="set_lite_on">On · fastest</string>
     <string name="set_animations">Animations</string>

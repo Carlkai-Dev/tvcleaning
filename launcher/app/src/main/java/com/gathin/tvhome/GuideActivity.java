@@ -2,6 +2,7 @@ package com.gathin.tvhome;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -12,25 +13,40 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 /**
- * Recommended picture settings (picture_guide_rows), shown in the settings panel next to the TV's own
- * Picture menu. Read-only: the TV keeps these values in its own protected store, so OK on any row opens
- * the Picture settings to change them there. Reached from the Settings pill's menu when config
- * picture_guide is on.
+ * Recommended picture or sound settings (picture_guide_rows / sound_guide_rows), shown in the settings
+ * panel next to the TV's own menu. Read-only: the TV keeps these values in a store only its system apps
+ * may write, so OK on any row opens the matching TV settings page to change them there. Reached from the
+ * Settings pill's menu when config tv_guides is on.
  */
-public class PictureGuideActivity extends Activity {
+public class GuideActivity extends Activity {
+
+    static final String EXTRA_SOUND = "sound";
+
+    // TV settings pages, tried in order. Sony's Sound page has an OEM action; the standard sound action
+    // opens the combined Display & Sound page there.
+    private static final String[] PICTURE_ACTIONS = {Settings.ACTION_DISPLAY_SETTINGS, Settings.ACTION_SETTINGS};
+    private static final String[] SOUND_ACTIONS = {"android.settings.oem.SOUND_SETTINGS",
+            Settings.ACTION_SOUND_SETTINGS, Settings.ACTION_SETTINGS};
 
     private UiSounds sounds;
+    private String[] actions;
+
+    static Intent intent(Context ctx, boolean sound) {
+        return new Intent(ctx, GuideActivity.class).putExtra(EXTRA_SOUND, sound);
+    }
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_settings);
-        ((TextView) findViewById(R.id.panelTitle)).setText(R.string.picture_guide);
-        ((TextView) findViewById(R.id.panelHint)).setText(R.string.picture_guide_hint);
+        boolean sound = getIntent().getBooleanExtra(EXTRA_SOUND, false);
+        actions = sound ? SOUND_ACTIONS : PICTURE_ACTIONS;
+        ((TextView) findViewById(R.id.panelTitle)).setText(sound ? R.string.sound_guide : R.string.picture_guide);
+        ((TextView) findViewById(R.id.panelHint)).setText(sound ? R.string.sound_guide_hint : R.string.picture_guide_hint);
         sounds = new UiSounds(this, Config.load(this).uiSounds);
         LinearLayout rows = findViewById(R.id.rows);
-        addRow(rows, getString(R.string.picture_guide_open), "");
-        for (String item : getResources().getStringArray(R.array.picture_guide_rows)) {
+        addRow(rows, getString(sound ? R.string.sound_guide_open : R.string.picture_guide_open), "");
+        for (String item : getResources().getStringArray(sound ? R.array.sound_guide_rows : R.array.picture_guide_rows)) {
             int bar = item.indexOf('|');
             addRow(rows, bar < 0 ? item : item.substring(0, bar), bar < 0 ? "" : item.substring(bar + 1));
         }
@@ -64,14 +80,13 @@ public class PictureGuideActivity extends Activity {
         });
         row.setOnClickListener(v -> {
             sounds.select();
-            openPicture();
+            openTvSettings();
         });
         rows.addView(row);
     }
 
-    /** The TV's Picture menu (DISPLAY_SETTINGS opens it on Sony), or Settings where that is missing. */
-    private void openPicture() {
-        for (String action : new String[]{Settings.ACTION_DISPLAY_SETTINGS, Settings.ACTION_SETTINGS}) {
+    private void openTvSettings() {
+        for (String action : actions) {
             try {
                 startActivity(new Intent(action));
                 return;
