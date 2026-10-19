@@ -1,19 +1,16 @@
-# Android - Build launcher
-# Builds the APK(s) under launcher/ and uploads them as artifacts.
-name: Android - Build launcher
+name: Build and publish launcher to "latest" release
 
 on:
   push:
-    paths:
-      - 'launcher/**'
-  pull_request:
-    paths:
-      - 'launcher/**'
-  workflow_dispatch:
+    branches:
+      - main
+
+concurrency:
+  group: build-and-release-launcher
+  cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build launcher APK
+  build-and-publish:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -41,13 +38,11 @@ jobs:
         run: chmod +x launcher/gradlew
 
       - name: Install Android commandline tools and SDK packages
-        # installs commandline tools, platform-tools, a platform and build-tools
         run: |
           set -e
           ANDROID_SDK_ROOT="${{ runner.temp }}/android-sdk"
           mkdir -p "$ANDROID_SDK_ROOT"
           cd "$ANDROID_SDK_ROOT"
-          # Download latest command line tools (link may be updated in future)
           curl -sSLo cmdline-tools.zip "https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
           unzip -q cmdline-tools.zip -d cmdline-tools
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
@@ -64,8 +59,45 @@ jobs:
         working-directory: launcher
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Upload APK artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: launcher-apks
-          path: launcher/**/build/outputs/**/*.apk
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Publish APKs to "latest" release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # Authenticate gh with the workflow token
+          echo "$GITHUB_TOKEN" | gh auth login --with-token
+
+          # enable globstar for ** expansion
+          shopt -s globstar || true
+
+          # collect apk/aab files (adjust glob if needed)
+          FILES=(launcher/**/build/outputs/**/*.apk launcher/**/build/outputs/**/*.aab)
+          # ensure at least one file exists
+          FOUND=0
+          for f in "${FILES[@]}"; do
+            if [ -e "$f" ]; then
+              FOUND=1
+              break
+            fi
+          done
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "No APK/AAB files found under launcher/**/build/outputs. Aborting."
+            exit 1
+          fi
+
+          # Build final list of existing files
+          UPLOAD=()
+          for f in "${FILES[@]}"; do
+            if [ -e "$f" ]; then
+              UPLOAD+=("$f")
+            fi
+          done
+
+          # Create or update release 'latest' and upload assets (--clobber replaces assets)
+          gh release create latest "${UPLOAD[@]}" --title "latest" --notes "Automated build from main: $GITHUB_SHA" --clobber
