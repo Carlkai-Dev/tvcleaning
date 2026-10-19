@@ -147,6 +147,24 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Bitcoin price, change and block height (btc_ticker), right-aligned over the top buttons. -->
+            <TextView
+                android:id="@+id/btcTicker"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_above="@+id/topButtons"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="10dp"
+                android:singleLine="true"
+                android:textColor="#FFFFFFFF"
+                android:textSize="17sp"
+                android:fontFamily="@font/outfit"
+                android:fontVariationSettings="'wght' 500"
+                android:letterSpacing="0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+
             <LinearLayout
                 android:id="@+id/topButtons"
                 android:layout_width="wrap_content"

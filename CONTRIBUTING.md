@@ -26,7 +26,7 @@ is reversible from the TV's own settings if the tools are gone.
 
 The launcher lives in `launcher/` and is deliberately small: plain Java, AndroidX RecyclerView and
 DynamicAnimation, no Kotlin, no Compose, no network outside the updater
-([`docs/specs/self-update.md`](docs/specs/self-update.md)). It targets TVs with 1 GB of RAM, so:
+([`docs/specs/self-update.md`](docs/specs/self-update.md)) and the opt-in Bitcoin line (`Ticker.java`). It targets TVs with 1 GB of RAM, so:
 
 - No blur, no video backgrounds, no polling, no background services.
 - Anything that depends on a specific TV goes in `app/src/main/res/values/config.xml`, not in code.

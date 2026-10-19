@@ -43,8 +43,8 @@ android {
         }
     }
 
-    // Without a feed the updater can never run, so its permissions stay out of the manifest:
-    // a self-built launcher keeps "no network permission" (src/noFeed removes them in the merge).
+    // Without a feed the updater can never run, so its install permission stays out of the manifest
+    // (src/noFeed removes it in the merge). INTERNET stays: the Bitcoin line uses it when switched on.
     if (updateFeed.isEmpty()) {
         sourceSets {
             debug.manifest.srcFile 'src/noFeed/AndroidManifest.xml'

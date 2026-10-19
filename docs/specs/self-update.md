@@ -216,9 +216,10 @@ script grants it, over ADB. It's used only for the accessibility restore.
 This changes a promise in [`card.md`](card.md), Security: "has no network permission". That
 sentence becomes: "The card code never uses the network. The launcher's only network use is the
 updater, which talks to the update feed and nothing else, and only when `self_update` isn't `off`
-and the build has a feed." A build with an empty `UPDATE_FEED` drops `INTERNET` from the merged
-manifest (a `tools:node="remove"` in a build-type manifest), so self-built launchers keep the old
-promise word for word.
+and the build has a feed." A build with an empty `UPDATE_FEED` drops `REQUEST_INSTALL_PACKAGES` from
+the merged manifest (a `tools:node="remove"` in a build-type manifest). `INTERNET` stays in every
+build since the opt-in Bitcoin line (`btc_ticker`) needs it; with that line off, a self-built
+launcher makes no network requests.
 
 ## Release pipeline
 
@@ -288,7 +289,7 @@ step 3.
 - **Bounded input.** Feed 4 KB, APK 20 MB, 5 redirects, timeouts on every request, HTTPS only, a
   fixed host list. Notes are plain text with a length limit and never rendered as HTML or links.
 - **Owner in control.** Nothing installs without Update; `off` means no network traffic at all;
-  self-built launchers don't even hold `INTERNET`.
+  self-built launchers can't install packages at all.
 - **Privacy.** A weekly request to GitHub with a version in the User-Agent and nothing else. No
   identifiers, no telemetry, no reporting of results.
 

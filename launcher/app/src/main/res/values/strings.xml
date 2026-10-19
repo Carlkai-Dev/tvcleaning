@@ -49,6 +49,9 @@
     <string name="settings_menu_cards">Module cards</string>
     <string name="settings_menu_cards_count">%1$d</string>
     <string name="settings_menu_off">Off</string>
+    <string name="settings_menu_on">On</string>
+    <string name="settings_menu_btc">Bitcoin price</string>
+    <string name="btc_block">BLOCK %1$s</string>
     <string name="update_menu_check">Check for updates · %1$s</string>
     <string name="update_checking">Checking…</string>
     <string name="update_up_to_date">Up to date</string>

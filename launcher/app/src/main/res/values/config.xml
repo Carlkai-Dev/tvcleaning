@@ -67,4 +67,9 @@
          off = never contact the update server. A launcher built on your computer has no update feed
          and ignores this. -->
     <string name="self_update" translatable="false">weekly</string>
+
+    <!-- Bitcoin price, 24 hour change and block height above the top buttons, refreshed every five minutes
+         while Home is in front (api.coinbase.com, api.exchange.coinbase.com, mempool.space). Off by default;
+         also switched on the TV: hold OK on Settings, then Bitcoin price. -->
+    <bool name="btc_ticker">false</bool>
 </resources>

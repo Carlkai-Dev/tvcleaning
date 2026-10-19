@@ -29,6 +29,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
 import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
@@ -125,6 +128,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // and whether the owner still has to be asked about it in this process.
     private static Updater.Feed offered;
     private static boolean updatePromptDue;
+    /** Bitcoin line (Ticker): on from btc_ticker, or from the Settings menu, which wins once used. */
+    private TextView btcTicker;
+    private boolean btcOn;
+    private static final String PREFS = "home";
+    private static final String PREF_BTC = "btc_ticker";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
@@ -171,6 +179,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())
                     && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) return;
             reloadApps(false);
+        }
+    };
+    private final Runnable btcTick = new Runnable() {
+        @Override
+        public void run() {
+            fetchTicker();
+            handler.postDelayed(this, Ticker.REFRESH_MS);
         }
     };
     private final Runnable minuteTick = new Runnable() {
@@ -290,6 +305,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return true;
         });
         selfUpdate = cfg.selfUpdate;
+        btcTicker = findViewById(R.id.btcTicker);
+        btcOn = getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(PREF_BTC, cfg.btcTicker);
         // The first start after a self-update says so (and puts accessibility services back if it can).
         int started = UpdateFeature.run(() -> Updater.afterStart(this), Updater.STARTED_PLAIN);
         if (started != Updater.STARTED_PLAIN) {
@@ -377,6 +394,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateWifiLabel();
         updateInputsButton();
         handler.postDelayed(minuteTick, MINUTE_MS);
+        startTicker();
         Updater.installListener = () -> handler.post(() -> {
             if (updatePrompt != null) updatePrompt.dismiss();
         });
@@ -451,6 +469,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onPause();
         unregisterReceiver(packageReceiver);
         handler.removeCallbacks(minuteTick);
+        handler.removeCallbacks(btcTick);
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (updatePrompt != null) updatePrompt.dismiss();
@@ -1102,6 +1121,68 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    // ---- Bitcoin line ----------------------------------------------------------------------------
+
+    /** Shows the last reading at once, then refreshes now if it's over a minute old and every five minutes after. */
+    private void startTicker() {
+        if (!btcOn) {
+            btcTicker.setVisibility(View.GONE);
+            return;
+        }
+        showTicker(Ticker.last);
+        Ticker.Quote q = Ticker.last;
+        long age = q == null ? Long.MAX_VALUE : System.currentTimeMillis() - q.at;
+        handler.postDelayed(btcTick, age >= Ticker.STALE_MS ? 0 : Math.max(0, Ticker.REFRESH_MS - age));
+    }
+
+    /** One refresh on the ticker thread; the result is shown if the line is still on. */
+    private void fetchTicker() {
+        ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+        if (cm == null || cm.getActiveNetwork() == null) return;
+        if (!Ticker.busy.compareAndSet(false, true)) return;
+        Ticker.EXECUTOR.execute(() -> {
+            try {
+                Ticker.last = Ticker.fetch(Ticker.last);
+            } catch (Exception e) {
+                // A failed refresh keeps the last reading on screen.
+            } finally {
+                Ticker.busy.set(false);
+            }
+            handler.post(() -> {
+                if (!isDestroyed() && btcOn) showTicker(Ticker.last);
+            });
+        });
+    }
+
+    /** "₿ $81,002  ▼ 0.3%  BLOCK 972,026"; hidden until there is a price. */
+    private void showTicker(Ticker.Quote q) {
+        if (q == null || !q.hasPrice()) {
+            btcTicker.setVisibility(View.GONE);
+            return;
+        }
+        SpannableStringBuilder sb = new SpannableStringBuilder();
+        // Older TVs' fonts may lack U+20BF; spell it out there.
+        String sign = btcTicker.getPaint().hasGlyph("\u20BF") ? "\u20BF" : "BTC";
+        append(sb, sign, 0xFFF7931A);
+        sb.append("  ").append(Ticker.formatPrice(q.price));
+        if (!Double.isNaN(q.changePct)) {
+            sb.append("   ");
+            append(sb, Ticker.formatChange(q.changePct), q.changePct < 0 ? 0xFFFF6B6B : 0xFF4CD787);
+        }
+        if (q.height >= 0) {
+            sb.append("   ");
+            append(sb, getString(R.string.btc_block, Ticker.formatHeight(q.height)), 0xB3FFFFFF);
+        }
+        btcTicker.setText(sb);
+        btcTicker.setVisibility(View.VISIBLE);
+    }
+
+    private static void append(SpannableStringBuilder sb, String text, int color) {
+        int start = sb.length();
+        sb.append(text);
+        sb.setSpan(new ForegroundColorSpan(color), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+
     // ---- self-update -----------------------------------------------------------------------------
 
     /** Hold OK on Settings: Module cards, and Check for updates with the installed version. */
@@ -1118,6 +1199,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cardsRow.setOnClickListener(v -> {
             popup.dismiss();
             showModuleCards();
+        });
+
+        View btcRow = addMenuRow(rows, getString(R.string.settings_menu_btc),
+                getString(btcOn ? R.string.settings_menu_on : R.string.settings_menu_off));
+        final TextView btcStatus = btcRow.findViewById(R.id.status);
+        btcRow.setOnClickListener(v -> {
+            btcOn = !btcOn;
+            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(PREF_BTC, btcOn).apply();
+            btcStatus.setText(btcOn ? R.string.settings_menu_on : R.string.settings_menu_off);
+            handler.removeCallbacks(btcTick);
+            startTicker();
         });
 
         View checkRow = addMenuRow(rows, getString(R.string.update_menu_check, BuildConfig.VERSION_NAME), updateState());
