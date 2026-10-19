@@ -22,6 +22,7 @@ prompt that did it is in this repo so you can do the same with yours.
 - [Supported TVs](#supported-tvs)
 - [Doing it by hand](#doing-it-by-hand)
 - [The launcher](#the-launcher)
+- [AirPlay from iPhone (optional)](#airplay-from-iphone-optional)
 - [Troubleshooting](#troubleshooting)
 - [Questions people ask](#questions-people-ask)
 - [Contributing](#contributing)
@@ -188,6 +189,21 @@ tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components
 
 It starts after the TV's "screen off" idle time (`settings get system screen_off_timeout`).
 </details>
+
+## AirPlay from iPhone (optional)
+
+Chromecast built-in covers Android phones. For iPhone, iPad and Mac, [`airplay/`](airplay/) builds
+and installs an ad-free AirPlay receiver that runs in the background and starts with the TV, so
+the TV shows up in Control Center → Screen Mirroring:
+
+```bash
+TV_HOST=192.168.1.50 airplay/build-and-install.sh
+```
+
+It is a separate GPL-3 app ([jqssun/android-airplay-server](https://github.com/jqssun/android-airplay-server),
+built on [UxPlay](https://github.com/FDH2/UxPlay)) compiled from source. Only the install script lives
+here. Screen mirroring, video and audio work, but DRM apps (Netflix, Apple TV+) don't. See
+[`airplay/README.md`](airplay/README.md).
 
 ## Troubleshooting
 
