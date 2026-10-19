@@ -47,6 +47,14 @@
     <integer-array name="settings_key_scancodes">
     </integer-array>
 
+    <!-- A remote button that opens one app from anywhere, by Linux scancode (INPUT_KEY_SERVICE=1
+         build-and-install.sh). Find the scancode with `tools/tv.py 'getevent -lt'` as above. The TCL Google TV
+         remote's TV button is scancode 240 (TCL keycode 4001, which the firmware otherwise turns into the
+         programme guide). Leave the package empty to omit; if the app is missing, the button keeps its old job. -->
+    <integer-array name="app_key_scancodes">
+    </integer-array>
+    <string name="app_key_package" translatable="false"></string>
+
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->
     <bool name="shamsi_date">false</bool>

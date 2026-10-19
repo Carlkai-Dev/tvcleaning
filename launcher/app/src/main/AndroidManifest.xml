@@ -89,7 +89,8 @@
             </intent-filter>
         </service>
 
-        <!-- The remote's Input button (KEYCODE_TV) opens the input switcher; see InputKeyService. -->
+        <!-- The remote's Input button (KEYCODE_TV) opens the input switcher, and an optional button opens one
+             app (config.xml, app_key_*); see InputKeyService. -->
         <service
             android:name=".InputKeyService"
             android:exported="false"
