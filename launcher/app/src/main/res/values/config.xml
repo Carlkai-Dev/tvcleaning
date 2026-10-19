@@ -52,6 +52,11 @@
          (most Android TVs don't; the tile only appears when the page exists). Off by default. -->
     <bool name="show_home_settings_shortcut">false</bool>
 
+    <!-- "Picture guide" in the Settings pill's menu: recommended picture settings, named as in a recent
+         Sony BRAVIA menu (picture_guide_rows in strings.xml), and a way into the TV's Picture settings.
+         Off by default because the names and values are Sony's; a Sony theme turns it on. -->
+    <bool name="picture_guide">false</bool>
+
     <!-- Look and sound. Each can also be set from a theme's config.json (themes/README.md). -->
     <!-- Short focus, select and edge sounds. Never on while the TV's own "System sounds" setting is off. -->
     <bool name="ui_sounds">false</bool>

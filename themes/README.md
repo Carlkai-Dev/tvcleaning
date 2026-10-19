@@ -15,6 +15,7 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 | `default/` | The built-in look written out as JSON, as a starting point for your own |
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour |
 | `lite/` | Lite mode: no animations, no effects, plain black. The fastest Home, for low-memory TVs |
+| `sony-bravia-2-ii/` | Sony BRAVIA (Android 12, 2024-2025 menus): adds the Picture guide to the Settings menu |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock |
 
 ## Keys
@@ -36,6 +37,7 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `shamsi_date` | bool | Show the Solar Hijri date above the Gregorian one |
 | `vpn_app` | string | App the network pill opens when a VPN is configured |
 | `show_home_settings_shortcut` | bool | The "Default home" tile, where the TV has a home picker |
+| `picture_guide` | bool | Picture guide in the Settings menu: recommended picture settings named as in a Sony BRAVIA menu, and a way into the TV's Picture settings |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `wallpaper` | bool | Show `wallpaper.jpg` from the theme folder (`true`), or ignore it (`false`) |
 | `background_gradient` | list of 2 or 3 `#RRGGBB` | Vertical gradient behind everything, top to bottom, instead of `background_color` |

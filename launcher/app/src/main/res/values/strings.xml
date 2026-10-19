@@ -29,6 +29,27 @@
     <string name="launcher_settings">Home settings</string>
     <string name="launcher_settings_hint">Changes apply when you go back. On Home, press Settings and pick Home settings to return here.</string>
     <string name="tv_settings">TV settings</string>
+    <string name="picture_guide">Picture guide</string>
+    <string name="picture_guide_hint">Good in a bright room and a dark one. Find them under Display &amp; Sound, Picture, Advanced.</string>
+    <string name="picture_guide_open">Open Picture settings</string>
+    <!-- Setting|recommended value, in the order of a Sony BRAVIA (2024-2025) Picture menu. -->
+    <string-array name="picture_guide_rows">
+        <item>Picture mode|Professional</item>
+        <item>Light sensor|On</item>
+        <item>Contrast|90</item>
+        <item>Gamma|-2 (0 if day looks dark)</item>
+        <item>Black level|50</item>
+        <item>Adv. contrast enhancer|Low</item>
+        <item>Colour|50</item>
+        <item>Colour temperature|Expert 1</item>
+        <item>Live Colour|Off</item>
+        <item>Sharpness|50</item>
+        <item>Reality Creation|Manual, 20</item>
+        <item>Noise reduction|Off</item>
+        <item>Motionflow|Custom, Min, Min</item>
+        <item>Film mode|High</item>
+        <item>HDR mode|Auto</item>
+    </string-array>
     <string name="set_lite">Lite mode</string>
     <string name="set_lite_on">On · fastest</string>
     <string name="set_animations">Animations</string>

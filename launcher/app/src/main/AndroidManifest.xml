@@ -60,6 +60,12 @@
             android:theme="@style/Theme.TvHome.Panel" />
 
         <activity
+            android:name=".PictureGuideActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.TvHome.Panel" />
+
+        <activity
             android:name=".HomeSettingsActivity"
             android:exported="false"
             android:taskAffinity=""
