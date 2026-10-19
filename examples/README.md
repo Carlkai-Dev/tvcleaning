@@ -22,6 +22,7 @@ on that firmware, grouped and commented. These are starting points: comment out 
 | `xiaomi-mi-box-s/` | Xiaomi Mi Box S (MIBOX4, oneday), streaming box | Android TV 9 | PatchWall, Mi analytics, Alphonso ad tracking, MiLink; voice, casting, phone remote off by choice |
 | `xiaomi-mitv-mooq0/` | Xiaomi Mi TV (MiTV-MOOQ0, croods) | Android TV 10 | PatchWall, Mi analytics, MiChannel, TV Manager, Alexa bridge; factory test app also claims HOME |
 | `xiaomi-mi-tv-4a/` | Xiaomi Mi TV 4A (MiTV-MOOQ1) | Android TV 10 | PatchWall, Mi analytics, SmartShare, MiLink |
+| `xiaomi-mi-tv-4c-pro-2019/` | Xiaomi Mi TV 4C Pro (MiTV-AXSO0, dangal) | Android TV 9 | PatchWall, Glance ads, Mi TV+, Sensara, Mi analytics; voice mic and Chromecast kept |
 | `xiaomi-mitv-aesp0/` | Xiaomi MiTV-AESP0 stick (aquaman, 1 GB) | Android TV 9 | No inputs; Home key sends ALL_APPS, needs `HOME_KEY_SERVICE=1`; Chromecast kept |
 | `xiaomi-mitv-axso0/` | Xiaomi MiTV-AXSO0 (dangal) | Android TV 9 | PatchWall, Mi analytics, MiLink; voice, Chromecast, unused streaming apps off by choice |
 | `xiaomi-mitv-moor2/` | Xiaomi MiTV-MOOR2 (venom, MediaTek) | Google TV 11 | Mi ad row and PatchWall, Mi analytics, MiLink, store demo; setup wizard off so a third-party launcher can own Home |

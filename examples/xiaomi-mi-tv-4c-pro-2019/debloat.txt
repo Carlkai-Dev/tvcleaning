@@ -1,0 +1,61 @@
+# Xiaomi Mi TV 4C Pro (MiTV-AXSO0, codename dangal), Android TV 9 (SDK 28), firmware PI.6036, Amlogic/droidlogic.
+# Live TV app: com.android.tv (set it as live_tv_package and hide it in launcher config.xml).
+# Stock launcher: com.google.android.tvlauncher (the default, disabled by build-and-install.sh).
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/xiaomi-mi-tv-4c-pro/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/xiaomi-mi-tv-4c-pro/debloat.txt
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Notes from this firmware:
+# - Default IME is Gboard, so no missing-keyboard quirk.
+# - Glance TV lockscreen news/ads (com.glance.tv) and Mi TV+ (com.mitv.tvhome.mitvplus) are present and safe to disable.
+# - `svc power reboot` gets killed; reboot through adb's own reboot service instead.
+# - com.google.android.leanbacklauncher is re-enabled by the firmware at every boot, so it's not listed.
+# - Netflix, Prime Video and YouTube are preinstalled system apps, so they always get BOOT_COMPLETED.
+
+# Xiaomi + Google telemetry
+com.miui.tv.analytics
+com.xiaomi.statistic
+com.google.android.feedback
+com.google.android.tv.bugreportsender
+
+# PatchWall, content rows, sponsored rows & ads
+com.mitv.tvhome.atv
+com.xm.webcontent
+com.xiaomi.floatingframe
+com.google.android.tvrecommendations
+com.google.android.leanbacklauncher.recommendations
+android.autoinstalls.config.xioami.dangal   # Play auto-install of partner apps
+com.glance.tv                               # Glance lockscreen ads
+com.mitv.tvhome.mitvplus                    # Mi TV+ sponsored channels
+co.sensara.tv.mitv                          # Sensara partner TV guide
+
+# Xiaomi background services & cleaners
+com.xiaomi.mitv.tvmanager                   # "TV Manager" cleaner
+com.xiaomi.mitv.handbook
+com.xiaomi.mitv.updateservice               # firmware updates: re-enable to check for one
+com.xiaomo.tv.milegal
+
+# Personal choice: voice assistant (uncomment to disable mic/assistant)
+# com.google.android.katniss
+# com.google.android.speech.pumpkin
+
+# Personal choice: casting / mirroring
+com.mitv.milinkservice                      # Mi Cast
+com.xiaomi.mitv.smartshare
+# com.google.android.apps.mediashell        # Chromecast built-in
+# com.xiaomi.wfdsinkhelperservice           # Miracast sink
+
+# Preloaded apps
+com.xiaomi.mimusic2
+com.google.android.play.games
+com.google.android.videos                   # Play Movies & TV
+# com.mitv.gallery                          # Mi Gallery; comment out if keeping USB media browsing
+
+# Personal choice: preloaded streaming apps not used
+com.fancode.tv
+com.suntv.sunnxt.mitv
+com.eros.mitv
+com.discoveryplus.mitv
+com.ddnational.prasarbharati
+net.aljazeera.english
