@@ -1,6 +1,5 @@
 package com.gathin.tvhome;
 
-import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -12,7 +11,6 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -38,19 +36,25 @@ import java.util.Set;
 
 /**
  * App tiles. The first {@link MainActivity#COLUMNS} positions are the pinned dock (favourites, fixed order),
- * then the module cards the owner chose to show (by label), the rest is alphabetical.
+ * then the module cards the owner chose to show (by label), followed by the saved user app order.
  */
 public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     interface TileListener {
         void onTileFocused(int position, View card);
 
+        /** Called when the user holds OK on a tile. */
+        void onTileLongPressed(int position);
+
+        /** Called by a normal OK click; return true when the launcher consumed it. */
+        boolean onTileClicked(int position);
+
         /** Called for a D-pad direction key on a tile. Return true when handled (focus stays put). */
         boolean onTileVerticalKey(int position, int keyCode);
     }
 
     static final class Entry {
-        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2;
+        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY_DOCK = 3;
 
         final int kind;
         final String label;
@@ -65,6 +69,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
             this(APP, label, component, banner, icon, null, 0);
+        }
+
+        Entry(Context ctx, int slot) {
+            this(EMPTY_DOCK, "", new ComponentName(ctx.getPackageName(), "EmptyDock" + slot), null, null, null, 0);
         }
 
         Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent) {
@@ -107,18 +115,22 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Context ctx;
     private final TileListener listener;
     private final int dockSize;
-    /** Dock order (config.xml dock_apps, or a theme's config.json). */
-    private final List<String> favourites;
+    /** Dock order (saved user preferences, then config.xml or a theme's config.json). */
+    private List<String> favourites;
+    /** Order of the non-dock TV apps; new packages are appended by DockEditor.loadAppOrder(). */
+    private List<String> appOrder;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final boolean showHomeSettings;
     private final List<Entry> items = new ArrayList<>();
 
-    AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
+    AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg,
+               List<String> dockApps, List<String> appOrder) {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
-        this.favourites = cfg.dockApps;
+        this.favourites = new ArrayList<>(dockApps);
+        this.appOrder = new ArrayList<>(appOrder);
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
@@ -136,11 +148,43 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         Map<String, Cards.Card> cardByPkg = new HashMap<>();
         for (Cards.Card c : cards) cardByPkg.put(c.pkg, c);
-        List<Entry> fresh = new ArrayList<>();
+        Map<String, ResolveInfo> byPackage = new HashMap<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
-            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
+            if (pkg.equals(ctx.getPackageName())) continue;
+            if (!byPackage.containsKey(pkg)) byPackage.put(pkg, ri);
+        }
+
+        // Keep the dock as a fixed first row. An empty or uninstalled slot stays empty instead of
+        // allowing the alphabetical grid to slide up into the dock.
+        List<Entry> fresh = new ArrayList<>();
+        for (int slot = 0; slot < dockSize; slot++) {
+            String pkg = slot < favourites.size() ? favourites.get(slot) : null;
+            ResolveInfo ri = pkg == null ? null : byPackage.get(pkg);
+            if (ri == null) {
+                fresh.add(new Entry(ctx, slot));
+                continue;
+            }
+            ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
+            Cards.Card card = cardByPkg.get(pkg);
+            if (card != null && !card.component.equals(component)) card = null;
+            Drawable banner = ri.activityInfo.loadBanner(pm);
+            if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
+            Drawable icon = ri.loadIcon(pm);
+            if (card != null) {
+                fresh.add(new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent));
+            } else {
+                fresh.add(new Entry(String.valueOf(ri.loadLabel(pm)), component, banner, icon));
+            }
+        }
+
+        // The remaining TV apps form the normal alphabetical grid. A user-pinned app wins over
+        // hidden_apps for the dock, but hidden apps stay hidden everywhere else.
+        for (ResolveInfo ri : found) {
+            if (ri.activityInfo == null) continue;
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg) || favourites.contains(pkg)) continue;
             ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
             Cards.Card card = cardByPkg.get(pkg);
             if (card != null && !card.component.equals(component)) continue;   // the card stands in for this tile
@@ -153,18 +197,22 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 fresh.add(new Entry(String.valueOf(ri.loadLabel(pm)), component, banner, icon));
             }
         }
-        Collections.sort(fresh, (a, b) -> {
-            int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
-            if (fa >= 0 || fb >= 0) {
-                if (fa < 0) return 1;
-                if (fb < 0) return -1;
-                return Integer.compare(fa, fb);
-            }
+        int dockCount = Math.min(dockSize, fresh.size());
+        List<Entry> gridEntries = new ArrayList<>(fresh.subList(dockCount, fresh.size()));
+        Collections.sort(gridEntries, (a, b) -> {
             // Cards come right after the configured dock apps, before the alphabetical grid.
             boolean ca = a.kind == Entry.CARD, cb = b.kind == Entry.CARD;
             if (ca != cb) return ca ? -1 : 1;
+            int oa = appOrder.indexOf(a.pkg), ob = appOrder.indexOf(b.pkg);
+            if (oa >= 0 || ob >= 0) {
+                if (oa < 0) return 1;
+                if (ob < 0) return -1;
+                return Integer.compare(oa, ob);
+            }
             return a.label.compareToIgnoreCase(b.label);
         });
+        fresh = new ArrayList<>(fresh.subList(0, dockCount));
+        fresh.addAll(gridEntries);
         // Optional "Default home" tile (config.xml), only when this TV actually has a home-screen picker.
         if (showHomeSettings
                 && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
@@ -175,6 +223,14 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    void setDockApps(List<String> dockApps) {
+        favourites = new ArrayList<>(dockApps);
+    }
+
+    void setAppOrder(List<String> appOrder) {
+        this.appOrder = new ArrayList<>(appOrder);
     }
 
     @NonNull
@@ -201,6 +257,17 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     @Override
     public void onBindViewHolder(@NonNull Holder h, int position) {
         Entry e = items.get(position);
+        if (e.kind == Entry.EMPTY_DOCK) {
+            h.card.setVisibility(View.INVISIBLE);
+            h.card.setFocusable(false);
+            h.card.setClickable(false);
+            h.name.setVisibility(View.INVISIBLE);
+            h.name.setAlpha(0f);
+            return;
+        }
+        h.card.setVisibility(View.VISIBLE);
+        h.card.setFocusable(true);
+        h.card.setClickable(true);
         h.name.setText(e.name);
         h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
@@ -220,20 +287,22 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.label.setText(e.label);
             h.label.setVisibility(View.VISIBLE);
         }
-        h.card.setOnClickListener(v -> launch(e));
+        h.card.setOnClickListener(v -> {
+            int pos = h.getBindingAdapterPosition();
+            if (listener != null && pos != RecyclerView.NO_POSITION && listener.onTileClicked(pos)) return;
+            launch(e);
+        });
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            int pos = h.getBindingAdapterPosition();
+            if (listener == null || pos == RecyclerView.NO_POSITION) return false;
+            listener.onTileLongPressed(pos);
             return true;
         });
     }
 
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
     private void launch(Entry e) {
+        if (e.kind == Entry.EMPTY_DOCK) return;
         if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -276,6 +345,77 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     String labelAt(int position) {
         return position >= 0 && position < items.size() ? items.get(position).label : "";
+    }
+
+    boolean isFocusableAt(int position) {
+        return position >= 0 && position < items.size() && items.get(position).kind != Entry.EMPTY_DOCK;
+    }
+
+    /** True for a visible app in the fixed dock row (cards are valid dock entries too). */
+    boolean isDockPosition(int position) {
+        return position >= 0 && position < dockSize && isFocusableAt(position);
+    }
+
+    /** True for a normal installed application in the reorderable grid, excluding module cards. */
+    boolean isReorderableAppAt(int position) {
+        return position >= dockSize && position < items.size()
+                && items.get(position).kind == Entry.APP;
+    }
+
+    /** Package name for the visible tile at a position, or null for an empty/invalid slot. */
+    String packageAt(int position) {
+        return isFocusableAt(position) ? items.get(position).pkg : null;
+    }
+
+    List<String> dockApps() {
+        return new ArrayList<>(favourites);
+    }
+
+    List<String> appOrder() {
+        return new ArrayList<>(appOrder);
+    }
+
+    /**
+     * Moves one visible tile in place, keeping the adapter list and its persisted-order list in
+     * sync. The caller can use the returned position to keep focus on the moving app.
+     */
+    int moveForReorder(int position, int keyCode) {
+        if (position < 0 || position >= items.size()) return -1;
+        int target;
+        if (isDockPosition(position)) {
+            if (keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return -1;
+            target = position + (keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1);
+            if (target < 0 || target >= dockSize || !isFocusableAt(target)) return -1;
+            String movedPkg = favourites.remove(position);
+            favourites.add(target, movedPkg);
+        } else if (isReorderableAppAt(position)) {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                int direction = keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
+                target = position + direction;
+                if (target / dockSize != position / dockSize) return -1;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                int direction = keyCode == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1;
+                target = position + direction * dockSize;
+            } else {
+                return -1;
+            }
+            if (target < dockSize || target >= items.size() || !isReorderableAppAt(target)) return -1;
+            String movedPkg = items.get(position).pkg;
+            String targetPkg = items.get(target).pkg;
+            int fromOrder = appOrder.indexOf(movedPkg);
+            int targetOrder = appOrder.indexOf(targetPkg);
+            if (fromOrder < 0 || targetOrder < 0) return -1;
+            appOrder.remove(fromOrder);
+            targetOrder = appOrder.indexOf(targetPkg);
+            appOrder.add(targetOrder + (target > position ? 1 : 0), movedPkg);
+        } else {
+            return -1;
+        }
+
+        Entry moved = items.remove(position);
+        items.add(target, moved);
+        notifyItemMoved(position, target);
+        return target;
     }
 
     /** A vivid colour sampled from the app's banner (or icon), cached per entry; a card's accent when it set one. */

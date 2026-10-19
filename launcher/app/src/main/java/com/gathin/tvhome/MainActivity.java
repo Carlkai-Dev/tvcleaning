@@ -51,6 +51,7 @@ import androidx.dynamicanimation.animation.DynamicAnimation;
 import androidx.dynamicanimation.animation.FloatPropertyCompat;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
+import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -87,6 +88,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int ambientColor;
     private boolean heroShown;
     private TextView greeting;
+    private TextView reorderHint;
     private View btnInputs;
     private TextView btnWifi;
     private TextView shamsiDate;
@@ -108,6 +110,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean moduleCards;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
     private Set<String> hiddenApps = Collections.emptySet();
+    /** Saved dock order wins over config.xml and a theme's config.json. */
+    private List<String> dockApps = Collections.emptyList();
+    /** Saved non-dock app order; the normal label order remains the fresh-install fallback. */
+    private List<String> appOrder = Collections.emptyList();
+    /** Non-modal, on-home-screen reorder mode entered by holding OK on a tile. */
+    private boolean reorderMode;
+    private int reorderPosition = -1;
     private List<Cards.Card> cards = Collections.emptyList();
     /** The grid has been laid out and focused since the last resume; the card prompt waits for this. */
     private boolean tilesReady;
@@ -193,6 +202,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glass = findViewById(R.id.glass);
         ambient = findViewById(R.id.ambient);
         heroName = findViewById(R.id.heroName);
+        reorderHint = findViewById(R.id.reorderHint);
         ambientGlow = new GradientDrawable();
         ambientGlow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
         ambientGlow.setGradientCenter(0.32f, 0.42f);
@@ -212,6 +222,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         vpnApp = cfg.vpnApp;
         moduleCards = cfg.moduleCards;
         hiddenApps = new HashSet<>(cfg.hiddenApps);
+        dockApps = DockEditor.loadDock(this, cfg.dockApps, COLUMNS);
+        appOrder = DockEditor.loadAppOrder(this, dockApps);
 
         grid = findViewById(R.id.grid);
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
@@ -220,7 +232,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.addItemDecoration(new DockDecoration(COLUMNS, density));
         grid.setLayoutAnimation(new LayoutAnimationController(
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
-        adapter = new AppAdapter(this, this, COLUMNS, cfg);
+        adapter = new AppAdapter(this, this, COLUMNS, cfg, dockApps, appOrder);
         grid.setAdapter(adapter);
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
@@ -275,7 +287,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(new Intent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> showSettingsMenu());
         btnSettings.setOnLongClickListener(v -> {
             if (!moduleCards) return false;   // off: a long press does nothing, as before the feature
             showModuleCards();
@@ -456,6 +468,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onBackPressed() {
+        if (reorderMode) {
+            finishReorder();
+            return;
+        }
         // Home screen: Back goes nowhere.
     }
 
@@ -566,6 +582,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
+        if (reorderMode) {
+            int current = reorderPosition >= 0 ? reorderPosition : position;
+            int moved = adapter.moveForReorder(current, keyCode);
+            if (moved >= 0 && moved != current) {
+                reorderPosition = moved;
+                lastFocused = moved;
+                lastFocusedKey = adapter.keyAt(moved);
+                // Persist each move immediately. OK and Back are deliberately identical: both
+                // simply leave move mode, without a second confirm/cancel decision.
+                dockApps = adapter.dockApps();
+                appOrder = adapter.appOrder();
+                DockEditor.saveDock(this, dockApps);
+                DockEditor.saveAppOrder(this, appOrder);
+                // Let RecyclerView's move animator place the tile, then put focus back on the
+                // moving card. The delayed refocus is important: during notifyItemMoved the old
+                // holder can still report itself as focused for one layout pass.
+                grid.postDelayed(() -> {
+                    if (reorderMode && reorderPosition == moved) focusTile(moved);
+                }, 220L);
+            }
+            return true;
+        }
         int count = adapter.getItemCount();
         int target;
         // Horizontal: swallow the key at a row's ends so focus never wraps to the next row or
@@ -593,7 +631,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             btnWifi.requestFocus();
             return;
         }
-        final int pos = Math.max(0, Math.min(position, adapter.getItemCount() - 1));
+        int candidate = Math.max(0, Math.min(position, adapter.getItemCount() - 1));
+        if (!adapter.isFocusableAt(candidate)) {
+            int right = candidate;
+            while (right < adapter.getItemCount() && !adapter.isFocusableAt(right)) right++;
+            int left = candidate - 1;
+            while (left >= 0 && !adapter.isFocusableAt(left)) left--;
+            candidate = right < adapter.getItemCount() ? right : left;
+        }
+        if (candidate < 0) {
+            btnWifi.requestFocus();
+            return;
+        }
+        final int pos = candidate;
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
         if (vh != null) {
             View card = vh.itemView.findViewById(R.id.card);
@@ -617,6 +667,118 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     // ---- top bar ---------------------------------------------------------------------------------
+
+    /** Settings stays a compact launcher menu so dock editing is available with only the remote. */
+    private void showSettingsMenu() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_settings, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = glassPopup(panel, (int) (285 * density));
+
+        addSettingsRow(rows, popup, R.drawable.ic_edit_dock, R.string.edit_dock, 1);
+        addSettingsRow(rows, popup, R.drawable.ic_settings, R.string.system_settings, 2);
+        if (moduleCards) addSettingsRow(rows, popup, R.drawable.ic_home_settings, R.string.module_cards, 3);
+
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            final int index = i;
+            View row = rows.getChildAt(i);
+            row.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    int next = index + (keyCode == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1);
+                    if (next >= 0 && next < rows.getChildCount()) rows.getChildAt(next).requestFocus();
+                    return true;
+                }
+                return keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
+            });
+        }
+        dropIn(popup, panel, anchor, Gravity.END);
+        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
+    private void addSettingsRow(LinearLayout rows, PopupWindow popup, int icon, int title, int action) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        ((ImageView) row.findViewById(R.id.icon)).setImageResource(icon);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        row.findViewById(R.id.status).setVisibility(View.GONE);
+        row.setOnClickListener(v -> {
+            popup.dismiss();
+            if (action == 1) showDockEditor();
+            else if (action == 2) open(new Intent(Settings.ACTION_SETTINGS));
+            else showModuleCards();
+        });
+        rows.addView(row);
+    }
+
+    private void showDockEditor() {
+        createDockEditor().show();
+    }
+
+    private DockEditor createDockEditor() {
+        final List<String> fallback = new ArrayList<>(dockApps);
+        Runnable refreshDockAndApps = () -> {
+            dockApps = DockEditor.loadDock(this, fallback, COLUMNS);
+            appOrder = DockEditor.loadAppOrder(this, dockApps);
+            adapter.setDockApps(dockApps);
+            adapter.setAppOrder(appOrder);
+            reloadTiles();
+            restoreFocus();
+        };
+        return new DockEditor(this, dockApps, COLUMNS, () -> refreshDockAndApps.run(), () -> {
+            appOrder = DockEditor.loadAppOrder(this, dockApps);
+            adapter.setAppOrder(appOrder);
+            reloadTiles();
+            restoreFocus();
+        });
+    }
+
+    @Override
+    public void onTileLongPressed(int position) {
+        if (reorderMode || (!adapter.isDockPosition(position) && !adapter.isReorderableAppAt(position))) return;
+        reorderMode = true;
+        reorderPosition = position;
+        DefaultItemAnimator moveAnimator = new DefaultItemAnimator();
+        moveAnimator.setMoveDuration(180L);
+        grid.setItemAnimator(moveAnimator);
+        reorderHint.setVisibility(View.VISIBLE);
+        reorderHint.setAlpha(0f);
+        reorderHint.setTranslationY(10 * density);
+        reorderHint.animate().alpha(1f).translationY(0f).setDuration(180).start();
+        View card = tileCardAt(position);
+        if (card != null) {
+            card.animate().scaleX(AppAdapter.FOCUS_SCALE * 1.06f)
+                    .scaleY(AppAdapter.FOCUS_SCALE * 1.06f)
+                    .setDuration(180).start();
+        }
+    }
+
+    @Override
+    public boolean onTileClicked(int position) {
+        if (!reorderMode) return false;
+        finishReorder();
+        return true;
+    }
+
+    private View tileCardAt(int position) {
+        RecyclerView.ViewHolder holder = grid.findViewHolderForAdapterPosition(position);
+        return holder == null ? null : holder.itemView.findViewById(R.id.card);
+    }
+
+    private void finishReorder() {
+        if (!reorderMode) return;
+        View selectedCard = tileCardAt(reorderPosition);
+        if (selectedCard != null) {
+            selectedCard.animate().scaleX(AppAdapter.FOCUS_SCALE)
+                    .scaleY(AppAdapter.FOCUS_SCALE)
+                    .setDuration(160).start();
+        }
+        reorderMode = false;
+        reorderPosition = -1;
+        grid.setItemAnimator(null);
+        reorderHint.animate().alpha(0f).translationY(10 * density).setDuration(150)
+                .withEndAction(() -> reorderHint.setVisibility(View.GONE)).start();
+    }
 
     private void updateGreeting() {
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);

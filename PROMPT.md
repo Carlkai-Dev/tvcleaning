@@ -4,7 +4,8 @@ Paste this into Claude Code (or another coding assistant with shell access) on a
 on the same Wi-Fi as the TV. Works on Android TV / Google TV sets (Xiaomi, TCL, Hisense, Sony,
 OnePlus, Realme, Nvidia Shield and most others). It will not work on Samsung Tizen, LG webOS or
 Fire TV. If you cloned this repo, mention that: the assistant can reuse `tools/` and `launcher/`
-instead of writing them from scratch, and only needs to edit `launcher/.../values/config.xml`.
+instead of writing them from scratch. Static dock defaults live in `launcher/.../values/config.xml`,
+while the launcher UI also supports changing the dock directly on the TV.
 
 Before you start, on the TV: Settings → Device Preferences → About → press OK on "Build" 7 times,
 then go back → Developer options → turn on USB debugging (and Network/ADB debugging if your TV
@@ -79,6 +80,32 @@ Launcher
 - Make D-pad navigation deterministic: Up/Down move exactly one row, Up from the dock goes to the top
   bar, the ends of the top bar don't fall through to tiles. Remember the last focused tile.
 - Keep it light: the TV has about 1 GB of RAM. No blur, no video, no network polling.
+
+Dock customization
+- Add an `Edit Dock` entry to the launcher Settings UI. It must open a remote-only editor with no
+  keyboard, mouse, config-file editing or computer required.
+- Show the currently pinned dock applications with their installed names and real launcher icons.
+- Use the D-pad to move between dock rows. Left/Right reorder the focused dock app, OK opens an
+  installed Android TV application picker, and Back returns to the previous level without losing
+  saved changes. Include Spotify when it is installed, without hard-coding it as a special case.
+- From the same editor, provide an `Edit App Order` action for every installed non-dock TV app that
+  appears in the launcher grid. Use the same Up/Down focus navigation and Left/Right reordering;
+  the order must apply to the grid below the dock, not just to the four pinned slots.
+- For fast remote access, holding OK on a visible dock tile or normal grid app must enter a non-modal
+  move mode directly on the home screen. The held tile stays selected, arrow keys move it in place
+  with visible animation; in the dock use Left/Right, while in the grid Left/Right moves within a
+  row and Up/Down moves between rows. OK and Back both simply exit move mode, with every move already saved.
+  Do not open another editor menu for this flow.
+- Let the user replace, add and remove apps. Keep the existing dock capacity (four apps in the
+  standard layout); do not add empty visual slots or change the layout unless the existing launcher
+  already supports more apps.
+- Persist both ordered package lists in app-private `SharedPreferences` (or an equivalent local store)
+  so dock and full-grid choices survive launcher restarts, device reboots and future APK updates.
+  User preferences have priority over `config.xml` and the optional theme `config.json`; those files
+  remain the fallback defaults for a fresh install. Never modify Android system packages or debloat
+  configuration.
+- Verify the complete flow with ADB key events and screenshots: open Settings, edit/reorder, replace,
+  remove, add, restart or update the APK, and confirm the chosen order is still shown.
 
 Verify
 - After each change, inject remote key presses over ADB, take a screenshot from the TV and look at it.
