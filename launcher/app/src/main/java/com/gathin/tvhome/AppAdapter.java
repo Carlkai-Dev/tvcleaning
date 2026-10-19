@@ -25,6 +25,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.dynamicanimation.animation.DynamicAnimation;
+import androidx.dynamicanimation.animation.SpringAnimation;
+import androidx.dynamicanimation.animation.SpringForce;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
@@ -65,6 +68,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     static final float FOCUS_SCALE = 1.10f;
+    /** How far the focused tile leans (degrees) and its banner shifts (dp) when it arrives. */
+    private static final float LEAN_DEG = 4f, PARALLAX_DP = 5f, BANNER_SCALE = 1.06f;
+    /** D-pad key that moved focus onto a tile, read once by the tile that receives it; 0 for none. */
+    private static int arrivalKey;
     /** Design size of a tile (dp); tiles shrink from here when the columns don't fit, see tileWidthPx. */
     static final float DESIGN_W_DP = 180f, DESIGN_H_DP = 101f;
 
@@ -97,6 +104,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final boolean showHomeSettings;
+    private final boolean tilt;
     private final List<Entry> items = new ArrayList<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
@@ -106,6 +114,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.favourites = cfg.dockApps;
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
+        this.tilt = cfg.tilt;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -165,7 +174,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         nameLp.width = w;
         nameLp.topMargin = h + Math.round(7 * density);
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener);
+        return new Holder(v, listener, tilt);
     }
 
     @Override
@@ -177,6 +186,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
         h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
+        h.settle();
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
             h.banner.setVisibility(View.VISIBLE);
@@ -308,14 +318,17 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final ImageView icon;
         final TextView label;
         final TextView name;
+        private final boolean tilt;
+        private SpringAnimation rotX, rotY, shiftX, shiftY;
 
-        Holder(View v, TileListener listener) {
+        Holder(View v, TileListener listener, boolean tilt) {
             super(v);
             card = v.findViewById(R.id.card);
             banner = v.findViewById(R.id.banner);
             icon = v.findViewById(R.id.icon);
             label = v.findViewById(R.id.label);
             name = v.findViewById(R.id.name);
+            this.tilt = tilt;
 
             final float density = v.getResources().getDisplayMetrics().density;
             card.setOutlineProvider(new ViewOutlineProvider() {
@@ -326,13 +339,25 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 }
             });
             card.setClipToOutline(true);
+            if (tilt) {
+                // Far camera: a few degrees read as a lean, not as a perspective trick.
+                card.setCameraDistance(8000 * density);
+                rotX = spring(card, DynamicAnimation.ROTATION_X);
+                rotY = spring(card, DynamicAnimation.ROTATION_Y);
+                shiftX = spring(banner, DynamicAnimation.TRANSLATION_X);
+                shiftY = spring(banner, DynamicAnimation.TRANSLATION_Y);
+            }
 
             card.setOnKeyListener((view, keyCode, event) -> {
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
                 if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN
                         && keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
+                arrivalKey = keyCode;
                 int pos = getBindingAdapterPosition();
-                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileVerticalKey(pos, keyCode);
+                boolean handled = listener != null && pos != RecyclerView.NO_POSITION && listener.onTileVerticalKey(pos, keyCode);
+                // Swallowed at an edge: focus stays here, so no tile will arrive to use the key.
+                if (handled && view.isFocused()) arrivalKey = 0;
+                return handled;
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
@@ -344,11 +369,55 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 name.animate().alpha(focused ? 1f : 0f)
                         .translationY(focused ? density * 4f : -density * 6f)
                         .setDuration(220).start();
+                if (focused) {
+                    lean(arrivalKey, density);
+                    arrivalKey = 0;
+                } else {
+                    settle();
+                }
                 int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);
                 }
             });
+        }
+
+        private static SpringAnimation spring(View v, DynamicAnimation.ViewProperty p) {
+            SpringAnimation s = new SpringAnimation(v, p, 0f);
+            s.getSpring().setStiffness(SpringForce.STIFFNESS_LOW).setDampingRatio(0.45f);
+            return s;
+        }
+
+        /**
+         * Arriving tile: leans the way focus travelled, its banner shifted the other way inside it, and
+         * both spring back to rest. Only rotation and translation, which the GPU does for free.
+         */
+        private void lean(int keyCode, float density) {
+            if (!tilt || keyCode == 0) return;
+            float dx = keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 0;
+            float dy = keyCode == KeyEvent.KEYCODE_DPAD_DOWN ? 1 : keyCode == KeyEvent.KEYCODE_DPAD_UP ? -1 : 0;
+            banner.setScaleX(BANNER_SCALE);   // room for the shift, so the banner's edges never show
+            banner.setScaleY(BANNER_SCALE);
+            card.setRotationY(dx * LEAN_DEG);
+            card.setRotationX(-dy * LEAN_DEG);
+            banner.setTranslationX(-dx * PARALLAX_DP * density);
+            banner.setTranslationY(-dy * PARALLAX_DP * density);
+            rotX.start();
+            rotY.start();
+            shiftX.start();
+            shiftY.start();
+        }
+
+        /** Back to rest at once: focus left, or the view is being rebound to another app. */
+        void settle() {
+            if (!tilt) return;
+            for (SpringAnimation s : new SpringAnimation[]{rotX, rotY, shiftX, shiftY}) s.cancel();
+            card.setRotationX(0f);
+            card.setRotationY(0f);
+            banner.setTranslationX(0f);
+            banner.setTranslationY(0f);
+            banner.setScaleX(1f);
+            banner.setScaleY(1f);
         }
     }
 }
