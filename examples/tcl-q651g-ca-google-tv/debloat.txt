@@ -1,0 +1,75 @@
+# TCL 50Q651G-CA, 2024 Q6/Q65 series, Canada (device G10, product G10_4K_US_NF, boot product S551G)
+# Android 12 (Google TV), firmware STT2.230203.001, software V8-R75PT01-LF1V499
+# Same platform and build as examples/tcl-g10-google-tv, so the Canadian model reports a US product name.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/tcl-q651g-ca-google-tv/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/tcl-q651g-ca-google-tv/debloat.txt com.google.android.apps.tv.launcherx
+# Windows: tools\restore.ps1 -TvHost <tv ip> examples\tcl-q651g-ca-google-tv\debloat.txt -Stock com.google.android.apps.tv.launcherx
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Stock launcher: com.google.android.apps.tv.launcherx (pass it to restore, the default is wrong here).
+# Live TV app: com.tcl.tv (keep it, it also owns HDMI/antenna playback). Keep com.tcl.tvinput,
+# com.tcl.dashboard, com.tcl.suspension, com.tcl.autopair and com.tcl.systemserver too.
+# Also kept: com.tcl.initsetup (channel installation service), com.tcl.useragreement and
+# com.tcl.providers.config (queried by other TCL apps), com.tcl.factory.view (service menu).
+# Already disabled at the factory: tv.samba.ssm.ui (Samba TV ACR). Unlike the G10, com.tcl.logkit and
+# com.tcl.ttvs ship ENABLED here, so they are listed below.
+#
+# Known quirks on this firmware:
+# - Firmware updates come through Google Play Services (com.google.android.gms/.update.SystemUpdateService),
+#   not a TCL package, so no line here blocks them. com.tcl.UpdatePeripheral only updates TCL soundbars.
+# - Disabling dreamx leaves screensaver_components pointing at it. Switch to the AOSP fallback with
+#   tools/tv.py 'settings put secure screensaver_components com.android.dreams.basic/.Colors'
+# - screencap writes an empty file while Live TV/HDMI is on screen. Press Home first.
+# - Live TV (com.tcl.tv) still opens and plays with com.tcl.ttvs disabled.
+# - The Google TV promo banner is drawn by launcherx itself, so only launcher/ removes it.
+# - With launcherx disabled, Home opens setupwraith's RecoveryActivity (a black screen, HOME priority 1)
+#   instead of a third-party launcher (priority 0); set-home-activity and the HOME role don't override
+#   it. That's why setupwraith is listed below. Run launcher/build-and-install after applying this list.
+# - The TV dropped off Wi-Fi/ADB for about a minute twice during the session (no reboot). Wait and retry.
+
+# TCL content, ads and promos
+com.tcl.tv.plus                        # TCL TV+ content app
+com.tcl.channelplus                    # TCL Live FAST channels, also removes them from Live TV
+com.tcl.tv.tclhome_passive             # pushes TCL content to the home screen at boot
+com.tcl.partnercustomizer              # TCL tweaks to Google TV home rows
+com.tcl.interactive                    # TCL TIAS background service
+com.tcl.smartlink.core                 # bundles a silent app installer (CustomInstallService)
+com.tcl.messagebox                     # TCL push messages and promos, starts at boot
+com.tcl.usercenter                     # TCL account sign-in (QR/phone binding)
+
+# TCL telemetry and background core
+com.tcl.ttvs                           # TTVS core: BI analytics, device identifier, Samba ACR video service,
+                                       # silent app updater, T-Cast phone casting. Re-enable with smartalexa.
+com.tcl.logkit                         # log collector with a floating debug window
+
+# Retail demo / store / hotel mode
+com.tcl.exhibit
+com.tcl.esticker
+com.tcl.hotelmenu                      # hotel-mode portal
+
+# Preloaded apps and services
+com.tcl.ocean.instructions             # e-manual
+com.tcl.repairguide
+com.tcl.gamebar                        # re-enable for the console game-mode overlay
+com.tcl.ui_mediaCenter                 # re-enable to play media from USB drives
+com.tcl.UpdatePeripheral               # re-enable to update a TCL soundbar
+com.tcl.smartalexa                     # Alexa built-in, needs com.tcl.ttvs
+android.autoinstalls.config.google.gtvpai
+com.google.android.feedback
+com.google.android.marvin.talkback
+com.google.android.apps.tv.dreamx      # ambient mode screensaver, see quirks above
+com.google.android.apps.mediashell     # Chromecast built-in, re-enable to cast from phone apps
+
+# Needed for a third-party launcher (see quirks above)
+com.google.android.tungsten.setupwraith  # setup wizard; its RecoveryActivity otherwise takes Home
+
+# Optional: uncomment what you don't use (kept on the reference TV)
+# com.google.android.tv.remote.service # Google TV phone-app remote
+# com.google.android.katniss           # Google Assistant, search and the remote's mic button
+# com.tcl.airplay2                     # AirPlay, together with the next line
+# com.realtek.airplay2
+# com.netflix.ninja                    # Netflix, together with the next line
+# com.netflix.tokenmanager
+# com.amazon.amazonvideo.livingroom    # Prime Video
+# com.google.android.youtube.tv

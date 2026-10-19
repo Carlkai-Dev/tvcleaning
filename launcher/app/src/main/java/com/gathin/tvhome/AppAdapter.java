@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
@@ -19,7 +20,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
-import android.view.animation.OvershootInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -36,15 +37,18 @@ import java.util.Set;
 
 /**
  * App tiles. The first {@link MainActivity#COLUMNS} positions are the pinned dock (favourites, fixed order),
- * the rest is alphabetical.
+ * the rest is alphabetical, until tiles are moved from the tile menu on the TV: then that saved order wins.
  */
 public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     interface TileListener {
         void onTileFocused(int position, View card);
 
-        /** Called for D-pad Up/Down on a tile. Return true when handled. */
-        boolean onTileVerticalKey(int position, int keyCode);
+        /** Every key event on a tile (down and up). Return true when handled. */
+        boolean onTileKey(int position, View card, KeyEvent event);
+
+        /** Long-press OK on a tile. */
+        void onTileMenu(int position, View card);
     }
 
     static final class Entry {
@@ -73,7 +77,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
+    /** Hidden from the tile menu on the TV (packages), and the tile order set there (keys, dock first). */
+    private final SharedPreferences prefs;
+    private final Set<String> userHidden;
+    private List<String> savedOrder;
     private final List<Entry> items = new ArrayList<>();
+    private final List<Entry> hiddenItems = new ArrayList<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize) {
         this.ctx = ctx;
@@ -81,6 +90,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.dockSize = dockSize;
         this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
+        this.prefs = ctx.getSharedPreferences("layout", Context.MODE_PRIVATE);
+        this.userHidden = new HashSet<>(prefs.getStringSet("hidden", Collections.emptySet()));
+        String order = prefs.getString("order", "");
+        this.savedOrder = order.isEmpty() ? new ArrayList<>() : Arrays.asList(order.split("\n"));
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -91,6 +104,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         List<Entry> fresh = new ArrayList<>();
+        hiddenItems.clear();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
@@ -99,7 +113,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
             String label = String.valueOf(ri.loadLabel(pm));
-            fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
+            Entry e = new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon);
+            (userHidden.contains(pkg) ? hiddenItems : fresh).add(e);
         }
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
@@ -110,9 +125,62 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             }
             return a.label.compareToIgnoreCase(b.label);
         });
+        // Once tiles have been moved on the TV, that order wins; apps installed since go at the end.
+        if (!savedOrder.isEmpty()) {
+            Collections.sort(fresh, (a, b) -> Integer.compare(orderIndex(a), orderIndex(b)));
+        }
+        Collections.sort(hiddenItems, (a, b) -> a.label.compareToIgnoreCase(b.label));
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    private int orderIndex(Entry e) {
+        int i = savedOrder.indexOf(e.component.flattenToShortString());
+        return i < 0 ? Integer.MAX_VALUE : i;
+    }
+
+    /** Moves a tile (shifting the others) and rebinds the range, since the dock hides labels by position. */
+    void move(int from, int to) {
+        items.add(to, items.remove(from));
+        notifyItemMoved(from, to);
+        notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
+    }
+
+    void saveOrder() {
+        List<String> keys = new ArrayList<>();
+        for (Entry e : items) keys.add(e.component.flattenToShortString());
+        savedOrder = keys;
+        prefs.edit().putString("order", String.join("\n", keys)).apply();
+    }
+
+    void hide(int position) {
+        if (position < 0 || position >= items.size()) return;
+        saveOrder();   // keep everyone else where they are
+        userHidden.add(items.get(position).pkg);
+        prefs.edit().putStringSet("hidden", new HashSet<>(userHidden)).apply();
+        reload();
+    }
+
+    void unhide(String pkg) {
+        userHidden.remove(pkg);
+        prefs.edit().putStringSet("hidden", new HashSet<>(userHidden)).apply();
+        reload();
+    }
+
+    /** Apps hidden from the tile menu, alphabetical. */
+    List<Entry> hiddenApps() {
+        return hiddenItems;
+    }
+
+    void openAppInfo(int position) {
+        if (position < 0 || position >= items.size()) return;
+        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + items.get(position).pkg));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            ctx.startActivity(i);
+        } catch (ActivityNotFoundException ignored) {
+        }
     }
 
     @NonNull
@@ -146,12 +214,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
-            }
+            int pos = h.getBindingAdapterPosition();
+            if (listener != null && pos != RecyclerView.NO_POSITION) listener.onTileMenu(pos, v);
             return true;
         });
     }
@@ -272,17 +336,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             card.setClipToOutline(true);
 
             card.setOnKeyListener((view, keyCode, event) -> {
-                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN) return false;
                 int pos = getBindingAdapterPosition();
-                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileVerticalKey(pos, keyCode);
+                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileKey(pos, view, event);
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
                 float s = focused ? FOCUS_SCALE : 1.0f;
                 view.animate().scaleX(s).scaleY(s)
-                        .setDuration(focused ? 260 : 180)
-                        .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
+                        .setDuration(focused ? 240 : 180)
+                        .setInterpolator(new DecelerateInterpolator(1.5f))
                         .start();
                 name.animate().alpha(focused ? 1f : 0f)
                         .translationY(focused ? density * 4f : -density * 6f)

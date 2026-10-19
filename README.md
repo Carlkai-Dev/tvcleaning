@@ -76,10 +76,14 @@ A home screen that is yours again:
 - **The rest of your apps in a grid** that slides up when you press Down.
 - **One floating glass highlight** that springs from tile to tile instead of each tile drawing its
   own border. The focused tile lifts slightly and shows its name.
-- **Three frosted buttons**: Inputs (a dropdown of HDMI ports, AV and Live TV), Wi-Fi (showing the
-  network you're on) and Settings.
-- **A greeting, a large thin clock and the date**, set in
-  [Outfit](https://fonts.google.com/specimen/Outfit).
+- **One frosted button in the top corner** that drops down Inputs (HDMI ports, AV and Live TV),
+  Wi-Fi (showing the network you're on) and Settings.
+- **A large thin clock and the date**, with everything set in
+  [Google Sans Flex](https://fonts.google.com/specimen/Google+Sans+Flex).
+- **Rearrange and hide apps on the TV**: hold OK on a tile to move it (the others slide out of the
+  way), hide it, or bring hidden apps back.
+- **Optional background art**: public-domain landscape paintings behind the dock, changing every
+  ten minutes. Off by default, since it's the only feature that goes online.
 - **A matching Clock screensaver**, optional, that drifts around the screen so nothing burns in.
 
 And a TV that stops working against you: no sponsored rows, no "Discover" nags, no analytics
@@ -255,5 +259,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the format and the testing we ask for
 
 ## Licence
 
-MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
-`launcher/FONT-LICENSE-OFL.txt`.
+MIT, see [`LICENSE`](LICENSE). The Google Sans Flex typeface is under the SIL Open Font License,
+see `launcher/FONT-LICENSE-GOOGLE-SANS-FLEX-OFL.txt`; "Google Sans" is a trademark of Google LLC.

@@ -35,6 +35,13 @@ public class GlassView extends View {
         glow.setStyle(Paint.Style.STROKE);
     }
 
+    /** Move mode: a blue, heavier rim so it's clear the arrows now move the tile. */
+    void setMoving(boolean moving) {
+        rim.setColor(moving ? 0xFF7CC4FF : 0xCCFFFFFF);
+        rim.setStrokeWidth((moving ? 3f : 1.5f) * density);
+        invalidate();
+    }
+
     void setRadius(float px) {
         radius = px;
         invalidate();
