@@ -190,17 +190,18 @@ Windows venv and disable MSYS path rewriting themselves.
 ## The launcher
 
 A small native Android TV app (`com.gathin.tvhome`, about 250 KB installed), written in plain Java with
-AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM: no blur, no
-video, no network, no background services.
+AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM: no live blur, no
+video, no network, no background services. The extras below (shadow and sheen, tilt, magnify,
+sounds) are off by default; switch them on only if your TV stays smooth.
 
 **Configure** it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
 the dock order, apps to hide, your TV's Live TV package, the number of columns (tiles shrink to fit
 from 5 columns up), and how many grid rows stay visible under the dock (`rows_below_dock`). The Inputs button hides itself on sticks and
 boxes that have no HDMI or tuner.
 
-**On the TV**, hold the Settings pill for *Home settings*: Lite mode (no animations or effects, the
-fastest Home), animations, effects, tilt, glass frame, sounds, background and tiles per row, a reset,
-and *Go back to Google TV home*, which opens the stock home's App info page so you can press Enable
+**On the TV**, hold the Settings pill for *Home settings*: Lite mode (no animations, effects or sounds,
+the fastest Home), animations, effects, shadow and sheen, tilt, magnify, glass frame, sounds, background
+and tiles per row, a reset, and *Go back to Google TV home*, which opens the stock home's App info page so you can press Enable
 from the remote. Choices made there win over a pushed theme.
 
 **Themes** change the same settings, plus a background colour and a wallpaper, without a rebuild:
