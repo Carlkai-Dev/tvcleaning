@@ -62,7 +62,8 @@
             android:name=".BootReceiver"
             android:directBootAware="true"
             android:exported="true">
-            <intent-filter>
+            <!-- Boot broadcasts are ordered: ask to be early in the queue. -->
+            <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>

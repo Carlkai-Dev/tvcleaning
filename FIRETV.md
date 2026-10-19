@@ -27,9 +27,10 @@ So the launcher works around it instead of replacing it:
   (signature|privileged), so "All settings" opens Amazon's own Settings row and the watcher leaves Amazon's home alone
   while you are in it, including screens opened from it. Leaving the row with Back (Amazon logs
   `SettingsNodePresenterDI onStop` while its home is still resumed) or pressing Home returns to the launcher.
-- `BootReceiver` brings the launcher up after a reboot. It listens for `LOCKED_BOOT_COMPLETED` as well:
-  `BOOT_COMPLETED` is handed to about 100 apps one at a time and reached this one about 65 s after Amazon's home
-  appeared, while the locked-boot broadcast reached it in about 7 s.
+- `BootReceiver` brings the launcher up after a reboot. It listens for `LOCKED_BOOT_COMPLETED` as well and asks for
+  priority 1000 in these ordered broadcasts. Plain `BOOT_COMPLETED` at default priority reached it about 65 s after
+  Amazon's home appeared; with both, the receiver runs before Amazon's home has even started, and the launcher is
+  started while the boot animation is still up.
 
 Tested on the stick. Most Home presses were injected with `adb shell input`. One was a kernel-level `KEY_HOME` written
 with `sendevent` to the stick's IR receiver (`/dev/input/event0`), which takes the same path as a physical button. The
@@ -48,10 +49,10 @@ Bluetooth remote itself was not pressed.
 | Search key | Amazon's text search, Back returns to the launcher |
 | Clock screensaver | Runs (tested with a 20 s idle timeout, then put back) |
 | `am kill` of the watcher with Netflix in front | Refused; the process survives |
-| Reboot | Amazon's home visible ~5 s (boot animation ends → launcher process starts) |
+| Reboot | Receiver runs before Amazon's home starts; screenshots every ~2 s show boot logo → launcher, no Amazon home |
 
 What is left: after Home, the launcher snapshot is not interactive for about five seconds (presses are replayed after).
-Amazon's home shows for about 5 s after a reboot. Amazon's launcher stays in RAM (77–130 MB PSS measured), because
+ Amazon's launcher stays in RAM (77–130 MB PSS measured), because
 Fire OS will not let it be killed.
 
 ## Install
