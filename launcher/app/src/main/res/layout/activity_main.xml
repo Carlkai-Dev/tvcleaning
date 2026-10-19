@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FF000000">
+
+    <com.gathin.tvhome.AtmosphereView
+        android:id="@+id/atmosphere"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.42"
+        android:importantForAccessibility="no" />
 
     <!-- Ambient glow in the colour of the focused dock app. -->
     <View
@@ -11,6 +20,16 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0" />
+
+    <ImageView
+        android:id="@+id/folderBackdrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:alpha="0.88"
+        android:visibility="gone"
+        android:importantForAccessibility="no"
+        android:contentDescription="@null" />
 
     <!-- Top shelf: the focused dock app's name, positioned above the dock in code. -->
     <TextView
@@ -36,6 +55,7 @@
         android:paddingTop="26dp">
 
         <RelativeLayout
+            android:id="@+id/topBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
@@ -160,8 +180,7 @@
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
                     android:text="@string/inputs"
-                    android:drawableStart="@drawable/ic_input"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_input" />
 
                 <TextView
                     android:id="@+id/btnWifi"
@@ -170,38 +189,71 @@
                     android:singleLine="true"
                     android:ellipsize="end"
                     android:text="@string/wifi"
-                    android:drawableStart="@drawable/ic_wifi"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_wifi" />
 
                 <TextView
                     android:id="@+id/btnSettings"
                     style="@style/TopButton"
                     android:text="@string/settings"
-                    android:drawableStart="@drawable/ic_settings"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_settings" />
             </LinearLayout>
         </RelativeLayout>
 
-        <!-- The wrapper clips at the grid's edge; the grid itself must not clip so scaled tiles can overflow their cells. -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginTop="10dp">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/grid"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:paddingTop="10dp"
-                android:paddingBottom="40dp"
-                android:clipToPadding="false"
-                android:clipChildren="false"
-                android:overScrollMode="never"
-                android:scrollbars="none"
-                android:descendantFocusability="afterDescendants" />
-        </FrameLayout>
     </LinearLayout>
+
+    <View
+        android:id="@+id/folderPanel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginStart="164dp"
+        android:layout_marginEnd="164dp"
+        android:layout_marginTop="78dp"
+        android:layout_marginBottom="28dp"
+        android:visibility="gone"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/folderTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="52dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="12dp"
+        android:minWidth="130dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:gravity="center"
+        android:fontFamily="@font/outfit"
+        android:textSize="25sp"
+        android:textColor="#FFFFFFFF"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:maxWidth="600dp"
+        android:background="@drawable/pill_bg"
+        android:focusable="true"
+        android:clickable="true"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/gridHost"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="12dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/grid"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="28dp"
+            android:paddingBottom="40dp"
+            android:clipToPadding="false"
+            android:clipChildren="false"
+            android:overScrollMode="never"
+            android:scrollbars="none"
+            android:descendantFocusability="afterDescendants" />
+    </FrameLayout>
 
     <!-- The single floating glass highlight that springs between tiles. -->
     <com.gathin.tvhome.GlassView

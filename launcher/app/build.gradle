@@ -10,8 +10,9 @@ android {
         applicationId 'com.gathin.tvhome'
         minSdk 26
         targetSdk 34
-        versionCode 2
-        versionName '2.0'
+        versionCode 13
+        versionName '3.10'
+        testInstrumentationRunner project.findProperty('launcherTestRunner') ?: 'com.gathin.tvhome.LauncherSmoke'
     }
 
     buildTypes {

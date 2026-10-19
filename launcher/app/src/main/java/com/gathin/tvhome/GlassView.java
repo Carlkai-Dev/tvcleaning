@@ -1,74 +1,74 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
-import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
 
-/**
- * A translucent glass slab: soft sheen fill, bright top specular, crisp rim and a faint outer glow.
- * One instance floats over the grid and is moved with spring animations between tiles.
- */
+/** App-coloured, diffused focus light outside the tile. The artwork stays completely untouched. */
 public class GlassView extends View {
-
-    private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint specular = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final RectF rect = new RectF();
-    private final Path clip = new Path();
+    static final float HALO_INSET_DP = 12f;
+    private final Paint light = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final Paint maskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF tile = new RectF();
     private final float density;
     private float radius;
+    private int tint;
+    private Bitmap mask;
+    private boolean maskDirty = true;
 
     public GlassView(Context context, AttributeSet attrs) {
         super(context, attrs);
         density = getResources().getDisplayMetrics().density;
-        radius = 20f * density;
-        rim.setStyle(Paint.Style.STROKE);
-        rim.setStrokeWidth(1.5f * density);
-        rim.setColor(0xCCFFFFFF);
-        glow.setStyle(Paint.Style.STROKE);
+        radius = 22f * density;
+        setTint(0xFFB7C1C5);
     }
 
-    void setRadius(float px) {
-        radius = px;
+    void setTint(int color) {
+        int opaque = 0xFF000000 | color;
+        if (tint == opaque) return;
+        tint = opaque;
+        light.setColorFilter(new PorterDuffColorFilter(opaque, PorterDuff.Mode.SRC_IN));
         invalidate();
     }
 
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-        fill.setShader(new LinearGradient(0, 0, 0, h, 0x3DFFFFFF, 0x12FFFFFF, Shader.TileMode.CLAMP));
-        specular.setShader(new LinearGradient(0, 0, 0, h * 0.45f, 0x66FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
+    void setRadius(float px) {
+        if (radius == px) return;
+        radius = px;
+        maskDirty = true;
+        invalidate();
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        float inset = 6f * density;   // room for the glow
-        rect.set(inset, inset, getWidth() - inset, getHeight() - inset);
+    @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        maskDirty = true;
+    }
 
-        // Outer glow: three widening, fading strokes.
-        for (int i = 1; i <= 3; i++) {
-            glow.setStrokeWidth(i * 2f * density);
-            glow.setColor((0x30 / i) << 24 | 0xFFFFFF);
-            float o = i * density;
-            canvas.drawRoundRect(rect.left - o, rect.top - o, rect.right + o, rect.bottom + o, radius + o, radius + o, glow);
-        }
+    private void rebuildMask() {
+        if (mask != null) mask.recycle();
+        mask = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas cached = new Canvas(mask);
+        float inset = HALO_INSET_DP * density;
+        tile.set(inset, inset, getWidth() - inset, getHeight() - inset);
+        maskPaint.setColor(0xFFFFFFFF);
+        // Skia blurs into this tiny cache once per tile size, never into a live software layer.
+        maskPaint.setShadowLayer(4.5f * density, 0f, 2f * density, 0xB8FFFFFF);
+        cached.drawRoundRect(tile, radius, radius, maskPaint);
+        maskPaint.clearShadowLayer();
+        maskPaint.setXfermode(new android.graphics.PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+        cached.drawRoundRect(tile, radius, radius, maskPaint);
+        maskPaint.setXfermode(null);
+        maskDirty = false;
+    }
 
-        canvas.drawRoundRect(rect, radius, radius, fill);
-
-        clip.reset();
-        clip.addRoundRect(rect, radius, radius, Path.Direction.CW);
-        canvas.save();
-        canvas.clipPath(clip);
-        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + rect.height() * 0.45f, specular);
-        canvas.restore();
-
-        canvas.drawRoundRect(rect, radius, radius, rim);
+    @Override protected void onDraw(Canvas canvas) {
+        if (getWidth() <= 0 || getHeight() <= 0) return;
+        if (maskDirty) rebuildMask();
+        canvas.drawBitmap(mask, 0, 0, light);
     }
 }

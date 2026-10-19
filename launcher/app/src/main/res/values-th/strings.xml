@@ -30,4 +30,21 @@
     <string name="app_order_saved">บันทึกลำดับแล้ว</string>
     <string name="app_order_cancelled">ยกเลิกการย้ายแล้ว</string>
     <string name="app_order_failed">บันทึกลำดับไม่ได้ กด OK เพื่อลองอีกครั้ง หรือกดย้อนกลับเพื่อยกเลิก</string>
+    <string name="move_to">เพิ่มลงในโฟลเดอร์</string>
+    <string name="new_folder">โฟลเดอร์ใหม่</string>
+    <string name="rename_folder">เปลี่ยนชื่อโฟลเดอร์</string>
+    <string name="folder_name">ชื่อโฟลเดอร์</string>
+    <string name="folder_default_name">ความบันเทิง</string>
+    <string name="folder_description">%1$s, โฟลเดอร์</string>
+    <string name="move_to_home">หน้าจอหลัก</string>
+    <string name="done">เสร็จสิ้น</string>
+    <string name="cancel">ยกเลิก</string>
+    <string name="folder_save_failed">บันทึกการเปลี่ยนแปลงไม่ได้ โปรดลองอีกครั้ง</string>
+    <string name="folder_move_hint">กำลังย้าย %1$s · %2$d จาก %3$d\n← ↑ ↓ → ย้าย · OK บันทึก · กลับ ยกเลิก</string>
+    <string name="home_settings">หน้าจอหลักเริ่มต้น</string>
+    <string name="home_settings_help">เลือกหน้าจอหลักในการตั้งค่าระบบ แล้วกดปุ่มหน้าหลัก</string>
+    <string name="home_key_name">ปุ่มหน้าหลัก</string>
+    <string name="home_key_description">เปิดตัวเรียกใช้นี้ด้วยปุ่มหน้าหลักบนรีโมต</string>
+    <string name="input_key_service_description">เปิดตัวเลือกอินพุตเมื่อกดปุ่มอินพุตบนรีโมต</string>
+    <string name="unnamed_folder">โฟลเดอร์ไม่มีชื่อ</string>
 </resources>

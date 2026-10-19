@@ -78,13 +78,17 @@ first time; with this repo as context, people report about fifteen minutes.
 
 A home screen that is yours again:
 
-- **Pitch-black background** and a dock of your four favourite apps at the bottom, in a lighter
-  rounded band, exactly where Apple TV puts it.
+- **A softly coloured backdrop** and a translucent dock of your favourite apps at the bottom,
+  with a broad, frosted glass band and a lit upper edge inspired by Apple TV.
 - **A top shelf** showing the focused app's name in large type, with an ambient glow in a colour
   taken from the app's own artwork.
-- **The rest of your apps in a grid** that slides up when you press Down.
-- **One floating glass highlight** that springs from tile to tile instead of each tile drawing its
-  own border. The focused tile lifts slightly and shows its name.
+- **A full-screen, six-column app grid** that slides up when you press Down from the dock.
+- **Folders with 2×2 app previews** and a three-column glass panel. Hold OK for **Add to Folder → New Folder**,
+  or choose an existing folder. Previews show up to four apps; all apps remain available inside.
+  Names can be left blank. Rename a folder from its menu or, when named, its title; move its last app
+  back to **Home Screen** to remove the folder.
+- **A soft focus halo in each app’s colour**, with a lifted tile and a name below it.
+  The halo leaves the app artwork untouched, without a white frame or frosted overlay.
 - **Three frosted buttons**: Inputs (a dropdown of HDMI ports, AV and Live TV), Wi-Fi (showing the
   network you're on) and Settings.
 - **A greeting, a large thin clock and the date**, set in
@@ -190,20 +194,50 @@ Windows venv and disable MSYS path rewriting themselves.
 ## The launcher
 
 A small native Android TV app (`com.gathin.tvhome`, about 250 KB installed), written in plain Java with
-AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM: no blur, no
-video, no network, no background services.
+AndroidX RecyclerView and nothing heavier. It is built for sets with 1 GB of RAM: static colour
+fields and translucent glass surfaces, with no live blur, video, network requests, or background services.
+Opening a folder softens one 160-pixel-wide snapshot of Home behind the panel.
+App menus and folder dialogs blur a small snapshot of their own bounds once when opened.
+The material approximates the screenshots on older Android TVs; it does not use Apple’s native
+Liquid Glass renderer.
 
 **Reorder apps** from the remote: hold OK on a tile to open its menu, then choose **Move**.
 The menu appears beside that tile, switching sides near the screen edge. Use the D-pad to move
 it, OK to save, or Back to cancel the whole move. Apps shift to make room, including across the
-first-row dock. **App settings** remains in the same menu. Saved order survives restarts and
+first-row dock. **App settings** remains in the same menu. Saved order, folder names and membership survive restarts and
 app updates; newly discovered apps follow the saved apps. Leaving Home cancels an unconfirmed move.
+The same controls reorder apps inside a folder. Press Back to close a folder or return from the
+expanded app grid; pressing Home returns to the first dock tile. Existing saved orders migrate
+automatically, and the original `app-order-v1.json` remains intact.
 Once customized, your order takes precedence over the theme's dock order; theme colours, wallpaper,
 hidden apps, and column count still apply.
 
+**Development checks:** run `./gradlew :app:testDebugUnitTest :app:assembleRelease :app:lintRelease`
+from `launcher/`. The `LauncherSmoke` instrumentation runner checks native D-pad navigation,
+long-press actions, move cancellation, folder persistence and layout, including a 36-app library.
+Build `:app:assembleDebug :app:assembleDebugAndroidTest`, install both APKs on an Android TV emulator,
+then run `adb -s emulator-5554 shell am instrument -w com.gathin.tvhome.test/com.gathin.tvhome.LauncherSmoke`.
+It uses synthetic artwork and refuses to run on physical TVs. Screenshots are saved under the app’s
+external files directory in `ui-smoke/`.
+For the longer navigation regression suite, build the test APK with
+`./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -PlauncherTestRunner=com.gathin.tvhome.NavigationSmoke`,
+install both APKs on the emulator, and run
+`adb -s emulator-5554 shell am instrument -w com.gathin.tvhome.test/com.gathin.tvhome.NavigationSmoke`.
+It checks every column across off-screen and partial rows, queued/held keys, interrupted transitions,
+focus retries, folder navigation, rearrangement cancellation, and Home/resume. Both runners use synthetic
+inventory and must only run on an emulator.
+The focused header regression runner is `com.gathin.tvhome.TopBarSmoke`; select it with the same
+`launcherTestRunner` property. It tests Down from Inputs, Wi-Fi, and Settings in every dock column,
+rapid header movement, late platform focus restoration, and boxes with no Inputs button.
+`com.gathin.tvhome.TransitionSmoke` samples expansion/collapse frames, checks that the grid moves
+without relayout or reverse jumps, and covers quick reversals, Home/pause interruptions, and queued Down
+presses. The dock and expanded grid share one layout; only the grid host translates during the slide.
+`com.gathin.tvhome.MenuSmoke` checks menu blur, edge placement, remote focus and move cancellation.
+`LauncherSmoke` also covers blank folder names, persistence, and navigation without a folder title.
+
 **Configure** it in [`launcher/app/src/main/res/values/config.xml`](launcher/app/src/main/res/values/config.xml):
 the dock order, apps to hide, your TV's Live TV package, the number of columns (tiles shrink to fit
-from 5 columns up), and how many grid rows stay visible under the dock (`rows_below_dock`). The Inputs button hides itself on sticks and
+from 5 columns up; 6 by default), and how many grid rows stay visible under the dock (`rows_below_dock`). The Inputs button hides itself on sticks and
 boxes that have no HDMI or tuner.
 
 **Themes** change the same settings, plus a background colour and a wallpaper, without a rebuild:

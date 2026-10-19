@@ -45,30 +45,41 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
         boolean onTileClicked();
 
+        void onFolderOpened(String key);
+
+        void onTileFocusFrame(View card);
+
         /** Called for a D-pad direction key on a tile. Return true when handled (focus stays put). */
         boolean onTileVerticalKey(int position, int keyCode);
     }
 
     static final class Entry {
         final String label;
+        final String key;
         final ComponentName component;
         final String pkg;
         final Drawable banner;
         final Drawable icon;
         int ambient;
+        Drawable glyph;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
             this.label = label;
             this.component = component;
+            this.key = component.flattenToShortString();
             this.pkg = component.getPackageName();
             this.banner = banner;
             this.icon = icon;
+        }
+        Entry(String key, String label, Drawable preview) {
+            this.key = key; this.label = label; this.component = null;
+            this.pkg = null; this.banner = preview; this.icon = null;
         }
     }
 
     static final float FOCUS_SCALE = 1.10f;
     /** Design size of a tile (dp); tiles shrink from here when the columns don't fit, see tileWidthPx. */
-    static final float DESIGN_W_DP = 180f, DESIGN_H_DP = 101f;
+    static final float DESIGN_W_DP = 180f, DESIGN_H_DP = 108f;
 
     /**
      * Tile width for a grid of this inner width: the cell minus room for the focus zoom and the glass
@@ -100,13 +111,49 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Set<String> hidden;
     private final boolean showHomeSettings;
     private final List<Entry> items = new ArrayList<>();
-    private final AppOrderStore orderStore;
+    private final HomeLayoutStore layoutStore;
+    private HomeLayout layout = new HomeLayout();
+    private final java.util.Map<String, Entry> inventory = new java.util.LinkedHashMap<>();
+    private String activeFolder;
+    private int columns;
+
+    HomeLayout snapshotLayout() { return layout.copy(); }
+    String activeFolder() { return activeFolder; }
+    int columns() { return columns; }
+    boolean isFolder(int position) { return layout.folders.containsKey(keyAt(position)); }
+    HomeLayout.Folder folder(String key) { return layout.folders.get(key); }
+    void showFolder(String key) { activeFolder = key; columns = key == null ? dockSize : 3; rebuild(); }
+    void restoreLayout(HomeLayout saved) { layout = saved.copy(); rebuild(); }
+
+    private void rebuild() {
+        if (activeFolder != null && !layout.folders.containsKey(activeFolder)) activeFolder = null;
+        columns = activeFolder == null ? dockSize : 3;
+        items.clear();
+        List<String> available = new ArrayList<>(inventory.keySet());
+        for (String key : layout.visible(activeFolder, available)) {
+            HomeLayout.Folder folder = layout.folders.get(key);
+            if (folder == null) items.add(inventory.get(key));
+            else {
+                List<Drawable> art = new ArrayList<>();
+                for (String app : folder.apps) {
+                    Entry e = inventory.get(app);
+                    if (e != null) {
+                        Drawable d = e.banner != null ? e.banner : e.icon;
+                        art.add(d != null && d.getConstantState() != null ? d.getConstantState().newDrawable().mutate() : d);
+                    }
+                }
+                items.add(new Entry(key, folder.name, new FolderPreviewDrawable(art)));
+            }
+        }
+        notifyDataSetChanged();
+    }
     private String movingKey;
     private String menuKey;
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
         this.ctx = ctx;
-        this.orderStore = new AppOrderStore(ctx);
+        this.layoutStore = new HomeLayoutStore(ctx);
+        this.columns = dockSize;
         this.listener = listener;
         this.dockSize = dockSize;
         this.favourites = cfg.dockApps;
@@ -148,9 +195,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                     new ComponentName(ctx, HomeSettingsActivity.class), null,
                     ctx.getDrawable(R.drawable.ic_home_settings)));
         }
-        items.clear();
-        items.addAll(fresh);
-        applyOrder(orderStore.read());
+        inventory.clear();
+        for (Entry entry : fresh) inventory.put(entry.key, entry);
+        layout = layoutStore.read();
+        layout.reconcile(new ArrayList<>(inventory.keySet()));
+        rebuild();
     }
 
     @NonNull
@@ -160,7 +209,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         float density = parent.getResources().getDisplayMetrics().density;
         int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
         int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
-        int w = tileWidthPx(inner, dockSize, density), h = tileHeightPx(w);
+        int w = tileWidthPx(inner, columns, density), h = tileHeightPx(w);
         View card = v.findViewById(R.id.card);
         ViewGroup.LayoutParams cardLp = card.getLayoutParams();
         cardLp.width = w;
@@ -177,17 +226,47 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     @Override
     public void onBindViewHolder(@NonNull Holder h, int position) {
         Entry e = items.get(position);
-        h.name.setText(e.label);
-        h.name.setVisibility(position < dockSize || movingKey != null ? View.INVISIBLE : View.VISIBLE);
-        // Move mode names the selected app in its persistent hint instead of duplicating a label underneath.
-        h.card.setActivated(e.component.flattenToShortString().equals(movingKey)
-                || e.component.flattenToShortString().equals(menuKey));
+        float d = ctx.getResources().getDisplayMetrics().density;
+        RecyclerView parent = (RecyclerView) h.itemView.getParent();
+        if (parent != null) {
+            int w = tileWidthPx(parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight(), columns, d);
+            int height = tileHeightPx(w);
+            ViewGroup.LayoutParams cardLp = h.card.getLayoutParams();
+            cardLp.width = w; cardLp.height = height; h.card.setLayoutParams(cardLp);
+            ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) h.name.getLayoutParams();
+            nameLp.width = w; nameLp.topMargin = height + Math.round(7 * d); h.name.setLayoutParams(nameLp);
+        }
+        h.card.setBackground(isFolder(position) ? new GlassPanelDrawable(d, 16) : ctx.getDrawable(R.drawable.tile_bg));
+        android.text.SpannableString caption = new android.text.SpannableString("●  " + e.label);
+        caption.setSpan(new FocusDotSpan(d), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        h.name.setText(caption);
+        h.name.setVisibility(e.label.isEmpty() || (activeFolder == null && position < dockSize) || movingKey != null ? View.INVISIBLE : View.VISIBLE);
+        // Keep captions quiet during rearrangement; the lifted app and direction handles show selection.
+        h.card.setActivated(e.key.equals(movingKey)
+                || e.key.equals(menuKey));
         boolean focused = h.card.isFocused() || h.card.isActivated();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.animate().cancel();
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
         h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
-        if (e.banner != null) {
+        boolean glyphTile = "com.spotify.tv.android".equals(e.pkg) && e.icon != null;
+        h.banner.setPadding(0, 0, 0, 0);
+        h.banner.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        if (glyphTile) {
+            // The reference uses Spotify's large glyph, without duplicating its wordmark in the tile.
+            android.graphics.drawable.GradientDrawable backing = new android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                    new int[]{0xFF242624, 0xFF101311});
+            h.card.setBackground(backing);
+            int inset = Math.round(h.card.getLayoutParams().height * .06f);
+            h.banner.setPadding(inset, inset, inset, inset);
+            h.banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            if (e.glyph == null) e.glyph = spotifyGlyph(e.icon);
+            h.banner.setImageDrawable(e.glyph);
+            h.banner.setVisibility(View.VISIBLE);
+            h.icon.setVisibility(View.GONE);
+            h.label.setVisibility(View.GONE);
+        } else if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
             h.banner.setVisibility(View.VISIBLE);
             h.icon.setVisibility(View.GONE);
@@ -200,19 +279,17 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.label.setText(e.label);
             h.label.setVisibility(View.VISIBLE);
         }
-        h.card.setContentDescription(e.label);
-        boolean moving = e.component.flattenToShortString().equals(movingKey);
-        android.graphics.drawable.GradientDrawable outline = null;
-        if (moving) {
-            float d = ctx.getResources().getDisplayMetrics().density;
-            outline = new android.graphics.drawable.GradientDrawable();
-            outline.setColor(Color.TRANSPARENT);
-            outline.setCornerRadius(cornerRadius(h.card.getLayoutParams().width, d));
-            outline.setStroke(Math.round(3 * d), Color.WHITE, 8 * d, 5 * d);
-        }
-        h.card.setForeground(outline);
+        h.card.setContentDescription(isFolder(position) ? e.label.isEmpty()
+                ? ctx.getString(R.string.unnamed_folder) : ctx.getString(R.string.folder_description, e.label) : e.label);
+        boolean moving = e.key.equals(movingKey);
+        h.card.setElevation((moving ? 9 : 3) * d);
+        h.card.setTranslationZ(focused ? 4 * d : 0f);
+        h.card.setForeground(null);
         h.card.setOnClickListener(v -> {
-            if (listener == null || !listener.onTileClicked()) launch(e);
+            if (listener == null || !listener.onTileClicked()) {
+                if (e.component == null) { if (listener != null) listener.onFolderOpened(e.key); }
+                else launch(e);
+            }
         });
         h.card.setOnLongClickListener(v -> {
             int pos = h.getBindingAdapterPosition();
@@ -223,22 +300,24 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     List<String> keys() {
         List<String> result = new ArrayList<>();
-        for (Entry entry : items) result.add(entry.component.flattenToShortString());
+        for (Entry entry : items) result.add(entry.key);
         return result;
     }
 
     void applyOrder(List<String> order) {
         List<String> keys = AppOrder.reconcile(keys(), order);
         java.util.Map<String, Entry> entries = new java.util.HashMap<>();
-        for (Entry entry : items) entries.put(entry.component.flattenToShortString(), entry);
+        for (Entry entry : items) entries.put(entry.key, entry);
         items.clear();
         for (String key : keys) items.add(entries.get(key));
+        layout.reorder(activeFolder, keys());
         notifyDataSetChanged();
     }
 
     void move(int from, int to) {
         if (from == to) return;
         items.add(to, items.remove(from));
+        layout.reorder(activeFolder, keys());
         notifyItemMoved(from, to);
         // Positions determine dock labels as well as decoration, even for displaced neighbours.
         notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
@@ -255,7 +334,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     boolean isApp(int position) {
-        return !items.get(position).component.equals(new ComponentName(ctx, HomeSettingsActivity.class));
+        return position >= 0 && position < items.size() && items.get(position).component != null
+                && !items.get(position).component.equals(new ComponentName(ctx, HomeSettingsActivity.class));
     }
 
     void openAppSettings(String key) {
@@ -294,25 +374,74 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     @Override
     public long getItemId(int position) {
-        return items.get(position).component.flattenToShortString().hashCode();
+        return items.get(position).key.hashCode();
     }
 
     /** Stable key for the app at a position (its component), or null. */
     String keyAt(int position) {
-        return position >= 0 && position < items.size() ? items.get(position).component.flattenToShortString() : null;
+        return position >= 0 && position < items.size() ? items.get(position).key : null;
     }
 
     /** Position of the app with this key, or -1 when it is gone. */
     int positionOf(String key) {
         if (key == null) return -1;
         for (int i = 0; i < items.size(); i++) {
-            if (items.get(i).component.flattenToShortString().equals(key)) return i;
+            if (items.get(i).key.equals(key)) return i;
         }
         return -1;
     }
 
     String labelAt(int position) {
         return position >= 0 && position < items.size() ? items.get(position).label : "";
+    }
+
+    /** Remove the Android icon's square black matte, preserving the green glyph's antialiasing. */
+    private Drawable spotifyGlyph(Drawable original) {
+        Drawable source = original.getConstantState() != null
+                ? original.getConstantState().newDrawable().mutate() : original;
+        Rect bounds = new Rect(source.getBounds());
+        int size = 192;
+        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        source.setBounds(0, 0, size, size);
+        source.draw(new Canvas(bitmap));
+        source.setBounds(bounds);
+        int[] pixels = new int[size * size];
+        bitmap.getPixels(pixels, 0, size, 0, 0, size, size);
+        int peak = 0, colour = 0;
+        for (int pixel : pixels) {
+            int green = Color.green(pixel) - Math.max(Color.red(pixel), Color.blue(pixel));
+            if (green > peak) { peak = green; colour = pixel & 0xFFFFFF; }
+        }
+        if (peak < 12) { bitmap.recycle(); return original; }
+        int left = size, top = size, right = -1, bottom = -1;
+        for (int i = 0; i < pixels.length; i++) {
+            int green = Math.max(0, Color.green(pixels[i]) - Math.max(Color.red(pixels[i]), Color.blue(pixels[i])));
+            int alpha = Color.alpha(pixels[i]) * green / peak;
+            pixels[i] = (alpha << 24) | colour;
+            if (alpha > 4) {
+                int x = i % size, y = i / size;
+                left = Math.min(left, x); top = Math.min(top, y);
+                right = Math.max(right, x); bottom = Math.max(bottom, y);
+            }
+        }
+        bitmap.setPixels(pixels, 0, size, 0, 0, size, size);
+        Bitmap glyph = Bitmap.createBitmap(bitmap, left, top, right - left + 1, bottom - top + 1);
+        if (glyph != bitmap) bitmap.recycle();
+        return new android.graphics.drawable.BitmapDrawable(ctx.getResources(), glyph);
+    }
+
+    private static final class FocusDotSpan extends android.text.style.ReplacementSpan {
+        private final float radius;
+        FocusDotSpan(float density) { radius = 4.5f * density; }
+        @Override public int getSize(@NonNull android.graphics.Paint paint, CharSequence text,
+                int start, int end, android.graphics.Paint.FontMetricsInt metrics) { return Math.round(radius * 2); }
+        @Override public void draw(@NonNull Canvas canvas, CharSequence text, int start, int end,
+                float x, int top, int y, int bottom, @NonNull android.graphics.Paint paint) {
+            int colour = paint.getColor();
+            paint.setColor(0xFF009AFF);
+            canvas.drawCircle(x + radius, y + (paint.ascent() + paint.descent()) / 2, radius, paint);
+            paint.setColor(colour);
+        }
     }
 
     /** A vivid colour sampled from the app's banner (or icon), cached per entry. */
@@ -367,7 +496,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     /** Corner radius for a tile of this width: 16dp at the design width, proportionally less when smaller. */
     static float cornerRadius(int tileWidthPx, float density) {
-        return 16f * density * Math.min(1f, tileWidthPx / (DESIGN_W_DP * density));
+        return 22f * density * Math.min(1f, tileWidthPx / (DESIGN_W_DP * density));
     }
 
     static final class Holder extends RecyclerView.ViewHolder {
@@ -381,6 +510,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Holder(View v, TileListener listener) {
             super(v);
             card = v.findViewById(R.id.card);
+            // The launcher draws its own app-colour focus light; avoid a platform fill behind glass.
+            card.setDefaultFocusHighlightEnabled(false);
             banner = v.findViewById(R.id.banner);
             icon = v.findViewById(R.id.icon);
             label = v.findViewById(R.id.label);
@@ -392,6 +523,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 public void getOutline(View view, Outline outline) {
                     // 16dp at the design width, scaled down with the tile so small tiles keep the same shape.
                     outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadius(view.getWidth(), density));
+                    // A filled native elevation shadow shows through the translucent folder as an
+                    // inset grey panel on TV hardware. Keep clipping, and use only our outer glow.
+                    outline.setAlpha(view.getBackground() instanceof GlassPanelDrawable ? 0f : 1f);
                 }
             });
             card.setClipToOutline(true);
@@ -419,17 +553,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                         return true;
                     }
                 }
-                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode != KeyEvent.KEYCODE_DPAD_UP && keyCode != KeyEvent.KEYCODE_DPAD_DOWN
-                        && keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
-                int pos = getBindingAdapterPosition();
-                return listener != null && pos != RecyclerView.NO_POSITION && listener.onTileVerticalKey(pos, keyCode);
+                // Direction keys are handled by the activity, including while the target row is
+                // being recycled. The card keeps only click/long-press key handling.
+                return false;
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
                 boolean highlighted = focused || view.isActivated();
                 float s = highlighted ? FOCUS_SCALE : 1.0f;
-                view.animate().scaleX(s).scaleY(s)
+                view.animate().scaleX(s).scaleY(s).translationZ(highlighted ? 4 * density : 0f)
+                        .setUpdateListener(animation -> {
+                            if (listener != null && view.isFocused()) listener.onTileFocusFrame(view);
+                        })
                         .setDuration(focused ? 260 : 180)
                         .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
                         .start();

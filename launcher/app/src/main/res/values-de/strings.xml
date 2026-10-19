@@ -30,4 +30,20 @@
     <string name="app_order_saved">Reihenfolge gespeichert</string>
     <string name="app_order_cancelled">Verschieben abgebrochen</string>
     <string name="app_order_failed">Reihenfolge konnte nicht gespeichert werden. OK zum Wiederholen oder Zurück zum Abbrechen.</string>
+    <string name="move_to">Zu Ordner hinzufügen</string>
+    <string name="new_folder">Neuer Ordner</string>
+    <string name="rename_folder">Ordner umbenennen</string>
+    <string name="folder_name">Ordnername</string>
+    <string name="folder_default_name">Unterhaltung</string>
+    <string name="folder_description">%1$s, Ordner</string>
+    <string name="move_to_home">Home-Bildschirm</string>
+    <string name="done">Fertig</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="folder_save_failed">Änderungen konnten nicht gespeichert werden. Bitte erneut versuchen.</string>
+    <string name="folder_move_hint">%1$s verschieben · %2$d von %3$d\n← ↑ ↓ → Verschieben · OK Speichern · Zurück Abbrechen</string>
+    <string name="home_settings">Standard-Startseite</string>
+    <string name="home_settings_help">Eine Startseite in den Systemeinstellungen wählen und dann Home drücken.</string>
+    <string name="home_key_name">Home-Taste</string>
+    <string name="home_key_description">Öffnet diesen Launcher mit der Home-Taste der Fernbedienung.</string>
+    <string name="unnamed_folder">Unbenannter Ordner</string>
 </resources>

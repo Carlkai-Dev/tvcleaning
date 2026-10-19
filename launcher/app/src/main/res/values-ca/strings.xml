@@ -28,4 +28,22 @@
     <string name="app_order_saved">Ordre desat</string>
     <string name="app_order_cancelled">Moviment cancel·lat</string>
     <string name="app_order_failed">No s’ha pogut desar l’ordre. Prem OK per tornar-ho a provar o Enrere per cancel·lar.</string>
+    <string name="move_to">Afegeix a una carpeta</string>
+    <string name="new_folder">Carpeta nova</string>
+    <string name="rename_folder">Canvia el nom de la carpeta</string>
+    <string name="folder_name">Nom de la carpeta</string>
+    <string name="folder_default_name">Entreteniment</string>
+    <string name="folder_description">%1$s, carpeta</string>
+    <string name="move_to_home">Pantalla d\'inici</string>
+    <string name="done">Fet</string>
+    <string name="cancel">Cancel·la</string>
+    <string name="folder_save_failed">No s’han pogut desar els canvis. Torna-ho a provar.</string>
+    <string name="folder_move_hint">Movent %1$s · %2$d de %3$d\n← ↑ ↓ → Mou · OK Desa · Enrere Cancel·la</string>
+    <string name="home_settings">Inici predeterminat</string>
+    <string name="home_settings_help">Tria una pantalla d’inici als ajustos del sistema i prem Inici.</string>
+    <string name="home_key_name">Botó Inici</string>
+    <string name="home_key_description">Obre aquest llançador amb el botó Inici del comandament.</string>
+    <string name="date_format">EEEE d MMMM</string>
+    <string name="input_key_service_description">Obre el selector d’entrades en prémer el botó Entrada del comandament.</string>
+    <string name="unnamed_folder">Carpeta sense nom</string>
 </resources>
