@@ -1,0 +1,4 @@
+# Batch 3 (optional, NOT applied on the tested TV): voice search. Removes the remote's mic button and
+# Google's on-screen search box too. Frees ~115 MB (katniss runs two processes).
+com.google.android.katniss      # Google Assistant / voice search, always running
+com.sony.dtv.voicesearch        # Sony's voice search bridge
