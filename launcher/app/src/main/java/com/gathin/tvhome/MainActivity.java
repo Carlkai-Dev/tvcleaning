@@ -97,8 +97,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private UiSounds sounds;
     /** config animations: false makes every move and fade instant (and Lite mode sets it false). */
     private boolean animations;
-    /** config effects: shadow, sheen and the ambient glow. */
+    /** config effects: the ambient glow (and the glass's outer glow). */
     private boolean effects;
+    /** config shadow_sheen, only with effects: the drop shadow and the focus sheen. */
+    private boolean shadowSheen;
     /** {@link LauncherSettingsActivity#version} this screen was built with. */
     private int settingsVersion;
     /** Set while onResume puts focus back: landing where you left off makes no sound. */
@@ -167,6 +169,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sounds = new UiSounds(this, cfg.uiSounds);
         animations = cfg.animations;
         effects = cfg.effects;
+        shadowSheen = effects && cfg.shadowSheen;
         root = findViewById(R.id.root);
         if (cfg.backgroundGradient.length > 0) {
             root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, cfg.backgroundGradient));
@@ -180,11 +183,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glass.setFollower(shadow);
         glass.setEffects(effects);
         ambient = findViewById(R.id.ambient);
-        if (!effects) {
-            // Not drawn at all, rather than drawn transparent: the glow is a full-screen gradient.
-            shadow.setVisibility(View.GONE);
-            ambient.setVisibility(View.GONE);
-        }
+        // Not drawn at all, rather than drawn transparent: the glow is a full-screen gradient.
+        if (!shadowSheen) shadow.setVisibility(View.GONE);
+        if (!effects) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
         ambientGlow = new GradientDrawable();
         ambientGlow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
@@ -467,7 +468,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             glass.setTranslationX(x);
             glass.setTranslationY(y);
         }
-        if (animations && effects) glass.sweep();
+        if (animations && shadowSheen) glass.sweep();
         View item = (View) card.getParent();
         if (position < COLUMNS) {
             // Dock: park it at the bottom of the screen and show the top shelf for this app.

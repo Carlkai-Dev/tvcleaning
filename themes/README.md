@@ -40,13 +40,14 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `wallpaper` | bool | Show `wallpaper.jpg` from the theme folder (`true`), or ignore it (`false`) |
 | `background_gradient` | list of 2 or 3 `#RRGGBB` | Vertical gradient behind everything, top to bottom, instead of `background_color` |
 | `dock_band_color` | `#AARRGGBB` | The band behind the dock row; keep it translucent over a gradient or wallpaper |
-| `glass_frame` | bool | The glass frame on the focused tile; `false` leaves the shadow and sheen |
-| `tilt` | bool | The focused tile leans the way you moved and its banner shifts inside it |
-| `magnify` | bool | macOS Dock style: the tiles next to the focused one grow a little and move apart |
+| `glass_frame` | bool | The glass frame on the focused tile; `false` leaves only the tile zoom (plus shadow, sheen and tilt if on) |
+| `tilt` | bool | Off by default. The focused tile leans the way you moved and its banner shifts inside it |
+| `magnify` | bool | Off by default. macOS Dock style: the tiles next to the focused one grow a little and move apart |
 | `animations` | bool | Motion: the glass springing, tile zoom, fades, smooth scrolling; `false` makes every change instant |
-| `effects` | bool | The drop shadow, sheen, app-coloured glow and the glass's outer glow |
-| `lite` | bool | Lite mode: animations, effects, tilt and magnify off, plain background, no wallpaper; overrides those keys |
-| `ui_sounds` | bool | Focus, select and edge sounds (also off when the TV's system sounds are off) |
+| `effects` | bool | The app-coloured glow and the glass's outer glow; `false` also turns off `shadow_sheen` |
+| `shadow_sheen` | bool | Off by default. A soft shadow under the focused tile and a light streak across it on focus |
+| `lite` | bool | Lite mode: animations, effects, shadow and sheen, tilt, magnify and sounds off, plain background, no wallpaper; overrides those keys |
+| `ui_sounds` | bool | Off by default. Focus, select and edge sounds (never while the TV's system sounds are off) |
 
 ## Wallpapers
 

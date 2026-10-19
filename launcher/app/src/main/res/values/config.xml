@@ -53,24 +53,27 @@
     <bool name="show_home_settings_shortcut">false</bool>
 
     <!-- Look and sound. Each can also be set from a theme's config.json (themes/README.md). -->
-    <!-- Short focus, select and edge sounds. Off whenever the TV's own "System sounds" setting is off. -->
-    <bool name="ui_sounds">true</bool>
-    <!-- The glass frame (fill, rim and glow) on the focused tile. With it off, the shadow, the sheen and
-         the tilt carry the focus on their own. -->
+    <!-- Short focus, select and edge sounds. Never on while the TV's own "System sounds" setting is off. -->
+    <bool name="ui_sounds">false</bool>
+    <!-- The glass frame (fill, rim and glow) on the focused tile. With it off, the tile zoom (and the
+         shadow, sheen and tilt, if on) carry the focus on their own. -->
     <bool name="glass_frame">true</bool>
     <!-- Motion: the glass springing between tiles, the tile zoom, fades and smooth scrolling. Off makes
          every change instant. -->
     <bool name="animations">true</bool>
-    <!-- Decoration: the drop shadow, the sheen, the app-coloured glow behind the dock and the glass's
-         outer glow. -->
+    <!-- Decoration: the app-coloured glow behind the dock and the glass's outer glow. Off also turns
+         off shadow_sheen. -->
     <bool name="effects">true</bool>
-    <!-- Lite mode: animations, effects, tilt and magnification off, plain background, wallpaper off. The fastest Home,
-         for low-memory TVs. Overrides the switches above. -->
+    <!-- A soft drop shadow under the focused tile and a light streak across it on focus. Extra drawing
+         on every move, so off by default; try it on your TV. -->
+    <bool name="shadow_sheen">false</bool>
+    <!-- Lite mode: animations, effects, shadow and sheen, tilt, magnification and sounds off, plain
+         background, wallpaper off. The fastest Home, for low-memory TVs. Overrides the other switches. -->
     <bool name="lite">false</bool>
     <!-- macOS Dock style magnification: the tiles next to the focused one grow a little and move apart. -->
-    <bool name="magnify">true</bool>
+    <bool name="magnify">false</bool>
     <!-- The focused tile leans briefly in the direction you moved and its banner shifts inside it. -->
-    <bool name="tilt">true</bool>
+    <bool name="tilt">false</bool>
     <!-- Background as a vertical gradient, top to bottom, 2 or 3 colours (#RRGGBB). Empty: the plain
          background colour. A theme wallpaper is drawn over either. -->
     <string-array name="background_gradient">

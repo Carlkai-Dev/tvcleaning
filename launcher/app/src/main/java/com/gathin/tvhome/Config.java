@@ -68,9 +68,11 @@ final class Config {
     boolean animations;
     /** Decoration: drop shadow, sheen, the app-coloured ambient glow and the glass's outer glow. */
     boolean effects;
+    /** Drop shadow and focus sheen; only drawn when effects is on too. */
+    boolean shadowSheen;
     /** macOS Dock style magnification: the focused tile's row neighbours grow a little and part. */
     boolean magnify;
-    /** Lite mode: no animations, no effects, no tilt, plain background. The fastest Home. */
+    /** Lite mode: no animations, effects, tilt, magnify or sounds; plain background. The fastest Home. */
     boolean lite;
 
     private Config() {
@@ -101,6 +103,7 @@ final class Config {
         c.magnify = res.getBoolean(R.bool.magnify);
         c.animations = res.getBoolean(R.bool.animations);
         c.effects = res.getBoolean(R.bool.effects);
+        c.shadowSheen = res.getBoolean(R.bool.shadow_sheen);
         c.lite = res.getBoolean(R.bool.lite);
         List<String> gradient = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.background_gradient)));
         c.dockBandColor = parseColor(res.getString(R.string.dock_band_color), 0x16FFFFFF);
@@ -127,6 +130,7 @@ final class Config {
             c.magnify = bool(json, "magnify", c.magnify);
             c.animations = bool(json, "animations", c.animations);
             c.effects = bool(json, "effects", c.effects);
+            c.shadowSheen = bool(json, "shadow_sheen", c.shadowSheen);
             c.lite = bool(json, "lite", c.lite);
             gradient = stringList(json, "background_gradient", gradient);
             c.dockBandColor = colorWithAlpha(json, "dock_band_color", c.dockBandColor);
@@ -145,6 +149,7 @@ final class Config {
         c.lite = pref(p, "lite", c.lite);
         c.animations = pref(p, "animations", c.animations);
         c.effects = pref(p, "effects", c.effects);
+        c.shadowSheen = pref(p, "shadow_sheen", c.shadowSheen);
         c.tilt = pref(p, "tilt", c.tilt);
         c.magnify = pref(p, "magnify", c.magnify);
         c.glassFrame = pref(p, "glass_frame", c.glassFrame);
@@ -165,6 +170,7 @@ final class Config {
         if (c.lite) {
             c.animations = false;
             c.effects = false;
+            c.uiSounds = false;
             c.tilt = false;
             c.magnify = false;
             c.glassFrame = true;
