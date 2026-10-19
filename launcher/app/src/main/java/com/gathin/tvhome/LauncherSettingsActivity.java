@@ -17,7 +17,7 @@ import android.widget.Toast;
 
 /**
  * The launcher's own settings, opened by holding the Settings pill on Home: Lite mode, animations,
- * effects, tilt, glass frame, sounds, background and tiles per row, plus the way back to the stock
+ * effects, tilt, magnification, glass frame, sounds, background and tiles per row, plus the way back to the stock
  * home screen. Choices are saved in {@link Config#PREFS} and applied over the theme by
  * {@link Config#load}; Home rebuilds itself when you come back ({@link #version}).
  */
@@ -68,6 +68,7 @@ public class LauncherSettingsActivity extends Activity {
         addToggle(R.string.set_animations, "animations", c.animations, lite);
         addToggle(R.string.set_effects, "effects", c.effects, lite);
         addToggle(R.string.set_tilt, "tilt", c.tilt, lite);
+        addToggle(R.string.set_magnify, "magnify", c.magnify, lite);
         addToggle(R.string.set_glass_frame, "glass_frame", c.glassFrame, lite);
         addToggle(R.string.set_sounds, "ui_sounds", c.uiSounds, false);
 

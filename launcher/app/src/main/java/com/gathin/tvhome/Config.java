@@ -68,6 +68,8 @@ final class Config {
     boolean animations;
     /** Decoration: drop shadow, sheen, the app-coloured ambient glow and the glass's outer glow. */
     boolean effects;
+    /** macOS Dock style magnification: the focused tile's row neighbours grow a little and part. */
+    boolean magnify;
     /** Lite mode: no animations, no effects, no tilt, plain background. The fastest Home. */
     boolean lite;
 
@@ -96,6 +98,7 @@ final class Config {
         c.uiSounds = res.getBoolean(R.bool.ui_sounds);
         c.glassFrame = res.getBoolean(R.bool.glass_frame);
         c.tilt = res.getBoolean(R.bool.tilt);
+        c.magnify = res.getBoolean(R.bool.magnify);
         c.animations = res.getBoolean(R.bool.animations);
         c.effects = res.getBoolean(R.bool.effects);
         c.lite = res.getBoolean(R.bool.lite);
@@ -121,6 +124,7 @@ final class Config {
             c.uiSounds = bool(json, "ui_sounds", c.uiSounds);
             c.glassFrame = bool(json, "glass_frame", c.glassFrame);
             c.tilt = bool(json, "tilt", c.tilt);
+            c.magnify = bool(json, "magnify", c.magnify);
             c.animations = bool(json, "animations", c.animations);
             c.effects = bool(json, "effects", c.effects);
             c.lite = bool(json, "lite", c.lite);
@@ -141,6 +145,7 @@ final class Config {
         c.animations = p.getBoolean("animations", c.animations);
         c.effects = p.getBoolean("effects", c.effects);
         c.tilt = p.getBoolean("tilt", c.tilt);
+        c.magnify = p.getBoolean("magnify", c.magnify);
         c.glassFrame = p.getBoolean("glass_frame", c.glassFrame);
         c.uiSounds = p.getBoolean("ui_sounds", c.uiSounds);
         int cols = p.getInt("columns", 0);
@@ -159,6 +164,7 @@ final class Config {
             c.animations = false;
             c.effects = false;
             c.tilt = false;
+            c.magnify = false;
             c.glassFrame = true;
             c.backgroundGradient = new int[0];
             c.wallpaper = null;

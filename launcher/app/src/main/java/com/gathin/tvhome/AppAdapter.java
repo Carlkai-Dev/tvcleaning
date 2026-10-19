@@ -19,6 +19,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -68,6 +69,14 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     static final float FOCUS_SCALE = 1.10f;
+    /**
+     * macOS Dock style magnification along the focused row: scale and outward shift (fraction of the
+     * tile width) by distance from the focused tile. The shifts are small enough that the outermost tile
+     * stays inside the dock band and no two tiles touch at any column count (tileWidthPx already leaves
+     * room for FOCUS_SCALE).
+     */
+    private static final float[] MAGNIFY_SCALE = {FOCUS_SCALE, 1.05f, 1.02f};
+    private static final float[] MAGNIFY_SHIFT = {0f, 0.05f, 0.03f};
     /** How far the focused tile leans (degrees) and its banner shifts (dp) when it arrives. */
     private static final float LEAN_DEG = 4f, PARALLAX_DP = 5f, BANNER_SCALE = 1.06f;
     /** D-pad key that moved focus onto a tile, read once by the tile that receives it; 0 for none. */
@@ -106,7 +115,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final boolean showHomeSettings;
     private final boolean tilt;
     private final boolean animations;
+    private final boolean magnify;
     private final UiSounds sounds;
+    private RecyclerView recycler;
+    /** Focused tile, or -1 when focus is outside the grid; tiles are scaled around it. */
+    private int focusedPos = -1;
     private final List<Entry> items = new ArrayList<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg, UiSounds sounds) {
@@ -119,6 +132,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
         this.tilt = cfg.tilt;
         this.animations = cfg.animations;
+        this.magnify = cfg.magnify;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -188,8 +202,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : 0f);
-        h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
-        h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
+        // A recycled view may carry another tile's magnification: give it this position's, at once.
+        h.card.animate().cancel();
+        float s = scaleFor(position);
+        h.card.setScaleX(s);
+        h.card.setScaleY(s);
+        h.card.setTranslationX(shiftFor(position, h.card.getLayoutParams().width));
         h.settle();
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
@@ -232,6 +250,59 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         } catch (Exception ex) {
             Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(@NonNull RecyclerView rv) {
+        recycler = rv;
+    }
+
+    /**
+     * Moves the magnification to this tile (-1: none, focus left the grid): the focused tile at
+     * FOCUS_SCALE and, with magnify on, its row neighbours a little bigger and pushed outward. Every
+     * visible tile is sent to its target, so the row focus left goes back to rest.
+     */
+    void setFocused(int position) {
+        focusedPos = position;
+        if (recycler == null) return;
+        for (int i = 0; i < recycler.getChildCount(); i++) {
+            RecyclerView.ViewHolder vh = recycler.getChildViewHolder(recycler.getChildAt(i));
+            int pos = vh.getBindingAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION || !(vh instanceof Holder)) continue;
+            View card = ((Holder) vh).card;
+            float s = scaleFor(pos), x = shiftFor(pos, card.getWidth());
+            if (card.getScaleX() == s && card.getTranslationX() == x) continue;
+            if (animations) {
+                card.animate().scaleX(s).scaleY(s).translationX(x)
+                        .setDuration(pos == position ? 260 : 220)
+                        .setInterpolator(pos == position ? new OvershootInterpolator(1.6f) : new DecelerateInterpolator(1.4f))
+                        .start();
+            } else {
+                card.animate().cancel();
+                card.setScaleX(s);
+                card.setScaleY(s);
+                card.setTranslationX(x);
+            }
+        }
+    }
+
+    /** Distance in tiles from the focused tile along its row, or -1 when not in that row. */
+    private int distance(int pos) {
+        if (focusedPos < 0 || pos / dockSize != focusedPos / dockSize) return -1;
+        return Math.abs(pos - focusedPos);
+    }
+
+    private float scaleFor(int pos) {
+        int d = distance(pos);
+        if (d < 0) return 1f;
+        if (!magnify) return d == 0 ? FOCUS_SCALE : 1f;
+        return d < MAGNIFY_SCALE.length ? MAGNIFY_SCALE[d] : 1f;
+    }
+
+    private float shiftFor(int pos, int tileWidth) {
+        int d = distance(pos);
+        if (!magnify || d <= 0 || d >= MAGNIFY_SHIFT.length) return 0f;
+        return Math.signum(pos - focusedPos) * MAGNIFY_SHIFT[d] * tileWidth;
     }
 
     @Override
@@ -368,17 +439,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             });
 
             card.setOnFocusChangeListener((view, focused) -> {
-                float s = focused ? FOCUS_SCALE : 1.0f;
+                // Scale is set row-wide by setFocused, called from Home's onTileFocused (which also runs
+                // when Home restores focus without a focus change) and when focus leaves the grid.
+                int pos = getBindingAdapterPosition();
                 float nameY = focused ? density * 4f : -density * 6f;
                 if (animations) {
-                    view.animate().scaleX(s).scaleY(s)
-                            .setDuration(focused ? 260 : 180)
-                            .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
-                            .start();
                     name.animate().alpha(focused ? 1f : 0f).translationY(nameY).setDuration(220).start();
                 } else {
-                    view.setScaleX(s);
-                    view.setScaleY(s);
                     name.setAlpha(focused ? 1f : 0f);
                     name.setTranslationY(nameY);
                 }
@@ -388,7 +455,6 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 } else {
                     settle();
                 }
-                int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);
                 }

@@ -42,9 +42,10 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `dock_band_color` | `#AARRGGBB` | The band behind the dock row; keep it translucent over a gradient or wallpaper |
 | `glass_frame` | bool | The glass frame on the focused tile; `false` leaves the shadow and sheen |
 | `tilt` | bool | The focused tile leans the way you moved and its banner shifts inside it |
+| `magnify` | bool | macOS Dock style: the tiles next to the focused one grow a little and move apart |
 | `animations` | bool | Motion: the glass springing, tile zoom, fades, smooth scrolling; `false` makes every change instant |
 | `effects` | bool | The drop shadow, sheen, app-coloured glow and the glass's outer glow |
-| `lite` | bool | Lite mode: animations, effects and tilt off, plain background, no wallpaper; overrides those keys |
+| `lite` | bool | Lite mode: animations, effects, tilt and magnify off, plain background, no wallpaper; overrides those keys |
 | `ui_sounds` | bool | Focus, select and edge sounds (also off when the TV's system sounds are off) |
 
 ## Wallpapers

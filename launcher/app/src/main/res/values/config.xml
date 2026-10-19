@@ -64,9 +64,11 @@
     <!-- Decoration: the drop shadow, the sheen, the app-coloured glow behind the dock and the glass's
          outer glow. -->
     <bool name="effects">true</bool>
-    <!-- Lite mode: animations, effects and tilt off, plain background, wallpaper off. The fastest Home,
+    <!-- Lite mode: animations, effects, tilt and magnification off, plain background, wallpaper off. The fastest Home,
          for low-memory TVs. Overrides the switches above. -->
     <bool name="lite">false</bool>
+    <!-- macOS Dock style magnification: the tiles next to the focused one grow a little and move apart. -->
+    <bool name="magnify">true</bool>
     <!-- The focused tile leans briefly in the direction you moved and its banner shifts inside it. -->
     <bool name="tilt">true</bool>
     <!-- Background as a vertical gradient, top to bottom, 2 or 3 colours (#RRGGBB). Empty: the plain
