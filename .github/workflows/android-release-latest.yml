@@ -5,10 +5,6 @@ on:
     branches:
       - main
 
-concurrency:
-  group: build-and-release-launcher
-  cancel-in-progress: true
-
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -24,20 +20,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('launcher/**/gradle-wrapper.properties') }}-${{ hashFiles('launcher/**') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
       - name: Grant execute permission for gradlew
         run: chmod +x launcher/gradlew
 
-      - name: Install Android commandline tools and SDK packages
+      - name: Install Android SDK
         run: |
           set -e
           ANDROID_SDK_ROOT="${{ runner.temp }}/android-sdk"
@@ -59,45 +45,12 @@ jobs:
         working-directory: launcher
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Install GitHub CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gh
-
-      - name: Publish APKs to "latest" release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e
-          # Authenticate gh with the workflow token
-          echo "$GITHUB_TOKEN" | gh auth login --with-token
-
-          # enable globstar for ** expansion
-          shopt -s globstar || true
-
-          # collect apk/aab files (adjust glob if needed)
-          FILES=(launcher/**/build/outputs/**/*.apk launcher/**/build/outputs/**/*.aab)
-          # ensure at least one file exists
-          FOUND=0
-          for f in "${FILES[@]}"; do
-            if [ -e "$f" ]; then
-              FOUND=1
-              break
-            fi
-          done
-
-          if [ "$FOUND" -eq 0 ]; then
-            echo "No APK/AAB files found under launcher/**/build/outputs. Aborting."
-            exit 1
-          fi
-
-          # Build final list of existing files
-          UPLOAD=()
-          for f in "${FILES[@]}"; do
-            if [ -e "$f" ]; then
-              UPLOAD+=("$f")
-            fi
-          done
-
-          # Create or update release 'latest' and upload assets (--clobber replaces assets)
-          gh release create latest "${UPLOAD[@]}" --title "latest" --notes "Automated build from main: $GITHUB_SHA" --clobber
+      - name: Upload to latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: latest
+          files: |
+            launcher/**/build/outputs/**/*.apk
+          draft: false
+          prerelease: false
