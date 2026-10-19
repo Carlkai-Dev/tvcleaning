@@ -1,0 +1,3 @@
+# Batch 5 (after our launcher is in): Google's ambient screensaver, replaced by the launcher's clock
+# First (done on this TV): settings put secure screensaver_components com.gathin.tvhome/.ClockDream
+com.google.android.apps.tv.dreamx   # ambient mode + smart-home panel (59 MB, always running)
