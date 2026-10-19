@@ -2,9 +2,10 @@
 # stock launcher as home and reset animation scales. Pass the same list you used with disable.ps1.
 #
 # Usage: tools\restore.ps1 -TvHost 192.168.1.50 examples\xiaomi-mi-tv-4a\debloat.txt [-Stock stock.launcher.package]
+# Without -Stock, the first stock launcher installed on the TV is used (Google TV's first).
 param(
     [Parameter(Mandatory = $true, Position = 0)][string]$List,
-    [string]$Stock = 'com.google.android.tvlauncher',
+    [string]$Stock = 'com.google.android.apps.tv.launcherx com.google.android.tvlauncher com.google.android.leanbacklauncher',
     [string]$TvHost = $env:TV_HOST
 )
 $ErrorActionPreference = 'Stop'
@@ -18,9 +19,8 @@ $env:TV_HOST = $TvHost
 
 $pkgs = Get-Content $List | ForEach-Object { ($_ -replace '#.*$', '').Trim() } | Where-Object { $_ }
 $cmds = @($pkgs | ForEach-Object { "pm enable $_" }) + @(
-    "pm enable $Stock",
-    # resolve the stock HOME component on the TV (Android 9 needs pkg/activity, not just pkg)
-    ('cmd package set-home-activity --user 0 $(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME ' + $Stock + ' | tail -n 1)'),
+    # enable the first of these that is installed and make it home (Android 9 needs pkg/activity, not just pkg)
+    ('for p in ' + $Stock + '; do if pm path $p >/dev/null 2>&1; then pm enable $p; cmd package set-home-activity --user 0 $(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME $p | tail -n 1); echo Home: $p; break; fi; done'),
     'settings put global window_animation_scale 1.0',
     'settings put global transition_animation_scale 1.0',
     'settings put global animator_duration_scale 1.0',
