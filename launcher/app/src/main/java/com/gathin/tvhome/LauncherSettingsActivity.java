@@ -72,7 +72,8 @@ public class LauncherSettingsActivity extends Activity {
         addToggle(R.string.set_glass_frame, "glass_frame", c.glassFrame, lite);
         addToggle(R.string.set_sounds, "ui_sounds", c.uiSounds, false);
 
-        String bg = prefs.getString("background", "");
+        Object bgPref = prefs.getAll().get("background");
+        String bg = bgPref instanceof String ? (String) bgPref : "";
         int bgLabel = Config.BG_BLACK.equals(bg) ? R.string.bg_black
                 : Config.BG_GRADIENT.equals(bg) ? R.string.bg_gradient : R.string.bg_theme;
         addRow(getString(R.string.set_background), lite ? getString(R.string.locked_by_lite, getString(R.string.bg_black)) : getString(bgLabel), () -> {

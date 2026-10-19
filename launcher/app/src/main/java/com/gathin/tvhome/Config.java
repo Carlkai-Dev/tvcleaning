@@ -1,7 +1,6 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.util.Log;
@@ -17,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The launcher's settings: the values in res/values/config.xml, with an optional overlay read from
@@ -140,17 +140,19 @@ final class Config {
         if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) c.wallpaper = null;
 
         // The settings screen on the TV, last, so a choice made there survives the next theme push.
-        SharedPreferences p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        c.lite = p.getBoolean("lite", c.lite);
-        c.animations = p.getBoolean("animations", c.animations);
-        c.effects = p.getBoolean("effects", c.effects);
-        c.tilt = p.getBoolean("tilt", c.tilt);
-        c.magnify = p.getBoolean("magnify", c.magnify);
-        c.glassFrame = p.getBoolean("glass_frame", c.glassFrame);
-        c.uiSounds = p.getBoolean("ui_sounds", c.uiSounds);
-        int cols = p.getInt("columns", 0);
-        if (cols >= 1 && cols <= 8) c.columns = cols;
-        String bg = p.getString("background", "");
+        // A value of the wrong type (hand-edited or left by an older build) is ignored, like in a theme.
+        Map<String, ?> p = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getAll();
+        c.lite = pref(p, "lite", c.lite);
+        c.animations = pref(p, "animations", c.animations);
+        c.effects = pref(p, "effects", c.effects);
+        c.tilt = pref(p, "tilt", c.tilt);
+        c.magnify = pref(p, "magnify", c.magnify);
+        c.glassFrame = pref(p, "glass_frame", c.glassFrame);
+        c.uiSounds = pref(p, "ui_sounds", c.uiSounds);
+        Object cols = p.get("columns");
+        if (cols instanceof Integer && (Integer) cols >= 1 && (Integer) cols <= 8) c.columns = (Integer) cols;
+        Object bgPref = p.get("background");
+        String bg = bgPref instanceof String ? (String) bgPref : "";
         if (BG_BLACK.equals(bg)) {
             c.backgroundGradient = new int[0];
             c.backgroundColor = 0xFF000000;
@@ -175,6 +177,11 @@ final class Config {
     }
 
     /** 2 or 3 valid opaque colours, or an empty array: anything else means "no gradient". */
+    private static boolean pref(Map<String, ?> prefs, String key, boolean fallback) {
+        Object v = prefs.get(key);
+        return v instanceof Boolean ? (Boolean) v : fallback;
+    }
+
     private static int[] gradientColors(List<String> list) {
         if (list.size() < 2 || list.size() > 3) return new int[0];
         int[] out = new int[list.size()];
