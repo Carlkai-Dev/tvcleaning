@@ -54,7 +54,13 @@ import androidx.dynamicanimation.animation.SpringForce;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -71,6 +77,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private static final long MINUTE_MS = 60_000L;
+    private static final long WEATHER_MS = 30 * MINUTE_MS;
     private String liveTvPkg;
     private String liveTvAction;
     private String inputAction;
@@ -91,6 +98,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView btnWifi;
     private TextView shamsiDate;
     private boolean shamsi;
+    private TextView weather;
+    private String weatherUrl;
+    private String weatherPlace;
+    /** When the weather was last fetched (elapsedRealtime), successfully or not. */
+    private long weatherAt = -WEATHER_MS;
+    private boolean weatherLoading;
     private String vpnApp;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
@@ -169,6 +182,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateWifiLabel();
+            updateWeather();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -210,6 +224,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             date.setPadding(0, (int) (4 * density), 0, 0);
         }
         vpnApp = cfg.vpnApp;
+        weather = findViewById(R.id.weather);
+        weatherPlace = cfg.weatherPlace;
+        if (!cfg.weatherLatitude.isEmpty()) {
+            weatherUrl = "https://api.open-meteo.com/v1/forecast?latitude=" + cfg.weatherLatitude
+                    + "&longitude=" + cfg.weatherLongitude + "&current=temperature_2m,weather_code,is_day&timezone=auto";
+        }
         moduleCards = cfg.moduleCards;
         hiddenApps = new HashSet<>(cfg.hiddenApps);
 
@@ -360,6 +380,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         reloadApps(true);
         updateGreeting();
         updateWifiLabel();
+        updateWeather();
         updateInputsButton();
         handler.postDelayed(minuteTick, MINUTE_MS);
     }
@@ -628,6 +649,61 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else res = R.string.good_night;
         greeting.setText(res);
         if (shamsi) shamsiDate.setText(Shamsi.today());
+    }
+
+    // ---- weather --------------------------------------------------------------------------------
+
+    /** Refreshes the weather line at most every 30 minutes, off the main thread. */
+    private void updateWeather() {
+        if (weatherUrl == null || weatherLoading) return;
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - weatherAt < WEATHER_MS) return;
+        weatherAt = now;
+        weatherLoading = true;
+        new Thread(() -> {
+            String text = null;
+            try {
+                HttpURLConnection c = (HttpURLConnection) new URL(weatherUrl).openConnection();
+                c.setConnectTimeout(8000);
+                c.setReadTimeout(8000);
+                try (InputStream in = c.getInputStream()) {
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    byte[] buf = new byte[4096];
+                    for (int n; (n = in.read(buf)) > 0 && out.size() < 64 * 1024; ) out.write(buf, 0, n);
+                    JSONObject cur = new JSONObject(out.toString("UTF-8")).getJSONObject("current");
+                    long temp = Math.round(cur.getDouble("temperature_2m"));
+                    String icon = weatherIcon(cur.getInt("weather_code"), cur.optInt("is_day", 1) == 1);
+                    text = icon + "  " + temp + "°" + (weatherPlace.isEmpty() ? "" : "  ·  " + weatherPlace);
+                } finally {
+                    c.disconnect();
+                }
+            } catch (Exception e) {
+                // Offline or the service is down: keep the last reading, retry in 5 minutes.
+                android.util.Log.w("TvHome", "weather: " + e);
+            }
+            final String result = text;
+            handler.post(() -> {
+                weatherLoading = false;
+                if (result == null) {
+                    weatherAt -= WEATHER_MS - 5 * MINUTE_MS;
+                    return;
+                }
+                weather.setText(result);
+                weather.setVisibility(View.VISIBLE);
+            });
+        }).start();
+    }
+
+    /** WMO weather code (as used by Open-Meteo) to an emoji. */
+    private static String weatherIcon(int code, boolean day) {
+        if (code == 0) return day ? "\u2600\uFE0F" : "\uD83C\uDF19";                  // clear: sun / moon
+        if (code <= 2) return day ? "\u26C5" : "\u2601\uFE0F";                          // partly cloudy
+        if (code == 3) return "\u2601\uFE0F";                                           // overcast
+        if (code == 45 || code == 48) return "\uD83C\uDF2B\uFE0F";                      // fog
+        if (code >= 51 && code <= 57) return "\uD83C\uDF26\uFE0F";                      // drizzle
+        if (code >= 71 && code <= 77 || code == 85 || code == 86) return "\u2744\uFE0F"; // snow
+        if (code >= 95) return "\u26C8\uFE0F";                                          // thunderstorm
+        return "\uD83C\uDF27\uFE0F";                                                    // rain and showers
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */

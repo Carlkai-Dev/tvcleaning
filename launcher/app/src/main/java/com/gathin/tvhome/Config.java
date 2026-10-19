@@ -24,7 +24,8 @@ import java.util.List;
  * unknown or badly typed key is ignored, so a theme can change the dock and the look without a rebuild:
  * {@code tools/theme.sh themes/<name>} pushes a theme folder there and restarts Home.
  *
- * Read once in {@link MainActivity#onCreate}; nothing here touches the network.
+ * Read once in {@link MainActivity#onCreate}; nothing here touches the network (the weather
+ * coordinates are only read here; MainActivity fetches the weather).
  */
 final class Config {
     private static final String TAG = "TvHome.Config";
@@ -43,6 +44,10 @@ final class Config {
     final boolean shamsiDate;
     final boolean moduleCards;
     final String vpnApp;
+    /** Weather coordinates as decimal degrees, both empty when the weather line is off. */
+    final String weatherLatitude;
+    final String weatherLongitude;
+    final String weatherPlace;
     final boolean showHomeSettingsShortcut;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
     final int backgroundColor;
@@ -54,7 +59,9 @@ final class Config {
     private Config(List<String> dockApps, List<String> hiddenApps, String liveTvPackage, String liveTvAction,
                    String sourcePanelService, String sourcePanelAction, String inputAction,
                    int columns, int rowsBelowDock,
-                   boolean shamsiDate, boolean moduleCards, String vpnApp, boolean showHomeSettingsShortcut, int backgroundColor,
+                   boolean shamsiDate, boolean moduleCards, String vpnApp,
+                   String weatherLatitude, String weatherLongitude, String weatherPlace,
+                   boolean showHomeSettingsShortcut, int backgroundColor,
                    File wallpaper, boolean overlayApplied) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
@@ -68,6 +75,9 @@ final class Config {
         this.shamsiDate = shamsiDate;
         this.moduleCards = moduleCards;
         this.vpnApp = vpnApp;
+        this.weatherLatitude = weatherLatitude;
+        this.weatherLongitude = weatherLongitude;
+        this.weatherPlace = weatherPlace;
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
         this.backgroundColor = backgroundColor;
         this.wallpaper = wallpaper;
@@ -93,6 +103,9 @@ final class Config {
         boolean shamsi = res.getBoolean(R.bool.shamsi_date);
         boolean moduleCards = res.getBoolean(R.bool.module_cards);
         String vpn = res.getString(R.string.vpn_app).trim();
+        String lat = res.getString(R.string.weather_latitude).trim();
+        String lon = res.getString(R.string.weather_longitude).trim();
+        String place = res.getString(R.string.weather_place).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         int background = 0xFF000000;
         boolean applied = false;
@@ -114,6 +127,9 @@ final class Config {
             shamsi = bool(json, "shamsi_date", shamsi);
             moduleCards = bool(json, "module_cards", moduleCards);
             vpn = string(json, "vpn_app", vpn);
+            lat = string(json, "weather_latitude", lat);
+            lon = string(json, "weather_longitude", lon);
+            place = string(json, "weather_place", place);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             background = color(json, "background_color", background);
         }
@@ -122,9 +138,12 @@ final class Config {
         // A theme can also switch the wallpaper off while the file is still there.
         if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
 
+        // The coordinates go into a URL, so only plain numbers in range get through; anything else is off.
+        if (!degrees(lat, 90) || !degrees(lon, 180)) lat = lon = "";
+
         return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
-                Math.max(1, columns), Math.max(0, rowsBelow), shamsi, moduleCards, vpn, homeSettings, background,
-                wallpaper, applied);
+                Math.max(1, columns), Math.max(0, rowsBelow), shamsi, moduleCards, vpn, lat, lon, place,
+                homeSettings, background, wallpaper, applied);
     }
 
     /** Reads and parses the overlay; any problem means "no overlay", never a crash on the home screen. */
@@ -145,6 +164,11 @@ final class Config {
             Log.w(TAG, "ignoring " + file + ": " + e.getMessage());
             return null;
         }
+    }
+
+    private static boolean degrees(String s, double max) {
+        if (!s.matches("-?\\d{1,3}(\\.\\d{1,6})?")) return false;
+        return Math.abs(Double.parseDouble(s)) <= max;
     }
 
     private static String string(JSONObject o, String key, String fallback) {
