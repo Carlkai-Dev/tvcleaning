@@ -6,6 +6,8 @@
 # Usage: TV_HOST=192.168.1.50 tools/theme.sh themes/aurora
 #        TV_HOST=192.168.1.50 tools/theme.sh --reset        # remove the overlay, back to config.xml
 set -euo pipefail
+# The theme folder is relative to where the script was run from; resolve it before changing directory.
+if [ -n "${1:-}" ] && [ "$1" != --reset ] && [ -d "$1" ]; then set -- "$(cd "$1" && pwd)"; fi
 cd "$(dirname "$0")"
 : "${TV_HOST:?set TV_HOST to the TV IP address, e.g. TV_HOST=192.168.1.50 $0 themes/aurora}"
 PY=venv/bin/python
