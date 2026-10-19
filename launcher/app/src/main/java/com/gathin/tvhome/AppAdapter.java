@@ -415,6 +415,25 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         return sb.toString();
     }
 
+    /** Asks before throwing the owner's dock order away; Cancel has the focus, so a stray OK keeps it. */
+    private void confirmReset(Entry e) {
+        AlertDialog d = new AlertDialog.Builder(ctx)
+                .setTitle(R.string.dock_reset)
+                .setMessage(R.string.dock_reset_confirm)
+                .setPositiveButton(R.string.dock_reset_action, (dlg, which) -> resetDock(e.pkg))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+        d.getButton(AlertDialog.BUTTON_NEGATIVE).requestFocus();
+    }
+
+    private void resetDock(String focusPkg) {
+        prefs.edit().remove(KEY_DOCK_ORDER).apply();
+        favourites.clear();
+        favourites.addAll(defaultDock);
+        reload(lastCards);
+        focusPackage(focusPkg);
+    }
+
     /** Long-press menu: arrange the dock from the remote, or open the app's system details. */
     private void showTileMenu(Entry e, int position) {
         if (e.kind == Entry.HOME_SETTINGS) return;
@@ -438,13 +457,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             });
         }
         labels.add(ctx.getString(R.string.dock_reset));
-        actions.add(() -> {
-            prefs.edit().remove(KEY_DOCK_ORDER).apply();
-            favourites.clear();
-            favourites.addAll(defaultDock);
-            reload(lastCards);
-            focusPackage(e.pkg);
-        });
+        actions.add(() -> confirmReset(e));
         labels.add(ctx.getString(R.string.app_info));
         actions.add(() -> {
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
