@@ -63,10 +63,15 @@ public class HomeWatchService extends Service {
     static Bitmap snapshot;
     private static HomeWatchService running;
     /**
-     * Set while the person is in Amazon's own Settings row ("All settings"): Amazon's home is wanted then. Only a
-     * Home press (started by the system, uid 1000) or this launcher coming back ends it.
+     * Set while the person is in Amazon's own Settings row ("All settings"): Amazon's home is wanted then. A Home
+     * press (started by the system, uid 1000), Back out of the row, or this launcher coming back ends it.
      */
     private static volatile boolean amazonHomeAllowed;
+    /** Amazon's launcher logs this when its Settings row goes away: Back to its other tabs, or a screen opened. */
+    private static final String AMAZON_SETTINGS_ROW_GONE = "onStop() is called by class com.amazon.tv.launcher.ui"
+            + ".sceneflow.presenters.model1.SettingsNodePresenterDI";
+    /** Amazon's home activity is paused (a settings screen is open over it). Reader thread only. */
+    private boolean amazonPaused;
     /** Remote presses made on the cover, replayed by MainActivity. Main thread only. */
     private static final List<Integer> pendingKeys = new ArrayList<>();
 
@@ -118,19 +123,35 @@ public class HomeWatchService extends Service {
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                // ActivityManager's START lines are in the system buffer, am_resume_activity in events.
+                // ActivityManager's START lines are in the system buffer, am_resume/pause_activity in events,
+                // Amazon's own SceneNodePresenter lines in main.
                 // -T <now>: only lines from here on. "-T 1" replays the newest old line, which after a reinstall
                 // is Amazon's home resuming, and put up a stray cover that swallowed keys.
                 String since = new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
-                logcat = new ProcessBuilder("logcat", "-b", "system", "-b", "events", "-v", "brief", "-T", since,
-                        "ActivityManager:I", "am_resume_activity:I", "*:S")
+                logcat = new ProcessBuilder("logcat", "-b", "system", "-b", "events", "-b", "main", "-v", "brief",
+                        "-T", since, "ActivityManager:I", "am_resume_activity:I", "am_pause_activity:I",
+                        "SceneNodePresenter:I", "*:S")
                         .redirectErrorStream(true).start();
                 BufferedReader in = new BufferedReader(new InputStreamReader(logcat.getInputStream()));
                 String line;
                 while ((line = in.readLine()) != null) {
+                    if (line.contains(AMAZON_SETTINGS_ROW_GONE)) {
+                        // Left Amazon's Settings row with Back, not into one of its screens: back to this launcher.
+                        if (amazonHomeAllowed && !amazonPaused) {
+                            amazonHomeAllowed = false;
+                            final long seen = SystemClock.uptimeMillis();
+                            handler.postAtFrontOfQueue(() -> goHome(seen));
+                        }
+                        continue;
+                    }
                     if (!line.contains(AMAZON_HOME)) continue;
+                    if (line.startsWith("I/am_pause_activity")) {
+                        amazonPaused = true;
+                        continue;
+                    }
                     boolean started = line.contains("START u0") && line.contains("android.intent.category.HOME");
                     boolean resumed = line.startsWith("I/am_resume_activity");
+                    if (resumed) amazonPaused = false;
                     if (amazonHomeAllowed) {
                         if (!started || !line.contains("from uid 1000 ")) continue;
                         amazonHomeAllowed = false;   // Home pressed: back to this launcher
