@@ -8,7 +8,9 @@ android {
 
     defaultConfig {
         applicationId 'com.gathin.tvhome'
-        minSdk 26
+        // 22 = Android 5.1: the launcher also runs on 2016-era Xiaomi/Redmi TVs. Fonts load from
+        // assets/ (res/font needs API 26); see Outfit.java for the why.
+        minSdk 22
         targetSdk 34
         versionCode 2
         versionName '2.0'

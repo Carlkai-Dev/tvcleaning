@@ -13,7 +13,7 @@
         android:alpha="0" />
 
     <!-- Top shelf: the focused dock app's name, positioned above the dock in code. -->
-    <TextView
+    <com.gathin.tvhome.OutfitTextView
         android:id="@+id/heroName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -21,7 +21,6 @@
         android:alpha="0"
         android:textColor="#FFFFFFFF"
         android:textSize="48sp"
-        android:fontFamily="@font/outfit"
         android:fontVariationSettings="'wght' 300"
         android:letterSpacing="-0.02"
         android:includeFontPadding="false"
@@ -48,7 +47,7 @@
                 android:layout_marginEnd="16dp"
                 android:orientation="vertical">
 
-                <TextView
+                <com.gathin.tvhome.OutfitTextView
                     android:id="@+id/greeting"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -57,7 +56,6 @@
                     android:layout_marginStart="4dp"
                     android:textColor="#8CFFFFFF"
                     android:textSize="12sp"
-                    android:fontFamily="@font/outfit"
                     android:fontVariationSettings="'wght' 500"
                     android:letterSpacing="0.22"
                     android:textAllCaps="true" />
@@ -68,7 +66,7 @@
                     android:orientation="horizontal"
                     android:baselineAligned="true">
 
-                    <TextClock
+                    <com.gathin.tvhome.OutfitTextClock
                         android:id="@+id/clock"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -76,12 +74,11 @@
                         android:format24Hour="HH:mm"
                         android:textColor="#FFFFFFFF"
                         android:textSize="52sp"
-                        android:fontFamily="@font/outfit"
                         android:fontVariationSettings="'wght' 300"
                         android:letterSpacing="-0.04"
                         android:includeFontPadding="false" />
 
-                    <TextClock
+                    <com.gathin.tvhome.OutfitTextClock
                         android:id="@+id/ampm"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -92,7 +89,6 @@
                         android:format24Hour=""
                         android:textColor="#B3FFFFFF"
                         android:textSize="15sp"
-                        android:fontFamily="@font/outfit"
                         android:fontVariationSettings="'wght' 500"
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
@@ -115,7 +111,7 @@
                         android:orientation="vertical">
 
                         <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
-                        <TextView
+                        <com.gathin.tvhome.OutfitTextView
                             android:id="@+id/shamsiDate"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -123,13 +119,12 @@
                             android:ellipsize="end"
                             android:textColor="#E6FFFFFF"
                             android:textSize="17sp"
-                            android:fontFamily="@font/outfit"
                             android:fontVariationSettings="'wght' 400"
                             android:letterSpacing="0.02"
                             android:includeFontPadding="false"
                             android:visibility="gone" />
 
-                        <TextClock
+                        <com.gathin.tvhome.OutfitTextClock
                             android:id="@+id/date"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -139,7 +134,6 @@
                             android:format24Hour="@string/date_format"
                             android:textColor="#A6FFFFFF"
                             android:textSize="14sp"
-                            android:fontFamily="@font/outfit"
                             android:fontVariationSettings="'wght' 400"
                             android:letterSpacing="0.14"
                             android:textAllCaps="true" />
@@ -156,14 +150,14 @@
                 android:layout_marginBottom="6dp"
                 android:orientation="horizontal">
 
-                <TextView
+                <com.gathin.tvhome.OutfitTextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
                     android:text="@string/inputs"
                     android:drawableStart="@drawable/ic_input"
                     android:nextFocusDown="@+id/grid" />
 
-                <TextView
+                <com.gathin.tvhome.OutfitTextView
                     android:id="@+id/btnWifi"
                     style="@style/TopButton"
                     android:maxWidth="180dp"
@@ -173,7 +167,7 @@
                     android:drawableStart="@drawable/ic_wifi"
                     android:nextFocusDown="@+id/grid" />
 
-                <TextView
+                <com.gathin.tvhome.OutfitTextView
                     android:id="@+id/btnSettings"
                     style="@style/TopButton"
                     android:text="@string/settings"

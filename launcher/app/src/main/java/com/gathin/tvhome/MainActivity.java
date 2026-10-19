@@ -2,9 +2,11 @@ package com.gathin.tvhome;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
@@ -221,10 +223,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
-            open(new Intent(Settings.ACTION_WIFI_SETTINGS));
+            open(wifiIntent());
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> open(settingsIntent()));
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -248,11 +250,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!onTile) hideGlass();
         });
 
-        ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+        // Context.getSystemService(Class) needs API 23; the string form works everywhere.
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.registerCallback(inputCallback, handler);
         if (cm != null) {
-            cm.registerDefaultNetworkCallback(networkCallback);
+            // registerDefaultNetworkCallback needs API 24; an empty request matches every network.
+            cm.registerNetworkCallback(new NetworkRequest.Builder().build(), networkCallback);
             cm.registerNetworkCallback(new NetworkRequest.Builder()
                     .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
@@ -295,7 +299,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);
         if (cm != null) {
@@ -529,12 +533,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void openNetworkPill() {
         Intent i = vpnApp.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(vpnApp);
         if (i == null && !vpnApp.isEmpty()) i = getPackageManager().getLaunchIntentForPackage(vpnApp);
-        open(i != null ? i : new Intent(Settings.ACTION_WIFI_SETTINGS));
+        open(i != null ? i : wifiIntent());
+    }
+
+    /**
+     * Wi-Fi pill intent: the standard android.settings.WIFI_SETTINGS action doesn't resolve on this
+     * Xiaomi firmware (it registers the private com.xiaomi.mitv.settings.WIFI_SETTINGS instead) -
+     * same fallback chain as the Settings pill.
+     */
+    private Intent wifiIntent() {
+        Intent std = new Intent(Settings.ACTION_WIFI_SETTINGS);
+        if (getPackageManager().resolveActivity(std, 0) != null) return std;
+        String pkg = getString(R.string.wifi_settings_package).trim();
+        if (!pkg.isEmpty()) {
+            Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
+            if (launch != null) return launch;
+            String act = getString(R.string.wifi_settings_activity).trim();
+            if (!act.isEmpty()) {
+                return new Intent(Intent.ACTION_MAIN).setComponent(ComponentName.unflattenFromString(pkg + "/" + act));
+            }
+        }
+        return std;
     }
 
     /** Hides the Inputs pill when it would have nothing to list: streaming boxes have no HDMI-in, AV or tuner. */
     private void updateInputsButton() {
-        boolean any = !liveTvPkg.isEmpty() && getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg) != null;
+        PackageManager pm = getPackageManager();
+        boolean any = !liveTvPkg.isEmpty() && pm.getLeanbackLaunchIntentForPackage(liveTvPkg) != null;
+        if (!any && !liveTvPkg.isEmpty()) {   // phone-style Live TV apps have no leanback intent
+            any = pm.getLaunchIntentForPackage(liveTvPkg) != null;
+        }
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (!any && tim != null) {
             for (TvInputInfo info : tim.getTvInputList()) {
@@ -554,6 +582,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } catch (ActivityNotFoundException e) {
             Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /**
+     * Settings pill intent: the standard android.settings.SETTINGS action on most TVs, but this
+     * Xiaomi firmware never registers it - fall back to launching the settings package itself,
+     * then to an explicit entry activity from config (settings_activity).
+     */
+    private Intent settingsIntent() {
+        Intent std = new Intent(Settings.ACTION_SETTINGS);
+        if (getPackageManager().resolveActivity(std, 0) != null) return std;
+        String pkg = getString(R.string.settings_package).trim();
+        if (!pkg.isEmpty()) {
+            Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
+            if (launch != null) return launch;
+            String act = getString(R.string.settings_activity).trim();
+            if (!act.isEmpty()) {
+                return new Intent(Intent.ACTION_MAIN).setComponent(ComponentName.unflattenFromString(pkg + "/" + act));
+            }
+        }
+        return std;
     }
 
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
@@ -611,6 +659,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         Intent liveTv = liveTvPkg.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg);
+        if (liveTv == null && !liveTvPkg.isEmpty()) {   // phone-style Live TV apps have no leanback intent
+            liveTv = getPackageManager().getLaunchIntentForPackage(liveTvPkg);
+        }
         if (liveTv != null && tunerId != null) {
             liveTv = new Intent(Intent.ACTION_VIEW)
                     .setDataAndType(TvContract.buildChannelUriForPassthroughInput(tunerId), "vnd.android.cursor.item/channel")

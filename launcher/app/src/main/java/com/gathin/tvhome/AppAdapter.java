@@ -89,7 +89,22 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     void reload() {
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
+        List<ResolveInfo> found = new ArrayList<>(pm.queryIntentActivities(probe, 0));
+        // Apps on old TV firmwares (2016-era Chinese sets among them) often declare only the phone
+        // LAUNCHER category. Merge those in, deduped by component, so the grid is not half empty.
+        if (found.size() < 8) {
+            Set<ComponentName> seen = new HashSet<>(found.size());
+            for (ResolveInfo ri : found) {
+                if (ri.activityInfo != null) {
+                    seen.add(new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name));
+                }
+            }
+            for (ResolveInfo ri : pm.queryIntentActivities(
+                    new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)) {
+                if (ri.activityInfo == null) continue;
+                if (seen.add(new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name))) found.add(ri);
+            }
+        }
         List<Entry> fresh = new ArrayList<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
@@ -169,8 +184,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             return;
         }
+        // Explicit component, no category: an explicit intent that carries LEANBACK_LAUNCHER is
+        // rejected when the app only filters for the phone LAUNCHER category (old Chinese TV apps).
         Intent i = new Intent(Intent.ACTION_MAIN)
-                .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {

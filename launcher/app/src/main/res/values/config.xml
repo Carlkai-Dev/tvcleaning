@@ -19,6 +19,17 @@
         <item>com.mitv.gallery</item>
     </string-array>
 
+    <!-- The TV's settings app, opened by the Settings pill when the standard
+         android.settings.SETTINGS action doesn't resolve (this firmware never registers it).
+         settings_activity is a further fallback: an entry activity inside that package, written
+         as ".SomeActivity". Both may stay empty on TVs where the standard action works. -->
+    <string name="settings_package" translatable="false">com.xiaomi.mitv.settings</string>
+    <string name="settings_activity" translatable="false">.entry.MainActivity</string>
+    <!-- Same idea for the Wi-Fi pill: the firmware registers com.xiaomi.mitv.settings.WIFI_SETTINGS
+         (entry .wifi.MitvWifiActivity) instead of the standard action. -->
+    <string name="wifi_settings_package" translatable="false">com.xiaomi.mitv.settings</string>
+    <string name="wifi_settings_activity" translatable="false">.wifi.MitvWifiActivity</string>
+
     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
     <string name="live_tv_package" translatable="false">com.mediatek.wwtv.tvcenter</string>
 
