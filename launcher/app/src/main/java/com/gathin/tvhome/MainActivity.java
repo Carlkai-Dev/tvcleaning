@@ -99,6 +99,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean animations;
     /** config effects: shadow, sheen and the ambient glow. */
     private boolean effects;
+    /** {@link LauncherSettingsActivity#version} this screen was built with. */
+    private int settingsVersion;
     /** Set while onResume puts focus back: landing where you left off makes no sound. */
     private boolean quietFocus;
 
@@ -155,6 +157,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
+        settingsVersion = LauncherSettingsActivity.version;
         COLUMNS = cfg.columns;
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
@@ -276,6 +279,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             sounds.select();
             open(new Intent(Settings.ACTION_SETTINGS));
         });
+        // Hold: this launcher's own settings (Lite mode, animations, effects, ...).
+        btnSettings.setOnLongClickListener(v -> {
+            sounds.select();
+            startActivity(new Intent(this, LauncherSettingsActivity.class));
+            return true;
+        });
         View.OnFocusChangeListener pillFocus = (v, focused) -> {
             if (focused) sounds.focus();
         };
@@ -351,6 +360,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        if (settingsVersion != LauncherSettingsActivity.version) {
+            // Settings changed: build Home again with them (layout, columns and effects are set up in onCreate).
+            recreate();
+            return;
+        }
         glassShown = false;
         glass.setAlpha(0f);
         shadow.setAlpha(0f);

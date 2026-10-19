@@ -8,6 +8,13 @@
         <item name="android:soundEffectsEnabled">false</item>
     </style>
 
+    <!-- A panel over Home: Home stays visible, dimmed, behind it. -->
+    <style name="Theme.TvHome.Panel">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackground">@android:color/transparent</item>
+    </style>
+
     <!-- Frosted pill, tvOS style. -->
     <style name="TopButtonBase">
         <item name="android:layout_width">wrap_content</item>

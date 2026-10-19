@@ -198,6 +198,11 @@ the dock order, apps to hide, your TV's Live TV package, the number of columns (
 from 5 columns up), and how many grid rows stay visible under the dock (`rows_below_dock`). The Inputs button hides itself on sticks and
 boxes that have no HDMI or tuner.
 
+**On the TV**, hold the Settings pill for *Home settings*: Lite mode (no animations or effects, the
+fastest Home), animations, effects, tilt, glass frame, sounds, background and tiles per row, a reset,
+and *Go back to Google TV home*, which opens the stock home's App info page so you can press Enable
+from the remote. Choices made there win over a pushed theme.
+
 **Themes** change the same settings, plus a background colour and a wallpaper, without a rebuild:
 a folder with a `config.json` (and optionally a `wallpaper.jpg`) pushed to the TV with
 `tools/theme.sh themes/<name>`, which the launcher reads as an overlay over `config.xml`. Three ship

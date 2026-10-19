@@ -17,6 +17,10 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
         </intent>
+        <!-- The stock launchers, so settings can offer the way back to them even while disabled. -->
+        <package android:name="com.google.android.apps.tv.launcherx" />
+        <package android:name="com.google.android.tvlauncher" />
+        <package android:name="com.google.android.leanbacklauncher" />
     </queries>
 
     <application
@@ -47,6 +51,13 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Launcher settings, opened by holding the Settings pill on Home. -->
+        <activity
+            android:name=".LauncherSettingsActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.TvHome.Panel" />
 
         <activity
             android:name=".HomeSettingsActivity"
