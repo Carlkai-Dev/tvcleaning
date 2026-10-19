@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.Manifest;
+import android.app.Notification;
 import android.app.Service;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -16,6 +17,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -23,38 +25,78 @@ import android.widget.ImageView;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Fire TV: Fire OS sends Home to Amazon's launcher and won't let it be disabled or out-ranked. This service
- * follows ActivityManager's log and, the moment the system starts Amazon's home activity, opens this launcher
- * on top of it. Needs READ_LOGS, granted over adb (see FIRETV.md); without it the service stops itself.
+ * follows the system log and, the moment Amazon's home activity is started (Home, boot) or resumed (Back out of an
+ * app that was not opened from here), opens this launcher on top of it. Needs READ_LOGS, granted over adb (see
+ * FIRETV.md); without it the service stops itself.
  *
  * After a Home press Android holds back activity starts from other apps for five seconds, so the launcher only
  * appears then. To hide Amazon's home meanwhile, the service puts a snapshot of the launcher over the screen
- * (an overlay is not held back; needs the SYSTEM_ALERT_WINDOW app-op) and drops it once the launcher is up.
+ * (an overlay is not held back; needs the SYSTEM_ALERT_WINDOW app-op) and drops it once the launcher is up. Remote
+ * presses made on the snapshot are kept and replayed into the launcher when it appears.
  * Amazon's launcher itself stays resident: Fire OS refuses to kill it ("Cannot kill protected package").
+ *
+ * It runs as a foreground service: Fire OS then neither kills it under memory pressure nor puts its log reader in
+ * the throttled background CPU group, where a Home press once took 674 ms to be seen.
  */
 public class HomeWatchService extends Service {
 
     private static final String TAG = "HomeWatch";
-    /** ActivityManager logs "START u0 {act=… cat=[android.intent.category.HOME] … cmp=<home>…}" for every Home. */
-    private static final String AMAZON_HOME = "cmp=com.amazon.tv.launcher/.ui.HomeActivity";
+    /** Logged as "START u0 {act=… cat=[android.intent.category.HOME] … cmp=<this>…}" and as am_resume_activity. */
+    private static final String AMAZON_HOME = "com.amazon.tv.launcher/.ui.HomeActivity";
+    /** Set by BootReceiver: cover the screen at once, there is no launcher to bounce to yet. */
+    private static final String EXTRA_COVER = "cover";
     /** Longer than Android's five-second app-switch hold, in case the launcher never comes up. */
     private static final long COVER_TIMEOUT_MS = 8000L;
+    /** A Home press logs a start and then a resume of Amazon's home; act on the first only. */
+    private static final long DEDUPE_MS = 2000L;
+    private static final int MAX_KEYS = 12;
 
     /** Latest frame of the launcher, kept fresh by MainActivity. Same process, so a static. */
     static Bitmap snapshot;
     private static HomeWatchService running;
+    /**
+     * Set while the person is in Amazon's own Settings row ("All settings"): Amazon's home is wanted then. Only a
+     * Home press (started by the system, uid 1000) or this launcher coming back ends it.
+     */
+    private static volatile boolean amazonHomeAllowed;
+    /** Remote presses made on the cover, replayed by MainActivity. Main thread only. */
+    private static final List<Integer> pendingKeys = new ArrayList<>();
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Thread reader;
     private volatile Process logcat;
     private View cover;
+    private long lastBounce = -DEDUPE_MS;
     private final Runnable dropCover = this::removeCover;
 
     static void start(Context ctx) {
+        start(ctx, false);
+    }
+
+    static void start(Context ctx, boolean cover) {
         if (ctx.checkSelfPermission(Manifest.permission.READ_LOGS) != PackageManager.PERMISSION_GRANTED) return;
-        ctx.startService(new Intent(ctx, HomeWatchService.class));
+        ctx.startService(new Intent(ctx, HomeWatchService.class).putExtra(EXTRA_COVER, cover));
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        @SuppressWarnings("deprecation")
+        Notification n = new Notification.Builder(this)
+                .setSmallIcon(R.drawable.ic_settings)
+                .setContentTitle(getString(R.string.app_name))
+                .setPriority(Notification.PRIORITY_MIN)
+                .setOngoing(true)
+                .build();
+        startForeground(1, n);
     }
 
     @Override
@@ -68,22 +110,34 @@ public class HomeWatchService extends Service {
             reader = new Thread(this::follow, TAG);
             reader.start();
         }
+        if (intent != null && intent.getBooleanExtra(EXTRA_COVER, false)) showCover();
         return START_STICKY;
     }
 
     private void follow() {
+        android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY);
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                // -T 1: start at the newest line, so a Home press from before the service started is not replayed.
-                logcat = new ProcessBuilder("logcat", "-v", "brief", "-T", "1", "ActivityManager:I", "*:S")
+                // ActivityManager's START lines are in the system buffer, am_resume_activity in events.
+                // -T <now>: only lines from here on. "-T 1" replays the newest old line, which after a reinstall
+                // is Amazon's home resuming, and put up a stray cover that swallowed keys.
+                String since = new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
+                logcat = new ProcessBuilder("logcat", "-b", "system", "-b", "events", "-v", "brief", "-T", since,
+                        "ActivityManager:I", "am_resume_activity:I", "*:S")
                         .redirectErrorStream(true).start();
                 BufferedReader in = new BufferedReader(new InputStreamReader(logcat.getInputStream()));
                 String line;
                 while ((line = in.readLine()) != null) {
-                    if (line.contains("START u0") && line.contains("android.intent.category.HOME")
-                            && line.contains(AMAZON_HOME)) {
+                    if (!line.contains(AMAZON_HOME)) continue;
+                    boolean started = line.contains("START u0") && line.contains("android.intent.category.HOME");
+                    boolean resumed = line.startsWith("I/am_resume_activity");
+                    if (amazonHomeAllowed) {
+                        if (!started || !line.contains("from uid 1000 ")) continue;
+                        amazonHomeAllowed = false;   // Home pressed: back to this launcher
+                    }
+                    if (started || resumed) {
                         final long seen = SystemClock.uptimeMillis();
-                        handler.post(() -> goHome(seen));
+                        handler.postAtFrontOfQueue(() -> goHome(seen));
                     }
                 }
             } catch (IOException e) {
@@ -98,20 +152,40 @@ public class HomeWatchService extends Service {
         }
     }
 
-    /** Called by MainActivity once it is on screen again. */
-    static void launcherShown() {
+    /** MainActivity is about to open Amazon's Settings row. */
+    static void allowAmazonHome() {
+        amazonHomeAllowed = true;
+    }
+
+    /** Called by MainActivity once it is on screen again. Returns the presses made on the cover, oldest first. */
+    static List<Integer> launcherShown() {
+        amazonHomeAllowed = false;
         HomeWatchService s = running;
         if (s != null && s.cover != null) s.handler.postDelayed(s.dropCover, 150);   // let its first frame land
+        List<Integer> keys = new ArrayList<>(pendingKeys);
+        pendingKeys.clear();
+        return keys;
     }
 
     private void showCover() {
         if (cover != null || (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this))) return;
-        ImageView v = new ImageView(this);
+        pendingKeys.clear();
+        // The cover's root view gets every key sent to its window, focused child or not. Keys meant for Amazon's
+        // home underneath: keep the navigation ones for the launcher, drop the rest.
+        ImageView v = new ImageView(this) {
+            @Override
+            public boolean dispatchKeyEvent(KeyEvent event) {
+                int keyCode = event.getKeyCode();
+                if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0
+                        && isNavigation(keyCode) && pendingKeys.size() < MAX_KEYS) {
+                    pendingKeys.add(keyCode);
+                }
+                return true;
+            }
+        };
         v.setScaleType(ImageView.ScaleType.FIT_XY);
         v.setBackgroundColor(Color.BLACK);
         if (snapshot != null) v.setImageBitmap(snapshot);
-        v.setFocusable(true);
-        v.setOnKeyListener((view, keyCode, event) -> true);   // swallow keys meant for Amazon's home underneath
         @SuppressWarnings("deprecation")
         int type = Build.VERSION.SDK_INT >= 26 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
@@ -122,10 +196,23 @@ public class HomeWatchService extends Service {
         try {
             ((WindowManager) getSystemService(WINDOW_SERVICE)).addView(v, lp);
             cover = v;
-            v.requestFocus();
             handler.postDelayed(dropCover, COVER_TIMEOUT_MS);
         } catch (RuntimeException e) {
             Log.w(TAG, "cover failed", e);
+        }
+    }
+
+    private static boolean isNavigation(int keyCode) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -140,7 +227,10 @@ public class HomeWatchService extends Service {
     }
 
     private void goHome(long seen) {
+        if (seen - lastBounce < DEDUPE_MS) return;
+        lastBounce = seen;
         showCover();
+        Log.i(TAG, "cover up after " + (SystemClock.uptimeMillis() - seen) + " ms");
         Intent home = new Intent(this, MainActivity.class)
                 .setAction(Intent.ACTION_MAIN)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);

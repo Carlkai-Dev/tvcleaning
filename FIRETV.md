@@ -14,21 +14,41 @@ Fire OS will not let anything replace Amazon's home screen. Each of these was tr
 
 So the launcher works around it instead of replacing it:
 
-- `HomeWatchService` follows ActivityManager's log. When the system starts Amazon's home activity, it opens this
-  launcher on top. Android holds back that start for five seconds after a Home press, so the service also covers the
-  screen with a snapshot of the launcher straight away (an overlay window is not held back). Remote presses are
-  swallowed until the real launcher appears, so nothing happens on Amazon's home underneath.
-- Apps opened from this launcher return to it with Back; Amazon's home is not involved.
+- `HomeWatchService` follows the system log (ActivityManager `START` lines in the system buffer, `am_resume_activity`
+  in the events buffer). When Amazon's home is started (Home, boot) or resumed (Back out of an app that was not opened
+  from here), it opens this launcher on top. It runs as a foreground service, so Fire OS neither kills it nor throttles
+  its CPU.
+- Android holds back that start for five seconds after a Home press. The service therefore covers the screen at once
+  with a snapshot of the launcher; an overlay window is not held back. Remote presses made on the snapshot are queued
+  and replayed into the launcher when it appears, so navigation is delayed but not lost.
+- Apps opened from this launcher return to it with Back.
+- The Settings pill opens a menu of Fire OS settings screens: Network, Applications, Controllers & Bluetooth and
+  My Fire TV. Display & Sounds, Preferences, Accessibility and Account need `com.amazon.tv.permission.LAUNCHER_SETTINGS`
+  (signature|privileged), so "All settings" opens Amazon's own Settings row and the watcher leaves Amazon's home alone
+  until Home is pressed.
 - `BootReceiver` brings the launcher up after a reboot. It listens for `LOCKED_BOOT_COMPLETED` as well:
   `BOOT_COMPLETED` is handed to about 100 apps one at a time and reached this one about 65 s after Amazon's home
   appeared, while the locked-boot broadcast reached it in about 7 s.
 
-Measured on the stick: the watcher sees Home in 28–70 ms (674 ms once while Netflix was closing). The cover is up before
-Amazon's home finishes drawing, and the real launcher takes over 5–6 s after the press. After a reboot, Amazon's home
-shows for about 10 s before the launcher replaces it.
+Tested on the stick (Home presses were injected with `adb shell input`, not the physical remote):
 
-What is left: after Home, the launcher snapshot is not interactive for about five seconds. Amazon's home shows for about
-10 s after a reboot. Amazon's launcher stays in RAM (77–130 MB PSS measured), because Fire OS will not let it be killed.
+| Case | Result |
+|---|---|
+| Home on the launcher, or inside Netflix | Cover up 13–163 ms after the press, before Amazon's home draws; live launcher at 5–6 s |
+| Two D-pad presses on the cover | Replayed: focus moved two tiles |
+| Back out of an app opened from the launcher | Back on the launcher, no cover needed |
+| Settings menu: Applications, then Back | Opens, Back returns to the launcher |
+| "All settings", then Home | Amazon's Settings row stays; Home returns to the launcher |
+| Long-press Home | Amazon's quick panel over the launcher, no bounce |
+| Search key | Amazon's text search, Back returns to the launcher |
+| Clock screensaver | Runs (tested with a 20 s idle timeout, then put back) |
+| `am kill` of the watcher with Netflix in front | Refused; the process survives |
+| Reboot | Amazon's home visible ~5 s (boot animation ends → launcher process starts) |
+
+What is left: after Home, the launcher snapshot is not interactive for about five seconds (presses are replayed after).
+Amazon's home shows for about 5 s after a reboot. Amazon's launcher stays in RAM (77–130 MB PSS measured), because
+Fire OS will not let it be killed. After "All settings", Back inside Amazon's Settings row ends on Amazon's home until
+Home is pressed.
 
 ## Install
 

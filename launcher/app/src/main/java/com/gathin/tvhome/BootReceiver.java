@@ -23,7 +23,7 @@ public class BootReceiver extends BroadcastReceiver {
         if (um != null && !um.isUserUnlocked()) return;   // BOOT_COMPLETED follows once it is
         if (handled) return;
         handled = true;
-        HomeWatchService.start(ctx);
+        HomeWatchService.start(ctx, true);   // cover Amazon's home until the launcher is drawn
         ctx.startActivity(new Intent(ctx, MainActivity.class)
                 .setAction(Intent.ACTION_MAIN)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

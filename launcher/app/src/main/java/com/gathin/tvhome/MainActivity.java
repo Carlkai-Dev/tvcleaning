@@ -57,6 +57,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     static int COLUMNS = 4;
     private static final long MINUTE_MS = 60_000L;
     private static final long SNAPSHOT_DELAY_MS = 1200L;
+    /**
+     * Fire OS: android.settings.SETTINGS opens the Settings row of Amazon's home. These screens open directly
+     * instead; the rest (Display, Preferences, Accessibility, Account) need com.amazon.tv.permission.
+     * LAUNCHER_SETTINGS, which is signature|privileged, so "All settings" opens Amazon's row and asks
+     * HomeWatchService to leave Amazon's home alone until Home is pressed.
+     */
+    private static final String FIRE_SETTINGS_PKG = "com.amazon.tv.settings.v2";
+    private static final String[] FIRE_SETTINGS = {
+            Settings.ACTION_WIFI_SETTINGS,
+            Settings.ACTION_APPLICATION_SETTINGS,
+            "com.amazon.device.settings.action.CONTROLLERS",
+            "com.amazon.device.settings.action.DEVICE",
+    };
+    private static final int[] FIRE_SETTINGS_LABELS = {
+            R.string.fire_network, R.string.fire_apps, R.string.fire_controllers, R.string.fire_device,
+    };
     private String liveTvPkg;
 
     private AppAdapter adapter;
@@ -172,7 +188,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!hasInputs()) btnInputs.setVisibility(View.GONE);
         final View firstPill = btnInputs.getVisibility() == View.VISIBLE ? btnInputs : btnWifi;
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
-        btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> {
+            if (isInstalled(FIRE_SETTINGS_PKG)) showFireSettings();
+            else open(new Intent(Settings.ACTION_SETTINGS));
+        });
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -199,7 +218,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
-        HomeWatchService.launcherShown();
+        final List<Integer> coverKeys = HomeWatchService.launcherShown();
         handler.postDelayed(takeSnapshot, SNAPSHOT_DELAY_MS);
         glassShown = false;
         glass.setAlpha(0f);
@@ -221,6 +240,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int pos = adapter.positionOf(returnKey);
             focusTile(pos >= 0 ? pos : returnSlot);
         });
+        // Presses made on HomeWatchService's cover while Android held this launcher back: play them now.
+        if (!coverKeys.isEmpty()) grid.postDelayed(() -> replay(coverKeys), 120);
     }
 
     @Override
@@ -469,6 +490,59 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return !liveTvPkg.isEmpty() && getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg) != null;
     }
 
+    private boolean isInstalled(String pkg) {
+        try {
+            getPackageManager().getPackageInfo(pkg, 0);
+            return true;
+        } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Plays remote presses as if they had reached this window. Activity.dispatchKeyEvent would skip D-pad focus
+     * navigation (the view root does that), so a key nobody handles moves focus here, the same way.
+     */
+    private void replay(List<Integer> keys) {
+        for (int k : keys) {
+            View focused = getCurrentFocus();
+            if (focused == null) return;
+            boolean handled = focused.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, k));
+            handled |= focused.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, k));
+            if (handled) continue;
+            int direction = k == KeyEvent.KEYCODE_DPAD_LEFT ? View.FOCUS_LEFT
+                    : k == KeyEvent.KEYCODE_DPAD_RIGHT ? View.FOCUS_RIGHT
+                    : k == KeyEvent.KEYCODE_DPAD_UP ? View.FOCUS_UP
+                    : k == KeyEvent.KEYCODE_DPAD_DOWN ? View.FOCUS_DOWN : 0;
+            View next = direction == 0 ? null : focused.focusSearch(direction);
+            if (next != null) next.requestFocus(direction);
+        }
+    }
+
+    /** Fire OS: dropdown under the Settings pill with the system's own settings screens. */
+    private void showFireSettings() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        int width = Math.max(anchor.getWidth(), (int) (230 * density));
+        final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
+        popup.setOutsideTouchable(true);
+        popup.setAnimationStyle(0);
+        popup.setElevation(0f);
+        for (int n = 0; n < FIRE_SETTINGS.length; n++) {
+            Intent i = new Intent(FIRE_SETTINGS[n]).setPackage(FIRE_SETTINGS_PKG);
+            if (getPackageManager().resolveActivity(i, 0) == null) continue;
+            int icon = n == 0 ? R.drawable.ic_wifi : R.drawable.ic_settings;
+            addInputRow(rows, popup, icon, getString(FIRE_SETTINGS_LABELS[n]), -1, () -> open(i));
+        }
+        addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.fire_all_settings), -1, () -> {
+            HomeWatchService.allowAmazonHome();
+            open(new Intent(Settings.ACTION_SETTINGS));
+        });
+        dropDown(anchor, panel, rows, popup, width, Gravity.END);
+    }
+
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
     private void showInputs() {
         View anchor = findViewById(R.id.btnInputs);
@@ -539,6 +613,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
 
+        dropDown(anchor, panel, rows, popup, width, Gravity.START);
+    }
+
+    private void dropDown(View anchor, View panel, LinearLayout rows, PopupWindow popup, int width, int gravity) {
         // Fit the widest row: TVs that report a status on every port (Sony) would otherwise squeeze the names out.
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max(width, panel.getMeasuredWidth()));
@@ -548,7 +626,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPivotY(0f);
         panel.setScaleY(0.92f);
         panel.setTranslationY(-8 * density);
-        popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
+        popup.showAsDropDown(anchor, 0, (int) (10 * density), gravity);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         rows.getChildAt(0).requestFocus();
