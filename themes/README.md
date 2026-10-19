@@ -19,7 +19,7 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 
 ## Keys
 
-Choices made in the launcher's own settings screen (hold the Settings pill) are kept on the TV and win
+Choices made in the launcher's own settings screen (Settings pill, then Home settings) are kept on the TV and win
 over a pushed theme until you reset them there.
 
 Every key is optional; a missing key keeps the value from `config.xml`, an unknown or wrongly typed key

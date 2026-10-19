@@ -27,7 +27,8 @@
     <string name="home_key_name">Home button</string>
     <string name="home_key_description">Makes the remote\'s Home button open this launcher.</string>
     <string name="launcher_settings">Home settings</string>
-    <string name="launcher_settings_hint">Changes apply when you go back. Hold Settings on Home to return here.</string>
+    <string name="launcher_settings_hint">Changes apply when you go back. On Home, press Settings and pick Home settings to return here.</string>
+    <string name="tv_settings">TV settings</string>
     <string name="set_lite">Lite mode</string>
     <string name="set_lite_on">On · fastest</string>
     <string name="set_animations">Animations</string>

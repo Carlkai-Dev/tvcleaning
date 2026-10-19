@@ -16,7 +16,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 /**
- * The launcher's own settings, opened by holding the Settings pill on Home: Lite mode, animations,
+ * The launcher's own settings, opened from the Settings pill's menu on Home: Lite mode, animations,
  * effects, shadow and sheen, tilt, magnification, glass frame, sounds, background and tiles per row, plus the way back to the stock
  * home screen. Choices are saved in {@link Config#PREFS} and applied over the theme by
  * {@link Config#load}; Home rebuilds itself when you come back ({@link #version}).

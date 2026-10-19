@@ -93,6 +93,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static int lastFocused = 0;
     /** App of the last focused tile, so focus follows it when the app list changes. */
     private static String lastFocusedKey;
+    /** Set when a settings screen is opened from the Settings pill, so coming back lands on the pill. */
+    private static boolean returnToSettings;
     private float density;
     private UiSounds sounds;
     /** config animations: false makes every move and fade instant (and Lite mode sets it false). */
@@ -276,13 +278,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(new Intent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
+        // Press: a small menu, Home settings (this launcher's own) or the TV's settings. Many TV remotes
+        // send OK once however long it is held, so the menu, not a long press, is the way in.
         btnSettings.setOnClickListener(v -> {
             sounds.select();
-            open(new Intent(Settings.ACTION_SETTINGS));
+            showSettingsMenu();
         });
-        // Hold: this launcher's own settings (Lite mode, animations, effects, ...).
+        // Hold, where the remote repeats OK: straight to Home settings.
         btnSettings.setOnLongClickListener(v -> {
             sounds.select();
+            returnToSettings = true;
             startActivity(new Intent(this, LauncherSettingsActivity.class));
             return true;
         });
@@ -390,8 +395,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Return to the app we left from, or the same slot if that app is gone. Always refocus: after
         // reload() the view that holds focus may no longer show the app it had.
         grid.post(() -> {
-            int pos = adapter.positionOf(returnKey);
-            focusTile(pos >= 0 ? pos : returnSlot);
+            if (returnToSettings) {
+                returnToSettings = false;
+                findViewById(R.id.btnSettings).requestFocus();
+            } else {
+                int pos = adapter.positionOf(returnKey);
+                focusTile(pos >= 0 ? pos : returnSlot);
+            }
             quietFocus = false;
         });
     }
@@ -840,6 +850,40 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
         if (animations) {
             // Drop in: fade and unfold from the top edge.
+            panel.setAlpha(0f);
+            panel.setPivotY(0f);
+            panel.setScaleY(0.92f);
+            panel.setTranslationY(-8 * density);
+            panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+        }
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /** Dropdown under the Settings pill: this launcher's Home settings, then the TV's own settings. */
+    private void showSettingsMenu() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = new PopupWindow(panel, ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
+        popup.setOutsideTouchable(true);
+        popup.setAnimationStyle(0);
+        popup.setElevation(0f);
+        addInputRow(rows, popup, R.drawable.ic_home_settings, getString(R.string.launcher_settings), -1, () -> {
+            returnToSettings = true;
+            startActivity(new Intent(this, LauncherSettingsActivity.class));
+        });
+        addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.tv_settings), -1, () -> {
+            returnToSettings = true;
+            open(new Intent(Settings.ACTION_SETTINGS));
+        });
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max(anchor.getWidth(), panel.getMeasuredWidth()));
+        // Right-aligned with the pill, the last one in the row, so the menu stays on screen.
+        popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.END);
+        if (animations) {
             panel.setAlpha(0f);
             panel.setPivotY(0f);
             panel.setScaleY(0.92f);
