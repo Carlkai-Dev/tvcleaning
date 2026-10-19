@@ -10,7 +10,7 @@ import android.view.accessibility.AccessibilityEvent;
 /**
  * Maps the remote's Input button to the system input switcher, from any app. Remotes such as the Chromecast voice
  * remote send KEYCODE_TV for it; on Google TV the stock launcher handles that key, so with the stock launcher
- * disabled the button does nothing. Also opens one app on another button (config.xml, app_key_scancodes and
+ * disabled the button does nothing. Also opens one app on another button (config.xml, app_key_keycodes and
  * app_key_package), e.g. the TCL remote's TV button. Only those keys are consumed; every other key passes through.
  * Opt-in: INPUT_KEY_SERVICE=1 build-and-install.sh (or -InputKeyService on Windows) enables it.
  */
@@ -18,13 +18,13 @@ public class InputKeyService extends AccessibilityService {
 
     private static final String ACTION_VIEW_INPUTS = "com.android.tv.action.VIEW_INPUTS";
 
-    private int[] appScancodes = new int[0];
+    private int[] appKeycodes = new int[0];
     private String appPackage = "";
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
-        appScancodes = getResources().getIntArray(R.array.app_key_scancodes);
+        appKeycodes = getResources().getIntArray(R.array.app_key_keycodes);
         appPackage = getString(R.string.app_key_package).trim();
     }
 
@@ -37,8 +37,9 @@ public class InputKeyService extends AccessibilityService {
         return intent;
     }
 
+    /** Keycodes, not scancodes: TCL sends several of its own buttons as scancode 240 (KEY_UNKNOWN). */
     private boolean isAppKey(KeyEvent event) {
-        for (int code : appScancodes) if (event.getScanCode() == code) return true;
+        for (int code : appKeycodes) if (event.getKeyCode() == code) return true;
         return false;
     }
 

@@ -47,11 +47,14 @@
     <integer-array name="settings_key_scancodes">
     </integer-array>
 
-    <!-- A remote button that opens one app from anywhere, by Linux scancode (INPUT_KEY_SERVICE=1
-         build-and-install.sh). Find the scancode with `tools/tv.py 'getevent -lt'` as above. The TCL Google TV
-         remote's TV button is scancode 240 (TCL keycode 4001, which the firmware otherwise turns into the
-         programme guide). Leave the package empty to omit; if the app is missing, the button keeps its old job. -->
-    <integer-array name="app_key_scancodes">
+    <!-- A remote button that opens one app from anywhere, by Android keycode (INPUT_KEY_SERVICE=1
+         build-and-install.sh). Standard buttons use the KEYCODE_* values from Android's KeyEvent. TCL Google TV
+         remotes send their own codes, which `tools/tv.py 'logcat -v time -s InputReader:D'` prints as
+         "TIDD: keyCode=..." while you press the button: the TV button is 4001 (the firmware turns it into the
+         programme guide), the Settings button 83. Match keycodes, not scancodes: TCL sends both of those buttons
+         as scancode 240 (KEY_UNKNOWN). Leave the package empty to omit; if the app is missing, the button keeps
+         its old job. -->
+    <integer-array name="app_key_keycodes">
     </integer-array>
     <string name="app_key_package" translatable="false"></string>
 
