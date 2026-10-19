@@ -16,7 +16,7 @@ Sony K-85XR70 (China), Android 14/API 34, firmware 114.602.170.1.
 | State | Validation |
 | --- | --- |
 | Colour interpolation, cancellation and fallback before final title cleanup | SDK compilation, APK signature check and isolated real-TV navigation/Settings-return checks on 18 October 2026 |
-| Final hero-title callback cleanup, merged with upstream main `31eb392` | Direct SDK compilation targeting API 34 and APK signature verification on 19 October 2026; awake-TV check pending |
+| Final hero-title callback cleanup, merged with upstream main `38b65eb` | Direct SDK compilation targeting API 34 and APK signature verification on 19 October 2026; awake-TV check pending |
 | Gradle wrapper / lint / low-memory TVs / sustained use | Not verified |
 
 The isolated application ID had no HOME filter and did not replace the working launcher.
@@ -44,8 +44,12 @@ Confirm the working HOME stays unchanged and remove the temporary test package a
 
 ## Upstream refresh, 19 October 2026
 
-Merged upstream main `31eb392042009d41bc4ab4b9afadc253db7ab6d6`. README and config conflicts
+Merged upstream main `38b65eb660a92bb08fa51557eb805344da288a72`. README and config conflicts
 were adjacent additions: both the ambient setting and upstream default-home documentation/config
 are retained. MainActivity merged automatically; scroll/glass alignment, focus return keys, VPN
 callbacks, optional home picker and localisation changes remain intact. No working TV package
 was replaced. The direct SDK build is not a Gradle/R8/lint verification.
+
+The refreshed base is the v2.1.0 release commit, including the subsequent install-script,
+translated screensaver-date and Gradle-wrapper fixes. The final merged source was rebuilt
+and signature-checked with targetSdk 34; no new device or Gradle/R8 result is implied.
