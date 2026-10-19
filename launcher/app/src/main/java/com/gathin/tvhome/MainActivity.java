@@ -95,6 +95,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static String lastFocusedKey;
     /** Set when a settings screen is opened from the Settings pill, so coming back lands on the pill. */
     private static boolean returnToSettings;
+    /** The Inputs or Settings dropdown while it is open; closed when Home leaves the screen. */
+    private PopupWindow openMenu;
     private float density;
     private UiSounds sounds;
     /** config animations: false makes every move and fade instant (and Lite mode sets it false). */
@@ -410,6 +412,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(minuteTick);
+        // Pressing Home or opening an app must not leave a dropdown hanging over the grid.
+        if (openMenu != null) openMenu.dismiss();
     }
 
     @Override
@@ -848,6 +852,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setWidth(Math.max(width, panel.getMeasuredWidth()));
 
         popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
+        trackMenu(popup);
         if (animations) {
             // Drop in: fade and unfold from the top edge.
             panel.setAlpha(0f);
@@ -883,6 +888,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setWidth(Math.max(anchor.getWidth(), panel.getMeasuredWidth()));
         // Right-aligned with the pill, the last one in the row, so the menu stays on screen.
         popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.END);
+        trackMenu(popup);
         if (animations) {
             panel.setAlpha(0f);
             panel.setPivotY(0f);
@@ -892,6 +898,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         }
         rows.getChildAt(0).requestFocus();
+    }
+
+    private void trackMenu(PopupWindow popup) {
+        openMenu = popup;
+        popup.setOnDismissListener(() -> {
+            if (openMenu == popup) openMenu = null;
+        });
     }
 
     private void addSeparator(LinearLayout rows) {
