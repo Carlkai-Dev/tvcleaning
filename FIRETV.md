@@ -31,11 +31,14 @@ So the launcher works around it instead of replacing it:
   `BOOT_COMPLETED` is handed to about 100 apps one at a time and reached this one about 65 s after Amazon's home
   appeared, while the locked-boot broadcast reached it in about 7 s.
 
-Tested on the stick (Home presses were injected with `adb shell input`, not the physical remote):
+Tested on the stick. Most Home presses were injected with `adb shell input`. One was a kernel-level `KEY_HOME` written
+with `sendevent` to the stick's IR receiver (`/dev/input/event0`), which takes the same path as a physical button. The
+Bluetooth remote itself was not pressed.
 
 | Case | Result |
 |---|---|
 | Home on the launcher, or inside Netflix | Cover up 13–163 ms after the press, before Amazon's home draws; live launcher at 5–6 s |
+| Hardware `KEY_HOME` (IR receiver) inside NoTubeTV | Cover up 51 ms after Amazon's home starts; it finished drawing underneath at 780 ms; launcher at 5.3 s |
 | Two D-pad presses on the cover | Replayed: focus moved two tiles |
 | Back out of an app opened from the launcher | Back on the launcher, no cover needed |
 | Settings menu: Applications, then Back | Opens, Back returns to the launcher |
