@@ -2,6 +2,7 @@ package com.gathin.tvhome;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
@@ -13,10 +14,15 @@ import android.content.IntentFilter;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RadialGradient;
 import android.graphics.Rect;
+import android.graphics.Shader;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.GradientDrawable;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
@@ -24,6 +30,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
+import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -32,10 +39,13 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextPaint;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -51,8 +61,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * tvOS-inspired home: a glass dock, an expanding app grid, folders, and app-colour focus lighting.
@@ -64,6 +76,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static final long MINUTE_MS = 60_000L;
     private String liveTvPkg;
     private String liveTvAction;
+    private String inputAction;
     private String sourcePanelService;
     private String sourcePanelAction;
 
@@ -73,8 +86,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private GlassView glass;
     private View ambient;
     private TextView heroName;
-    private GradientDrawable ambientGlow;
-    private int ambientColor;
+    private int ambientColor = -1;
     private boolean heroShown;
     private TextView greeting;
     private View btnInputs, btnSettings;
@@ -114,6 +126,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String requestedFocusKey;
     private boolean confirmDown;
     private int moveAnimationRequest;
+    /** Module cards (res/values/config.xml, module_cards): discovered on resume, shown only after the owner's Show. */
+    private boolean moduleCards;
+    /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
+    private boolean reducedMotion;
+    /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
+    private Set<String> hiddenApps = Collections.emptySet();
+    private List<Cards.Card> cards = Collections.emptyList();
+    /** The grid has been laid out and focused since the last resume; the card prompt waits for this. */
+    private boolean tilesReady;
+    private Dialog cardPrompt;
+    /** Set when a decision could not be saved: no more prompts until the next resume, instead of asking in a loop. */
+    private boolean promptsPaused;
+    /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
+    private PopupWindow openPopup;
     private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
             if (intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
@@ -123,9 +149,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (movingKey != null) finishMove(false, false);
             String key = lastFocusedKey;
             int slot = lastFocused;
-            adapter.reload();
+            reloadTiles();
             syncFolderPresentation();
             if (!paused) focusKey(key, slot);
+            // A newly installed app may have brought a card with it.
+            showCardPrompt();
         }
     };
 
@@ -183,8 +211,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
         COLUMNS = cfg.columns;
+        reducedMotion = cfg.reducedMotion;
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
+        inputAction = cfg.inputAction;
         sourcePanelService = cfg.sourcePanelService;
         sourcePanelAction = cfg.sourcePanelAction;
 
@@ -213,12 +243,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glass = findViewById(R.id.glass);
         ambient = findViewById(R.id.ambient);
         heroName = findViewById(R.id.heroName);
-        ambientGlow = new GradientDrawable();
-        ambientGlow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
-        ambientGlow.setGradientCenter(0.32f, 0.42f);
-        ambient.setBackground(ambientGlow);
-        ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
-                ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
@@ -230,6 +254,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             date.setPadding(0, (int) (4 * density), 0, 0);
         }
         vpnApp = cfg.vpnApp;
+        moduleCards = cfg.moduleCards;
+        hiddenApps = new HashSet<>(cfg.hiddenApps);
 
         grid = findViewById(R.id.grid);
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS) {
@@ -283,6 +309,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return true;
         });
         btnSettings.setOnClickListener(v -> openSettings(Settings.ACTION_SETTINGS));
+        btnSettings.setOnLongClickListener(v -> {
+            if (!moduleCards) return false;   // off: a long press does nothing, as before the feature
+            showModuleCards();
+            return true;
+        });
 
         // Header and grid directions share the activity key router. Do not send Down through
         // TextView/Android focus search to the RecyclerView container instead of an actual card.
@@ -341,6 +372,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         paused = false;
+        tilesReady = false;
+        promptsPaused = false;
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
@@ -349,7 +382,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Read these before reload(): rebinding can move focus to the first tile and overwrite them.
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
-        adapter.reload();
+        reloadTiles();
         if (savingOrderNow && savingLayout != null) adapter.restoreLayout(savingLayout);
         syncFolderPresentation();
         updateGreeting();
@@ -361,6 +394,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // reload() the view that holds focus may no longer show the app it had.
         int pos = adapter.positionOf(returnKey);
         focusTile(pos >= 0 ? pos : returnSlot);
+        // The card prompt waits for a laid out grid.
+        grid.post(() -> {
+            tilesReady = true;
+            showCardPrompt();
+        });
+    }
+
+    /**
+     * Rebuilds the tiles; the module cards the owner chose to show stand in for their app's tile.
+     * Every step into the card code runs under CardFeature: if it fails, the tiles are the ordinary
+     * ones and cards stay off for this process.
+     */
+    private void reloadTiles() {
+        // Read these before reload(): rebinding can move focus to the first tile and overwrite them.
+        final String returnKey = lastFocusedKey;
+        final int returnSlot = lastFocused;
+        final List<Cards.Card> none = Collections.emptyList();
+        cards = moduleCards ? CardFeature.run(() -> Cards.discover(this, hiddenApps, Cards.load(Cards.storeFile(this))), none) : none;
+        adapter.reload(cards.isEmpty() ? none : CardFeature.run(() -> Cards.shown(cards), none));
+        lastFocusedKey = returnKey;
+        lastFocused = returnSlot;
     }
 
     @Override
@@ -374,6 +428,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (editDialog != null) editDialog.dismiss();
         if (movingKey != null && !savingOrderNow) finishMove(false, false);
         handler.removeCallbacks(minuteTick);
+        // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
+        if (cardPrompt != null) cardPrompt.dismiss();
+        if (openPopup != null) openPopup.dismiss();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) showCardPrompt();
     }
 
     @Override
@@ -447,7 +510,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!glassShown) {
             glass.setTranslationX(x);
             glass.setTranslationY(y);
-            glass.animate().alpha(1f).setDuration(180).start();
+            glass.animate().alpha(1f).setDuration(reducedMotion ? 100 : 180).start();
             glassShown = true;
         } else {
             // Coloured light belongs to the selected tile, so it never slides across empty space.
@@ -480,7 +543,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else {
                 float pad = GlassView.HALO_INSET_DP * density;
                 Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-                grid.requestChildRectangleOnScreen(item, want, false);
+                grid.requestChildRectangleOnScreen(item, want, reducedMotion);
             }
         }
     }
@@ -508,6 +571,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
 
+        if (reducedMotion) {
+            // Snap the shelf instead of sliding and fading it: each of those frames repaints the
+            // full-screen panel, and this switch exists for the GPUs that cannot afford it.
+            heroName.animate().cancel();
+            heroName.setText(label);
+            heroName.setY(y);
+            heroName.setTranslationX(0f);
+            heroName.setAlpha(1f);
+            setAmbient(color);
+            if (!heroShown) {
+                ambient.setAlpha(0f);
+                ambient.animate().alpha(1f).setDuration(160).start();
+                heroShown = true;
+            }
+            return;
+        }
+
         if (!heroShown) {
             heroName.setText(label);
             heroName.setY(y);
@@ -534,10 +614,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * The glow used to be a full-screen radial GradientDrawable. On Android 10 that drawable is
+     * drawn on the CPU, so fading it for half a second redrew 1920×1080 every frame and the
+     * highlight looked like it was running at a few frames per second. A small bitmap stretched
+     * over the screen is one texture; changing apps only uploads it once.
+     */
     private void setAmbient(int color) {
+        if (color == ambientColor && ambient.getBackground() != null) return;
         ambientColor = color;
         int c = color & 0x00FFFFFF;
-        ambientGlow.setColors(new int[]{0x5C000000 | c, 0x26000000 | c, 0x00000000 | c});
+        int w = 480;
+        int h = 270;
+        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        // Same centre, radius and evenly spaced stops as the GradientDrawable it replaces.
+        paint.setShader(new RadialGradient(
+                w * 0.32f, h * 0.42f, w * 0.62f,
+                new int[]{0x5C000000 | c, 0x26000000 | c, 0x00000000 | c},
+                null,
+                Shader.TileMode.CLAMP));
+        canvas.drawRect(0, 0, w, h, paint);
+        BitmapDrawable drawable = new BitmapDrawable(getResources(), bmp);
+        drawable.setGravity(Gravity.FILL);
+        ambient.setBackground(drawable);
     }
 
     private void hideHero() {
@@ -547,8 +648,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // halfway through expansion.
         heroName.animate().cancel();
         ambient.animate().cancel();
-        heroName.animate().alpha(0f).setDuration(160).start();
-        ambient.animate().alpha(0f).setDuration(300).start();
+        heroName.animate().alpha(0f).setDuration(reducedMotion ? 100 : 160).start();
+        ambient.animate().alpha(0f).setDuration(reducedMotion ? 140 : 300).start();
     }
 
     private void hideGlass() {
@@ -723,7 +824,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void focusTile(int position) {
-        if (adapter.getItemCount() == 0 || paused) return;
+        if (paused) return;
+        if (adapter.getItemCount() == 0) {
+            btnWifi.requestFocus();
+            return;
+        }
         int pos = Math.max(0, Math.min(position, adapter.getItemCount() - 1));
         String key = adapter.keyAt(pos);
         lastFocused = pos;
@@ -1060,7 +1165,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
                 if (refreshPending) {
                     refreshPending = false;
-                    adapter.reload();
+                    reloadTiles();
                     syncFolderPresentation();
                     if (!paused) focusKey(focus, 0);
                 }
@@ -1253,7 +1358,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     if (movingKey != null) finishMove(false, false);
                     String key = lastFocusedKey;
                     int slot = lastFocused;
-                    adapter.reload();
+                    reloadTiles();
                     syncFolderPresentation();
                     if (!paused) focusKey(key, slot);
                 }
@@ -1311,10 +1416,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
     private void updateWifiLabel() {
         String text = getString(R.string.wifi);
-        boolean vpn = false;
+        boolean vpn = false, online = false;
+        int icon = R.drawable.ic_wifi;
         try {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-            boolean online = false, wifi = false, ethernet = false;
+            boolean wifi = false, ethernet = false;
             // All networks, not just the active one: with a VPN up the active network is the VPN itself.
             for (Network net : cm != null ? cm.getAllNetworks() : new Network[0]) {
                 NetworkCapabilities caps = cm.getNetworkCapabilities(net);
@@ -1333,6 +1439,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 vpn = false;
             } else if (ethernet) {
                 text = getString(R.string.ethernet);
+                icon = R.drawable.ic_ethernet;
             } else if (wifi) {
                 WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
                 WifiInfo info = wm != null ? wm.getConnectionInfo() : null;
@@ -1344,16 +1451,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         } catch (Exception ignored) {
         }
-        if (vpn) {
-            // Network name, then a green lock-and-VPN capsule drawn in place of the word "VPN".
-            String badge = getString(R.string.vpn);
+        // With a VPN app configured, a VPN that is down matters too: show a red "VPN off" capsule then.
+        boolean vpnDown = !vpn && online && !vpnApp.isEmpty();
+        if (vpn || vpnDown) {
+            // Network name, then the green lock-and-VPN (or red "VPN off") capsule drawn in place of the word.
+            String badge = getString(vpn ? R.string.vpn : R.string.vpn_off);
+            VpnBadge span = new VpnBadge(vpn ? getDrawable(R.drawable.ic_lock) : null, density);
+            // The pill has a maximum width and ellipsizes at the end, which would cut the badge off after
+            // a long network name, so shorten the name to whatever room the badge leaves. The total paddings
+            // include the Wi-Fi icon.
+            TextPaint paint = btnWifi.getPaint();
+            float room = btnWifi.getMaxWidth() - btnWifi.getTotalPaddingStart() - btnWifi.getTotalPaddingEnd()
+                    - span.getSize(paint, badge, 0, badge.length(), null) - paint.measureText(" ") - 2 * density;
+            text = TextUtils.ellipsize(text, paint, Math.max(0, room), TextUtils.TruncateAt.END).toString();
             SpannableString label = new SpannableString(text + " " + badge);
-            label.setSpan(new VpnBadge(getDrawable(R.drawable.ic_lock), density),
-                    text.length() + 1, label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            label.setSpan(span, text.length() + 1, label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             btnWifi.setText(label);
         } else {
             btnWifi.setText(text);
         }
+        btnWifi.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
     }
 
     /** The network pill opens the VPN app when one is configured and installed, otherwise Wi-Fi settings. */
@@ -1367,7 +1484,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void openSettings(String action) {
         // Settings shares one task across its panels. NEW_TASK alone can bring its previous
         // submenu back to the front instead of opening the screen the user requested.
-        open(new Intent(action).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+        open(systemIntent(action).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+    }
+
+    /**
+     * China-market MIUI TV firmware answers no standard Settings intents at all; open Xiaomi's own
+     * settings app (com.xiaomi.mitv.settings) there, so the Settings and Wi-Fi pills keep working.
+     * On firmware with a standard settings handler the behaviour is unchanged.
+     */
+    private Intent systemIntent(String standardAction) {
+        Intent i = new Intent(standardAction);
+        if (i.resolveActivity(getPackageManager()) != null) return i;
+        i = new Intent().setComponent(new ComponentName(
+                "com.xiaomi.mitv.settings", "com.xiaomi.mitv.settings.entry.MainActivity"));
+        if (i.resolveActivity(getPackageManager()) != null) return i;
+        return new Intent(standardAction);   // nothing found: let open() show the can't-open toast
     }
 
     /** Hides the Inputs pill when it would have nothing to list: streaming boxes have no HDMI-in, AV or tuner. */
@@ -1415,6 +1546,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** Switches to a passthrough input (HDMI, AV). The standard way is ACTION_VIEW on its channel URI,
+     *  which the Live TV app handles; where nothing takes that, the configured `input_action` is sent
+     *  with the same URI instead (XGIMI's HDMI player only answers com.xgimi.action.hdmiPlayer). */
+    private void openInput(String inputId) {
+        Uri uri = TvContract.buildChannelUriForPassthroughInput(inputId);
+        Intent view = new Intent(Intent.ACTION_VIEW).setDataAndType(uri, "vnd.android.cursor.item/channel")
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(view);
+            return;
+        } catch (ActivityNotFoundException e) {
+            if (inputAction.isEmpty()) {
+                Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        open(new Intent(inputAction).setDataAndType(uri, "vnd.android.cursor.item/channel"));
+    }
+
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
     private void showInputs() {
         View anchor = findViewById(R.id.btnInputs);
@@ -1423,11 +1573,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // Compact: as wide as the Inputs pill (a touch wider so "HDMI 1" fits), hanging right below it.
         int width = Math.max(anchor.getWidth(), (int) (150 * density));
-        final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
-        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
-        popup.setOutsideTouchable(true);
-        popup.setAnimationStyle(0);
-        popup.setElevation(0f);
+        final PopupWindow popup = glassPopup(panel, width);
 
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         boolean sawNonHdmi = false;
@@ -1471,8 +1617,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);
                 if (!hdmi) sawNonHdmi = true;
                 addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, label, state,
-                        () -> open(new Intent(Intent.ACTION_VIEW).setDataAndType(
-                                TvContract.buildChannelUriForPassthroughInput(id), "vnd.android.cursor.item/channel")));
+                        () -> openInput(id));
             }
         }
         // Nothing to list where there is no TvInputManager: the TV's own source panel switches inputs.
@@ -1499,16 +1644,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max(width, panel.getMeasuredWidth()));
 
-        // Drop in: fade and unfold from the top edge.
+        dropIn(popup, panel, anchor, Gravity.START);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    private PopupWindow glassPopup(View panel, int width) {
+        final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
+        popup.setOutsideTouchable(true);
+        popup.setAnimationStyle(0);
+        popup.setElevation(0f);
+        popup.setOnDismissListener(() -> {
+            if (openPopup == popup) openPopup = null;
+        });
+        openPopup = popup;
+        return popup;
+    }
+
+    /** Drop in: fade and unfold from the top edge, hanging under the anchor pill. */
+    private void dropIn(PopupWindow popup, View panel, View anchor, int gravity) {
         panel.setAlpha(0f);
         panel.setPivotY(0f);
         panel.setScaleY(0.92f);
         panel.setTranslationY(-8 * density);
-        popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
+        popup.showAsDropDown(anchor, 0, (int) (10 * density), gravity);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
-        rows.getChildAt(0).requestFocus();
     }
+
 
     private void addSeparator(LinearLayout rows) {
         View line = new View(this);
@@ -1542,5 +1705,175 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.run();
         });
         rows.addView(row);
+    }
+
+    // ---- module cards ----------------------------------------------------------------------------
+
+    /**
+     * Asks about the next card that has no decision for its current signing key. One prompt at a
+     * time, only over a laid out grid with window focus (not under a popup or another app), and
+     * the next one follows as soon as this one is answered. Nothing is shown until the owner says Show.
+     */
+    private void showCardPrompt() {
+        if (!moduleCards || !tilesReady || promptsPaused || cardPrompt != null || !hasWindowFocus() || isFinishing()) return;
+        // Not over the tile menu, a folder dialog or a move in progress; the prompt follows once they close.
+        if (paused || tileMenu != null || editDialog != null || movingKey != null || savingOrderNow) return;
+        if (cards.isEmpty() || !CardFeature.working()) return;
+        CardFeature.run(() -> {
+            showCardPromptNow();
+            return null;
+        }, null);
+    }
+
+    private void showCardPromptNow() {
+        final Cards.Card card = Cards.firstPending(cards);
+        if (card == null) return;
+
+        View panel = getLayoutInflater().inflate(R.layout.dialog_card_prompt, root, false);
+        ((TextView) panel.findViewById(R.id.title)).setText(getString(R.string.card_prompt_title, card.appLabel));
+        ((TextView) panel.findViewById(R.id.body)).setText(card.state == Cards.State.RESIGNED
+                ? getString(R.string.card_prompt_resigned, card.appLabel)
+                : card.state == Cards.State.RELABELLED
+                ? getString(R.string.card_prompt_relabelled, card.appLabel)
+                : getString(R.string.card_prompt_body, card.appLabel));
+        TextView names = panel.findViewById(R.id.names);
+        if (Cards.fold(card.label).equals(Cards.fold(card.appLabel))) names.setVisibility(View.GONE);
+        else names.setText(getString(R.string.card_prompt_names, card.label, card.appLabel));
+        ((TextView) panel.findViewById(R.id.identity)).setText(
+                getString(R.string.card_prompt_identity, card.pkg, Cards.shortDigest(card.digest)));
+        TextView keep = panel.findViewById(R.id.btnKeep);
+        TextView show = panel.findViewById(R.id.btnShow);
+
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(panel);
+        dialog.setCanceledOnTouchOutside(false);
+        Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            w.setLayout((int) (440 * density), ViewGroup.LayoutParams.WRAP_CONTENT);
+            w.setDimAmount(0.6f);
+        }
+        // One decision per prompt: the buttons and Back (cancel) all end here.
+        final boolean[] decided = {false};
+        View.OnClickListener choose = v -> {
+            if (decided[0]) return;
+            decided[0] = true;
+            cardPrompt = null;
+            dialog.dismiss();
+            decideCard(card, v.getId() == R.id.btnShow);   // guards its own card calls; the tile reload stays outside
+            // The tiles changed under the prompt; back to the same app. Window focus returning chains the next prompt.
+            focusKey(lastFocusedKey, lastFocused);
+        };
+        keep.setOnClickListener(choose);
+        show.setOnClickListener(choose);
+        dialog.setOnCancelListener(d -> choose.onClick(keep));
+        dialog.setOnDismissListener(d -> {
+            if (cardPrompt == dialog) cardPrompt = null;
+        });
+        // Left and Right move between the two buttons; Up and Down stay put; the ends don't wrap.
+        View.OnKeyListener keys = (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == R.id.btnKeep;
+            return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnShow;
+        };
+        keep.setOnKeyListener(keys);
+        show.setOnKeyListener(keys);
+        cardPrompt = dialog;
+        dialog.show();
+        keep.requestFocus();
+    }
+
+    /** Writes the owner's decision and rebuilds the tiles; focus is left where it is. */
+    private void decideCard(Cards.Card card, boolean show) {
+        boolean saved = CardFeature.run(() -> Cards.decide(Cards.storeFile(this), card, show), false);
+        if (!saved) {
+            Toast.makeText(this, R.string.card_not_saved, Toast.LENGTH_SHORT).show();
+            promptsPaused = true;
+        }
+        reloadTiles();
+    }
+
+    /** Dropdown under the Settings pill (hold OK): every discovered card, its package and key; OK toggles Shown and Hidden. */
+    private void showModuleCards() {
+        if (cards.isEmpty() || !CardFeature.working()) {
+            Toast.makeText(this, R.string.no_module_cards, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        CardFeature.run(() -> {
+            showModuleCardsNow();
+            return null;
+        }, null);
+    }
+
+    private void showModuleCardsNow() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_cards, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = glassPopup(panel, (int) (400 * density));
+        List<Cards.Card> listed = new ArrayList<>(cards);
+        Collections.sort(listed, Cards::byLabel);
+        for (Cards.Card card : listed) {
+            View row = getLayoutInflater().inflate(R.layout.item_card_row, rows, false);
+            row.setTag(card.pkg);
+            ((TextView) row.findViewById(R.id.title)).setText(card.label);
+            TextView app = row.findViewById(R.id.app);
+            if (Cards.fold(card.label).equals(Cards.fold(card.appLabel))) app.setVisibility(View.GONE);
+            else app.setText(getString(R.string.card_app_name, card.appLabel));
+            ((TextView) row.findViewById(R.id.pkg)).setText(card.pkg);
+            ((TextView) row.findViewById(R.id.digest)).setText(Cards.longDigest(card.digest));
+            final String pkg = card.pkg;
+            row.setOnClickListener(v -> CardFeature.run(() -> {
+                // The list stays open; the decision is for the card as it is now, not as it was listed.
+                Cards.Card now = cardFor(pkg);
+                if (now == null) return null;
+                decideCard(now, now.state != Cards.State.SHOWN);
+                // Every row, not only this one: a toggle can move another card across the limit of 8.
+                updateCardStates(rows);
+                return null;
+            }, null));
+            rows.addView(row);
+        }
+        updateCardStates(rows);
+        // Scroll inside the panel instead of running off the bottom of a 720p screen.
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int[] at = new int[2];
+        anchor.getLocationInWindow(at);
+        int room = root.getHeight() - (at[1] + anchor.getHeight()) - (int) (34 * density);
+        popup.setHeight(Math.min(panel.getMeasuredHeight(), Math.max(room, (int) (120 * density))));
+        dropIn(popup, panel, anchor, Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    private Cards.Card cardFor(String pkg) {
+        for (Cards.Card c : cards) if (c.pkg.equals(pkg)) return c;
+        return null;
+    }
+
+    /** Writes the state of every row in the Module cards list from the current card list. */
+    private void updateCardStates(LinearLayout rows) {
+        List<Cards.Card> drawn = Cards.shown(cards);
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            View row = rows.getChildAt(i);
+            Cards.Card card = row.getTag() instanceof String ? cardFor((String) row.getTag()) : null;
+            ((TextView) row.findViewById(R.id.state)).setText(card != null ? stateText(card, drawn.contains(card)) : "");
+        }
+    }
+
+    /** The row's state: a card the owner set to Shown but which is beyond the eight drawn says so. */
+    private String stateText(Cards.Card card, boolean drawn) {
+        switch (card.state) {
+            case SHOWN:
+                return getString(drawn ? R.string.card_state_shown : R.string.card_state_over_limit);
+            case HIDDEN:
+                return getString(R.string.card_state_hidden);
+            case RESIGNED:
+                return getString(R.string.card_state_new_key);
+            case RELABELLED:
+                return getString(R.string.card_state_new_label);
+            default:
+                return getString(R.string.card_state_new);
+        }
     }
 }

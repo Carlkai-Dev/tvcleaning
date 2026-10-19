@@ -48,8 +48,18 @@ Debloat
 - Run `pm` commands one per shell call, chained commands may silently stop after the first.
 - Disable in small batches and screenshot between them: a batch can take something load-bearing with
   it and you cannot tell which.
+- Offer me ad-blocking DNS as an optional extra: on Android 9 and newer, Private DNS set to an
+  ad-blocking resolver (`settings put global private_dns_specifier dns.adguard-dns.com`, then
+  `settings put global private_dns_mode hostname`). Tell me it doesn't block YouTube ads, check an app
+  still plays afterwards, and note the undo (`private_dns_mode opportunistic`) in the README.
 
 Launcher
+- Check that the TV accepts APKs before building anything. Some China-market sets answer every
+  sideload with `INSTALL_FAILED_VERIFICATION_FAILURE` — `adb install`, `pm install`, a hand-started
+  installer and even the manufacturer's own APKs all fail — and others refuse any package that
+  declares `android.intent.category.HOME` unless it carries the manufacturer's signature. If you
+  hit either, do the debloat half, say plainly that the launcher half is impossible here, and stop
+  retrying installs. The matching `examples/` header says which case your TV is.
 - Don't install a third-party launcher that charges for basics like wallpapers. Build a small native
   Android TV launcher instead (Java, AndroidX RecyclerView, minSdk matching the TV, debug build is fine),
   install it over ADB, set it as the default home and disable the stock launcher. If several apps claim
@@ -77,6 +87,9 @@ Launcher
 Verify
 - After each change, inject remote key presses over ADB, take a screenshot from the TV and look at it.
   Fix what you see before moving on.
+- If a remote button relies on an accessibility helper, check that the service is enabled and bound
+  for the current user, then ask me to press the real button; an injected key is not proof (see
+  `docs/TROUBLESHOOTING.md`).
 - When done, give me a restore script, a build-and-install script, and a README that explains how to
   re-enable any app and how to change the dock order or the wallpaper.
 

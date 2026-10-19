@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -14,11 +15,14 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.Settings;
+import android.util.DisplayMetrics;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
+import android.view.ViewPropertyAnimator;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -29,12 +33,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * App tiles. The first {@link MainActivity#COLUMNS} positions are the dock. Configured favourites and alphabetical order are defaults until customized.
+ * App tiles. The first {@link MainActivity#COLUMNS} positions are the dock. Configured favourites, then the
+ * module cards the owner chose to show (by label), then alphabetical order are defaults until customized.
  */
 public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
@@ -54,24 +61,38 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     static final class Entry {
+        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, FOLDER = 3;
+
+        final int kind;
         final String label;
         final String key;
         final ComponentName component;
         final String pkg;
         final Drawable banner;
         final Drawable icon;
+        /** Text under the tile when it is focused in the grid: the label, plus the caption for a card. */
+        final String name;
+        /** Ambient glow colour; 0 until sampled from the banner, or the card's accent from the start. */
         int ambient;
         Drawable glyph;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
+            this(APP, label, component, banner, icon, null, 0);
+        }
+
+        Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent) {
+            this.kind = kind;
             this.label = label;
             this.component = component;
             this.key = component.flattenToShortString();
             this.pkg = component.getPackageName();
             this.banner = banner;
             this.icon = icon;
+            this.name = caption == null ? label : label + " \u00B7 " + caption;
+            this.ambient = accent;
         }
         Entry(String key, String label, Drawable preview) {
+            this.kind = FOLDER; this.name = label;
             this.key = key; this.label = label; this.component = null;
             this.pkg = null; this.banner = preview; this.icon = null;
         }
@@ -110,6 +131,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final boolean showHomeSettings;
+    /** Calmer motion for weak GPUs (config.xml, reduced_motion): no overshoot, shorter fades. */
+    private final boolean reducedMotion;
     private final List<Entry> items = new ArrayList<>();
     private final HomeLayoutStore layoutStore;
     private HomeLayout layout = new HomeLayout();
@@ -159,25 +182,39 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.favourites = cfg.dockApps;
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
+        this.reducedMotion = cfg.reducedMotion;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
     }
 
-    void reload() {
+    /**
+     * Rebuilds the tiles. A shown module card stands in for every tile of its package (same component,
+     * so focus follows it); hidden_apps wins over a card, and a card's package in dock_apps takes that slot.
+     */
+    void reload(List<Cards.Card> cards) {
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
+        Map<String, Cards.Card> cardByPkg = new HashMap<>();
+        for (Cards.Card c : cards) cardByPkg.put(c.pkg, c);
         List<Entry> fresh = new ArrayList<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
-            Drawable banner = ri.activityInfo.loadBanner(pm);
-            if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
+            ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
+            Cards.Card card = cardByPkg.get(pkg);
+            if (card != null && !card.component.equals(component)) continue;   // the card stands in for this tile
+            Drawable banner = loadBanner(pm, ri);
             Drawable icon = ri.loadIcon(pm);
-            String label = String.valueOf(ri.loadLabel(pm));
-            fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
+            if (card != null) {
+                fresh.add(new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent));
+            } else {
+                // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
+                // redraw the tile name as something else (#117).
+                fresh.add(new Entry(Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg), component, banner, icon));
+            }
         }
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
@@ -186,20 +223,38 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 if (fb < 0) return -1;
                 return Integer.compare(fa, fb);
             }
+            // Cards come right after the configured dock apps, before the alphabetical grid.
+            boolean ca = a.kind == Entry.CARD, cb = b.kind == Entry.CARD;
+            if (ca != cb) return ca ? -1 : 1;
             return a.label.compareToIgnoreCase(b.label);
         });
         // Optional "Default home" tile (config.xml), only when this TV actually has a home-screen picker.
         if (showHomeSettings
                 && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
-            fresh.add(new Entry(ctx.getString(R.string.home_settings),
+            fresh.add(new Entry(Entry.HOME_SETTINGS, ctx.getString(R.string.home_settings),
                     new ComponentName(ctx, HomeSettingsActivity.class), null,
-                    ctx.getDrawable(R.drawable.ic_home_settings)));
+                    ctx.getDrawable(R.drawable.ic_home_settings), null, 0));
         }
         inventory.clear();
         for (Entry entry : fresh) inventory.put(entry.key, entry);
         layout = layoutStore.read();
         layout.reconcile(new ArrayList<>(inventory.keySet()));
         rebuild();
+    }
+
+    private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
+        int id = ri.activityInfo.banner;
+        if (id == 0) id = ri.activityInfo.applicationInfo.banner;
+        if (id != 0) {
+            try {
+                Resources resources = pm.getResourcesForApplication(ri.activityInfo.applicationInfo);
+                // Keep at least xhdpi detail rather than downsampling artwork before the focus zoom.
+                int density = Math.max(DisplayMetrics.DENSITY_XHIGH, ctx.getResources().getDisplayMetrics().densityDpi);
+                return resources.getDrawableForDensity(id, density, null);
+            } catch (PackageManager.NameNotFoundException | Resources.NotFoundException ignored) {
+            }
+        }
+        return ri.activityInfo.loadBanner(pm);
     }
 
     @NonNull
@@ -220,7 +275,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         nameLp.width = w;
         nameLp.topMargin = h + Math.round(7 * density);
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener);
+        return new Holder(v, listener, reducedMotion);
     }
 
     @Override
@@ -237,7 +292,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             nameLp.width = w; nameLp.topMargin = height + Math.round(7 * d); h.name.setLayoutParams(nameLp);
         }
         h.card.setBackground(isFolder(position) ? new GlassPanelDrawable(d, 16) : ctx.getDrawable(R.drawable.tile_bg));
-        android.text.SpannableString caption = new android.text.SpannableString("●  " + e.label);
+        android.text.SpannableString caption = new android.text.SpannableString("●  " + e.name);
         caption.setSpan(new FocusDotSpan(d), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         h.name.setText(caption);
         h.name.setVisibility(e.label.isEmpty() || (activeFolder == null && position < dockSize) || movingKey != null ? View.INVISIBLE : View.VISIBLE);
@@ -350,8 +405,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
     }
 
+    /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
     private void launch(Entry e) {
-        if (e.component.equals(new ComponentName(ctx, HomeSettingsActivity.class))) {
+        if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             return;
@@ -444,7 +500,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
     }
 
-    /** A vivid colour sampled from the app's banner (or icon), cached per entry. */
+    /** A vivid colour sampled from the app's banner (or icon), cached per entry; a card's accent when it set one. */
     int ambientColorAt(int position) {
         if (position < 0 || position >= items.size()) return 0xFF444444;
         Entry e = items.get(position);
@@ -505,9 +561,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final ImageView icon;
         final TextView label;
         final TextView name;
+        final boolean reducedMotion;
         boolean suppressConfirmRelease;
 
-        Holder(View v, TileListener listener) {
+        Holder(View v, TileListener listener, boolean reducedMotion) {
             super(v);
             card = v.findViewById(R.id.card);
             // The launcher draws its own app-colour focus light; avoid a platform fill behind glass.
@@ -516,6 +573,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             icon = v.findViewById(R.id.icon);
             label = v.findViewById(R.id.label);
             name = v.findViewById(R.id.name);
+            this.reducedMotion = reducedMotion;
 
             final float density = v.getResources().getDisplayMetrics().density;
             card.setOutlineProvider(new ViewOutlineProvider() {
@@ -561,16 +619,28 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             card.setOnFocusChangeListener((view, focused) -> {
                 boolean highlighted = focused || view.isActivated();
                 float s = highlighted ? FOCUS_SCALE : 1.0f;
-                view.animate().scaleX(s).scaleY(s).translationZ(highlighted ? 4 * density : 0f)
+                view.animate().cancel();
+                name.animate().cancel();
+                ViewPropertyAnimator zoom = view.animate().scaleX(s).scaleY(s)
+                        .translationZ(highlighted ? 4 * density : 0f)
                         .setUpdateListener(animation -> {
                             if (listener != null && view.isFocused()) listener.onTileFocusFrame(view);
                         })
-                        .setDuration(focused ? 260 : 180)
-                        .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
-                        .start();
-                name.animate().alpha(focused ? 1f : 0f)
-                        .translationY(focused ? density * 4f : -density * 6f)
-                        .setDuration(220).start();
+                        .withLayer();
+                if (reducedMotion) {
+                    // No overshoot: the extra frames redraw the banner and the dock band on a weak GPU.
+                    zoom.setDuration(focused ? 120 : 80)
+                            .setInterpolator(new DecelerateInterpolator())
+                            .start();
+                    name.animate().alpha(focused ? 1f : 0f).setDuration(100).start();
+                } else {
+                    zoom.setDuration(focused ? 260 : 180)
+                            .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
+                            .start();
+                    name.animate().alpha(focused ? 1f : 0f)
+                            .translationY(focused ? density * 4f : -density * 6f)
+                            .setDuration(220).start();
+                }
                 int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);
