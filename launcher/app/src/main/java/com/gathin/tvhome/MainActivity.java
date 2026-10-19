@@ -94,6 +94,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** App of the last focused tile, so focus follows it when the app list changes. */
     private static String lastFocusedKey;
     private float density;
+    private UiSounds sounds;
+    /** Set while onResume puts focus back: landing where you left off makes no sound. */
+    private boolean quietFocus;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
@@ -154,6 +157,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelService = cfg.sourcePanelService;
         sourcePanelAction = cfg.sourcePanelAction;
 
+        sounds = new UiSounds(this, cfg.uiSounds);
         root = findViewById(R.id.root);
         if (cfg.backgroundGradient.length > 0) {
             root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, cfg.backgroundGradient));
@@ -192,7 +196,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.addItemDecoration(new DockDecoration(COLUMNS, density, cfg.dockBandColor));
         grid.setLayoutAnimation(new LayoutAnimationController(
                 AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
-        adapter = new AppAdapter(this, this, COLUMNS, cfg);
+        adapter = new AppAdapter(this, this, COLUMNS, cfg, sounds);
         grid.setAdapter(adapter);
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
@@ -241,25 +245,46 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
-        btnInputs.setOnClickListener(v -> showInputs());
-        btnWifi.setOnClickListener(v -> openNetworkPill());
+        btnInputs.setOnClickListener(v -> {
+            sounds.select();
+            showInputs();
+        });
+        btnWifi.setOnClickListener(v -> {
+            sounds.select();
+            openNetworkPill();
+        });
         btnWifi.setOnLongClickListener(v -> {
+            sounds.select();
             open(new Intent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> {
+            sounds.select();
+            open(new Intent(Settings.ACTION_SETTINGS));
+        });
+        View.OnFocusChangeListener pillFocus = (v, focused) -> {
+            if (focused) sounds.focus();
+        };
+        btnInputs.setOnFocusChangeListener(pillFocus);
+        btnWifi.setOnFocusChangeListener(pillFocus);
+        btnSettings.setOnFocusChangeListener(pillFocus);
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+            boolean end;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                end = true;
+            } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                 // The left end is Inputs, or Wi-Fi on a box without inputs.
-                return v.getId() == R.id.btnInputs
+                end = v.getId() == R.id.btnInputs
                         || (v.getId() == R.id.btnWifi && btnInputs.getVisibility() != View.VISIBLE);
+            } else {
+                end = keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
             }
-            return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
+            if (end) bump(v, keyCode);
+            return end;
         };
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
@@ -321,6 +346,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Read these before reload(): rebinding can move focus to the first tile and overwrite them.
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
+        sounds.refresh();
+        quietFocus = true;
         adapter.reload();
         grid.scheduleLayoutAnimation();
         updateGreeting();
@@ -333,6 +360,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.post(() -> {
             int pos = adapter.positionOf(returnKey);
             focusTile(pos >= 0 ? pos : returnSlot);
+            quietFocus = false;
         });
     }
 
@@ -345,6 +373,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        sounds.release();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);
@@ -365,6 +394,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onTileFocused(int position, View card) {
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
+        if (!quietFocus) sounds.focus();
         // Tile rect in root coordinates, using layout positions (ignores the scale animation).
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
@@ -481,21 +511,41 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Horizontal: swallow the key at a row's ends so focus never wraps to the next row or
         // escapes up into the top bar. Mid-row moves fall through to the default focus search.
         if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-            return position % COLUMNS == 0;
+            return position % COLUMNS == 0 && bumpTile(position, keyCode);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-            return position % COLUMNS == COLUMNS - 1 || position == count - 1;
+            return (position % COLUMNS == COLUMNS - 1 || position == count - 1) && bumpTile(position, keyCode);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
             if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
-            if (position >= lastRowStart) return true;     // already on the last row: stay put
+            if (position >= lastRowStart) return bumpTile(position, keyCode);   // already on the last row: stay put
             target = Math.min(position + COLUMNS, count - 1);
         }
         focusTile(target);
         return true;
+    }
+
+    /** Pushed past the end of a row: thud, and the tile nudges that way and springs back. Returns true. */
+    private boolean bumpTile(int position, int keyCode) {
+        RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(position);
+        if (vh != null) bump(vh.itemView.findViewById(R.id.card), keyCode);
+        else sounds.bump();
+        return true;
+    }
+
+    private void bump(View v, int keyCode) {
+        sounds.bump();
+        float d = 7 * density;
+        boolean horizontal = keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
+        float sign = keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1;
+        SpringAnimation s = new SpringAnimation(v, horizontal ? DynamicAnimation.TRANSLATION_X : DynamicAnimation.TRANSLATION_Y, 0f);
+        s.getSpring().setStiffness(SpringForce.STIFFNESS_MEDIUM).setDampingRatio(0.3f);
+        if (horizontal) v.setTranslationX(sign * d);
+        else v.setTranslationY(sign * d);
+        s.start();
     }
 
     private void focusTile(int position) {
@@ -760,6 +810,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dot.setVisibility(View.GONE);
         }
         row.setOnClickListener(v -> {
+            sounds.select();
             popup.dismiss();
             action.run();
         });

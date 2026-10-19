@@ -105,9 +105,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Set<String> hidden;
     private final boolean showHomeSettings;
     private final boolean tilt;
+    private final UiSounds sounds;
     private final List<Entry> items = new ArrayList<>();
 
-    AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
+    AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg, UiSounds sounds) {
+        this.sounds = sounds;
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
@@ -213,6 +215,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     private void launch(Entry e) {
+        sounds.select();
         if (e.component.equals(new ComponentName(ctx, HomeSettingsActivity.class))) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
