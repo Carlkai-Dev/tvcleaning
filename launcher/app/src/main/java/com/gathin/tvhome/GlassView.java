@@ -66,6 +66,9 @@ public class GlassView extends View {
         maskDirty = false;
     }
 
+    /** One bitmap draw: the fade alpha goes straight onto it instead of through an offscreen layer. */
+    @Override public boolean hasOverlappingRendering() { return false; }
+
     @Override protected void onDraw(Canvas canvas) {
         if (getWidth() <= 0 || getHeight() <= 0) return;
         if (maskDirty) rebuildMask();

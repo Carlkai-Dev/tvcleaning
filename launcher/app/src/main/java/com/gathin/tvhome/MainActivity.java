@@ -84,9 +84,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView grid;
     private FrameLayout root;
     private GlassView glass;
-    private View ambient;
+    private ImageView ambient;
     private TextView heroName;
-    private int ambientColor = -1;
+    /** Glow colour on screen, and the one a running cross-fade is heading to. */
+    private int ambientColor = -1, ambientTarget = -1;
+    /** Top-shelf title a running cross-fade is heading to; the old one stays on screen until it ends. */
+    private String heroLabel;
     private boolean heroShown;
     private TextView greeting;
     private View btnInputs, btnSettings;
@@ -121,6 +124,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String folderReturnKey;
     private AlertDialog editDialog;
     private int rowsBelowDock;
+    /** True only after a wallpaper was decoded and added behind the launcher. */
+    private boolean wallpaperShown;
     private boolean savingOrderNow, paused = true, refreshPending;
     private int focusRequest;
     private String requestedFocusKey;
@@ -140,6 +145,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean promptsPaused;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
+    /** The tiles have been built at least once by this activity; see tilesOutdated(). */
+    private boolean tilesLoaded;
+    /** PackageManager's change counter when the tiles were last built. */
+    private int packageSequence;
+    /** The theme's wallpaper while it decodes, from onCreate until the first onResume shows it. */
+    private java.util.concurrent.CompletableFuture<Bitmap> wallpaperLoad;
+    /** The glow picture: painted over in place for each new colour, so moving along the dock makes no garbage. */
+    private Bitmap ambientBitmap;
+    private Canvas ambientCanvas;
+    private final Paint ambientPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
             if (intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
@@ -239,7 +254,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     || code == KeyEvent.KEYCODE_DPAD_RIGHT;
         });
         root.setBackgroundColor(cfg.backgroundColor);
-        if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
+        // The root colour is always opaque (Config), so the window's own black fill under it would be
+        // one more full-screen pass every frame for nothing.
+        getWindow().setBackgroundDrawable(null);
+        if (cfg.wallpaper != null) {
+            // Decoded while the tiles load; onResume waits for it, so the first frame still has it.
+            File file = cfg.wallpaper;
+            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+            int screenW = dm.widthPixels, screenH = dm.heightPixels;
+            wallpaperLoad = java.util.concurrent.CompletableFuture.supplyAsync(() -> decodeWallpaper(file, screenW, screenH));
+        }
         glass = findViewById(R.id.glass);
         ambient = findViewById(R.id.ambient);
         heroName = findViewById(R.id.heroName);
@@ -286,6 +310,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         packages.addAction(Intent.ACTION_PACKAGE_CHANGED);
         packages.addDataScheme("package");
         registerReceiver(packageChanges, packages);
+        // Apps on adopted (USB) storage come and go with the drive, announced without a package: URI.
+        IntentFilter storage = new IntentFilter();
+        storage.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_AVAILABLE);
+        storage.addAction(Intent.ACTION_EXTERNAL_APPLICATIONS_UNAVAILABLE);
+        registerReceiver(packageChanges, storage);
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
         // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
@@ -343,29 +372,71 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * A theme's full-screen picture behind everything. Decoded once, downsampled to the screen so a 4K
-     * JPEG costs a 1080p bitmap at most (about 8 MB), which is the price of a wallpaper on a 1 GB TV.
+     * A theme's full-screen picture behind everything. Only the centre that CENTER_CROP shows is decoded,
+     * halved while it still covers the screen and then scaled to it, so any picture, however wide or tall,
+     * costs a screen-sized bitmap (about 4 MB at 1080p), which is the price of a wallpaper on a 1 GB TV (#166).
      */
-    private void showWallpaper(File file) {
+    private static Bitmap decodeWallpaper(File file, int screenW, int screenH) {
         try {
-            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
             android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
             opts.inJustDecodeBounds = true;
             android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
+            int w = opts.outWidth, h = opts.outHeight;
+            if (w <= 0 || h <= 0 || screenW <= 0 || screenH <= 0) return null;
+            // The centred part with the screen's aspect ratio: all that CENTER_CROP would show.
+            Rect crop;
+            if ((long) w * screenH > (long) h * screenW) {
+                int cw = (int) Math.max(1, (long) h * screenW / screenH);
+                crop = new Rect((w - cw) / 2, 0, (w - cw) / 2 + cw, h);
+            } else {
+                int ch = (int) Math.max(1, (long) w * screenH / screenW);
+                crop = new Rect(0, (h - ch) / 2, w, (h - ch) / 2 + ch);
+            }
             int sample = 1;
-            while (opts.outWidth / (sample * 2) >= dm.widthPixels && opts.outHeight / (sample * 2) >= dm.heightPixels) sample *= 2;
-            opts.inJustDecodeBounds = false;
+            while (crop.width() / (sample * 2) >= screenW && crop.height() / (sample * 2) >= screenH) sample *= 2;
+            opts = new android.graphics.BitmapFactory.Options();
             opts.inSampleSize = sample;
             opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
-            android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
-            if (bmp == null) return;
-            android.widget.ImageView wall = new android.widget.ImageView(this);
-            wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
-            wall.setImageBitmap(bmp);
-            root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            android.graphics.Bitmap bmp;
+            try {
+                @SuppressWarnings("deprecation")   // newInstance(String) is API 31
+                android.graphics.BitmapRegionDecoder decoder =
+                        android.graphics.BitmapRegionDecoder.newInstance(file.getPath(), false);
+                try {
+                    bmp = decoder.decodeRegion(crop, opts);
+                } finally {
+                    decoder.recycle();
+                }
+            } catch (java.io.IOException unsupported) {
+                // A format the region decoder cannot read (GIF, BMP): whole picture, but never a huge one.
+                if ((long) (w / sample) * (h / sample) > 4L * screenW * screenH) return null;
+                bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
+            }
+            if (bmp == null) return null;
+            if (bmp.getWidth() > screenW && bmp.getHeight() > screenH) {
+                // Down to the smallest size that still covers the screen; CENTER_CROP does the rest.
+                float scale = Math.max(screenW / (float) bmp.getWidth(), screenH / (float) bmp.getHeight());
+                android.graphics.Bitmap fitted = android.graphics.Bitmap.createScaledBitmap(bmp,
+                        Math.max(1, Math.round(bmp.getWidth() * scale)), Math.max(1, Math.round(bmp.getHeight() * scale)), true);
+                if (fitted != bmp) bmp.recycle();
+                bmp = fitted;
+            }
+            return bmp;
         } catch (Exception | OutOfMemoryError e) {
             // A bad or huge picture must never take the home screen down; the plain colour stays.
+            return null;
         }
+    }
+
+    private void showWallpaper(Bitmap bmp) {
+        android.widget.ImageView wall = new android.widget.ImageView(this);
+        wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+        wall.setImageBitmap(bmp);
+        root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        wallpaperShown = true;
+        // CENTER_CROP covers the whole screen, so the colour under an opaque picture would be one more
+        // full-screen pass every frame. A picture with transparency keeps the colour behind it.
+        if (!bmp.hasAlpha()) root.setBackground(null);
     }
 
     @Override
@@ -382,7 +453,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Read these before reload(): rebinding can move focus to the first tile and overwrite them.
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
-        reloadTiles();
+        if (tilesOutdated()) reloadTiles();
+        if (wallpaperLoad != null) {
+            Bitmap wall = null;
+            try {
+                wall = wallpaperLoad.join();
+            } catch (RuntimeException ignored) {
+                // Never thrown by decodeWallpaper itself; the plain colour stays.
+            }
+            wallpaperLoad = null;
+            if (wall != null) showWallpaper(wall);
+        }
         if (savingOrderNow && savingLayout != null) adapter.restoreLayout(savingLayout);
         syncFolderPresentation();
         updateGreeting();
@@ -410,11 +491,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Read these before reload(): rebinding can move focus to the first tile and overwrite them.
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
+        // Taken before the reload, so a change that lands while it runs still counts next time.
+        try {
+            android.content.pm.ChangedPackages changed = getPackageManager().getChangedPackages(packageSequence);
+            if (changed != null) packageSequence = changed.getSequenceNumber();
+        } catch (RuntimeException ignored) {
+            // tilesLoaded alone then decides; the package receiver still reloads on every change.
+        }
+        tilesLoaded = true;
         final List<Cards.Card> none = Collections.emptyList();
         cards = moduleCards ? CardFeature.run(() -> Cards.discover(this, hiddenApps, Cards.load(Cards.storeFile(this))), none) : none;
         adapter.reload(cards.isEmpty() ? none : CardFeature.run(() -> Cards.shown(cards), none));
         lastFocusedKey = returnKey;
         lastFocused = returnSlot;
+    }
+
+    /**
+     * Whether an app may have been installed, updated, removed or switched on or off since the tiles were
+     * built. The package receiver reloads on each such change; this covers a broadcast held back while Home
+     * was in the background, without re-reading every app's label and banner on every Home press.
+     */
+    private boolean tilesOutdated() {
+        if (!tilesLoaded) return true;
+        try {
+            return getPackageManager().getChangedPackages(packageSequence) != null;
+        } catch (RuntimeException e) {
+            return true;
+        }
     }
 
     @Override
@@ -536,16 +639,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if ((expanded || adapter.activeFolder() != null) && position < adapter.columns() * 2) {
                 // With a long app list, focus-search can carry the old collapsed offset into the
                 // expanded layout. Keep both opening rows, including the entire dock, on screen.
+                // Coming back up from the rows below, glide there like every other row does: a
+                // jump to the top would snap the dock into view.
                 GridLayoutManager layout = (GridLayoutManager) grid.getLayoutManager();
-                View first = layout.findViewByPosition(0);
-                if (first == null || Math.abs(layout.getDecoratedTop(first) - grid.getPaddingTop()) > 1)
-                    layout.scrollToPositionWithOffset(0, 0);
+                int dy = distanceToFirstRow(layout, item);
+                if (Math.abs(dy) > 1) {
+                    if (reducedMotion) layout.scrollToPositionWithOffset(0, 0);
+                    else grid.smoothScrollBy(0, dy);
+                }
             } else {
                 float pad = GlassView.HALO_INSET_DP * density;
                 Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
                 grid.requestChildRectangleOnScreen(item, want, reducedMotion);
             }
         }
+    }
+
+    /**
+     * How far the grid must scroll for its first row, the dock on Home, to sit at the top again.
+     * The item is the focused one in the second row, or null: then 0 once the first row is gone.
+     */
+    private int distanceToFirstRow(GridLayoutManager layout, View item) {
+        View first = layout.findViewByPosition(0);
+        if (first != null) return layout.getDecoratedTop(first) - grid.getPaddingTop();
+        if (item == null) return 0;
+        // Already scrolled out and recycled, so the focused item is in the second row: the first
+        // sits right above it, one item tall plus the inset the dock band adds under its row.
+        return layout.getDecoratedTop(item) - grid.getPaddingTop()
+                - layout.getDecoratedMeasuredHeight(item) - dockDecoration.rowInset();
     }
 
     @Override public void onTileFocusFrame(View card) {
@@ -569,7 +690,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (label.trim().isEmpty()) { hideHero(); return; }
         int color = adapter.ambientColorAt(position);
         float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
-        boolean changed = !label.contentEquals(heroName.getText());
+        // Compare with where the shelf is heading, not with what it shows: during a cross-fade the old
+        // title is still on screen, and a quick Right-Left would otherwise end on the neighbour's.
+        boolean changed = !label.equals(heroLabel);
+        heroLabel = label;
 
         if (reducedMotion) {
             // Snap the shelf instead of sliding and fading it: each of those frames repaints the
@@ -597,21 +721,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ambient.animate().alpha(1f).setDuration(600).start();
             heroShown = true;
         } else if (changed) {
-            heroName.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
-                heroName.setText(label);
+            if (label.contentEquals(heroName.getText())) {
+                // Back on the title still showing before its fade-out ended: replacing the animation
+                // drops the pending swap to the other title.
                 heroName.setY(y);
-                heroName.setTranslationX(12 * density);
-                heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
-            }).start();
-            if (color != ambientColor) {
-                ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
-                    setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(500).start();
+                heroName.animate().alpha(1f).translationX(0f).setDuration(120).start();
+            } else {
+                heroName.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
+                    heroName.setText(label);
+                    heroName.setY(y);
+                    heroName.setTranslationX(12 * density);
+                    heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
                 }).start();
             }
+            fadeAmbientTo(color);
         } else {
             heroName.setY(y);
         }
+    }
+
+    /** Cross-fades the glow to this colour; a newer target replaces a fade still on its way. */
+    private void fadeAmbientTo(int color) {
+        if (color == ambientTarget) return;
+        ambientTarget = color;
+        if (color == ambientColor) {
+            // Still showing this colour: replacing the alpha animation drops the pending swap.
+            ambient.animate().alpha(1f).setDuration(300).start();
+            return;
+        }
+        ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
+            setAmbient(color);
+            ambient.animate().alpha(1f).setDuration(500).start();
+        }).start();
     }
 
     /**
@@ -621,24 +762,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * over the screen is one texture; changing apps only uploads it once.
      */
     private void setAmbient(int color) {
-        if (color == ambientColor && ambient.getBackground() != null) return;
+        ambientTarget = color;
+        if (color == ambientColor && ambientBitmap != null) return;
         ambientColor = color;
         int c = color & 0x00FFFFFF;
         int w = 480;
         int h = 270;
-        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bmp);
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        boolean first = ambientBitmap == null;
+        if (first) {
+            ambientBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            ambientCanvas = new Canvas(ambientBitmap);
+        } else {
+            ambientBitmap.eraseColor(Color.TRANSPARENT);
+        }
         // Same centre, radius and evenly spaced stops as the GradientDrawable it replaces.
-        paint.setShader(new RadialGradient(
+        ambientPaint.setShader(new RadialGradient(
                 w * 0.32f, h * 0.42f, w * 0.62f,
                 new int[]{0x5C000000 | c, 0x26000000 | c, 0x00000000 | c},
                 null,
                 Shader.TileMode.CLAMP));
-        canvas.drawRect(0, 0, w, h, paint);
-        BitmapDrawable drawable = new BitmapDrawable(getResources(), bmp);
-        drawable.setGravity(Gravity.FILL);
-        ambient.setBackground(drawable);
+        ambientCanvas.drawRect(0, 0, w, h, ambientPaint);
+        // The view already shows this bitmap: a redraw uploads the new pixels.
+        if (first) ambient.setImageDrawable(new BitmapDrawable(getResources(), ambientBitmap));
+        else ambient.invalidate();
     }
 
     private void hideHero() {
@@ -718,6 +864,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         gridTransition = false;
     }
 
+    private float atmosphereAlpha(boolean inFolder) {
+        if (inFolder) return 1f;
+        // Keep the wallpaper as visible in the app grid as it is on Home. The nearly opaque
+        // fallback belongs to the plain background, where there is no picture to wash out.
+        return expanded && !wallpaperShown ? .92f : .42f;
+    }
+
     private void setExpanded(boolean value) {
         if (expanded == value) return;
         // Home and the expanded grid use identical bounds, padding, and row positions. One GPU
@@ -733,14 +886,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         topBar.animate().alpha(value ? 0f : 1f).setDuration(160).withEndAction(() -> {
             if (transitionRequest == gridTransitionRequest && expanded) topBar.setVisibility(View.INVISIBLE);
         }).start();
-        atmosphere.animate().alpha(value ? .92f : .42f).setDuration(320).start();
+        atmosphere.animate().alpha(atmosphereAlpha(false)).setDuration(320).start();
         float target = value ? 0f : collapsedGridOffset();
+        // Up on the dock can come before the glide back to the first row has finished. The slide
+        // carries the rest of that scroll, so the collapsed dock lands at the top without a jump.
+        int scroll = value ? 0 : distanceToFirstRow((GridLayoutManager) grid.getLayoutManager(), null);
+        int[] unscrolled = {scroll};
         gridSlide = ValueAnimator.ofFloat(gridHost.getTranslationY(), target);
         gridSlide.setDuration(320);
         gridSlide.setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f));
         gridSlide.addUpdateListener(animation -> {
             if (transitionRequest != gridTransitionRequest || gridSlide != animation) return;
             gridHost.setTranslationY((Float) animation.getAnimatedValue());
+            if (unscrolled[0] != 0) {
+                int left = Math.round(scroll * (1f - animation.getAnimatedFraction()));
+                grid.scrollBy(0, unscrolled[0] - left);
+                unscrolled[0] = left;
+            }
             alignFocusedTile();
         });
         gridSlide.addListener(new AnimatorListenerAdapter() {
@@ -791,7 +953,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         lp.topMargin = dp(inFolder ? 94 : 12);
         lp.bottomMargin = dp(inFolder ? 40 : 0);
         gridHost.setLayoutParams(lp);
-        atmosphere.animate().alpha(inFolder ? 1f : expanded ? .92f : .42f).setDuration(260).start();
+        atmosphere.animate().alpha(atmosphereAlpha(inFolder)).setDuration(260).start();
         hideHero();
         hideGlass();
         grid.invalidateItemDecorations();
@@ -1484,20 +1646,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void openSettings(String action) {
         // Settings shares one task across its panels. NEW_TASK alone can bring its previous
         // submenu back to the front instead of opening the screen the user requested.
-        open(systemIntent(action).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+        open(systemIntent(this, action).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
     }
 
     /**
      * China-market MIUI TV firmware answers no standard Settings intents at all; open Xiaomi's own
      * settings app (com.xiaomi.mitv.settings) there, so the Settings and Wi-Fi pills keep working.
-     * On firmware with a standard settings handler the behaviour is unchanged.
+     * On firmware with a standard settings handler the behaviour is unchanged. HomeKeyService uses it too.
      */
-    private Intent systemIntent(String standardAction) {
+    static Intent systemIntent(Context context, String standardAction) {
         Intent i = new Intent(standardAction);
-        if (i.resolveActivity(getPackageManager()) != null) return i;
+        if (i.resolveActivity(context.getPackageManager()) != null) return i;
         i = new Intent().setComponent(new ComponentName(
                 "com.xiaomi.mitv.settings", "com.xiaomi.mitv.settings.entry.MainActivity"));
-        if (i.resolveActivity(getPackageManager()) != null) return i;
+        if (i.resolveActivity(context.getPackageManager()) != null) return i;
         return new Intent(standardAction);   // nothing found: let open() show the can't-open toast
     }
 

@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.provider.Settings;
 import android.view.KeyEvent;
@@ -37,7 +38,13 @@ public class HomeKeyService extends AccessibilityService {
         // The stock launcher handled the remote's Settings button; with it disabled the button does nothing.
         if (isSettingsKey(event)) {
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-                startActivity(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                // Same Xiaomi fallback as the Settings pill. This service runs in Home's process, so a
+                // firmware that answers no settings intent at all must not crash Home with it.
+                try {
+                    startActivity(MainActivity.systemIntent(this, Settings.ACTION_SETTINGS)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                } catch (ActivityNotFoundException | SecurityException ignored) {
+                }
             }
             return true;
         }

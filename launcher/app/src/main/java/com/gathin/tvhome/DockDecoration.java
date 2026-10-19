@@ -4,7 +4,6 @@ import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -23,7 +22,6 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final Paint[] layers = {body, warmth, reflection, edge, innerEdge};
     private final RectF rect = new RectF(), inner = new RectF();
     private final Matrix matrix = new Matrix();
-    private final Path clip = new Path();
     private float shaderWidth, shaderHeight;
 
     DockDecoration(int dockSize, float density) {
@@ -36,12 +34,15 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     }
     void setEnabled(boolean value) { enabled = value; }
 
+    /** Extra space under the dock row that the rows below it do not have. */
+    int rowInset() { return enabled ? Math.round(8 * density) : 0; }
+
     @Override public void getItemOffsets(@NonNull Rect out, @NonNull View view,
             @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         int pos = parent.getChildAdapterPosition(view);
         if (enabled && pos >= 0 && pos < dockSize) {
             out.top = 0;
-            out.bottom = Math.round(8 * density);
+            out.bottom = rowInset();
         }
     }
 
@@ -84,11 +85,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         for (Paint paint : layers)
             paint.getShader().setLocalMatrix(matrix);
         canvas.drawRoundRect(rect, radius, radius, body);
-        clip.reset(); clip.addRoundRect(rect, radius, radius, Path.Direction.CW);
-        canvas.save(); canvas.clipPath(clip);
-        canvas.drawRect(rect, warmth);
-        canvas.drawRect(rect, reflection);
-        canvas.restore();
+        // The band's own shape bounds these two layers: the same pixels as clipping them to it, without a
+        // path clip on every frame.
+        canvas.drawRoundRect(rect, radius, radius, warmth);
+        canvas.drawRoundRect(rect, radius, radius, reflection);
         canvas.drawRoundRect(rect, radius, radius, edge);
         inner.set(rect); inner.inset(density, density);
         canvas.drawRoundRect(inner, radius - density, radius - density, innerEdge);

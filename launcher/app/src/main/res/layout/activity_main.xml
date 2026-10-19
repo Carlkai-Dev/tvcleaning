@@ -14,12 +14,16 @@
         android:alpha="0.42"
         android:importantForAccessibility="no" />
 
-    <!-- Ambient glow in the colour of the focused dock app. -->
-    <View
+    <!-- Ambient glow in the colour of the focused dock app. An image, not a background: with no
+         background an ImageView fades by drawing its one bitmap with alpha, not through a full-screen layer. -->
+    <ImageView
         android:id="@+id/ambient"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="0" />
+        android:scaleType="fitXY"
+        android:alpha="0"
+        android:importantForAccessibility="no"
+        android:contentDescription="@null" />
 
     <ImageView
         android:id="@+id/folderBackdrop"

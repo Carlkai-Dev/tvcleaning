@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * App tiles. The first {@link MainActivity#COLUMNS} positions are the dock. Configured favourites, then the
@@ -137,6 +138,14 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final HomeLayoutStore layoutStore;
     private HomeLayout layout = new HomeLayout();
     private final java.util.Map<String, Entry> inventory = new java.util.LinkedHashMap<>();
+    /**
+     * Banners of the last reload, by component, install path and banner resource. An update installs to a
+     * new path, so only a changed app's banner is decoded again (the density-pinned load skips the system's
+     * drawable cache on any TV that is not exactly xhdpi).
+     */
+    private Map<String, Drawable> banners = new HashMap<>();
+    /** RecyclerView ids per key: hashCode() could give two apps the same id. */
+    private final Map<String, Long> ids = new HashMap<>();
     private String activeFolder;
     private int columns;
 
@@ -198,24 +207,23 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         Map<String, Cards.Card> cardByPkg = new HashMap<>();
         for (Cards.Card c : cards) cardByPkg.put(c.pkg, c);
-        List<Entry> fresh = new ArrayList<>();
+        List<ResolveInfo> shown = new ArrayList<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
-            ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
             Cards.Card card = cardByPkg.get(pkg);
-            if (card != null && !card.component.equals(component)) continue;   // the card stands in for this tile
-            Drawable banner = loadBanner(pm, ri);
-            Drawable icon = ri.loadIcon(pm);
-            if (card != null) {
-                fresh.add(new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent));
-            } else {
-                // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
-                // redraw the tile name as something else (#117).
-                fresh.add(new Entry(Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg), component, banner, icon));
-            }
+            if (card != null && !card.component.equals(new ComponentName(pkg, ri.activityInfo.name))) continue;   // the card stands in for this tile
+            shown.add(ri);
         }
+        Map<String, Drawable> previousBanners = banners;
+        // Labels, icons and banners come from each app's own resources, and on a cold start nothing is cached
+        // yet: load several apps at once. The tiles still appear together and complete, only sooner.
+        List<Entry> fresh = shown.parallelStream()
+                .map(ri -> entry(pm, ri, cardByPkg.get(ri.activityInfo.packageName), previousBanners))
+                .collect(Collectors.toCollection(ArrayList::new));
+        banners = new HashMap<>();
+        for (int i = 0; i < shown.size(); i++) banners.put(artKey(shown.get(i)), fresh.get(i).banner);
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
             if (fa >= 0 || fb >= 0) {
@@ -240,6 +248,26 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         layout = layoutStore.read();
         layout.reconcile(new ArrayList<>(inventory.keySet()));
         rebuild();
+    }
+
+    /** One tile, built on a loader thread; the banner is decoded only when its key is new since the last reload. */
+    private Entry entry(PackageManager pm, ResolveInfo ri, Cards.Card card, Map<String, Drawable> previousBanners) {
+        String pkg = ri.activityInfo.packageName;
+        ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
+        String art = artKey(ri);
+        Drawable banner = previousBanners.containsKey(art) ? previousBanners.get(art) : loadBanner(pm, ri);
+        Drawable icon = ri.loadIcon(pm);
+        if (card != null) return new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent);
+        // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
+        // redraw the tile name as something else (#117).
+        return new Entry(Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg), component, banner, icon);
+    }
+
+    /** The banners map's key: an update installs to a new path, and an app can name a different banner. */
+    private static String artKey(ResolveInfo ri) {
+        return new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name).flattenToShortString()
+                + '|' + ri.activityInfo.applicationInfo.sourceDir
+                + '|' + ri.activityInfo.banner + '|' + ri.activityInfo.applicationInfo.banner;
     }
 
     private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
@@ -284,14 +312,29 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         float d = ctx.getResources().getDisplayMetrics().density;
         RecyclerView parent = (RecyclerView) h.itemView.getParent();
         if (parent != null) {
+            // Only when the size changed: setLayoutParams always asks for a new layout pass.
             int w = tileWidthPx(parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight(), columns, d);
-            int height = tileHeightPx(w);
+            int height = tileHeightPx(w), nameTop = height + Math.round(7 * d);
             ViewGroup.LayoutParams cardLp = h.card.getLayoutParams();
-            cardLp.width = w; cardLp.height = height; h.card.setLayoutParams(cardLp);
+            if (cardLp.width != w || cardLp.height != height) {
+                cardLp.width = w; cardLp.height = height; h.card.setLayoutParams(cardLp);
+            }
             ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) h.name.getLayoutParams();
-            nameLp.width = w; nameLp.topMargin = height + Math.round(7 * d); h.name.setLayoutParams(nameLp);
+            if (nameLp.width != w || nameLp.topMargin != nameTop) {
+                nameLp.width = w; nameLp.topMargin = nameTop; h.name.setLayoutParams(nameLp);
+            }
         }
-        h.card.setBackground(isFolder(position) ? new GlassPanelDrawable(d, 16) : ctx.getDrawable(R.drawable.tile_bg));
+        boolean glyphTile = "com.spotify.tv.android".equals(e.pkg) && e.icon != null;
+        int backdrop = glyphTile ? Holder.BACKDROP_GLYPH : isFolder(position) ? Holder.BACKDROP_GLASS : Holder.BACKDROP_TILE;
+        if (h.backdrop != backdrop) {
+            // A rebind keeps the tile's background unless the kind of tile changed.
+            h.backdrop = backdrop;
+            h.card.setBackground(backdrop == Holder.BACKDROP_GLASS ? new GlassPanelDrawable(d, 16)
+                    : backdrop == Holder.BACKDROP_GLYPH ? new android.graphics.drawable.GradientDrawable(
+                            android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                            new int[]{0xFF242624, 0xFF101311})
+                    : ctx.getDrawable(R.drawable.tile_bg));
+        }
         android.text.SpannableString caption = new android.text.SpannableString("●  " + e.name);
         caption.setSpan(new FocusDotSpan(d), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         h.name.setText(caption);
@@ -304,15 +347,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.card.animate().cancel();
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
         h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
-        boolean glyphTile = "com.spotify.tv.android".equals(e.pkg) && e.icon != null;
         h.banner.setPadding(0, 0, 0, 0);
         h.banner.setScaleType(ImageView.ScaleType.CENTER_CROP);
         if (glyphTile) {
             // The reference uses Spotify's large glyph, without duplicating its wordmark in the tile.
-            android.graphics.drawable.GradientDrawable backing = new android.graphics.drawable.GradientDrawable(
-                    android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                    new int[]{0xFF242624, 0xFF101311});
-            h.card.setBackground(backing);
             int inset = Math.round(h.card.getLayoutParams().height * .06f);
             h.banner.setPadding(inset, inset, inset, inset);
             h.banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -430,7 +468,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     @Override
     public long getItemId(int position) {
-        return items.get(position).key.hashCode();
+        return ids.computeIfAbsent(items.get(position).key, key -> (long) ids.size());
     }
 
     /** Stable key for the app at a position (its component), or null. */
@@ -556,6 +594,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     static final class Holder extends RecyclerView.ViewHolder {
+        static final int BACKDROP_TILE = 0, BACKDROP_GLASS = 1, BACKDROP_GLYPH = 2;
+        /** Which background the card has now; -1 until the first bind. */
+        int backdrop = -1;
         final View card;
         final ImageView banner;
         final ImageView icon;
