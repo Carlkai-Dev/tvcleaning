@@ -73,11 +73,9 @@ final class TopShortcuts {
             for (TextView pill : pills) {
                 if (pill == null) continue;
                 pill.setBackgroundResource(R.drawable.pill_bg);
-                pill.setTextColor(pill.getResources().getColorStateList(R.drawable.pill_text, null));
-                if (tintIcons) {
-                    pill.setCompoundDrawableTintList(
-                            pill.getResources().getColorStateList(R.drawable.pill_text, null));
-                }
+                ColorStateList text = pill.getResources().getColorStateList(R.color.pill_text, null);
+                pill.setTextColor(text);
+                if (tintIcons) pill.setCompoundDrawableTintList(text);
             }
             return;
         }
