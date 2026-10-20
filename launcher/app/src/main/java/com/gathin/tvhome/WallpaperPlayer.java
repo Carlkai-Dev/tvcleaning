@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
@@ -20,44 +22,91 @@ import java.util.concurrent.Executors;
 
 /** Displays and rotates a theme's local wallpaper images while Home is visible. */
 final class WallpaperPlayer {
+    /** Poll no slower than once a minute when the interval is long. */
+    private static final long MAX_POLL_MS = 60_000L;
+
     private final FrameLayout root;
     private final ImageView image;
+    private final ImageView imageAlt;
+    private ImageView front;
     private final List<File> files;
     private final long interval;
     private final SharedPreferences preferences;
     private final ExecutorService decoder = Executors.newSingleThreadExecutor();
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private final Random random = new Random();
     private final int width;
     private final int height;
+    private final String transition;
+    private final int transitionMs;
+    private final boolean animateTransitions;
     private boolean active;
     private boolean closed;
     private boolean loading;
+    private boolean transitioning;
     private String displayed = "";
+    private Bitmap shown;
+    private Runnable onShown;
+
+    private final Runnable poll = new Runnable() {
+        @Override
+        public void run() {
+            update();
+            schedulePoll();
+        }
+    };
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
         this.root = root;
         files = new ArrayList<>(config.wallpapers);
-        interval = config.wallpaperRotationMinutes * 60_000L;
+        interval = config.wallpaperRotationSeconds * 1000L;
         preferences = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
         width = metrics.widthPixels;
         height = metrics.heightPixels;
-        image = new ImageView(context);
-        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        transition = Config.normalizeWallpaperTransition(config.wallpaperTransition);
+        transitionMs = Config.clampWallpaperTransitionMs(config.wallpaperTransitionMs);
+        animateTransitions = config.animations && !config.reducedMotion
+                && !Config.TRANSITION_NONE.equals(transition);
+        image = newImage(context);
+        imageAlt = newImage(context);
+        imageAlt.setAlpha(0f);
+        front = image;
         if (config.wallpaperEnabled && !files.isEmpty()) {
-            root.addView(image, 0, new FrameLayout.LayoutParams(
+            int insert = 0;
+            root.addView(image, insert++, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            if (Config.TRANSITION_CROSSFADE.equals(transition)) {
+                root.addView(imageAlt, insert++, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
             // No shade layer at all when the theme doesn't dim: a full-screen view is overdraw on 1 GB TVs.
             if (config.wallpaperDim > 0) {
                 View shade = new View(context);
                 shade.setBackgroundColor((config.wallpaperDim * 255 / 100) << 24);
                 shade.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-                root.addView(shade, 1, new FrameLayout.LayoutParams(
+                root.addView(shade, insert, new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
             showFirst();
         }
+    }
+
+    /** Chamado na UI thread após cada bitmap exibido (primeiro frame e rotações). */
+    void setOnShown(Runnable listener) {
+        onShown = listener;
+        if (shown != null && listener != null) listener.run();
+    }
+
+    Bitmap shownBitmap() {
+        return shown;
+    }
+
+    private static ImageView newImage(Context context) {
+        ImageView view = new ImageView(context);
+        view.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        view.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return view;
     }
 
     /**
@@ -72,7 +121,8 @@ final class WallpaperPlayer {
         while (first != null) {
             Bitmap bitmap = decode(first);
             if (bitmap != null) {
-                image.setImageBitmap(bitmap);
+                front.setImageBitmap(bitmap);
+                rememberShown(bitmap);
                 displayed = first.getName();
                 if (!displayed.equals(previous)) {
                     preferences.edit().putString("image", displayed)
@@ -87,21 +137,33 @@ final class WallpaperPlayer {
 
     void start() {
         active = true;
+        handler.removeCallbacks(poll);
         update();
+        schedulePoll();
     }
 
     void stop() {
         active = false;
+        handler.removeCallbacks(poll);
     }
 
     void close() {
         active = false;
         closed = true;
+        handler.removeCallbacks(poll);
+        image.animate().cancel();
+        imageAlt.animate().cancel();
         decoder.shutdownNow();
     }
 
+    private void schedulePoll() {
+        if (!active || closed || interval <= 0) return;
+        long delay = Math.min(Math.max(interval, 1000L), MAX_POLL_MS);
+        handler.postDelayed(poll, delay);
+    }
+
     void update() {
-        if (!active || closed || loading || files.isEmpty()) return;
+        if (!active || closed || loading || transitioning || files.isEmpty()) return;
         String previous = preferences.getString("image", "");
         File selected = WallpaperRotation.find(files, previous);
         long changed = preferences.getLong("changed", 0);
@@ -125,14 +187,73 @@ final class WallpaperPlayer {
                     update();
                     return;
                 }
-                image.setImageBitmap(bitmap);
-                displayed = next.getName();
-                if (!displayed.equals(previous) || changed == 0) {
-                    preferences.edit().putString("image", displayed)
-                            .putLong("changed", System.currentTimeMillis()).apply();
-                }
+                applyBitmap(bitmap, () -> {
+                    rememberShown(bitmap);
+                    displayed = next.getName();
+                    if (!displayed.equals(previous) || changed == 0) {
+                        preferences.edit().putString("image", displayed)
+                                .putLong("changed", System.currentTimeMillis()).apply();
+                    }
+                });
             });
         });
+    }
+
+    private void rememberShown(Bitmap bitmap) {
+        Bitmap previous = shown;
+        shown = bitmap;
+        if (onShown != null) onShown.run();
+        // Libera o bitmap anterior só depois do listener (que pode amostrar luminância).
+        recycleQuietly(previous, bitmap);
+    }
+
+    private static void recycleQuietly(Bitmap old, Bitmap keep) {
+        if (old == null || old == keep || old.isRecycled()) return;
+        try {
+            old.recycle();
+        } catch (Exception ignored) {
+            // bitmap já libertado noutro caminho
+        }
+    }
+
+    private void applyBitmap(Bitmap bitmap, Runnable after) {
+        if (!animateTransitions) {
+            front.setImageBitmap(bitmap);
+            if (after != null) after.run();
+            return;
+        }
+        transitioning = true;
+        if (Config.TRANSITION_FADE_BLACK.equals(transition)) {
+            front.animate().cancel();
+            int half = Math.max(75, transitionMs / 2);
+            front.animate().alpha(0f).setDuration(half).withEndAction(() -> {
+                if (closed) {
+                    bitmap.recycle();
+                    transitioning = false;
+                    return;
+                }
+                front.setImageBitmap(bitmap);
+                front.animate().alpha(1f).setDuration(half).withEndAction(() -> {
+                    transitioning = false;
+                    if (after != null) after.run();
+                }).start();
+            }).start();
+            return;
+        }
+        // crossfade: swap A/B
+        ImageView back = front == image ? imageAlt : image;
+        back.setImageBitmap(bitmap);
+        back.setAlpha(0f);
+        back.animate().cancel();
+        front.animate().cancel();
+        back.animate().alpha(1f).setDuration(transitionMs).start();
+        ImageView outgoing = front;
+        front = back;
+        outgoing.animate().alpha(0f).setDuration(transitionMs).withEndAction(() -> {
+            transitioning = false;
+            if (after != null) after.run();
+            outgoing.setImageDrawable(null);
+        }).start();
     }
 
     private Bitmap decode(File file) {
