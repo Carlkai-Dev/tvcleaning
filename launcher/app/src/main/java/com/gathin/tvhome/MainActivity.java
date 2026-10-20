@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -141,6 +142,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean reducedMotion;
     /** config.xml dock_row: the first row is a separate dock (band, parked low, top shelf) rather than plain grid. */
     private boolean dockRow;
+    /** frosted glass dock over a blurred copy of the wallpaper (see DockDecoration). */
+    private boolean dockGlass;
+    private final Backdrop backdrop = new Backdrop();
+    /** the wallpaper view on screen, the day and night pictures, and which one shows. */
+    private android.widget.ImageView wallView;
+    private File wallDay, wallNight;
+    private int nightFrom, nightUntil;
+    private Boolean wallIsNight;
     /** Festive skin from the theme (see Festival); applied while it is active today. */
     private Festival festival = Festival.NONE;
     private boolean festive;
@@ -231,6 +240,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateGreeting();
             updateWifiLabel();
             sky.update();
+            updateWallpaper(true);
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -249,6 +259,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         advancedEffects = cfg.animations && cfg.advancedEffects;
         reducedMotion = cfg.reducedMotion;
         dockRow = cfg.dockRow;
+        dockGlass = cfg.dockGlass;
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
         liveTvPkg = cfg.liveTvPackage;
@@ -259,7 +270,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         root = findViewById(R.id.root);
         root.setBackgroundColor(cfg.backgroundColor);
-        if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
+        wallDay = cfg.wallpaper;
+        wallNight = cfg.wallpaperNight;
+        nightFrom = cfg.nightFrom;
+        nightUntil = cfg.nightUntil;
+        updateWallpaper(false);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
@@ -348,7 +363,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public void onChildViewDetachedFromWindow(@NonNull View v) {
             }
         });
-        if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density));
+        if (dockRow) {
+            grid.addItemDecoration(new DockDecoration(COLUMNS, density, dockGlass ? backdrop : null));
+            if (dockGlass) backdrop.register(grid);
+        }
         if (animations) {
             int enterAnim = reducedMotion ? R.anim.tile_enter_reduced : R.anim.tile_enter;
             float enterDelay = reducedMotion ? 0f : 0.06f;
@@ -425,7 +443,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
-        btnWifi.setOnClickListener(v -> openNetworkPill());
+        btnWifi.setOnClickListener(v -> showWifiPanel());
         btnWifi.setOnLongClickListener(v -> {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
@@ -434,6 +452,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
+        View btnTools = findViewById(R.id.btnTools);
+        btnTools.setOnClickListener(v -> showTools());
+        if (dockGlass && wallDay != null) {
+            for (View pill : new View[]{btnInputs, btnWifi, btnTools, btnSettings, btnReorder}) {
+                pill.setBackground(new GlassPillDrawable(pill, backdrop, density));
+            }
+        }
         btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;
@@ -460,8 +485,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
+        findViewById(R.id.btnTools).setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnSettings}) {
+            for (View button : new View[]{btnInputs, btnWifi, findViewById(R.id.btnTools), btnReorder, btnSettings}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(160).start());
@@ -506,7 +532,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * costs a screen-sized bitmap (about 4 MB at 1080p), which is the price of a wallpaper on a 1 GB TV.
      * A picture over 4K is refused rather than decoded (#166); the plain colour stays.
      */
-    private void showWallpaper(File file) {
+    private void showWallpaper(File file, boolean fade) {
         try {
             android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
             android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
@@ -525,16 +551,46 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 opts.inDensity = scale[0];
                 opts.inTargetDensity = scale[1];
             }
-            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
+            // full colour; RGB_565 bands the smooth gradients of a night sky (costs ~1.8 MB more at 720p).
+            opts.inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888;
             android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
             if (bmp == null) return;
             android.widget.ImageView wall = new android.widget.ImageView(this);
             wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
             wall.setImageBitmap(bmp);
-            root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            android.widget.ImageView old = wallView;
+            // Above the old picture, below everything else; the old one goes once the new one has faded in.
+            root.addView(wall, old == null ? 0 : root.indexOfChild(old) + 1,
+                    new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            wallView = wall;
+            if (old != null) {
+                if (fade) {
+                    wall.setAlpha(0f);
+                    wall.animate().alpha(1f).setDuration(1500).withEndAction(() -> root.removeView(old)).start();
+                } else {
+                    root.removeView(old);
+                }
+            }
+            if (dockGlass) {
+                backdrop.set(bmp, wall);
+                // The CENTER_CROP matrix exists only after layout: redraw the glass once the view has one.
+                wall.post(backdrop::redraw);
+            }
         } catch (Exception | OutOfMemoryError e) {
             // A bad or huge picture must never take the home screen down; the plain colour stays.
         }
+    }
+
+    /** shows the day or the night wallpaper for the current time; a change after start crossfades. */
+    private void updateWallpaper(boolean fade) {
+        if (wallDay == null) return;
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        int m = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE);
+        boolean night = wallNight != null && (nightFrom > nightUntil
+                ? m >= nightFrom || m < nightUntil : m >= nightFrom && m < nightUntil);
+        if (wallIsNight != null && wallIsNight == night) return;
+        wallIsNight = night;
+        showWallpaper(night ? wallNight : wallDay, fade);
     }
 
     /**
@@ -582,6 +638,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateInputsButton();
         if (showStats) startStats();
         sky.update();
+        updateWallpaper(false);
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
             diya.start();
@@ -1526,6 +1583,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             if (!online) {
                 text = getString(R.string.offline);
+                icon = R.drawable.ic_wifi_off;   // icon-only pill, so offline needs its own icon
                 vpn = false;
             } else if (ethernet) {
                 text = getString(R.string.ethernet);
@@ -1535,34 +1593,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else if (wifi) {
                 WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
                 WifiInfo info = wm != null ? wm.getConnectionInfo() : null;
-                String ssid = info != null ? info.getSSID() : null;
                 flame = info != null ? Math.max(1, Math.min(4, WifiManager.calculateSignalLevel(info.getRssi(), 5))) : 3;
-                if (ssid != null) {
-                    ssid = ssid.replace("\"", "").trim();
-                    if (!ssid.isEmpty() && !ssid.contains("unknown") && !ssid.equals("0x")) text = ssid;
-                }
+                // the pill just says Wi-Fi; the network name, signal and IP are in the Wi-Fi panel.
             }
         } catch (Exception ignored) {
         }
-        // With a VPN app configured, a VPN that is down matters too: show a red "VPN off" capsule then.
-        boolean vpnDown = !vpn && online && !vpnApp.isEmpty();
-        if (vpn || vpnDown) {
-            // Network name, then the green lock-and-VPN (or red "VPN off") capsule drawn in place of the word.
-            String badge = getString(vpn ? R.string.vpn : R.string.vpn_off);
-            VpnBadge span = new VpnBadge(vpn ? getDrawable(R.drawable.ic_lock) : null, density);
-            // The pill has a maximum width and ellipsizes at the end, which would cut the badge off after
-            // a long network name, so shorten the name to whatever room the badge leaves. The total paddings
-            // include the Wi-Fi icon.
-            TextPaint paint = btnWifi.getPaint();
-            float room = btnWifi.getMaxWidth() - btnWifi.getTotalPaddingStart() - btnWifi.getTotalPaddingEnd()
-                    - span.getSize(paint, badge, 0, badge.length(), null) - paint.measureText(" ") - 2 * density;
-            text = TextUtils.ellipsize(text, paint, Math.max(0, room), TextUtils.TruncateAt.END).toString();
-            SpannableString label = new SpannableString(text + " " + badge);
-            label.setSpan(span, text.length() + 1, label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            btnWifi.setText(label);
-        } else {
-            btnWifi.setText(text);
-        }
+        // the pills are icons only; the network name and details are in the Wi-Fi panel.
+        btnWifi.setText(null);
+        btnWifi.setContentDescription(vpn ? text + " · " + getString(R.string.vpn) : text);
+        if (vpn) icon = R.drawable.ic_lock;
         if (festive && diya != null) {
             if (online && flame == 0) flame = 3;   // online some other way (cellular, USB tethering)
             diya.setSteady(steady);
@@ -1856,6 +1895,211 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.run();
         });
         rows.addView(row);
+    }
+
+    // ---- recents ------------------------------------------------------------------------
+
+    /** Dropdown under the Recents pill: recently used apps (OK opens, hold OK closes) and Close all. */
+    private void showRecents() {
+        View anchor = findViewById(R.id.btnTools);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (240 * density));
+        PackageManager pm = getPackageManager();
+        for (String pkg : Recents.recent(this, 6)) {
+            Intent launch = pm.getLeanbackLaunchIntentForPackage(pkg);
+            if (launch == null) launch = pm.getLaunchIntentForPackage(pkg);
+            if (launch == null) continue;
+            final Intent intent = launch;
+            final CharSequence label;
+            Drawable icon;
+            try {
+                ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+                label = pm.getApplicationLabel(ai);
+                icon = pm.getApplicationIcon(ai);
+            } catch (PackageManager.NameNotFoundException e) {
+                continue;
+            }
+            View row = recentRow(rows, icon, false, label.toString(), getString(R.string.hold_to_close));
+            row.setOnClickListener(v -> {
+                popup.dismiss();
+                open(intent);
+            });
+            row.setOnLongClickListener(v -> {
+                Recents.close(this, pkg);
+                Toast.makeText(this, getString(R.string.closed_app, label), Toast.LENGTH_SHORT).show();
+                rows.removeView(row);
+                if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+                return true;
+            });
+        }
+        if (rows.getChildCount() == 0) {
+            View none = recentRow(rows, null, false, getString(Recents.hasUsageAccess(this)
+                    ? R.string.no_recents : R.string.recents_need_access), null);
+            none.setFocusable(false);
+        }
+        addSeparator(rows);
+        View all = recentRow(rows, getDrawable(R.drawable.ic_apps), true, getString(R.string.close_all), null);
+        all.setOnClickListener(v -> {
+            popup.dismiss();
+            long before = Recents.available(this);
+            Recents.closeAll(this);
+            // The kernel hands the memory back over the next moment; measure once it has.
+            handler.postDelayed(() -> {
+                long freed = Math.max(0, Recents.available(this) - before) / (1024 * 1024);
+                Toast.makeText(this, getString(R.string.freed_memory, (int) freed), Toast.LENGTH_LONG).show();
+            }, 800);
+        });
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (240 * density), Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END);
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            if (rows.getChildAt(i).isFocusable()) {
+                rows.getChildAt(i).requestFocus();
+                break;
+            }
+        }
+    }
+
+    /** the Tools pill's menu, so Home keeps four pills: Reorder apps and Recents. */
+    private void showTools() {
+        View anchor = findViewById(R.id.btnTools);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (200 * density));
+        addSettingsMenuRow(rows, popup, R.string.recents, () -> handler.post(this::showRecents));
+        addSettingsMenuRow(rows, popup, R.string.reorder, this::toggleReorder);
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /**
+     * the Wi-Fi pill's panel instead of the system picker: the current network (band, link speed,
+     * signal, IP), a hint when the 5 GHz network is strong while the TV sits on 2.4 GHz, and the networks
+     * around. Android 10+ lets only system apps connect or switch Wi-Fi, so choosing a network (or Change
+     * network) opens the TV's own Wi-Fi settings. A VPN app from config still opens from here.
+     */
+    private void showWifiPanel() {
+        View anchor = btnWifi;
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (300 * density));
+        android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        Runnable settings = () -> open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
+        android.net.wifi.WifiInfo info = wm == null ? null : wm.getConnectionInfo();
+        String current = info == null ? null : info.getSSID();
+        if (current != null) current = current.replace("\"", "");
+        boolean connected = info != null && info.getNetworkId() != -1 && current != null && !current.startsWith("<");
+        Drawable wifiIcon = getDrawable(R.drawable.ic_wifi);
+        if (connected) {
+            boolean five = info.getFrequency() >= 4900;
+            recentRow(rows, wifiIcon, true, current, getString(R.string.wifi_connected_info,
+                    five ? "5 GHz" : "2.4 GHz", info.getLinkSpeed())).setFocusable(false);
+            recentRow(rows, null, false, getString(R.string.wifi_signal_ip, signalWord(info.getRssi()),
+                    info.getRssi(), ipAddress()), null).setFocusable(false);
+        } else {
+            recentRow(rows, wifiIcon, true, getString(R.string.wifi_not_connected), null).setFocusable(false);
+        }
+        View change = recentRow(rows, getDrawable(R.drawable.ic_settings), true, getString(R.string.wifi_change), null);
+        change.setOnClickListener(v -> {
+            popup.dismiss();
+            settings.run();
+        });
+        if (!vpnApp.isEmpty()) {
+            View vpn = recentRow(rows, getDrawable(R.drawable.ic_lock), true, "VPN", null);
+            vpn.setOnClickListener(v -> {
+                popup.dismiss();
+                openNetworkPill();
+            });
+        }
+
+        // Networks around, strongest first, one row per name; the list the system cached at its last scan.
+        List<android.net.wifi.ScanResult> scans = new ArrayList<>();
+        try {
+            if (wm != null) {
+                scans.addAll(wm.getScanResults());
+                wm.startScan();   // fresher results for the next time the panel opens
+            }
+        } catch (SecurityException ignored) {
+            // No location access: the panel shows the current network only.
+        }
+        Collections.sort(scans, (a, b) -> Integer.compare(b.level, a.level));
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        String better5g = null;
+        boolean on24 = connected && info.getFrequency() < 4900;
+        List<android.net.wifi.ScanResult> nearby = new ArrayList<>();
+        for (android.net.wifi.ScanResult r : scans) {
+            if (r.SSID == null || r.SSID.isEmpty() || !seen.add(r.SSID)) continue;
+            if (on24 && better5g == null && r.frequency >= 4900 && r.level >= -67 && !r.SSID.equals(current)
+                    && sameRouter(r.SSID, current)) better5g = r.SSID;
+            if (nearby.size() < 4) nearby.add(r);
+        }
+        if (better5g != null) {
+            recentRow(rows, null, false, getString(R.string.wifi_better_5g, better5g), null).setFocusable(false);
+        }
+        if (!nearby.isEmpty()) {
+            addSeparator(rows);
+            recentRow(rows, null, false, getString(R.string.wifi_nearby), null).setFocusable(false);
+            for (android.net.wifi.ScanResult r : nearby) {
+                boolean secured = r.capabilities.contains("WPA") || r.capabilities.contains("WEP") || r.capabilities.contains("SAE");
+                boolean isCurrent = r.SSID.equals(current);
+                String status = (isCurrent ? getString(R.string.connected) + " · " : "")
+                        + (r.frequency >= 4900 ? "5 GHz" : "2.4 GHz") + " · " + signalWord(r.level);
+                View row = recentRow(rows, secured ? getDrawable(R.drawable.ic_lock) : wifiIcon, true, r.SSID, status);
+                row.setOnClickListener(v -> {
+                    popup.dismiss();
+                    settings.run();
+                });
+            }
+        }
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (300 * density), Math.min(panel.getMeasuredWidth(), (int) (420 * density))));
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.END : Gravity.START);
+        change.requestFocus();
+    }
+
+    private String signalWord(int rssi) {
+        return getString(rssi >= -55 ? R.string.signal_excellent : rssi >= -67 ? R.string.signal_good
+                : rssi >= -75 ? R.string.signal_fair : R.string.signal_weak);
+    }
+
+    /** "HomeNet 5G" and "HomeNet 2.4 GHz" are the same router: the names share their first word. */
+    private static boolean sameRouter(String a, String b) {
+        if (a == null || b == null) return false;
+        String fa = a.trim().split("[\\s_-]+")[0], fb = b.trim().split("[\\s_-]+")[0];
+        return !fa.isEmpty() && fa.equalsIgnoreCase(fb);
+    }
+
+    /** The TV's IPv4 address on the active network, or "-". */
+    private String ipAddress() {
+        android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        android.net.LinkProperties lp = cm == null ? null : cm.getLinkProperties(cm.getActiveNetwork());
+        if (lp != null) {
+            for (android.net.LinkAddress la : lp.getLinkAddresses()) {
+                if (la.getAddress() instanceof java.net.Inet4Address) return la.getAddress().getHostAddress();
+            }
+        }
+        return "-";
+    }
+
+    /** A dropdown row: an app's own icon untinted, or a pill icon (tinted) for Close all. */
+    private View recentRow(LinearLayout rows, Drawable icon, boolean tintIcon, String title, String status) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        ImageView iv = row.findViewById(R.id.icon);
+        if (icon == null) {
+            iv.setVisibility(View.GONE);
+        } else {
+            iv.setImageDrawable(icon);
+            if (!tintIcon) iv.setImageTintList(null);
+        }
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        TextView st = row.findViewById(R.id.status);
+        if (status == null) st.setVisibility(View.GONE); else st.setText(status);
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        rows.addView(row);
+        return row;
     }
 
     // ---- launcher settings and module cards -------------------------------------------------------

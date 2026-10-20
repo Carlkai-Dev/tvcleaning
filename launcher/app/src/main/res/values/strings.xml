@@ -87,4 +87,24 @@
     </plurals>
     <!-- The greeting, then greeting_name: "Good morning, Mr. Trịnh". -->
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <!-- Recents pill -->
+    <string name="recents">Recents</string>
+    <string name="close_all">Close all</string>
+    <string name="hold_to_close">Hold OK to close</string>
+    <string name="closed_app">%s closed</string>
+    <string name="freed_memory">Closed background apps · %d MB freed</string>
+    <string name="no_recents">No recent apps</string>
+    <string name="recents_need_access">Recent list needs usage access</string>
+    <!-- Tools pill and Wi-Fi panel -->
+    <string name="tools">Tools</string>
+    <string name="wifi_not_connected">Not connected</string>
+    <string name="wifi_connected_info">Connected · %1$s · %2$d Mbps</string>
+    <string name="wifi_signal_ip">Signal %1$s (%2$d dBm) · IP %3$s</string>
+    <string name="wifi_change">Change network…</string>
+    <string name="wifi_nearby">Nearby networks</string>
+    <string name="wifi_better_5g">%s is strong here: faster than 2.4 GHz</string>
+    <string name="signal_excellent">excellent</string>
+    <string name="signal_good">good</string>
+    <string name="signal_fair">fair</string>
+    <string name="signal_weak">weak</string>
 </resources>

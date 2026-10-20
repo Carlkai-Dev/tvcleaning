@@ -1,15 +1,23 @@
 package com.gathin.tvhome;
 
 import android.graphics.Canvas;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.view.View;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
-/** Draws the tvOS style lighter band behind the first (dock) row and adds a gap below it. */
+/**
+ * Draws the tvOS style lighter band behind the first (dock) row and adds a gap below it.
+ * With a {@link Backdrop} holding a wallpaper the band is frosted glass instead: the blurred
+ * wallpaper lined up with the picture behind it, a light frost, a sheen along the top and a bright rim. One
+ * shaded round rect, no clipPath, no per-frame work.
+ */
 public class DockDecoration extends RecyclerView.ItemDecoration {
 
     private final int dockSize;
@@ -18,13 +26,29 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
 
+    @Nullable private final Backdrop backdrop;
+    private final Backdrop.Painter painter = new Backdrop.Painter();
+    private final Paint frost = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint sheen = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private float sheenTop = Float.NaN, sheenHeight;
+
     DockDecoration(int dockSize, float density) {
+        this(dockSize, density, null);
+    }
+
+    DockDecoration(int dockSize, float density, @Nullable Backdrop backdrop) {
         this.dockSize = dockSize;
         this.density = density;
+        this.backdrop = backdrop;
         band.setColor(0xFF141416);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
         edge.setColor(0x1FFFFFFF);
+        frost.setColor(0x2EFFFFFF);
+        rim.setStyle(Paint.Style.STROKE);
+        rim.setStrokeWidth(1.2f * density);
+        rim.setColor(0x59FFFFFF);
     }
 
     @Override
@@ -61,7 +85,20 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         float pad = 14 * density;
         rect.inset(-pad, -pad);
         float radius = 26 * density;
-        c.drawRoundRect(rect, radius, radius, band);
-        c.drawRoundRect(rect, radius, radius, edge);
+        if (backdrop == null || !painter.prepare(backdrop, parent)) {
+            c.drawRoundRect(rect, radius, radius, band);
+            c.drawRoundRect(rect, radius, radius, edge);
+            return;
+        }
+        c.drawRoundRect(rect, radius, radius, painter.paint);
+        c.drawRoundRect(rect, radius, radius, frost);
+        if (rect.top != sheenTop || rect.height() != sheenHeight) {
+            sheenTop = rect.top;
+            sheenHeight = rect.height();
+            sheen.setShader(new LinearGradient(0, rect.top, 0, rect.top + rect.height() * 0.5f,
+                    0x38FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
+        }
+        c.drawRoundRect(rect, radius, radius, sheen);
+        c.drawRoundRect(rect, radius, radius, rim);
     }
 }

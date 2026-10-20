@@ -102,6 +102,11 @@
     <!-- Installed launchable apps, including ordinary Android apps. Also settable in config.json. -->
     <bool name="app_library">false</bool>
 
+    <!-- The dock band and the top pills as frosted glass over a blurred copy of the theme wallpaper, with a top
+         sheen and a light rim. Only shows with a wallpaper, so a launcher without one looks exactly as before;
+         false (or "dock_glass": false in a theme) keeps the solid band and the plain pills. -->
+    <bool name="dock_glass">true</bool>
+
     <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own
          label, caption and glow colour, once you answer Show on the prompt. false: never look for cards or ask. -->
     <bool name="module_cards">true</bool>

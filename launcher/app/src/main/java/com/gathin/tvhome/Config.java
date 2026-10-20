@@ -31,6 +31,8 @@ final class Config {
     private static final String TAG = "TvHome.Config";
     static final String FILE_NAME = "config.json";
     static final String WALLPAPER_NAME = "wallpaper.jpg";
+    /** shown instead of wallpaper.jpg between night_from and night_until. */
+    static final String WALLPAPER_NIGHT_NAME = "wallpaper_night.jpg";
     static final String SETTINGS_NAME = "launcher_settings";
     private static final String THEME_REVISION_NAME = "theme_revision";
     private static final String THEME_SIGNATURE_KEY = "theme_signature";
@@ -64,6 +66,11 @@ final class Config {
     final boolean showHomeSettingsShortcut;
     /** One line under the clock: CPU, free memory, free storage. Off unless config or a theme turns it on. */
     final boolean showStats;
+    /** Frosted glass dock band over a blurred copy of the wallpaper; false keeps the solid band. */
+    boolean dockGlass = true;
+    /** night wallpaper (or null) and the minutes after midnight it starts and ends; 18:00 to 06:00 by default. */
+    File wallpaperNight;
+    int nightFrom = 18 * 60, nightUntil = 6 * 60;
     /** App library pill after the last Home row (config.xml app_library). */
     final boolean appLibrary;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
@@ -205,11 +212,31 @@ final class Config {
         Festival festival = json == null ? Festival.NONE : Festival.parse(string(json, "festival", ""),
                 string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
 
-        return new Config(dock, fillDock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
+        boolean dockGlass = res.getBoolean(R.bool.dock_glass);
+        if (json != null) dockGlass = bool(json, "dock_glass", dockGlass);
+        Config config = new Config(dock, fillDock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, greetingName, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaper, applied,
                 festival);
+        config.dockGlass = dockGlass;
+        if (wallpaper != null) {
+            File night = new File(dir, WALLPAPER_NIGHT_NAME);
+            if (night.isFile() && night.length() > 0) config.wallpaperNight = night;
+        }
+        if (json != null) {
+            config.nightFrom = clock(string(json, "night_from", ""), config.nightFrom);
+            config.nightUntil = clock(string(json, "night_until", ""), config.nightUntil);
+        }
+        return config;
+    }
+
+    /** "HH:MM" as minutes after midnight; anything else keeps fallback. */
+    static int clock(String hhmm, int fallback) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{1,2}):(\\d{2})").matcher(hhmm.trim());
+        if (!m.matches()) return fallback;
+        int h = Integer.parseInt(m.group(1)), min = Integer.parseInt(m.group(2));
+        return h < 24 && min < 60 ? h * 60 + min : fallback;
     }
 
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
