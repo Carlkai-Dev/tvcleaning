@@ -60,6 +60,18 @@
          with TV settings, Display, Network, Apps (re-enable an app) and Launcher settings, over whatever is on screen.
          Both keys can also be set from a theme's config.json ("settings_key_keycodes": [83]). -->
     <bool name="settings_key_panel">false</bool>
+    <!-- Remote buttons that open an app (HOME_KEY_SERVICE=1 build-and-install.sh), by Android keycode only, since
+         vendor buttons often share a scancode: app_key_keycodes[i] opens app_key_packages[i]. On Google TV the
+         stock launcher answered the remote's app buttons, so with it disabled they do nothing unless listed here.
+         Example, the KTC LUMIO VISION remote (Realtek Google TV): TL;DR is keycode 200 (KEYCODE_BUTTON_13),
+         Netflix 191 (KEYCODE_BUTTON_4), YouTube 190 (KEYCODE_BUTTON_3) and Prime Video 195 (KEYCODE_BUTTON_8):
+         <item>191</item> here with <item>com.netflix.ninja</item> at the same position in app_key_packages.
+         Find the keycode with `tools/tv.py 'logcat -v time -s InputReader:D'` while pressing the button. A listed
+         app that is not installed leaves the button doing nothing. Leave both empty to omit. -->
+    <integer-array name="app_key_keycodes">
+    </integer-array>
+    <string-array name="app_key_packages" translatable="false">
+    </string-array>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->
