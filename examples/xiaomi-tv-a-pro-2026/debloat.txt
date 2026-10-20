@@ -25,26 +25,16 @@
 # ---- Launcher extras tested on this model (contributed by @nikhiltalreja, GitHub) ----
 # Checked on a real set on 2026-10-20, firmware UKN1.240806.017.V816.0.26.5.6.5.URTMIXM.
 #
-# Bluetooth pill: the launcher has a Bluetooth button next to Inputs. It lists bonded accessories
-# first, then a row for the TV's own Bluetooth screen (remotes and other accessories), then devices
-# from its own scan, pairing inline. This firmware's settings scanner finds devices in the radio
-# stack but never lists them, so the pill is the working path. Grant both permissions after every
-# reinstall (build-and-install does this for you):
-#   adb shell pm grant com.gathin.tvhome android.permission.BLUETOOTH_CONNECT
-#   adb shell pm grant com.gathin.tvhome android.permission.BLUETOOTH_SCAN
-# Set bluetooth_speaker_name/address in config.xml so the fallback row opens your buds' Connect /
-# Disconnect / Unpair page instead of the scanner.
+# This folder's config.json is a theme for those extras. Push it (no rebuild):
+#   TV_HOST=<tv ip> tools/theme.sh examples/xiaomi-tv-a-pro-2026
+# It sets bluetooth_button, so theme.sh grants BLUETOOTH_CONNECT and BLUETOOTH_SCAN.
+# The pill lists bonded accessories, then the TV's own Bluetooth screen, then a live scan that
+# pairs in place. This firmware's settings scanner finds devices but never lists them.
 #
-# Remote hotkeys: with launcherx disabled the YouTube button (KEYCODE_BUTTON_3) has no handler, and
-# the LIV button (KEYCODE_BUTTON_8) still deep-links SonyLIV through the vendor service. Enable the
-# launcher's accessibility service and map both in config.xml key_remaps:
-#   settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService
-#   settings put secure accessibility_enabled 1
-#   KEYCODE_BUTTON_3=com.google.android.youtube.tv
-#   KEYCODE_BUTTON_8=com.apple.atve.androidtv.appletv
-# Home here is KEYCODE_HOME and works once launcherx is gone; KEYCODE_ALL_APPS is not involved.
-# The mappings are model-specific: key_remaps is empty by default, so leave it empty if your remote
-# sends different keycodes.
+# app_keys in that theme sends the YouTube button (KEYCODE_BUTTON_3) to YouTube and the LIV button
+# (KEYCODE_BUTTON_8) to Apple TV. With launcherx disabled those keys otherwise do nothing, or LIV
+# still deep-links SonyLIV. They need INPUT_KEY_SERVICE=1 or HOME_KEY_SERVICE=1 at install; both
+# read app_keys. Home here is KEYCODE_HOME once launcherx is gone.
 
 # Xiaomi + Google telemetry
 com.miui.tv.analytics

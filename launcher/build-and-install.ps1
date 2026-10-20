@@ -4,9 +4,9 @@
 #
 # Usage: launcher\build-and-install.ps1 -TvHost 192.168.1.50 [-StockLauncher <package>|none]
 #        The stock launcher is detected from the TV when -StockLauncher is not given.
-#        [-InputKeyService]   remote's Input button opens the input switcher (Google TV); re-pass on every install
-#        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks), or to
-#                             apply config.xml settings_key_* and key_remaps
+#        [-InputKeyService]   remote's Input button opens the input switcher (Google TV), plus config.xml
+#                             input_key_keycodes and app_keys; re-pass on every install
+#        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks)
 param(
     [string]$TvHost = $env:TV_HOST,
     [string]$StockLauncher = '',
@@ -72,14 +72,18 @@ if ("$out" -match 'Error') { throw 'could not set the new launcher as home; the 
 $start = (& $py -I ..\tools\tv.py 'am start -W -n com.gathin.tvhome/.MainActivity') -join "`n"
 Write-Host $start
 if ($start -notmatch 'Status: ok' -or $start -match '(?m)^Error') { throw "the new launcher did not start (see above); $StockLauncher was left enabled" }
-@(
-    'pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted',
-    'pm grant com.gathin.tvhome android.permission.BLUETOOTH_CONNECT 2>/dev/null; echo bluetooth-connect-granted',
-    'pm grant com.gathin.tvhome android.permission.BLUETOOTH_SCAN 2>/dev/null; echo bluetooth-scan-granted',
-    'cmd package compile -m speed -f com.gathin.tvhome',
-    $disableStock,
-    'cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity'
-) | & $py -I ..\tools\tv.py --batch
+# Bluetooth grants only when the pill is on in config.xml. A theme that turns it on is granted by theme.ps1.
+$cmds = @(
+    'pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted'
+)
+if (Select-String -Path 'app\src\main\res\values\config.xml' -Pattern 'name="bluetooth_button">true<' -Quiet) {
+    $cmds += 'pm grant com.gathin.tvhome android.permission.BLUETOOTH_CONNECT 2>/dev/null; echo bluetooth-connect-granted'
+    $cmds += 'pm grant com.gathin.tvhome android.permission.BLUETOOTH_SCAN 2>/dev/null; echo bluetooth-scan-granted'
+}
+$cmds += 'cmd package compile -m speed -f com.gathin.tvhome'
+$cmds += $disableStock
+$cmds += 'cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity'
+$cmds | & $py -I ..\tools\tv.py --batch
 # Order matters, see build-and-install.sh: start the new launcher, disable the stock one, set the
 # preference last, then check where Home ended up and put the stock launcher back if it is not ours.
 $homeNow = (& $py -I ..\tools\tv.py 'cmd package resolve-activity --brief -c android.intent.category.HOME -a android.intent.action.MAIN' | Select-Object -Last 1).Trim()

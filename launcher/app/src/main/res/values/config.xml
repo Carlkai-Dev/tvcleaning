@@ -44,10 +44,11 @@
          (XGIMI projectors: com.xgimi.action.hdmiPlayer). Leave empty to omit. -->
     <string name="input_action" translatable="false"></string>
 
-    <!-- The Bluetooth pill, next to Inputs. Its fallback row opens the TV's Bluetooth screen; set the
-         address and name of an accessory (earbuds, speaker) to open its Connect / Disconnect / Unpair
-         page instead once it is bonded. Empty: the pairing scanner. Needs the BLUETOOTH_CONNECT and
-         BLUETOOTH_SCAN grants, which build-and-install runs. -->
+    <!-- Bluetooth pill, next to Inputs. Off unless set here or in a theme ("bluetooth_button": true).
+         build-and-install grants BLUETOOTH_CONNECT and BLUETOOTH_SCAN only when this is true; theme.sh
+         grants them when the pushed theme turns it on. The fallback row opens the TV's Bluetooth screen;
+         set the address and name of an accessory to open its Connect / Disconnect / Unpair page once bonded. -->
+    <bool name="bluetooth_button">false</bool>
     <string name="bluetooth_speaker_address" translatable="false"></string>
     <string name="bluetooth_speaker_name" translatable="false"></string>
 
@@ -68,13 +69,20 @@
          Both keys can also be set from a theme's config.json ("settings_key_keycodes": [83]). -->
     <bool name="settings_key_panel">false</bool>
 
-    <!-- Remote hotkeys that firmware routes to the stock launcher or a vendor app, handled by
-         HomeKeyService (HOME_KEY_SERVICE=1 at install): "KEYCODE_NAME=package", one per line. Empty by
-         default, since the codes differ per remote. A Xiaomi Google TV remote, for example, sends
-         BUTTON_3 for YouTube and BUTTON_8 for LIV, and with the stock launcher disabled those keys
-         do nothing; mapping them here sends them to an app instead. A missing keycode name is
-         ignored, and a key that is not listed passes through untouched. -->
-    <string-array name="key_remaps">
+    <!-- More remote buttons that open the input switcher, by Android keycode (INPUT_KEY_SERVICE=1
+         build-and-install.sh; KEYCODE_TV always does). For buttons only a disabled app answered: the Xiaomi
+         MiTV-AXFR2 remote's PatchWall button is 192 (KEYCODE_BUTTON_5). `dumpsys window policy` lists which
+         app each such "global key" was routed to. Check with the real remote: keys injected over ADB never
+         reach InputKeyService. Leave empty to omit. -->
+    <integer-array name="input_key_keycodes">
+    </integer-array>
+    <!-- Remote buttons that open an app, as "keycode:package" or "KEYCODE_NAME:package" (INPUT_KEY_SERVICE=1 or
+         HOME_KEY_SERVICE=1; both read this one list, and a theme's config.json can set it too). On Google TV the
+         YouTube button sends 190 (KEYCODE_BUTTON_3) to the stock launcher, so it does nothing once launcherx
+         is disabled (Chromecast with Google TV, Xiaomi MiTV-AXFR2): 190:com.google.android.youtube.tv brings
+         it back. The KTC LUMIO VISION remote (Realtek Google TV) sends Netflix 191, YouTube 190, Prime Video 195
+         and TL;DR 200. A listed app that is not installed leaves the button doing nothing. Leave empty to omit. -->
+    <string-array name="app_keys" translatable="false">
     </string-array>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
