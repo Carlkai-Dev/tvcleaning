@@ -24,4 +24,7 @@
     <string name="tile_menu_app_info">应用信息</string>
     <string name="move_started">正在移动 %1$s — 按 OK 放置，按返回取消</string>
     <string name="move_not_saved">无法保存顺序</string>
+    <string name="reset_tile_order">重置应用排列</string>
+    <string name="reset_tile_order_confirm">删除已保存的应用排列并恢复配置的顺序？其他应用数据和模块卡片选择会保留。</string>
+    <string name="reset_tile_order_failed">无法重置应用排列</string>
 </resources>

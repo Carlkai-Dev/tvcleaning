@@ -25,4 +25,7 @@
     <string name="tile_menu_app_info">App-Info</string>
     <string name="move_started">%1$s wird verschoben — OK setzt ab, Zurück bricht ab</string>
     <string name="move_not_saved">Reihenfolge konnte nicht gespeichert werden</string>
+    <string name="reset_tile_order">Kachelreihenfolge zurücksetzen</string>
+    <string name="reset_tile_order_confirm">Gespeicherte Kachelanordnung entfernen und die konfigurierte Reihenfolge wiederherstellen? Andere App-Daten und Kartenentscheidungen bleiben erhalten.</string>
+    <string name="reset_tile_order_failed">Kachelreihenfolge konnte nicht zurückgesetzt werden</string>
 </resources>

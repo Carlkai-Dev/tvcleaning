@@ -25,4 +25,7 @@
     <string name="tile_menu_app_info">ข้อมูลแอป</string>
     <string name="move_started">กำลังย้าย %1$s — กด OK เพื่อวาง กดย้อนกลับเพื่อยกเลิก</string>
     <string name="move_not_saved">ไม่สามารถบันทึกลำดับได้</string>
+    <string name="reset_tile_order">รีเซ็ตลำดับไทล์</string>
+    <string name="reset_tile_order_confirm">ลบการจัดเรียงไทล์ที่บันทึกไว้และกลับไปใช้ลำดับที่ตั้งค่าไว้หรือไม่ ข้อมูลแอปอื่นและตัวเลือกการ์ดจะยังคงอยู่</string>
+    <string name="reset_tile_order_failed">รีเซ็ตลำดับไทล์ไม่สำเร็จ</string>
 </resources>

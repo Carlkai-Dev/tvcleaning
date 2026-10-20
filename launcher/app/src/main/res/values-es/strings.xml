@@ -24,4 +24,7 @@
     <string name="tile_menu_app_info">Información de la app</string>
     <string name="move_started">Moviendo %1$s — OK coloca, Atrás cancela</string>
     <string name="move_not_saved">No se pudo guardar el orden</string>
+    <string name="reset_tile_order">Restablecer orden de mosaicos</string>
+    <string name="reset_tile_order_confirm">¿Eliminar la disposición guardada y restaurar el orden configurado? Se conservarán los demás datos de la app y las opciones de tarjetas.</string>
+    <string name="reset_tile_order_failed">No se pudo restablecer el orden de mosaicos</string>
 </resources>

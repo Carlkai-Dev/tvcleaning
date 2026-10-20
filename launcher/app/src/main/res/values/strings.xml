@@ -50,4 +50,7 @@
     <string name="tile_menu_app_info">App info</string>
     <string name="move_started">Moving %1$s — OK places it, Back cancels</string>
     <string name="move_not_saved">Couldn\'t save the order</string>
+    <string name="reset_tile_order">Reset tile order</string>
+    <string name="reset_tile_order_confirm">Remove your saved tile arrangement and restore the configured order? Other app data and module-card choices stay in place.</string>
+    <string name="reset_tile_order_failed">Could not reset tile order</string>
 </resources>

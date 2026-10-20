@@ -24,4 +24,7 @@
     <string name="tile_menu_app_info">Infos sur l\'app</string>
     <string name="move_started">Déplacement de %1$s — OK place, Retour annule</string>
     <string name="move_not_saved">Impossible d\'enregistrer l\'ordre</string>
+    <string name="reset_tile_order">Réinitialiser l’ordre des tuiles</string>
+    <string name="reset_tile_order_confirm">Supprimer la disposition enregistrée et rétablir l’ordre configuré ? Les autres données et les choix des cartes seront conservés.</string>
+    <string name="reset_tile_order_failed">Impossible de réinitialiser l’ordre des tuiles</string>
 </resources>
