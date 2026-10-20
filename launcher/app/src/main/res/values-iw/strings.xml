@@ -79,10 +79,32 @@
     <string name="library_recent">חדשה · הוספה למסך הבית</string>
     <string name="library_hint_add">לחיצה להוספה למסך הבית · לחיצה ארוכה לאפשרויות</string>
     <string name="library_hint_open">לחיצה לפתיחה · לחיצה ארוכה לאפשרויות</string>
+    <string name="projector">מקרן</string>
+    <string name="projector_settings">הגדרות המקרן</string>
+    <string name="projector_audio">שמע</string>
+    <string name="projector_autofocus">מיקוד אוטומטי</string>
+    <string name="projector_keystone">תיקון טרפז</string>
+    <string name="projector_zoom">זום</string>
+    <string name="projector_diagnostics">אבחון</string>
+    <string name="projector_refresh">רענון</string>
+    <string name="projector_mode_state">מצב מקרן: %1$s</string>
+    <string name="projector_device">%1$s · %2$s · %3$s</string>
+    <string name="projector_state_direct">זמין</string>
+    <string name="projector_state_shortcut">פותח את ההגדרות הרשמיות</string>
+    <string name="projector_state_privileged">דורש גישת מערכת</string>
+    <string name="projector_state_unsupported">לא זמין לאפליקציות אנדרואיד</string>
+    <string name="projector_state_unknown">לא ידוע</string>
+    <string name="projector_health_memory">זיכרון: %1$d MB פנויים מתוך %2$d MB</string>
+    <string name="projector_health_storage">אחסון: %1$s GB פנויים</string>
+    <string name="projector_health_thermal">מצב תרמי: %1$s</string>
+    <string name="projector_health_profile">פרופיל מודול: %1$s</string>
     <plurals name="library_app_count">
         <item quantity="one">אפליקציה אחת</item>
         <item quantity="two">שתי אפליקציות</item>
         <item quantity="other">%1$d אפליקציות</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="projector_profile_state">פרופיל מקרן: %1$s</string>
+    <string name="projector_guide_autofocus">השתמשו בלחצן המיקוד האוטומטי בשלט המקרן</string>
+    <string name="projector_guide_keystone">שלט המקרן: הגדרות \u2192 תיקון תמונה \u2192 קיסטון ידני</string>
 </resources>

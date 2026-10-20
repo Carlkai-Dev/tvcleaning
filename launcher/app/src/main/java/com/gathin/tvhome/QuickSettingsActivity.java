@@ -33,6 +33,11 @@ public final class QuickSettingsActivity extends Activity {
         // Through Home, so it rebuilds with the new choices when Launcher settings closes.
         addRow(rows, R.drawable.ic_home_settings, R.string.launcher_settings, 0,
                 new Intent(this, MainActivity.class).setAction(MainActivity.ACTION_LAUNCHER_SETTINGS));
+        // Projector row only in Projector Mode: same panel, no duplicate quick-settings surface.
+        if (Config.load(this).projectorMode) {
+            addRow(rows, R.drawable.ic_projector, R.string.projector, 0,
+                    new Intent(this, ProjectorDashboardActivity.class));
+        }
         rows.getChildAt(0).requestFocus();
     }
 

@@ -87,4 +87,26 @@
     </plurals>
     <!-- The greeting, then greeting_name: "Good morning, Mr. Trịnh". -->
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="projector">Projector</string>
+    <string name="projector_settings">Projector settings</string>
+    <string name="projector_audio">Audio</string>
+    <string name="projector_autofocus">Autofocus</string>
+    <string name="projector_keystone">Keystone</string>
+    <string name="projector_zoom">Zoom</string>
+    <string name="projector_diagnostics">Diagnostics</string>
+    <string name="projector_refresh">Refresh</string>
+    <string name="projector_mode_state">Projector mode: %1$s</string>
+    <string name="projector_device">%1$s · %2$s · %3$s</string>
+    <string name="projector_state_direct">Available</string>
+    <string name="projector_state_shortcut">Opens official settings</string>
+    <string name="projector_state_privileged">Needs system access</string>
+    <string name="projector_state_unsupported">Not available to Android apps</string>
+    <string name="projector_state_unknown">Unknown</string>
+    <string name="projector_health_memory">Memory: %1$d MB free of %2$d MB</string>
+    <string name="projector_health_storage">Storage: %1$s GB free</string>
+    <string name="projector_health_thermal">Thermal status: %1$s</string>
+    <string name="projector_health_profile">Module profile: %1$s</string>
+    <string name="projector_profile_state">Projector profile: %1$s</string>
+    <string name="projector_guide_autofocus">Use the Autofocus button on the projector remote</string>
+    <string name="projector_guide_keystone">Projector remote: Settings \u2192 Image correction \u2192 Manual keystone</string>
 </resources>

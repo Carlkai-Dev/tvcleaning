@@ -68,4 +68,27 @@
         <item quantity="other">%1$d apps</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="tv_settings">Configurações do sistema</string>
+    <string name="projector">Projetor</string>
+    <string name="projector_settings">Configurações do projetor</string>
+    <string name="projector_audio">Áudio</string>
+    <string name="projector_autofocus">Autofoco</string>
+    <string name="projector_keystone">Keystone</string>
+    <string name="projector_zoom">Zoom</string>
+    <string name="projector_diagnostics">Diagnóstico</string>
+    <string name="projector_refresh">Atualizar</string>
+    <string name="projector_mode_state">Modo Projetor: %1$s</string>
+    <string name="projector_device">%1$s · %2$s · %3$s</string>
+    <string name="projector_state_direct">Disponível</string>
+    <string name="projector_state_shortcut">Abre as configurações oficiais</string>
+    <string name="projector_state_privileged">Requer acesso de sistema</string>
+    <string name="projector_state_unsupported">Não disponível para apps Android</string>
+    <string name="projector_state_unknown">Desconhecido</string>
+    <string name="projector_health_memory">Memória: %1$d MB livres de %2$d MB</string>
+    <string name="projector_health_storage">Armazenamento: %1$s GB livres</string>
+    <string name="projector_health_thermal">Estado térmico: %1$s</string>
+    <string name="projector_health_profile">Perfil do módulo: %1$s</string>
+    <string name="projector_profile_state">Perfil do projetor: %1$s</string>
+    <string name="projector_guide_autofocus">Use o botão Autofoco do controle do projetor</string>
+    <string name="projector_guide_keystone">Controle do projetor: Configurações \u2192 Correção de imagem \u2192 Keystone manual</string>
 </resources>

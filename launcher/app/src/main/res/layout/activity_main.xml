@@ -187,6 +187,14 @@
                 android:orientation="horizontal">
 
                 <TextView
+                    android:id="@+id/btnProjector"
+                    style="@style/TopButton"
+                    android:text="@string/projector"
+                    android:drawableStart="@drawable/ic_projector"
+                    android:visibility="gone"
+                    android:nextFocusDown="@+id/grid" />
+
+                <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
                     android:text="@string/inputs"
