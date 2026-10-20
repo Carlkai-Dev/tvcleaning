@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://cleanyour.tv">cleanyour.tv</a> ·
   <a href="PROMPT.md">The prompt</a> ·
-  <a href="examples/">93 TV lists</a> ·
+  <a href="examples/">94 TV lists</a> ·
   <a href="SHOWCASE.md">18 built on it</a> ·
   <a href="https://x.com/gathint/status/2111379569030939102">The tweet</a>
 </p>
@@ -32,7 +32,7 @@ Strip the bloatware from any Android TV or Google TV over Wi-Fi, and replace the
 screen with a clean launcher that looks like an Apple TV. **No root, no cable, nothing uninstalled,
 and a one-line restore if you change your mind.**
 
-<h3 align="center">93 TV models &nbsp;·&nbsp; 31 brands &nbsp;·&nbsp; 17 languages &nbsp;·&nbsp; 370 KB launcher</h3>
+<h3 align="center">94 TV models &nbsp;·&nbsp; 31 brands &nbsp;·&nbsp; 17 languages &nbsp;·&nbsp; 370 KB launcher</h3>
 
 <p align="center">
   <sub><b>FEATURED IN</b></sub><br><br>
@@ -132,6 +132,7 @@ Redmi · SANYO · Thomson · Toshiba Fire TV · Vu · JMGO, Portronics, Stellamo
 | TV | OS |
 |---|---|
 | AiPro2K (Expressluck, dongnae; Changhong AI PONT family) | Android TV 14 |
+| BYINTEK T5 Max projector (built-in Google TV stick: SkyworthDigital YYT, Amlogic), Brazil | Google TV 14 |
 | Amazon Fire TV Stick 4K, 1st gen 2018 (AFTMM, mantis) | Fire OS 6.7.1.1 / Android 7.1 |
 | BenQ E55-735 (Changhong AI PONT, DVB96BQ) | Google TV 14 |
 | BenQ E55-750 (Changhong AI PONT, DVB96BQ) | Google TV (Android 11) |
