@@ -38,3 +38,27 @@ com.journey.indiab
 com.google.android.katniss
 com.google.android.speech.pumpkin
 com.google.android.apps.mediashell
+
+# performance pass (2026-10-20): idle extras on a 1 GB TV
+com.android.gallery3d
+com.android.camera2
+com.google.android.marvin.talkback
+com.google.android.tts
+com.android.printspooler
+com.android.htmlviewer
+com.android.wallpapercropper
+com.android.wallpaperbackup
+com.google.android.backdrop
+com.mitv.dream
+com.android.dreams.basic
+com.google.android.syncadapters.calendar
+com.android.providers.calendar
+com.google.android.backuptransport
+com.android.sharedstoragebackup
+com.android.backupconfirm
+com.android.smspush
+com.google.android.onetimeinitializer
+com.android.onetimeinitializer
+com.google.android.partnersetup
+com.google.android.tungsten.setupwraith
+com.xiaomi.mitv.mediaexplorer

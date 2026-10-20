@@ -71,3 +71,9 @@ timeout (5 minutes here; Settings > Device Preferences > Screen saver > When to 
 wakes it. To preview it now: `am start -n com.android.systemui/.Somnambulator`. To go back to Xiaomi's:
 `settings put secure screensaver_components com.mitv.dream/com.mitv.dream.MiDream`. To change the scenes,
 replace the four JPGs (1280x720, under about 60 KB each) and run `my-tv/build-and-install.sh`.
+
+## Performance pass (2026-10-20)
+JioHotstar stalled (ALSA underruns) because the 1 GB TV was starved by Play Store/Play Services updates.
+Added 22 idle packages to `debloat.txt` (gallery, camera, TalkBack/TTS, printing, screensavers,
+calendar/backup stubs, setup leftovers) and denied Play Store background running. To let the Play Store
+update again: `tools/venv/bin/python -I tools/tv.py "cmd appops set com.android.vending RUN_IN_BACKGROUND allow; cmd appops set com.android.vending RUN_ANY_IN_BACKGROUND allow"`
