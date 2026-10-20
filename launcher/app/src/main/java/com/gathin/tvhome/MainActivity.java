@@ -133,6 +133,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Wallpaper mode from launcher settings; India calendar event when mode is india. */
     private String wallpaperMode = WallpaperPrefs.MODE_DEFAULT;
     private IndiaEvents.Event indiaEvent;
+    /** Index into today's cached festival photo set. */
+    private int indiaWallpaperVariant = 0;
+    /** Dock/grid position that last triggered a wallpaper change (−1 = none yet). */
+    private int indiaWallpaperPos = -1;
+    /** Event id whose internet photos are currently loaded / loading. */
+    private String indiaPhotosEventId;
     private DiyaDrawable diya;
     private BellDrawable bell;
     private MarigoldDrawable marigold;
@@ -450,16 +456,66 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (WallpaperPrefs.MODE_INDIA.equals(mode)) {
             IndiaEvents.Event event = indiaEvent != null ? indiaEvent : IndiaEvents.everyday();
-            showWallpaperBitmap(EventWallpaper.render(event,
-                    getResources().getDisplayMetrics().widthPixels,
-                    getResources().getDisplayMetrics().heightPixels));
+            indiaPhotosEventId = event.id;
+            indiaWallpaperPos = -1;
+            int have = FestivalPhotos.count(this, event);
+            if (have > 0) {
+                indiaWallpaperVariant = FestivalPhotos.pickIndex(have, -1);
+                showIndiaWallpaper(indiaWallpaperVariant);
+            } else {
+                showIndiaWallpaper(0); // soft gradient until this festival's photos arrive
+            }
+            // Background: download 20–30 internet photos for today's festival into cache (daily).
+            FestivalPhotos.ensureDaily(this, event, (eventId, count) -> handler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                if (!WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)) return;
+                if (indiaPhotosEventId == null || !indiaPhotosEventId.equals(eventId)) return;
+                if (count <= 0) return;
+                indiaWallpaperVariant = FestivalPhotos.pickIndex(count, indiaWallpaperVariant);
+                showIndiaWallpaper(indiaWallpaperVariant);
+            }));
             return;
         }
         if (cfg.wallpaper != null) showWallpaperFile(cfg.wallpaper);
     }
 
+    /** Random cached festival photo whenever focus moves to a different launcher icon. */
+    private void maybeSwitchIndiaWallpaper(int position) {
+        if (!WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)) return;
+        if (position == indiaWallpaperPos) return;
+        indiaWallpaperPos = position;
+        IndiaEvents.Event event = indiaEvent != null ? indiaEvent : IndiaEvents.everyday();
+        int have = FestivalPhotos.count(this, event);
+        if (have <= 0) {
+            FestivalPhotos.ensureDaily(this, event, (eventId, count) -> handler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                if (!WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)) return;
+                if (count <= 0) return;
+                indiaWallpaperVariant = FestivalPhotos.pickIndex(count, indiaWallpaperVariant);
+                showIndiaWallpaper(indiaWallpaperVariant);
+            }));
+            return;
+        }
+        indiaWallpaperVariant = FestivalPhotos.pickIndex(have, indiaWallpaperVariant);
+        showIndiaWallpaper(indiaWallpaperVariant);
+    }
+
+    private void showIndiaWallpaper(int variant) {
+        IndiaEvents.Event event = indiaEvent != null ? indiaEvent : IndiaEvents.everyday();
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        showWallpaperBitmap(EventWallpaper.render(this, event, dm.widthPixels, dm.heightPixels, variant));
+    }
+
     private void removeWallpaperView() {
         View existing = root.findViewWithTag("wallpaper");
+        if (existing instanceof android.widget.ImageView) {
+            android.graphics.drawable.Drawable d = ((android.widget.ImageView) existing).getDrawable();
+            if (d instanceof android.graphics.drawable.BitmapDrawable) {
+                android.graphics.Bitmap old = ((android.graphics.drawable.BitmapDrawable) d).getBitmap();
+                ((android.widget.ImageView) existing).setImageDrawable(null);
+                if (old != null && !old.isRecycled()) old.recycle();
+            }
+        }
         if (existing != null) root.removeView(existing);
     }
 
@@ -470,6 +526,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (bmp.getWidth() != dm.widthPixels || bmp.getHeight() != dm.heightPixels) {
             fitted = EventWallpaper.coverExact(bmp, dm.widthPixels, dm.heightPixels);
             if (fitted != bmp) bmp.recycle();
+        }
+        View existing = root.findViewWithTag("wallpaper");
+        if (existing instanceof android.widget.ImageView) {
+            android.widget.ImageView wall = (android.widget.ImageView) existing;
+            android.graphics.drawable.Drawable prev = wall.getDrawable();
+            wall.setImageBitmap(fitted);
+            if (prev instanceof android.graphics.drawable.BitmapDrawable) {
+                android.graphics.Bitmap old = ((android.graphics.drawable.BitmapDrawable) prev).getBitmap();
+                if (old != null && old != fitted && !old.isRecycled()) old.recycle();
+            }
+            return;
         }
         android.widget.ImageView wall = new android.widget.ImageView(this);
         wall.setTag("wallpaper");
@@ -547,6 +614,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 recreate();
                 return;
             }
+            // Daily background download of today's festival photos into cache.
+            IndiaEvents.Event event = indiaEvent != null ? indiaEvent : IndiaEvents.everyday();
+            indiaPhotosEventId = event.id;
+            FestivalPhotos.ensureDaily(this, event, (eventId, count) -> handler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                if (!WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)) return;
+                if (count <= 0) return;
+                if (FestivalPhotos.count(this, event) > 0) {
+                    indiaWallpaperVariant = FestivalPhotos.pickIndex(count, indiaWallpaperVariant);
+                    showIndiaWallpaper(indiaWallpaperVariant);
+                }
+            }));
         }
         promptsPaused = false;
         if (rebuildOnResume) {
@@ -690,6 +769,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onTileFocused(int position, View card) {
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
+        maybeSwitchIndiaWallpaper(position);
         // Tile rect in root coordinates, using layout positions (ignores the scale animation).
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);

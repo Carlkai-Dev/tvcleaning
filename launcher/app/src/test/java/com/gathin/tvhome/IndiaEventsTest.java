@@ -29,4 +29,11 @@ public class IndiaEventsTest {
     @Test public void ordinaryDayHasNoNamedEvent() {
         assertNull(IndiaEvents.forDate(LocalDate.of(2026, 4, 10)));
     }
+
+    @Test public void muslimFestivalsAreExcluded() {
+        // Former Eid-only days (outside Gudi Padwa) must not match any festival.
+        assertNull(IndiaEvents.forDate(LocalDate.of(2025, 4, 1)));
+        assertNull(IndiaEvents.forDate(LocalDate.of(2026, 3, 21)));
+        assertNull(IndiaEvents.forDate(LocalDate.of(2027, 3, 10)));
+    }
 }

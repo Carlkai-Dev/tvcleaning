@@ -122,9 +122,6 @@ final class IndiaEvents {
         if (inWindow(day, lunar(y, "ganesh"))) {
             return in("ganesh", "Ganesh Chaturthi", 0xFFFF6F00, 0xFFBF360C, 0xFF1A0A00, 0xFFFFD54F);
         }
-        if (inWindow(day, lunar(y, "eid"))) {
-            return in("eid", "Eid Mubarak", 0xFF004D40, 0xFF00251A, 0xFF0A1F1A, 0xFFFFD700);
-        }
         if (inWindow(day, lunar(y, "navratri"))) {
             return in("navratri", "Happy Navratri", 0xFF6A1B9A, 0xFFC62828, 0xFFFF6F00, 0xFFFFD54F);
         }
@@ -184,9 +181,6 @@ final class IndiaEvents {
             case "diwali@2025": return range(2025, 10, 18, 10, 23);
             case "diwali@2026": return range(2026, 11, 6, 11, 12);
             case "diwali@2027": return range(2027, 10, 26, 11, 1);
-            case "eid@2025": return range(2025, 3, 30, 4, 1);
-            case "eid@2026": return range(2026, 3, 19, 3, 22);
-            case "eid@2027": return range(2027, 3, 9, 3, 11);
             default:
                 return null;
         }

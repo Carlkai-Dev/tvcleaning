@@ -87,7 +87,7 @@
     <string name="wallpaper_hint">Choose a plain look, your own picture, or auto India special-day themes.</string>
     <string name="wallpaper_default">Default (theme / plain)</string>
     <string name="wallpaper_custom">Custom picture</string>
-    <string name="wallpaper_india">Maharashtra then India festivals (auto)</string>
+    <string name="wallpaper_india">Today\'s festival photos (download daily, random on icon)</string>
     <string name="wallpaper_pick">Choose picture…</string>
     <string name="wallpaper_state">Wallpaper: %1$s</string>
     <string name="wallpaper_custom_missing">No picture yet — choose one</string>

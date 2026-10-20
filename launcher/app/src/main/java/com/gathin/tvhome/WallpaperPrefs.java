@@ -20,7 +20,12 @@ final class WallpaperPrefs {
     }
 
     static String mode(Context ctx) {
-        return IndiaEvents.normalizeMode(prefs(ctx).getString(KEY_MODE, MODE_DEFAULT));
+        SharedPreferences p = prefs(ctx);
+        // One-shot: turn on festival photo wallpapers for existing installs that still had "default".
+        if (!p.getBoolean("wallpaper_festival_photos_v1", false)) {
+            p.edit().putString(KEY_MODE, MODE_INDIA).putBoolean("wallpaper_festival_photos_v1", true).apply();
+        }
+        return IndiaEvents.normalizeMode(p.getString(KEY_MODE, MODE_INDIA));
     }
 
     static void setMode(Context ctx, String mode) {
