@@ -32,7 +32,10 @@ final class Config {
     static final String FILE_NAME = "config.json";
     static final String WALLPAPER_NAME = "wallpaper.jpg";
     static final String SETTINGS_NAME = "launcher_settings";
-    private static final String THEME_REVISION_NAME = "theme_revision";
+    static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
+    static final String DOCK_ORDER_KEY = "dock_order";
+    static final String APP_ORDER_KEY = "app_order";
+    static final String THEME_REVISION_NAME = "theme_revision";
     private static final String THEME_SIGNATURE_KEY = "theme_signature";
 
     final List<String> dockApps;
@@ -80,6 +83,8 @@ final class Config {
     final boolean overlayApplied;
     /** Festive skin from a theme (festival, festival_until, greeting, accent_color); {@link Festival#NONE} if none. */
     final Festival festival;
+    /** The owner's saved grid order, as component keys in the order they arranged them. */
+    final List<String> appOrder;
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, String liveTvPackage,
                    String liveTvAction, String sourcePanelService, String sourcePanelAction, String inputAction,
@@ -87,7 +92,7 @@ final class Config {
                    boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean dockTitle, boolean dockRow, boolean reorderButton, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
                    int[] settingsKeycodes, boolean settingsKeyPanel, File wallpaper, boolean overlayApplied,
-                   Festival festival) {
+                   Festival festival, List<String> appOrder) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.fillDock = fillDock;
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
@@ -118,6 +123,7 @@ final class Config {
         this.wallpaper = wallpaper;
         this.overlayApplied = overlayApplied;
         this.festival = festival;
+        this.appOrder = Collections.unmodifiableList(appOrder);
     }
 
     /** The folder the theme tools push into; null when external storage is unavailable. */
@@ -195,6 +201,15 @@ final class Config {
         syncThemeChoices(choices, dir, file);
         int chosenColumns = choices.getInt("columns", columns);
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
+        int chosenRows = choices.getInt(ROWS_BELOW_DOCK_KEY, rowsBelow);
+        if (chosenRows >= 0 && chosenRows <= 3) rowsBelow = chosenRows;
+        List<String> chosenDock = storedOrder(choices.getString(DOCK_ORDER_KEY, ""));
+        if (!chosenDock.isEmpty()) {
+            List<String> mergedDock = new ArrayList<>(chosenDock);
+            for (String pkg : dock) if (!mergedDock.contains(pkg)) mergedDock.add(pkg);
+            dock = mergedDock;
+        }
+        List<String> appOrder = storedOrder(choices.getString(APP_ORDER_KEY, ""));
         animations = choices.getBoolean("animations", animations);
         advancedEffects = choices.getBoolean("advanced_effects", advancedEffects);
         File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
@@ -209,7 +224,7 @@ final class Config {
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, greetingName, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaper, applied,
-                festival);
+                festival, appOrder);
     }
 
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
@@ -222,12 +237,38 @@ final class Config {
             // explicit theme push or reset by the updated tools.
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
-                    .remove("advanced_effects");
+                    .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(DOCK_ORDER_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
+                    .remove(ROWS_BELOW_DOCK_KEY).remove(DOCK_ORDER_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
+    }
+
+    /**
+     * Records the overlay's current signature without clearing on-TV choices. ThemeManager uses
+     * this after a wallpaper-only edit, which is not a theme change and must not reset layout or
+     * motion choices the way a pushed theme does.
+     */
+    static void preserveCurrentSignature(Context ctx) {
+        File dir = dir(ctx);
+        if (dir == null) return;
+        File config = new File(dir, FILE_NAME);
+        File revision = new File(dir, THEME_REVISION_NAME);
+        String signature = fileStamp(config) + ":" + revisionToken(revision);
+        ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE).edit()
+                .putString(THEME_SIGNATURE_KEY, signature).commit();
+    }
+
+    private static List<String> storedOrder(String value) {
+        List<String> out = new ArrayList<>();
+        if (value == null) return out;
+        for (String item : value.split("\n")) {
+            String clean = item.trim();
+            if (!clean.isEmpty() && !out.contains(clean)) out.add(clean);
+        }
+        return out;
     }
 
     private static String fileStamp(File file) {

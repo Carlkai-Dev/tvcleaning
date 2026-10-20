@@ -85,4 +85,34 @@
         <item quantity="other">%1$d אפליקציות</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="settings_launcher">מפעיל</string>
+    <string name="settings_android">Android</string>
+    <string name="app_settings">הגדרות האפליקציה</string>
+    <string name="android_settings">הגדרות Android</string>
+    <string name="rows_below_dock_label">שורות מתחת לעגינה</string>
+    <string name="theme_label">ערכת נושא</string>
+    <string name="theme_state">ערכת נושא: %1$s</string>
+    <string name="theme_builtin">מובנית</string>
+    <string name="theme_aurora">Aurora</string>
+    <string name="theme_dussehra">Dussehra</string>
+    <string name="theme_six_columns">שש עמודות</string>
+    <string name="theme_custom">מותאמת אישית</string>
+    <string name="theme_applied">ערכת הנושא הוחלה</string>
+    <string name="wallpaper_label">טפט</string>
+    <string name="wallpaper_state">טפט: %1$s</string>
+    <string name="wallpaper_none">ללא</string>
+    <string name="wallpaper_custom">תמונה מותאמת אישית</string>
+    <string name="wallpaper_custom_title">בחירת טפט מותאם אישית</string>
+    <string name="wallpaper_applied">הטפט הוחלף</string>
+    <string name="wallpaper_no_images">לא נמצאו תמונות מותאמות אישית. יש לשים קבצי JPG, PNG או WebP בתיקייה Android/data/com.gathin.tvhome/files/wallpapers/, או לאשר גישה לתמונות כדי לבחור מספריית הטלוויזיה.</string>
+    <string name="wallpaper_grant_access">אישור גישה לתמונות</string>
+    <string name="reset_icon_order">איפוס סדר הסמלים</string>
+    <string name="reset_icon_order_message">להחזיר את העגינה ואת רשת האפליקציות לסדר של ערכת הנושא ולסדר האלפביתי?</string>
+    <string name="icon_order_reset">סדר הסמלים אופס</string>
+    <string name="move_icon">הזזה</string>
+    <string name="move_icon_hint">להזזת %1$s: ניווט עם החצים, OK לשמירה ו-Back לביטול</string>
+    <string name="move_icon_saved">סדר הסמלים נשמר</string>
+    <string name="move_icon_cancelled">ההזזה בוטלה</string>
+    <string name="change_failed">לא ניתן לבצע את השינוי</string>
+
 </resources>
