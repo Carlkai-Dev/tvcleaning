@@ -20,6 +20,7 @@ import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
@@ -42,6 +43,7 @@ import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.SoundEffectConstants;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.animation.AnimationUtils;
@@ -62,6 +64,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -76,6 +79,8 @@ import java.util.Set;
 public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
+    /** Sent by QuickSettingsActivity: open Launcher settings from here so Home rebuilds when they close. */
+    static final String ACTION_LAUNCHER_SETTINGS = "com.gathin.tvhome.action.LAUNCHER_SETTINGS";
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private boolean rtlAppGrid;
@@ -121,6 +126,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean moduleCards;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     private boolean reducedMotion;
+    /** Festive skin from the theme (see Festival); applied while it is active today. */
+    private Festival festival = Festival.NONE;
+    private boolean festive;
+    private DiyaDrawable diya;
+    private BellDrawable bell;
+    private MarigoldDrawable marigold;
+    private int greetingColor;
+    /** The day the petal shower last played, so it greets the first Home of each day only. */
+    private static LocalDate lastPetalShower;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
     private Set<String> hiddenApps = Collections.emptySet();
     private List<Cards.Card> cards = Collections.emptyList();
@@ -202,6 +216,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         animations = cfg.animations;
         advancedEffects = cfg.animations && cfg.advancedEffects;
         reducedMotion = cfg.reducedMotion;
+        festival = cfg.festival;
+        festive = festival.active(LocalDate.now());
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
         inputAction = cfg.inputAction;
@@ -214,12 +230,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
+        if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
         heroName = findViewById(R.id.heroName);
         greeting = findViewById(R.id.greeting);
+        greetingColor = greeting.getCurrentTextColor();
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         shamsi = cfg.shamsiDate;
@@ -240,6 +258,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             @Override
             protected boolean isLayoutRTL() {
                 return rtlAppGrid;
+            }
+
+            /**
+             * Every "bring this tile on screen" scroll lands here, both RecyclerView's own on focus and
+             * onTileFocused's. The stock version treats the grid's top padding as the visible top, but that
+             * padding only pushes the dock down the screen: grid rows scroll up into it. With the stock rule,
+             * Up into a row above the padding dragged that row down to the padding line, cut it off at the
+             * bottom of the screen and could scroll the focused tile out entirely, dropping focus into the
+             * top bar. Grid tiles now scroll just enough to show the rect between the grid's top edge and its
+             * bottom; dock tiles are left to onTileFocused, which parks the dock row on the padding line.
+             */
+            @Override
+            public boolean requestChildRectangleOnScreen(@NonNull RecyclerView parent, @NonNull View child,
+                                                         @NonNull Rect rect, boolean immediate,
+                                                         boolean focusedChildVisible) {
+                if (getPosition(child) < COLUMNS) return false;
+                int top = child.getTop() + rect.top;
+                int bottom = top + rect.height();
+                int limitBottom = getHeight() - getPaddingBottom();
+                int dy;
+                if (top < 0) dy = top;
+                else if (bottom > limitBottom) dy = Math.min(top, bottom - limitBottom);
+                else dy = 0;
+                if (dy == 0) return false;
+                if (immediate || reducedMotion || !animations) parent.scrollBy(0, dy);
+                else parent.smoothScrollBy(0, dy);
+                return true;
             }
         });
         grid.setHasFixedSize(true);
@@ -347,6 +392,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         .setDuration(160).start());
             }
         }
+        if (festive) applyFestiveSkin((TextView) btnInputs, (TextView) btnSettings);
 
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
@@ -369,11 +415,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
                     .build(), vpnCallback);
         }
+        // Not after recreate(): the launch intent survives it and would open the settings again.
+        if (savedInstanceState == null) openLauncherSettingsIfAsked(getIntent());
+    }
+
+    private boolean openLauncherSettingsIfAsked(Intent intent) {
+        if (intent == null || !ACTION_LAUNCHER_SETTINGS.equals(intent.getAction())) return false;
+        setIntent(new Intent(Intent.ACTION_MAIN));
+        startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+        return true;
     }
 
     /**
-     * A theme's full-screen picture behind everything. Decoded once, downsampled to the screen so a 4K
-     * JPEG costs a 1080p bitmap at most (about 8 MB), which is the price of a wallpaper on a 1 GB TV.
+     * A theme's full-screen picture behind everything. Decoded once at the size CENTER_CROP shows, so it
+     * costs a screen-sized bitmap (about 4 MB at 1080p), which is the price of a wallpaper on a 1 GB TV.
+     * A picture over 4K is refused rather than decoded (#166); the plain colour stays.
      */
     private void showWallpaper(File file) {
         try {
@@ -381,10 +437,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
             opts.inJustDecodeBounds = true;
             android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
-            int sample = 1;
-            while (opts.outWidth / (sample * 2) >= dm.widthPixels && opts.outHeight / (sample * 2) >= dm.heightPixels) sample *= 2;
+            int w = opts.outWidth, h = opts.outHeight;
+            if (w <= 0 || h <= 0) return;
+            int sample = WallpaperSize.sampleSize(w, h, dm.widthPixels, dm.heightPixels);
+            // The limit applies to what is decoded, so a 12 MP photo still works once it is sampled down.
+            if (!WallpaperSize.accepted(w / sample, h / sample)) return;
             opts.inJustDecodeBounds = false;
             opts.inSampleSize = sample;
+            int[] scale = WallpaperSize.coverScale(w / sample, h / sample, dm.widthPixels, dm.heightPixels);
+            if (scale != null) {
+                opts.inScaled = true;
+                opts.inDensity = scale[0];
+                opts.inTargetDensity = scale[1];
+            }
             opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
             android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
             if (bmp == null) return;
@@ -405,6 +470,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        if (openLauncherSettingsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
         grid.scrollToPosition(0);
         lastFocused = 0;
@@ -425,6 +491,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        // A festival that started or ended while Home was in the background: rebuild with or without it.
+        if (festive != festival.active(LocalDate.now())) {
+            recreate();
+            return;
+        }
         promptsPaused = false;
         if (rebuildOnResume) {
             tilesReady = false;
@@ -436,6 +507,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateInputsButton();
         sky.update();
         handler.postDelayed(minuteTick, MINUTE_MS);
+        if (festive && diya != null) {
+            diya.start();
+            LocalDate today = LocalDate.now();
+            if (!reducedMotion && !today.equals(lastPetalShower)) {
+                lastPetalShower = today;
+                handler.postDelayed(this::playPetalShower, 450);
+            }
+        }
     }
 
     @Override
@@ -513,6 +592,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
+        if (diya != null) diya.stop();
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (openPopup != null) openPopup.dismiss();
@@ -569,7 +649,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             lp.width = (int) w;
             lp.height = (int) h;
             glass.setLayoutParams(lp);
-            glass.setRadius(AppAdapter.cornerRadius(card.getWidth(), density) * scale + pad);
+            // GlassView draws its slab inset by pad, i.e. exactly over the zoomed tile: same corners as the tile.
+            glass.setRadius(AppAdapter.cornerRadius(card.getWidth(), density) * scale);
         }
         glassTargetX = x;
         glassTargetY = y;
@@ -757,7 +838,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Horizontal: swallow the key at a row's ends so focus never wraps to the next row or
         // escapes up into the top bar. Mid-row moves fall through to the default focus search.
         if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-            return GridNavigation.atHorizontalEdge(position, count, COLUMNS,
+            // In the dock, the last app is the row's end: the empty slots after it take no focus.
+            int rowCount = position < COLUMNS ? Math.min(count, adapter.dockFilled()) : count;
+            return GridNavigation.atHorizontalEdge(position, rowCount, COLUMNS,
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
@@ -769,6 +852,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             target = Math.min(position + COLUMNS, count - 1);
         }
         focusTile(target);
+        // The default focus search clicks for Left/Right; Up/Down are handled here, so click for them too.
+        grid.playSoundEffect(keyCode == KeyEvent.KEYCODE_DPAD_UP
+                ? SoundEffectConstants.NAVIGATION_UP : SoundEffectConstants.NAVIGATION_DOWN);
         return true;
     }
 
@@ -777,7 +863,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             btnWifi.requestFocus();
             return;
         }
-        final int pos = Math.max(0, Math.min(position, adapter.getItemCount() - 1));
+        final int pos = adapter.focusablePosition(Math.max(0, Math.min(position, adapter.getItemCount() - 1)));
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
         if (vh != null) {
             View card = vh.itemView.findViewById(R.id.card);
@@ -818,7 +904,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else if (hour < 17) res = R.string.good_afternoon;
         else if (hour < 22) res = R.string.good_evening;
         else res = R.string.good_night;
-        greeting.setText(res);
+        String festiveGreeting = festive ? festival.greetingText() : "";
+        if (!festiveGreeting.isEmpty()) {
+            greeting.setText(festiveGreeting);
+            greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
+        } else {
+            greeting.setText(res);
+            greeting.setTextColor(greetingColor);
+        }
         if (shamsi) shamsiDate.setText(Shamsi.today());
     }
 
@@ -827,6 +920,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String text = getString(R.string.wifi);
         boolean vpn = false, online = false;
         int icon = R.drawable.ic_wifi;
+        // The diya's flame: 0 is out (offline), 1 to 4 follow the Wi-Fi signal, Ethernet burns steady at 4.
+        int flame = 0;
+        boolean steady = false;
         try {
             ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
             boolean wifi = false, ethernet = false;
@@ -849,10 +945,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else if (ethernet) {
                 text = getString(R.string.ethernet);
                 icon = R.drawable.ic_ethernet;
+                flame = 4;
+                steady = true;
             } else if (wifi) {
                 WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
                 WifiInfo info = wm != null ? wm.getConnectionInfo() : null;
                 String ssid = info != null ? info.getSSID() : null;
+                flame = info != null ? Math.max(1, Math.min(4, WifiManager.calculateSignalLevel(info.getRssi(), 5))) : 3;
                 if (ssid != null) {
                     ssid = ssid.replace("\"", "").trim();
                     if (!ssid.isEmpty() && !ssid.contains("unknown") && !ssid.equals("0x")) text = ssid;
@@ -879,7 +978,64 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else {
             btnWifi.setText(text);
         }
-        btnWifi.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
+        if (festive && diya != null) {
+            if (online && flame == 0) flame = 3;   // online some other way (cellular, USB tethering)
+            diya.setSteady(steady);
+            diya.setFlame(flame);
+        } else {
+            btnWifi.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
+        }
+    }
+
+    // ---- festive skin ------------------------------------------------------------------------------
+
+    /**
+     * Swaps the pill icons for the festival's: a bell for Inputs that swings when focused, a diya for the
+     * network whose flame follows the connection, and a marigold for Settings that turns when focused.
+     */
+    private void applyFestiveSkin(TextView inputs, TextView settings) {
+        bell = new BellDrawable(density);
+        marigold = new MarigoldDrawable(density);
+        diya = new DiyaDrawable(density);
+        bell.setReducedMotion(reducedMotion);
+        marigold.setReducedMotion(reducedMotion);
+        diya.setReducedMotion(reducedMotion);
+        setFestiveIcon(inputs, bell);
+        setFestiveIcon(btnWifi, diya);
+        setFestiveIcon(settings, marigold);
+        addFocusAction(inputs, bell::ring);
+        addFocusAction(settings, marigold::turn);
+    }
+
+    private static void setFestiveIcon(TextView pill, Drawable icon) {
+        // The pills tint their icons to follow focus; the festive ones keep their own colours.
+        pill.setCompoundDrawableTintList(null);
+        pill.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, null, null, null);
+    }
+
+    /** Runs {@code action} when the view gains focus, keeping any focus listener it already had. */
+    private static void addFocusAction(View view, Runnable action) {
+        View.OnFocusChangeListener previous = view.getOnFocusChangeListener();
+        view.setOnFocusChangeListener((v, focused) -> {
+            if (previous != null) previous.onFocusChange(v, focused);
+            if (focused) action.run();
+        });
+    }
+
+    private void playPetalShower() {
+        if (isFinishing() || isDestroyed()) return;
+        PetalShowerView shower = new PetalShowerView(this);
+        root.addView(shower, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        shower.play(60, 2200, () -> root.removeView(shower));
+    }
+
+    private static int liftTowardsWhite(int argb, float amount) {
+        int r = (argb >> 16) & 0xFF, g = (argb >> 8) & 0xFF, b = argb & 0xFF;
+        r += (int) ((255 - r) * amount);
+        g += (int) ((255 - g) * amount);
+        b += (int) ((255 - b) * amount);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
     /** The network pill opens the VPN app when one is configured and installed, otherwise Wi-Fi settings. */
@@ -1123,7 +1279,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (moduleCards) addSettingsMenuRow(rows, popup, R.string.module_cards, this::showModuleCards);
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
-        dropIn(popup, panel, anchor, Gravity.END);
+        // Hebrew puts Settings at the left of the header: grow the menu inward from it.
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.START : Gravity.END);
         rows.getChildAt(0).requestFocus();
     }
 

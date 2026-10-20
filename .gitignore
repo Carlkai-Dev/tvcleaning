@@ -24,4 +24,4 @@ screenshots/
 *.gate.lock*
 
 # Feature specifications
-specs/
+/specs/
