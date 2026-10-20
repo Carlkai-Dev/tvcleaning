@@ -1,0 +1,62 @@
+[
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\layout_activity_home.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\layout\\activity_home.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_dot_inactive.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\dot_inactive.xml"
+    },
+    {
+        "merged": "com.gathin.streambrowser.app-release-6:/xml_module_card.xml.flat",
+        "source": "com.gathin.streambrowser.app-main-7:/xml/module_card.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_progress_bar.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\progress_bar.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\layout_item_banner_slide.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\layout\\item_banner_slide.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\layout_activity_browser.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\layout\\activity_browser.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_tile_bg.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\tile_bg.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_banner_frame.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\banner_frame.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_menu_btn_bg.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\menu_btn_bg.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_dot_active.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\dot_active.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_banner.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\banner.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_ic_launcher.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\ic_launcher.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\layout_item_site_tile.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\layout\\item_site_tile.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_banner_scrim.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\banner_scrim.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-release-6:\\drawable_banner_label_bg.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.gathin.streambrowser.app-main-7:\\drawable\\banner_label_bg.xml"
+    }
+]

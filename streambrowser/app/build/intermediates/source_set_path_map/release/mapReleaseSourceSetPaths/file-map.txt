@@ -1,0 +1,9 @@
+com.gathin.streambrowser.app-core-1.1.0-0 C:\Users\amolp\.gradle\caches\8.9\transforms\60926acacdab7db78d8d06911fed0592\transformed\core-1.1.0\res
+com.gathin.streambrowser.app-webkit-1.11.0-1 C:\Users\amolp\.gradle\caches\8.9\transforms\d108170d553ec26725d2fe7278ec7d26\transformed\webkit-1.11.0\res
+com.gathin.streambrowser.app-pngs-2 C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\build\generated\res\pngs\release
+com.gathin.streambrowser.app-resValues-3 C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\build\generated\res\resValues\release
+com.gathin.streambrowser.app-packageReleaseResources-4 C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
+com.gathin.streambrowser.app-packageReleaseResources-5 C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
+com.gathin.streambrowser.app-release-6 C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\build\intermediates\merged_res\release\mergeReleaseResources
+com.gathin.streambrowser.app-main-7 C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\res
+com.gathin.streambrowser.app-release-8 C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\release\res

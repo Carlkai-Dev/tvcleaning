@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Stream TV</string>
+    <string name="home_title">Stream TV</string>
+    <string name="home_subtitle">Live previews · Pick a site · Back exits</string>
+    <string name="banner_preview">PREVIEW</string>
+    <string name="site_tbcpl">TBCPL</string>
+    <string name="site_tbcpl_desc">Streaming directory</string>
+    <string name="site_kartoons">Kartoons</string>
+    <string name="site_kartoons_desc">Cartoons &amp; anime</string>
+    <string name="site_nightflix">Nightflix</string>
+    <string name="site_nightflix_desc">Movies &amp; TV shows</string>
+    <string name="site_cinegram">Cinegram</string>
+    <string name="site_cinegram_desc">Movies · ads blocked</string>
+    <string name="site_cinejoy">Cinejoy</string>
+    <string name="site_cinejoy_desc">Movies &amp; shows</string>
+    <string name="site_movy">Movy</string>
+    <string name="site_movy_desc">Movies &amp; TV online</string>
+    <string name="site_redflix">RedFlix</string>
+    <string name="site_redflix_desc">HD movies &amp; shows</string>
+    <string name="loading">Loading…</string>
+    <string name="blocked_popup">Popup blocked</string>
+    <string name="menu_home">Home</string>
+    <string name="menu_reload">Reload</string>
+    <string name="menu_back">Back page</string>
+    <string name="menu_forward">Forward</string>
+    <string name="hint_remote">Banner ←→ switch · OK open · Menu controls in browser</string>
+</resources>

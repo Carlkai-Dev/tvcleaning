@@ -9,10 +9,11 @@
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
+        <item>com.mediatek.wwtv.tvcenter</item>
+        <item>com.gathin.streambrowser</item>
         <item>com.google.android.youtube.tv</item>
         <item>com.android.chrome</item>
         <item>com.android.vending</item>
-        <item>com.mediatek.wwtv.tvcenter</item>
     </string-array>
     <!-- Chromecast stays in the app grid (see AppAdapter); it has no leanback launcher entry. -->
     <!-- With fewer dock_apps than columns (or a dock app that is not installed), the free dock slots take
