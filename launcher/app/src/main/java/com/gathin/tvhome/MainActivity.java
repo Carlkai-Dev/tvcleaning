@@ -1639,7 +1639,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean any = liveTvIntent() != null || !sourcePanelService.isEmpty();
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (!any && tim != null) {
-            for (TvInputInfo info : tim.getTvInputList()) {
+            for (TvInputInfo info : tvInputs(tim)) {
                 // Inputs hidden in Settings > Inputs are left out of the menu, so they don't count here either.
                 if (info.isPassthroughInput() && !info.isHidden(this)) {
                     any = true;
@@ -1648,6 +1648,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
+    }
+
+    private static List<TvInputInfo> tvInputs(TvInputManager manager) {
+        try {
+            return manager.getTvInputList();
+        } catch (NullPointerException unavailable) {
+            // Some firmware returns a manager even when its TV-input binder service is absent.
+            return Collections.emptyList();
+        }
     }
 
     /** The Live TV app's launch intent: its leanback entry point, or the configured action if it has none. */
@@ -1714,7 +1723,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String tunerId = null;
         boolean tunerIsHw = false;
         if (tim != null) {
-            List<TvInputInfo> inputs = new ArrayList<>(tim.getTvInputList());
+            List<TvInputInfo> inputs = new ArrayList<>(tvInputs(tim));
             // HDMI ports first in port order, then AV and the rest.
             Collections.sort(inputs, (a, b) -> {
                 boolean ha = a.getType() == TvInputInfo.TYPE_HDMI, hb = b.getType() == TvInputInfo.TYPE_HDMI;
