@@ -26,7 +26,7 @@ public final class FireTvHomeService extends AccessibilityService {
         Intent home = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         try {
-            PendingIntent.getActivity(this, 0, home,
+            PendingIntent.getActivity(this, 1, home,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE).send();
             Log.i("FireTvHome", "Home requested; Fire OS may defer the activity start");
         } catch (PendingIntent.CanceledException | RuntimeException error) {

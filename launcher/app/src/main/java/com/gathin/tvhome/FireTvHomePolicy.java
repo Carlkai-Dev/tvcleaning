@@ -5,7 +5,7 @@ final class FireTvHomePolicy {
     private final String stockPackage;
     private final String[] homeClasses;
     private boolean homeVisible;
-    private long burstStart = -5001;
+    private long burstStart;
     private int requests;
 
     FireTvHomePolicy(String stockPackage, String[] homeClasses) {
@@ -22,7 +22,7 @@ final class FireTvHomePolicy {
         for (String home : homeClasses) {
             if (home.equals(cls)) { homeVisible = true; return 1; }
         }
-        if (cls.startsWith(stockPackage + ".") && cls.endsWith("Activity")) {
+        if (cls.startsWith(stockPackage + ".")) {
             homeVisible = false;
             return -1;
         }
@@ -31,9 +31,7 @@ final class FireTvHomePolicy {
 
     boolean request(boolean enabled, long now) {
         if (!enabled || !homeVisible) return false;
-        if (now - burstStart >= 5000) { burstStart = now; requests = 0; }
-        if (requests >= 3) return false;
-        requests++;
-        return true;
+        if (now - burstStart > 5000) { burstStart = now; requests = 0; }
+        return ++requests <= 3;
     }
 }

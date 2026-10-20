@@ -35,6 +35,13 @@ public class FireTvHomePolicyTest {
         assertFalse(p.request(true, 1200));
     }
 
+    @Test public void otherStockWindowsCancelAsInTheDeviceTestedHelper() {
+        FireTvHomePolicy p = policy();
+        p.window("stock.home", "stock.home.HomeActivity", true);
+        assertEquals(-1, p.window("stock.home", "stock.home.ui.AppLibrary_vNext", true));
+        assertFalse(p.request(true, 1000));
+    }
+
     @Test public void requestsAreBoundedButASecondHomeEventIsNotDroppedByCooldown() {
         FireTvHomePolicy p = policy();
         p.window("stock.home", "stock.home.HomeActivity", true);
