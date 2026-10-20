@@ -44,6 +44,13 @@
          (XGIMI projectors: com.xgimi.action.hdmiPlayer). Leave empty to omit. -->
     <string name="input_action" translatable="false"></string>
 
+    <!-- The Bluetooth pill, next to Inputs. Its fallback row opens the TV's Bluetooth screen; set the
+         address and name of an accessory (earbuds, speaker) to open its Connect / Disconnect / Unpair
+         page instead once it is bonded. Empty: the pairing scanner. Needs the BLUETOOTH_CONNECT and
+         BLUETOOTH_SCAN grants, which build-and-install runs. -->
+    <string name="bluetooth_speaker_address" translatable="false"></string>
+    <string name="bluetooth_speaker_name" translatable="false"></string>
+
     <!-- Remote buttons that open Settings, by Linux scancode (HOME_KEY_SERVICE=1 build-and-install.sh). Remotes
          that send KEYCODE_SETTINGS need no entry. Some send a code Android does not map: the Xiaomi/Fengmi
          projector remote's gear button is scancode 384 (KEY_TAPE). Find yours with
@@ -60,6 +67,15 @@
          with TV settings, Display, Network, Apps (re-enable an app) and Launcher settings, over whatever is on screen.
          Both keys can also be set from a theme's config.json ("settings_key_keycodes": [83]). -->
     <bool name="settings_key_panel">false</bool>
+
+    <!-- Remote hotkeys that firmware routes to the stock launcher or a vendor app, handled by
+         HomeKeyService (HOME_KEY_SERVICE=1 at install): "KEYCODE_NAME=package", one per line. Empty by
+         default, since the codes differ per remote. A Xiaomi Google TV remote, for example, sends
+         BUTTON_3 for YouTube and BUTTON_8 for LIV, and with the stock launcher disabled those keys
+         do nothing; mapping them here sends them to an app instead. A missing keycode name is
+         ignored, and a key that is not listed passes through untouched. -->
+    <string-array name="key_remaps">
+    </string-array>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->

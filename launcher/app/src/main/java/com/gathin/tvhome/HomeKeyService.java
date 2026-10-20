@@ -6,10 +6,15 @@ import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Sends the remote's Home button to this launcher on remotes that emit KEYCODE_ALL_APPS for Home
  * (Xiaomi sticks and boxes). Android TV 9 routes that key only to the system-image launcher, so once
- * the stock launcher is disabled the button does nothing. Every other key passes through untouched.
+ * the stock launcher is disabled the button does nothing. It also handles firmware keys that would
+ * otherwise go to a disabled stock launcher: the Settings button (settings_key_* in config.xml) and
+ * any hotkey mapped in key_remaps ("KEYCODE_NAME=package"). Every other key passes through untouched.
  *
  * Enable over adb:
  *   settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService
@@ -21,6 +26,8 @@ public class HomeKeyService extends AccessibilityService {
     private int[] settingsScancodes = new int[0];
     private int[] settingsKeycodes = new int[0];
     private boolean settingsPanel;
+    /** Remote hotkeys mapped to a package (config.xml, key_remaps). */
+    private final Map<Integer, String> remaps = new HashMap<>();
 
     @Override
     protected void onServiceConnected() {
@@ -30,6 +37,15 @@ public class HomeKeyService extends AccessibilityService {
         Config config = Config.load(this);
         settingsKeycodes = config.settingsKeycodes;
         settingsPanel = config.settingsKeyPanel;
+        for (String entry : getResources().getStringArray(R.array.key_remaps)) {
+            int eq = entry.indexOf('=');
+            if (eq <= 0) continue;
+            try {
+                remaps.put(KeyEvent.class.getField(entry.substring(0, eq).trim()).getInt(null),
+                        entry.substring(eq + 1).trim());
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -50,7 +66,14 @@ public class HomeKeyService extends AccessibilityService {
             }
             return true;
         }
-        if (event.getKeyCode() != KeyEvent.KEYCODE_ALL_APPS) return false;
+        if (event.getKeyCode() != KeyEvent.KEYCODE_ALL_APPS) {
+            String pkg = remaps.get(event.getKeyCode());
+            if (pkg == null) return false;
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled() && event.getRepeatCount() == 0) {
+                launch(pkg);
+            }
+            return true;
+        }
         if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
             Intent home = new Intent(Intent.ACTION_MAIN)
                     .addCategory(Intent.CATEGORY_HOME)
@@ -59,6 +82,12 @@ public class HomeKeyService extends AccessibilityService {
             startActivity(home);
         }
         return true;
+    }
+
+    private void launch(String pkg) {
+        Intent intent = getPackageManager().getLeanbackLaunchIntentForPackage(pkg);
+        if (intent == null) intent = getPackageManager().getLaunchIntentForPackage(pkg);
+        if (intent != null) startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
     }
 
     @Override

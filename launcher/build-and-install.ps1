@@ -5,7 +5,8 @@
 # Usage: launcher\build-and-install.ps1 -TvHost 192.168.1.50 [-StockLauncher <package>|none]
 #        The stock launcher is detected from the TV when -StockLauncher is not given.
 #        [-InputKeyService]   remote's Input button opens the input switcher (Google TV); re-pass on every install
-#        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks)
+#        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks), or to
+#                             apply config.xml settings_key_* and key_remaps
 param(
     [string]$TvHost = $env:TV_HOST,
     [string]$StockLauncher = '',
@@ -73,6 +74,8 @@ Write-Host $start
 if ($start -notmatch 'Status: ok' -or $start -match '(?m)^Error') { throw "the new launcher did not start (see above); $StockLauncher was left enabled" }
 @(
     'pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted',
+    'pm grant com.gathin.tvhome android.permission.BLUETOOTH_CONNECT 2>/dev/null; echo bluetooth-connect-granted',
+    'pm grant com.gathin.tvhome android.permission.BLUETOOTH_SCAN 2>/dev/null; echo bluetooth-scan-granted',
     'cmd package compile -m speed -f com.gathin.tvhome',
     $disableStock,
     'cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity'
