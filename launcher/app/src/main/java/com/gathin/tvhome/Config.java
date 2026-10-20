@@ -64,6 +64,8 @@ final class Config {
     final boolean settingsKeyPanel;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
     final File wallpaper;
+    /** Wall to pull the newest picture from (config.json, wallpaper_index); empty keeps the static picture. */
+    final String wallpaperIndex;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
     /** Festive skin from a theme (festival, festival_until, greeting, accent_color); {@link Festival#NONE} if none. */
@@ -74,7 +76,7 @@ final class Config {
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, boolean moduleCards, boolean reducedMotion, String vpnApp,
                    boolean showHomeSettingsShortcut, int backgroundColor, int skyIntensity,
-                   int[] settingsKeycodes, boolean settingsKeyPanel, File wallpaper, boolean overlayApplied,
+                   int[] settingsKeycodes, boolean settingsKeyPanel, File wallpaper, String wallpaperIndex, boolean overlayApplied,
                    Festival festival) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.fillDock = fillDock;
@@ -98,13 +100,19 @@ final class Config {
         this.settingsKeycodes = settingsKeycodes;
         this.settingsKeyPanel = settingsKeyPanel;
         this.wallpaper = wallpaper;
+        this.wallpaperIndex = wallpaperIndex;
         this.overlayApplied = overlayApplied;
         this.festival = festival;
     }
 
-    /** The folder the theme tools push into; null when external storage is unavailable. */
+    /** The folder the theme tools push into.
+     *
+     * <p>Internal files, not external storage: on some firmware (TCL China) the external app dir is
+     * sealed against the shell, so a theme pushed over ADB never reaches the launcher. The internal
+     * files dir is reachable with {@code run-as} on a debuggable build and is always readable by the app.
+     */
     static File dir(Context ctx) {
-        return ctx.getExternalFilesDir(null);
+        return ctx.getFilesDir();
     }
 
     static Config load(Context ctx) {
@@ -130,6 +138,7 @@ final class Config {
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
         int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
+        String wallpaperIndex = "";
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -158,6 +167,7 @@ final class Config {
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
             settingsKeycodes = intArray(json, "settings_key_keycodes", settingsKeycodes);
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
+            wallpaperIndex = string(json, "wallpaper_index", wallpaperIndex);
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -178,7 +188,7 @@ final class Config {
         return new Config(dock, fillDock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, moduleCards, reducedMotion, vpn, homeSettings, background,
-                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaper, applied,
+                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaper, wallpaperIndex, applied,
                 festival);
     }
 

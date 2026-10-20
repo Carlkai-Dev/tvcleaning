@@ -138,6 +138,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
     private Set<String> hiddenApps = Collections.emptySet();
     private List<Cards.Card> cards = Collections.emptyList();
+    /** Picture pulled from the wall (config.json, wallpaper_url); refreshed while Home is up. */
+    private RemoteWallpaper remoteWallpaper;
+    private Runnable wallpaperTick;
+    private static final long WALLPAPER_MS = 15 * 60_000L;
     /** The grid has been laid out and focused since the last resume; the card prompt waits for this. */
     private boolean tilesReady;
     private Dialog cardPrompt;
@@ -227,6 +231,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root = findViewById(R.id.root);
         root.setBackgroundColor(cfg.backgroundColor);
         if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
+        if (cfg.wallpaperIndex != null && !cfg.wallpaperIndex.isEmpty()) startRemoteWallpaper(cfg.wallpaperIndex);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
@@ -431,6 +436,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * costs a screen-sized bitmap (about 4 MB at 1080p), which is the price of a wallpaper on a 1 GB TV.
      * A picture over 4K is refused rather than decoded (#166); the plain colour stays.
      */
+    /** The newest picture from the wall, re-checked while Home is in front. A miss keeps the last one. */
+    private void startRemoteWallpaper(String url) {
+        if (remoteWallpaper == null) remoteWallpaper = new RemoteWallpaper(this);
+        if (wallpaperTick != null) handler.removeCallbacks(wallpaperTick);
+        wallpaperTick = new Runnable() {
+            @Override public void run() {
+                remoteWallpaper.refresh(url, MainActivity.this::showWallpaper);
+                handler.postDelayed(this, WALLPAPER_MS);
+            }
+        };
+        wallpaperTick.run();
+    }
+
     private void showWallpaper(File file) {
         try {
             android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
@@ -592,6 +610,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
+        if (wallpaperTick != null) handler.removeCallbacks(wallpaperTick);
         if (diya != null) diya.stop();
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
