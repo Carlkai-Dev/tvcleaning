@@ -61,6 +61,18 @@ final class Weather {
         return System.currentTimeMillis() - sp(c).getLong("time", 0L) > MAX_AGE_MS;
     }
 
+    /** The saved position, without looking anything up; null until it was found once. */
+    static double[] knownLocation(Context c) {
+        SharedPreferences p = sp(c);
+        if (!p.contains("lat")) return null;
+        return new double[]{Double.longBitsToDouble(p.getLong("lat", 0L)), Double.longBitsToDouble(p.getLong("lon", 0L))};
+    }
+
+    /** Blocking: finds (and saves) the position. Call from a background thread. */
+    static double[] locate(Context c) {
+        return location(c);
+    }
+
     /** Blocking: call from a background thread. Returns the new reading, or the cached one when it fails. */
     static Reading fetch(Context c) {
         try {

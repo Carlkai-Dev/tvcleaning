@@ -193,4 +193,5 @@
     <string name="tile_unpin">Remove from favourites</string>
     <string name="move_hint">Use the arrow keys to move, OK to finish</string>
     <string name="tile_hidden">%1$s hidden. Bring it back in SBL settings.</string>
+    <string name="appearance_auto">Automatic (follows sunset)</string>
 </resources>

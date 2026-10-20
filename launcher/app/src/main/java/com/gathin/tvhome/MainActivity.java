@@ -215,9 +215,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateGreeting();
             updateWifiLabel();
             updateWeather();
+            checkLook();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
+
+    /** The look (dark or light) in effect when this screen was built. */
+    private boolean lightLoaded;
+    private boolean locating;
+
+    /**
+     * With the automatic look, rebuilds the screen when the sun rises or sets. The position comes from the
+     * weather's saved one; when there is none yet it is looked up once in the background.
+     */
+    private void checkLook() {
+        if (!UiMode.AUTO.equals(UiMode.mode(this))) return;
+        if (Weather.knownLocation(this) == null && !locating) {
+            locating = true;
+            final Context app = getApplicationContext();
+            queryIo.execute(() -> {
+                Weather.locate(app);
+                locating = false;
+            });
+        }
+        if (UiMode.light(this) != lightLoaded && openPopup == null && cardPrompt == null) recreate();
+    }
 
     @Override
     protected void attachBaseContext(Context base) {
@@ -232,6 +254,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // config.xml, overlaid by config.json from a theme (see Config and ThemeManager).
         cfg = Config.load(this);
         loadedVersion = Prefs.version(this);
+        lightLoaded = UiMode.light(this);
         COLUMNS = cfg.columns;
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
@@ -465,6 +488,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateWeather();
         updateInputsButton();
         updateAirplay();
+        checkLook();
         askTvListingsOnce();
         handler.postDelayed(minuteTick, MINUTE_MS);
     }

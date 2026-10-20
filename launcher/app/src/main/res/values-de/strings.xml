@@ -193,4 +193,5 @@
     <string name="language_setting">Sprache</string>
     <string name="language_sub">Die Sprache von SBL, unabhängig von der Fernseher-Einstellung</string>
     <string name="language_auto">Automatisch (Sprache des Fernsehers)</string>
+    <string name="appearance_auto">Automatisch (Sonnenuntergang)</string>
 </resources>

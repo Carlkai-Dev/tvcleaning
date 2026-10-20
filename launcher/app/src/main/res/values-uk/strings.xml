@@ -193,4 +193,5 @@
     <string name="language_setting">Мова</string>
     <string name="language_sub">Мова SBL незалежно від мови телевізора</string>
     <string name="language_auto">Автоматично (мова ТВ)</string>
+    <string name="appearance_auto">Автоматично (захід сонця)</string>
 </resources>

@@ -206,7 +206,7 @@ public class SettingsActivity extends Activity {
     private void rootPage() {
         category(R.string.sec_home, R.string.desc_home, R.drawable.ic_cat_home, this::homePane);
         category(R.string.sec_apps, R.string.desc_apps, R.drawable.ic_cat_apps, this::appsPane);
-        category(R.string.sec_theme, R.string.desc_theme, R.drawable.ic_cat_theme, this::themePane);
+        // Themes are switched off for now: themePane() and ThemeManager stay in the code but nothing opens them.
         category(R.string.sec_permissions, R.string.desc_permissions, R.drawable.ic_cat_lock, this::permissionsPane);
         category(R.string.sec_other, R.string.desc_system, R.drawable.ic_cat_info, this::systemPane);
     }
@@ -220,6 +220,7 @@ public class SettingsActivity extends Activity {
 
     private void homePane() {
         row(R.string.language_setting, R.string.language_sub, languageLabel(), this::chooseLanguage);
+        row(R.string.appearance_setting, R.string.appearance_sub, modeLabel(UiMode.mode(this)), this::chooseAppearance);
         row(R.string.columns, R.string.columns_sub, String.valueOf(cfg.columns), () -> chooseNumber(
                 getString(R.string.columns), Prefs.COLUMNS, 3, 8, cfg.columns));
         toggle(R.string.inputs_row_setting, R.string.inputs_row_sub, Prefs.INPUTS_ROW, cfg.showInputsRow);
@@ -247,7 +248,6 @@ public class SettingsActivity extends Activity {
     private void themePane() {
         final String active = Prefs.getString(this, Prefs.THEME, null);
         String on = getString(R.string.theme_active);
-        row(R.string.appearance_setting, R.string.appearance_sub, modeLabel(UiMode.light(this)), this::chooseAppearance);
         row(getString(R.string.theme_default), getString(R.string.theme_default_sub), active == null ? on : "", () -> {
             ThemeManager.reset(this);
             Toast.makeText(this, R.string.theme_applied, Toast.LENGTH_SHORT).show();
@@ -482,17 +482,25 @@ public class SettingsActivity extends Activity {
         });
     }
 
-    private String modeLabel(boolean light) {
-        return getString(light ? R.string.appearance_light : R.string.appearance_dark);
+    private static final String[] LOOKS = {UiMode.DARK, UiMode.LIGHT, UiMode.AUTO};
+
+    private String modeLabel(String mode) {
+        return getString(UiMode.LIGHT.equals(mode) ? R.string.appearance_light
+                : UiMode.AUTO.equals(mode) ? R.string.appearance_auto : R.string.appearance_dark);
     }
 
     private void chooseAppearance() {
-        final boolean light = UiMode.light(this);
-        chooseOne(getString(R.string.appearance_setting),
-                new String[]{modeLabel(false), modeLabel(true)}, light ? 1 : 0, which -> {
-                    Prefs.putString(this, Prefs.UI_MODE, which == 1 ? UiMode.LIGHT : UiMode.DARK);
-                    if ((which == 1) != light) recreate();
-                });
+        final String mode = UiMode.mode(this);
+        String[] labels = new String[LOOKS.length];
+        int checked = 0;
+        for (int i = 0; i < LOOKS.length; i++) {
+            labels[i] = modeLabel(LOOKS[i]);
+            if (LOOKS[i].equals(mode)) checked = i;
+        }
+        chooseOne(getString(R.string.appearance_setting), labels, checked, which -> {
+            Prefs.putString(this, Prefs.UI_MODE, LOOKS[which]);
+            recreate();
+        });
     }
 
     private void chooseUnit() {

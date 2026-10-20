@@ -191,4 +191,5 @@
     <string name="language_setting">Dil</string>
     <string name="language_sub">SBL\'nin dili, TV hangi dilde olursa olsun</string>
     <string name="language_auto">Otomatik (TV dili)</string>
+    <string name="appearance_auto">Otomatik (gün batımı)</string>
 </resources>
