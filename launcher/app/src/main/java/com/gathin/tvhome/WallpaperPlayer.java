@@ -46,7 +46,6 @@ final class WallpaperPlayer {
     private boolean transitioning;
     private String displayed = "";
     private Bitmap shown;
-    private Runnable onShown;
 
     private final Runnable poll = new Runnable() {
         @Override
@@ -65,7 +64,8 @@ final class WallpaperPlayer {
         width = metrics.widthPixels;
         height = metrics.heightPixels;
         transition = Config.normalizeWallpaperTransition(config.wallpaperTransition);
-        transitionMs = Config.clampWallpaperTransitionMs(config.wallpaperTransitionMs);
+        transitionMs = config.wallpaperTransitionMs > 0
+                ? config.wallpaperTransitionMs : Config.WALLPAPER_TRANSITION_MS_DEFAULT;
         animateTransitions = config.animations && !config.reducedMotion
                 && !Config.TRANSITION_NONE.equals(transition);
         image = newImage(context);
@@ -90,16 +90,6 @@ final class WallpaperPlayer {
             }
             showFirst();
         }
-    }
-
-    /** Chamado na UI thread após cada bitmap exibido (primeiro frame e rotações). */
-    void setOnShown(Runnable listener) {
-        onShown = listener;
-        if (shown != null && listener != null) listener.run();
-    }
-
-    Bitmap shownBitmap() {
-        return shown;
     }
 
     private static ImageView newImage(Context context) {
@@ -202,8 +192,6 @@ final class WallpaperPlayer {
     private void rememberShown(Bitmap bitmap) {
         Bitmap previous = shown;
         shown = bitmap;
-        if (onShown != null) onShown.run();
-        // Libera o bitmap anterior só depois do listener (que pode amostrar luminância).
         recycleQuietly(previous, bitmap);
     }
 
@@ -223,23 +211,6 @@ final class WallpaperPlayer {
             return;
         }
         transitioning = true;
-        if (Config.TRANSITION_FADE_BLACK.equals(transition)) {
-            front.animate().cancel();
-            int half = Math.max(75, transitionMs / 2);
-            front.animate().alpha(0f).setDuration(half).withEndAction(() -> {
-                if (closed) {
-                    bitmap.recycle();
-                    transitioning = false;
-                    return;
-                }
-                front.setImageBitmap(bitmap);
-                front.animate().alpha(1f).setDuration(half).withEndAction(() -> {
-                    transitioning = false;
-                    if (after != null) after.run();
-                }).start();
-            }).start();
-            return;
-        }
         // crossfade: swap A/B
         ImageView back = front == image ? imageAlt : image;
         back.setImageBitmap(bitmap);

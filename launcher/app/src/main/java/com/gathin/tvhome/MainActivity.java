@@ -139,8 +139,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private View btnInputs;
     private View btnSettings;
     private TextView btnWifi;
-    private String topShortcutsStyle = TopShortcuts.STYLE_DEFAULT;
-    private int dockGlassOpacity = Config.DOCK_GLASS_OPACITY_DEFAULT;
     private int backgroundColor;
     private TextView shamsiDate;
     private TextView stats;
@@ -303,8 +301,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root = findViewById(R.id.root);
         backgroundColor = cfg.backgroundColor;
         root.setBackgroundColor(backgroundColor);
-        topShortcutsStyle = cfg.topShortcutsStyle;
-        dockGlassOpacity = cfg.dockGlassOpacity;
         wallpaperPlayer = new WallpaperPlayer(this, root, cfg);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
@@ -531,8 +527,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         if (festive) applyFestiveSkin((TextView) btnInputs, (TextView) btnSettings);
-        applyTopShortcutsStyle();
-        wallpaperPlayer.setOnShown(this::applyTopShortcutsStyle);
 
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
@@ -1949,18 +1943,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Swaps the pill icons for the festival's: a bell for Inputs that swings when focused, a diya for the
      * network whose flame follows the connection, and a marigold for Settings that turns when focused.
      */
-    /** Cores dos atalhos do topo conforme o menu (padrão / contraste wallpaper / vidro). */
-    private void applyTopShortcutsStyle() {
-        if (btnInputs == null || btnWifi == null || btnSettings == null) return;
-        float lum = 0f;
-        if (TopShortcuts.STYLE_WALLPAPER.equals(topShortcutsStyle)) {
-            Bitmap bmp = wallpaperPlayer != null ? wallpaperPlayer.shownBitmap() : null;
-            lum = bmp != null ? TopShortcuts.topLuminance(bmp) : TopShortcuts.colorLuminance(backgroundColor);
-        }
-        TopShortcuts.applyAll(btnInputs, btnWifi, btnReorder, btnSettings,
-                topShortcutsStyle, lum, dockGlassOpacity, density, !festive);
-    }
-
     private void applyFestiveSkin(TextView inputs, TextView settings) {
         bell = new BellDrawable(density);
         marigold = new MarigoldDrawable(density);

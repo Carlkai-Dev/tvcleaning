@@ -25,14 +25,14 @@ public class BingWallpaperTest {
     }
 
     @Test
-    public void parseImageUrlsCapsAtEightAndIgnoresJunk() {
+    public void parseImageUrlsCapsAtSixAndIgnoresJunk() {
         StringBuilder sb = new StringBuilder("{\"images\":[");
         for (int i = 0; i < 12; i++) {
             if (i > 0) sb.append(',');
             sb.append("{\"url\":\"/th?id=").append(i).append("\"}");
         }
         sb.append("]}");
-        assertEquals(8, BingWallpaper.parseImageUrls(sb.toString()).size());
+        assertEquals(6, BingWallpaper.parseImageUrls(sb.toString()).size());
         assertTrue(BingWallpaper.parseImageUrls("{}").isEmpty());
         assertTrue(BingWallpaper.parseImageUrls(null).isEmpty());
         assertTrue(BingWallpaper.parseImageUrls("not-json").isEmpty());

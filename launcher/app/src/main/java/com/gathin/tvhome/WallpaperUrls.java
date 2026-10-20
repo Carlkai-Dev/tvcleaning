@@ -2,12 +2,16 @@ package com.gathin.tvhome;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.WindowManager;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -51,6 +55,68 @@ final class WallpaperUrls {
     static void clear(Context ctx) {
         prefs(ctx).edit().remove(URLS_KEY).apply();
         deleteCache(ctx);
+    }
+
+    /** Substitui a lista remota e baixa o cache; null = sucesso. */
+    static String replaceCache(Context ctx, List<String> urls) {
+        if (urls == null || urls.isEmpty()) return "empty";
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < urls.size(); i++) {
+            if (i > 0) text.append('\n');
+            text.append(urls.get(i));
+        }
+        deleteCache(ctx);
+        save(ctx, text.toString());
+        return downloadAll(ctx);
+    }
+
+    static int[] screenSize(Context ctx) {
+        DisplayMetrics metrics = new DisplayMetrics();
+        WindowManager wm = (WindowManager) ctx.getSystemService(Context.WINDOW_SERVICE);
+        if (wm != null) wm.getDefaultDisplay().getRealMetrics(metrics);
+        else metrics = ctx.getResources().getDisplayMetrics();
+        return new int[]{Math.max(1, metrics.widthPixels), Math.max(1, metrics.heightPixels)};
+    }
+
+    static String getText(String url) throws IOException {
+        return new String(http(url, "GET", null, null), StandardCharsets.UTF_8);
+    }
+
+    static byte[] postBytes(String url, String contentType, byte[] body) throws IOException {
+        return http(url, "POST", contentType, body);
+    }
+
+    private static byte[] http(String url, String method, String contentType, byte[] body) throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            conn.setConnectTimeout(CONNECT_MS);
+            conn.setReadTimeout(READ_MS);
+            conn.setRequestMethod(method);
+            conn.setRequestProperty("User-Agent", "CleanYourTV-Wallpaper/1");
+            if (body != null) {
+                conn.setDoOutput(true);
+                if (contentType != null) conn.setRequestProperty("Content-Type", contentType);
+                try (OutputStream out = conn.getOutputStream()) {
+                    out.write(body);
+                }
+            }
+            int code = conn.getResponseCode();
+            InputStream in = code >= 200 && code < 300 ? conn.getInputStream() : conn.getErrorStream();
+            if (in == null) throw new IOException("http " + code);
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            byte[] chunk = new byte[8192];
+            int n;
+            int total = 0;
+            while ((n = in.read(chunk)) >= 0) {
+                total += n;
+                if (total > 512 * 1024) throw new IOException("response too large");
+                buf.write(chunk, 0, n);
+            }
+            if (code < 200 || code >= 300) throw new IOException("http " + code);
+            return buf.toByteArray();
+        } finally {
+            conn.disconnect();
+        }
     }
 
     static SharedPreferences prefs(Context ctx) {

@@ -12,55 +12,33 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Bing daily wallpaper archive (no account). Fetches the JSON list, builds absolute image URLs,
- * then reuses {@link WallpaperUrls} cache like Google featured.
- */
+/** Bing daily wallpaper archive (no account); reuses {@link WallpaperUrls} cache. */
 final class BingWallpaper {
-    /** wallpaper_choice value. */
     static final String CHOICE = "bing";
     private static final String TAG = "TvHome.BingWall";
     private static final String ARCHIVE =
-            "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=8";
+            "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=6";
     private static final String HOST = "https://www.bing.com";
-    private static final int MAX = 8;
+    private static final int MAX = 6;
     private static final int CONNECT_MS = 12_000;
     private static final int READ_MS = 30_000;
 
     private BingWallpaper() {
     }
 
-    /**
-     * Fetches Bing image URLs, stores them, downloads into the cache.
-     * @return null on success, or a short error for a toast
-     */
+    /** @return null on success, or a short error for a toast */
     static String fetchAndCache(Context ctx) {
         List<String> urls;
         try {
-            urls = fetchImageUrls();
+            urls = parseImageUrls(get(ARCHIVE));
         } catch (IOException e) {
             Log.w(TAG, "list failed", e);
             return "list failed";
         }
-        if (urls.isEmpty()) return "empty";
-        StringBuilder text = new StringBuilder();
-        for (int i = 0; i < urls.size(); i++) {
-            if (i > 0) text.append('\n');
-            text.append(urls.get(i));
-        }
-        WallpaperUrls.deleteCache(ctx);
-        WallpaperUrls.save(ctx, text.toString());
-        return WallpaperUrls.downloadAll(ctx);
+        return WallpaperUrls.replaceCache(ctx, urls);
     }
 
-    static List<String> fetchImageUrls() throws IOException {
-        return parseImageUrls(get(ARCHIVE));
-    }
-
-    /**
-     * Public for unit tests: decode absolute image URLs from the HPImageArchive JSON body.
-     * Lightweight string scan (no org.json) so JVM unit tests stay mock-free.
-     */
+    /** JVM tests: absolute image URLs from HPImageArchive JSON. */
     static List<String> parseImageUrls(String json) {
         List<String> out = new ArrayList<>();
         if (json == null || json.isEmpty()) return out;

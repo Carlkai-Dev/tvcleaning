@@ -27,7 +27,6 @@ public final class LauncherSettingsActivity extends Activity {
     /** Segundos; -1 = seguir tema. Inclui 5 s para teste rápido. */
     private static final int[] ROTATION_PRESETS = { -1, 0, 5, 5 * 60, 15 * 60, 30 * 60, 60 * 60, 120 * 60 };
     private static final int[] OPACITY_PRESETS = { 30, 55, 70, 85 };
-    private static final int[] TRANSITION_MS_PRESETS = { 250, 500, 800, 1200, 2000 };
 
     private SharedPreferences choices;
     private final TextView[] columnChoices = new TextView[4];
@@ -35,11 +34,9 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView wallpaperChoice;
     private TextView wallpaperRotationChoice;
     private TextView wallpaperTransitionChoice;
-    private TextView wallpaperTransitionMsChoice;
     private TextView ambientTintChoice;
     private TextView dockGlassChoice;
     private TextView dockGlassOpacityChoice;
-    private TextView topShortcutsChoice;
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
@@ -50,7 +47,6 @@ public final class LauncherSettingsActivity extends Activity {
     private boolean ambientTint;
     private boolean dockGlass;
     private int dockGlassOpacity;
-    private int wallpaperTransitionMs;
     private final ExecutorService downloads = Executors.newSingleThreadExecutor();
 
     @Override
@@ -66,7 +62,6 @@ public final class LauncherSettingsActivity extends Activity {
         ambientTint = config.ambientTint;
         dockGlass = config.dockGlass;
         dockGlassOpacity = config.dockGlassOpacity;
-        wallpaperTransitionMs = config.wallpaperTransitionMs;
 
         int[] ids = {R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7};
         for (int i = 0; i < ids.length; i++) {
@@ -104,8 +99,6 @@ public final class LauncherSettingsActivity extends Activity {
         wallpaperRotationChoice.setOnClickListener(v -> showRotationPicker());
         wallpaperTransitionChoice = findViewById(R.id.wallpaperTransitionChoice);
         wallpaperTransitionChoice.setOnClickListener(v -> showTransitionPicker());
-        wallpaperTransitionMsChoice = findViewById(R.id.wallpaperTransitionMsChoice);
-        wallpaperTransitionMsChoice.setOnClickListener(v -> showTransitionMsPicker());
         ambientTintChoice = findViewById(R.id.ambientTintChoice);
         ambientTintChoice.setOnClickListener(v -> {
             ambientTint = !ambientTint;
@@ -122,8 +115,6 @@ public final class LauncherSettingsActivity extends Activity {
         });
         dockGlassOpacityChoice = findViewById(R.id.dockGlassOpacityChoice);
         dockGlassOpacityChoice.setOnClickListener(v -> showOpacityPicker());
-        topShortcutsChoice = findViewById(R.id.topShortcutsChoice);
-        topShortcutsChoice.setOnClickListener(v -> showTopShortcutsPicker());
         animationsChoice = findViewById(R.id.animationsChoice);
         animationsChoice.setOnClickListener(v -> {
             animations = !animations;
@@ -190,23 +181,17 @@ public final class LauncherSettingsActivity extends Activity {
         // A theme with a single wallpaper.jpg offers that picture too (Config maps the choice back to it).
         File single = dir == null ? null : new File(dir, Config.WALLPAPER_NAME);
         if (single != null && single.isFile()) images.add(0, single);
-        // Theme files, then Google / Bing / Picsum / From URL…, then None.
-        String[] labels = new String[images.size() + 5];
+        // Theme files, then Bing / From URL…, then None.
+        String[] labels = new String[images.size() + 3];
         for (int i = 0; i < images.size(); i++) labels[i] = images.get(i).getName();
-        int googleIndex = images.size();
-        int bingIndex = images.size() + 1;
-        int picsumIndex = images.size() + 2;
-        int urlIndex = images.size() + 3;
-        int noneIndex = images.size() + 4;
-        labels[googleIndex] = getString(R.string.wallpaper_google_featured);
+        int bingIndex = images.size();
+        int urlIndex = images.size() + 1;
+        int noneIndex = images.size() + 2;
         labels[bingIndex] = getString(R.string.wallpaper_bing);
-        labels[picsumIndex] = getString(R.string.wallpaper_picsum);
         labels[urlIndex] = getString(R.string.wallpaper_from_url);
         labels[noneIndex] = getString(R.string.wallpaper_none);
         String current = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
-        int checked = GoogleFeatured.CHOICE.equals(current) ? googleIndex
-                : BingWallpaper.CHOICE.equals(current) ? bingIndex
-                : PicsumPhotos.CHOICE.equals(current) ? picsumIndex
+        int checked = BingWallpaper.CHOICE.equals(current) ? bingIndex
                 : WallpaperUrls.CHOICE.equals(current) ? urlIndex
                 : "none".equals(current) ? noneIndex
                 : indexOf(images, current);
@@ -219,12 +204,8 @@ public final class LauncherSettingsActivity extends Activity {
                         setResult(RESULT_OK);
                         Toast.makeText(this, R.string.wallpaper_applied, Toast.LENGTH_SHORT).show();
                         refresh();
-                    } else if (which == googleIndex) {
-                        applySource(GoogleFeatured.CHOICE, () -> GoogleFeatured.fetchAndCache(this));
                     } else if (which == bingIndex) {
                         applySource(BingWallpaper.CHOICE, () -> BingWallpaper.fetchAndCache(this));
-                    } else if (which == picsumIndex) {
-                        applySource(PicsumPhotos.CHOICE, () -> PicsumPhotos.fetchAndCache(this));
                     } else if (which == urlIndex) {
                         showUrlEditor();
                     } else {
@@ -310,23 +291,15 @@ public final class LauncherSettingsActivity extends Activity {
     private void showTransitionPicker() {
         String[] values = {
                 Config.TRANSITION_NONE,
-                Config.TRANSITION_CROSSFADE,
-                Config.TRANSITION_FADE_BLACK
+                Config.TRANSITION_CROSSFADE
         };
         String[] labels = {
                 getString(R.string.wallpaper_transition_none),
-                getString(R.string.wallpaper_transition_crossfade),
-                getString(R.string.wallpaper_transition_fade_black)
+                getString(R.string.wallpaper_transition_crossfade)
         };
         String current = Config.normalizeWallpaperTransition(
                 choices.getString(Config.WALLPAPER_TRANSITION_KEY, Config.TRANSITION_NONE));
-        int checked = 0;
-        for (int i = 0; i < values.length; i++) {
-            if (values[i].equals(current)) {
-                checked = i;
-                break;
-            }
-        }
+        int checked = Config.TRANSITION_CROSSFADE.equals(current) ? 1 : 0;
         new AlertDialog.Builder(this)
                 .setTitle(R.string.wallpaper_transition_label)
                 .setSingleChoiceItems(labels, checked, (dialog, which) -> {
@@ -335,35 +308,6 @@ public final class LauncherSettingsActivity extends Activity {
                         choices.edit().remove(Config.WALLPAPER_TRANSITION_KEY).apply();
                     } else {
                         choices.edit().putString(Config.WALLPAPER_TRANSITION_KEY, values[which]).apply();
-                    }
-                    setResult(RESULT_OK);
-                    refresh();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
-    private void showTransitionMsPicker() {
-        String[] labels = new String[TRANSITION_MS_PRESETS.length];
-        for (int i = 0; i < TRANSITION_MS_PRESETS.length; i++) {
-            labels[i] = getString(R.string.wallpaper_transition_ms_value, TRANSITION_MS_PRESETS[i]);
-        }
-        int checked = 1;
-        for (int i = 0; i < TRANSITION_MS_PRESETS.length; i++) {
-            if (TRANSITION_MS_PRESETS[i] == wallpaperTransitionMs) {
-                checked = i;
-                break;
-            }
-        }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.wallpaper_transition_ms_label)
-                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
-                    dialog.dismiss();
-                    wallpaperTransitionMs = TRANSITION_MS_PRESETS[which];
-                    if (wallpaperTransitionMs == Config.WALLPAPER_TRANSITION_MS_DEFAULT) {
-                        choices.edit().remove(Config.WALLPAPER_TRANSITION_MS_KEY).apply();
-                    } else {
-                        choices.edit().putInt(Config.WALLPAPER_TRANSITION_MS_KEY, wallpaperTransitionMs).apply();
                     }
                     setResult(RESULT_OK);
                     refresh();
@@ -390,42 +334,6 @@ public final class LauncherSettingsActivity extends Activity {
                     dialog.dismiss();
                     dockGlassOpacity = OPACITY_PRESETS[which];
                     choices.edit().putInt(Config.DOCK_GLASS_OPACITY_KEY, dockGlassOpacity).apply();
-                    setResult(RESULT_OK);
-                    refresh();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
-    private void showTopShortcutsPicker() {
-        String[] values = {
-                TopShortcuts.STYLE_DEFAULT,
-                TopShortcuts.STYLE_WALLPAPER,
-                TopShortcuts.STYLE_GLASS,
-        };
-        String[] labels = {
-                getString(R.string.top_shortcuts_default),
-                getString(R.string.top_shortcuts_wallpaper),
-                getString(R.string.top_shortcuts_glass),
-        };
-        String current = TopShortcuts.normalize(
-                choices.getString(Config.TOP_SHORTCUTS_STYLE_KEY, TopShortcuts.STYLE_DEFAULT));
-        int checked = 0;
-        for (int i = 0; i < values.length; i++) {
-            if (values[i].equals(current)) {
-                checked = i;
-                break;
-            }
-        }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.top_shortcuts_label)
-                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
-                    dialog.dismiss();
-                    if (TopShortcuts.STYLE_DEFAULT.equals(values[which])) {
-                        choices.edit().remove(Config.TOP_SHORTCUTS_STYLE_KEY).apply();
-                    } else {
-                        choices.edit().putString(Config.TOP_SHORTCUTS_STYLE_KEY, values[which]).apply();
-                    }
                     setResult(RESULT_OK);
                     refresh();
                 })
@@ -522,24 +430,14 @@ public final class LauncherSettingsActivity extends Activity {
                 getString(dockGlass ? R.string.on : R.string.off)));
         dockGlassOpacityChoice.setText(getString(R.string.dock_glass_opacity_state, dockGlassOpacity));
         dockGlassOpacityChoice.setVisibility(dockGlass ? View.VISIBLE : View.GONE);
-        topShortcutsChoice.setText(getString(R.string.top_shortcuts_state, topShortcutsLabel()));
         wallpaperRotationChoice.setText(getString(R.string.wallpaper_rotation_state, rotationLabel()));
         wallpaperTransitionChoice.setText(getString(R.string.wallpaper_transition_state, transitionLabel()));
-        wallpaperTransitionMsChoice.setText(getString(R.string.wallpaper_transition_ms_state, wallpaperTransitionMs));
-        String transitionNow = Config.normalizeWallpaperTransition(
-                choices.getString(Config.WALLPAPER_TRANSITION_KEY, Config.TRANSITION_NONE));
-        wallpaperTransitionMsChoice.setVisibility(
-                Config.TRANSITION_NONE.equals(transitionNow) ? View.GONE : View.VISIBLE);
         String wallpaperCurrent = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
         String wallpaperLabel;
         if ("none".equals(wallpaperCurrent)) {
             wallpaperLabel = getString(R.string.wallpaper_none);
-        } else if (GoogleFeatured.CHOICE.equals(wallpaperCurrent)) {
-            wallpaperLabel = getString(R.string.wallpaper_google_state);
         } else if (BingWallpaper.CHOICE.equals(wallpaperCurrent)) {
-            wallpaperLabel = getString(R.string.wallpaper_bing_state);
-        } else if (PicsumPhotos.CHOICE.equals(wallpaperCurrent)) {
-            wallpaperLabel = getString(R.string.wallpaper_picsum_state);
+            wallpaperLabel = getString(R.string.wallpaper_bing);
         } else if (WallpaperUrls.CHOICE.equals(wallpaperCurrent)) {
             int n = WallpaperUrls.parse(WallpaperUrls.saved(this)).size();
             wallpaperLabel = getString(R.string.wallpaper_url_state, n);
@@ -563,16 +461,7 @@ public final class LauncherSettingsActivity extends Activity {
         String t = Config.normalizeWallpaperTransition(
                 choices.getString(Config.WALLPAPER_TRANSITION_KEY, Config.TRANSITION_NONE));
         if (Config.TRANSITION_CROSSFADE.equals(t)) return getString(R.string.wallpaper_transition_crossfade);
-        if (Config.TRANSITION_FADE_BLACK.equals(t)) return getString(R.string.wallpaper_transition_fade_black);
         return getString(R.string.wallpaper_transition_none);
-    }
-
-    private String topShortcutsLabel() {
-        String s = TopShortcuts.normalize(
-                choices.getString(Config.TOP_SHORTCUTS_STYLE_KEY, TopShortcuts.STYLE_DEFAULT));
-        if (TopShortcuts.STYLE_WALLPAPER.equals(s)) return getString(R.string.top_shortcuts_wallpaper);
-        if (TopShortcuts.STYLE_GLASS.equals(s)) return getString(R.string.top_shortcuts_glass);
-        return getString(R.string.top_shortcuts_default);
     }
 
     private boolean hasOnTvChoices() {
@@ -582,11 +471,9 @@ public final class LauncherSettingsActivity extends Activity {
                 || choices.contains(WallpaperUrls.URLS_KEY)
                 || choices.contains(Config.WALLPAPER_ROTATION_KEY)
                 || choices.contains(Config.WALLPAPER_TRANSITION_KEY)
-                || choices.contains(Config.WALLPAPER_TRANSITION_MS_KEY)
                 || choices.contains(Config.AMBIENT_TINT_KEY)
                 || choices.contains(Config.DOCK_GLASS_KEY)
-                || choices.contains(Config.DOCK_GLASS_OPACITY_KEY)
-                || choices.contains(Config.TOP_SHORTCUTS_STYLE_KEY);
+                || choices.contains(Config.DOCK_GLASS_OPACITY_KEY);
     }
 
     /** Mesma ordem do botão Settings na Home: Fire TV → Android TV settings → ACTION_SETTINGS. */

@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ColorStateList for Java (lint ResourceType); drawable/pill_text keeps XML layout refs. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true" android:color="#FF111111" />
     <item android:color="#FFFFFFFF" />

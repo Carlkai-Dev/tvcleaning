@@ -42,23 +42,16 @@ final class Config {
     private static final String WALLPAPER_ROTATION_MINUTES_LEGACY = "wallpaper_rotation_minutes";
     /** Teto: 24 h. */
     static final int MAX_ROTATION_SECONDS = 24 * 60 * 60;
-    /** none | crossfade | fade_black */
+    /** none | crossfade */
     static final String WALLPAPER_TRANSITION_KEY = "wallpaper_transition";
-    /** Duração da animação de troca em ms. */
-    static final String WALLPAPER_TRANSITION_MS_KEY = "wallpaper_transition_ms";
     static final int WALLPAPER_TRANSITION_MS_DEFAULT = 500;
-    static final int WALLPAPER_TRANSITION_MS_MIN = 150;
-    static final int WALLPAPER_TRANSITION_MS_MAX = 3000;
     static final String AMBIENT_TINT_KEY = "ambient_tint";
     static final String DOCK_GLASS_KEY = "dock_glass";
     static final String DOCK_GLASS_OPACITY_KEY = "dock_glass_opacity";
-    /** default | wallpaper | glass — cores dos atalhos superiores. */
-    static final String TOP_SHORTCUTS_STYLE_KEY = "top_shortcuts_style";
     private static final String THEME_REVISION_NAME = "theme_revision";
     private static final String THEME_SIGNATURE_KEY = "theme_signature";
     static final String TRANSITION_NONE = "none";
     static final String TRANSITION_CROSSFADE = "crossfade";
-    static final String TRANSITION_FADE_BLACK = "fade_black";
     static final int DOCK_GLASS_OPACITY_DEFAULT = 55;
 
     final List<String> dockApps;
@@ -119,9 +112,9 @@ final class Config {
     /** Intervalo de rotação em segundos (0 = sem rotação por tempo). */
     final int wallpaperRotationSeconds;
     final int wallpaperDim;
-    /** On-TV wallpaper swap effect: none, crossfade, or fade_black. */
+    /** On-TV wallpaper swap effect: none or crossfade. */
     final String wallpaperTransition;
-    /** Duração da animação de troca (ms); ignorada quando transition é none. */
+    /** Duração fixa do crossfade (ms); ignorada quando transition é none. */
     final int wallpaperTransitionMs;
     /** When false, dock focus keeps a neutral white glow instead of the app's accent colour. */
     final boolean ambientTint;
@@ -129,8 +122,6 @@ final class Config {
     final boolean dockGlass;
     /** Dock glass band alpha as percent 10–90 (ignored when dockGlass is false). */
     final int dockGlassOpacity;
-    /** Estilo dos atalhos do topo: {@link TopShortcuts#STYLE_DEFAULT}, wallpaper ou glass. */
-    final String topShortcutsStyle;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
     /** Festive skin from a theme (festival, festival_until, greeting, accent_color); {@link Festival#NONE} if none. */
@@ -149,7 +140,7 @@ final class Config {
                    int[] settingsKeycodes, boolean settingsKeyPanel, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
                    int wallpaperRotationSeconds, int wallpaperDim, String wallpaperTransition,
                    int wallpaperTransitionMs, boolean ambientTint,
-                   boolean dockGlass, int dockGlassOpacity, String topShortcutsStyle, boolean overlayApplied,
+                   boolean dockGlass, int dockGlassOpacity, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys,
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome) {
         this.inputKeycodes = inputKeycodes;
@@ -194,29 +185,20 @@ final class Config {
         this.ambientTint = ambientTint;
         this.dockGlass = dockGlass;
         this.dockGlassOpacity = dockGlassOpacity;
-        this.topShortcutsStyle = topShortcutsStyle;
         this.overlayApplied = overlayApplied;
         this.festival = festival;
         this.raceCalendar = Collections.unmodifiableList(raceCalendar);
         this.cinematicHome = cinematicHome;
     }
 
-    /** URL / Google / Bing / Picsum all land in {@link WallpaperUrls}' on-device cache. */
+    /** URL / Bing land in {@link WallpaperUrls}' on-device cache. */
     static boolean isCachedWallpaperChoice(String choice) {
         return WallpaperUrls.CHOICE.equals(choice)
-                || GoogleFeatured.CHOICE.equals(choice)
-                || BingWallpaper.CHOICE.equals(choice)
-                || PicsumPhotos.CHOICE.equals(choice);
+                || BingWallpaper.CHOICE.equals(choice);
     }
 
     static int clampRotationSeconds(int value) {
         return value < 0 ? 0 : Math.min(MAX_ROTATION_SECONDS, value);
-    }
-
-    static int clampWallpaperTransitionMs(int value) {
-        if (value < WALLPAPER_TRANSITION_MS_MIN) return WALLPAPER_TRANSITION_MS_MIN;
-        if (value > WALLPAPER_TRANSITION_MS_MAX) return WALLPAPER_TRANSITION_MS_MAX;
-        return value;
     }
 
     static int clampDockGlassOpacity(int value) {
@@ -226,7 +208,7 @@ final class Config {
     }
 
     static String normalizeWallpaperTransition(String value) {
-        if (TRANSITION_CROSSFADE.equals(value) || TRANSITION_FADE_BLACK.equals(value)) return value;
+        if (TRANSITION_CROSSFADE.equals(value)) return value;
         return TRANSITION_NONE;
     }
 
@@ -348,7 +330,7 @@ final class Config {
             wallpaper = null;
             wallpaperEnabled = false;
         } else if (isCachedWallpaperChoice(wallpaperChoice)) {
-            // URL / Google / Bing / Picsum: all land in WallpaperUrls' on-device cache.
+            // URL / Bing: land in WallpaperUrls' on-device cache.
             WallpaperUrls.prune(ctx);
             wallpapers.clear();
             wallpapers.addAll(WallpaperUrls.cachedFiles(ctx));
@@ -372,13 +354,11 @@ final class Config {
         }
         String wallpaperTransition = normalizeWallpaperTransition(
                 choices.getString(WALLPAPER_TRANSITION_KEY, TRANSITION_NONE));
-        int wallpaperTransitionMs = clampWallpaperTransitionMs(
-                choices.getInt(WALLPAPER_TRANSITION_MS_KEY, WALLPAPER_TRANSITION_MS_DEFAULT));
+        int wallpaperTransitionMs = WALLPAPER_TRANSITION_MS_DEFAULT;
         boolean ambientTint = choices.getBoolean(AMBIENT_TINT_KEY, true);
         boolean dockGlass = choices.getBoolean(DOCK_GLASS_KEY, false);
         int dockGlassOpacity = clampDockGlassOpacity(
                 choices.getInt(DOCK_GLASS_OPACITY_KEY, DOCK_GLASS_OPACITY_DEFAULT));
-        String topShortcutsStyle = TopShortcuts.normalize(choices.getString(TOP_SHORTCUTS_STYLE_KEY, TopShortcuts.STYLE_DEFAULT));
         // A festive skin comes only from a theme; config.xml has no festival.
         Festival festival = json == null ? Festival.NONE : Festival.parse(string(json, "festival", ""),
                 string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
@@ -391,7 +371,7 @@ final class Config {
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaperEnabled, wallpaper,
                 wallpapers, rotationSeconds, wallpaperDim, wallpaperTransition, wallpaperTransitionMs,
                 ambientTint, dockGlass, dockGlassOpacity,
-                topShortcutsStyle, applied, festival, inputKeycodes, appKeys,
+                applied, festival, inputKeycodes, appKeys,
                 json == null ? Collections.emptyList() : raceCalendar(json), cinematic);
     }
 
@@ -447,9 +427,8 @@ final class Config {
         return editor.remove("columns").remove("animations").remove("advanced_effects")
                 .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
                 .remove(WALLPAPER_ROTATION_KEY).remove(WALLPAPER_ROTATION_MINUTES_LEGACY)
-                .remove(WALLPAPER_TRANSITION_KEY).remove(WALLPAPER_TRANSITION_MS_KEY)
+                .remove(WALLPAPER_TRANSITION_KEY)
                 .remove(AMBIENT_TINT_KEY).remove(DOCK_GLASS_KEY).remove(DOCK_GLASS_OPACITY_KEY)
-                .remove(TOP_SHORTCUTS_STYLE_KEY)
                 .remove(WallpaperUrls.URLS_KEY);
     }
 

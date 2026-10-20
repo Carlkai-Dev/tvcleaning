@@ -77,11 +77,6 @@
             android:layout_marginTop="10dp" />
 
         <TextView
-            android:id="@+id/wallpaperTransitionMsChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="10dp" />
-
-        <TextView
             android:id="@+id/ambientTintChoice"
             style="@style/SettingsRow"
             android:layout_marginTop="28dp" />
@@ -93,11 +88,6 @@
 
         <TextView
             android:id="@+id/dockGlassOpacityChoice"
-            style="@style/SettingsRow"
-            android:layout_marginTop="10dp" />
-
-        <TextView
-            android:id="@+id/topShortcutsChoice"
             style="@style/SettingsRow"
             android:layout_marginTop="10dp" />
 

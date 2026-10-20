@@ -19,15 +19,6 @@ public class WallpaperPrefsTest {
     }
 
     @Test
-    public void clampWallpaperTransitionMsBounds() {
-        assertEquals(Config.WALLPAPER_TRANSITION_MS_MIN, Config.clampWallpaperTransitionMs(0));
-        assertEquals(Config.WALLPAPER_TRANSITION_MS_MIN, Config.clampWallpaperTransitionMs(100));
-        assertEquals(500, Config.clampWallpaperTransitionMs(500));
-        assertEquals(2000, Config.clampWallpaperTransitionMs(2000));
-        assertEquals(Config.WALLPAPER_TRANSITION_MS_MAX, Config.clampWallpaperTransitionMs(99999));
-    }
-
-    @Test
     public void clampDockGlassOpacityBounds() {
         assertEquals(10, Config.clampDockGlassOpacity(0));
         assertEquals(10, Config.clampDockGlassOpacity(5));
@@ -41,16 +32,16 @@ public class WallpaperPrefsTest {
         assertEquals(Config.TRANSITION_NONE, Config.normalizeWallpaperTransition(null));
         assertEquals(Config.TRANSITION_NONE, Config.normalizeWallpaperTransition(""));
         assertEquals(Config.TRANSITION_NONE, Config.normalizeWallpaperTransition("wipe"));
+        assertEquals(Config.TRANSITION_NONE, Config.normalizeWallpaperTransition("fade_black"));
         assertEquals(Config.TRANSITION_CROSSFADE, Config.normalizeWallpaperTransition("crossfade"));
-        assertEquals(Config.TRANSITION_FADE_BLACK, Config.normalizeWallpaperTransition("fade_black"));
     }
 
     @Test
     public void isCachedWallpaperChoiceRecognizesSources() {
         assertTrue(Config.isCachedWallpaperChoice("url"));
-        assertTrue(Config.isCachedWallpaperChoice("google"));
         assertTrue(Config.isCachedWallpaperChoice("bing"));
-        assertTrue(Config.isCachedWallpaperChoice("picsum"));
+        assertFalse(Config.isCachedWallpaperChoice("google"));
+        assertFalse(Config.isCachedWallpaperChoice("picsum"));
         assertFalse(Config.isCachedWallpaperChoice("none"));
         assertFalse(Config.isCachedWallpaperChoice("wallpaper.jpg"));
         assertFalse(Config.isCachedWallpaperChoice(null));
