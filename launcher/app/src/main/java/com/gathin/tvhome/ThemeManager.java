@@ -44,6 +44,9 @@ final class ThemeManager {
     static final String NONE = "none";
 
     private static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
+    /** Bundled theme wallpapers ship as WebP (small); the on-device file keeps the
+     * historical wallpaper.jpg name so tools/theme.sh pushes keep working. */
+    private static final String BUNDLED_WALLPAPER_ASSET = "wallpaper.webp";
     private static final String WALLPAPER_CUSTOM_NAME_KEY = "wallpaper_custom_name";
 
     private ThemeManager() { }
@@ -77,8 +80,8 @@ final class ThemeManager {
             } else {
                 String base = "themes/" + theme + "/";
                 if (!copyAsset(ctx, base + "config.json", config)) return false;
-                if (assetExists(ctx, base + Config.WALLPAPER_NAME)) {
-                    if (!copyAsset(ctx, base + Config.WALLPAPER_NAME, wallpaper)) return false;
+                if (assetExists(ctx, base + BUNDLED_WALLPAPER_ASSET)) {
+                    if (!copyAsset(ctx, base + BUNDLED_WALLPAPER_ASSET, wallpaper)) return false;
                 } else if (!deleteIfPresent(wallpaper)) {
                     return false;
                 }
@@ -120,7 +123,7 @@ final class ThemeManager {
         Config.load(ctx);   // settle any pending external theme change before preserving choices
         File dir = Config.dir(ctx);
         if (dir == null || (!dir.exists() && !dir.mkdirs())) return false;
-        try (InputStream in = ctx.getAssets().open("themes/" + theme + "/" + Config.WALLPAPER_NAME)) {
+        try (InputStream in = ctx.getAssets().open("themes/" + theme + "/" + BUNDLED_WALLPAPER_ASSET)) {
             if (!copyStream(in, new File(dir, Config.WALLPAPER_NAME))) return false;
         } catch (Exception ignored) {
             return false;
