@@ -1,3 +1,4 @@
 {
-  "key_launch_map": "KEYCODE_BUTTON_7=com.zattoo.player"
+  "key_launch_map": "KEYCODE_BUTTON_7=com.zattoo.player",
+  "rearrange_tiles": true
 }
