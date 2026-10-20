@@ -28,6 +28,7 @@ project's own issue tracker.
 | [Hisense 55U6K: reorder and weather](https://github.com/vlaship/cleanyourtv/tree/hisense-55u6k) | A fork with remote reordering (hold OK), the dock under the clock, a weather line and a click on every move | Hisense 55U6K, Google TV 11 | [vlaship](https://github.com/vlaship) |
 | [KIDŌ](https://github.com/glidiandev/kido) | A command-center home screen built as its own app: a seven-segment clock, favorite apps as big panels and the rest as a honeycomb, live Wi-Fi and memory readouts, an HDMI input alert, three color themes and a drifting screensaver against burn-in. No internet permission | Sharp AQUOS 4K, Android TV 11 | [glidiandev](https://github.com/glidiandev) |
 | [Cosy Home](https://github.com/oliverjwroberts/cosy-home-tv) | A home screen with a big clock over a valley that follows the real sunrise and sunset, live weather from Open-Meteo, a frosted-glass panel of apps and inputs on Down, and a slow pixel shift for OLED panels. Started from this repo's launcher | Philips 55OLED707, Android TV 11 | [oliverjwroberts](https://github.com/oliverjwroberts) |
+| [firetv-clean-root](https://github.com/s-sarathb/firetv-clean-root) | True native launcher replacement and debloat using in-memory kernel root (GhostLock) to disable Amazon's launcher for 0 ms Home handover, with Fire OS Settings intent routing bypass and SSID anonymization | Fire TV Stick Lite / 3rd Gen, Fire OS 7 | [s-sarathb](https://github.com/s-sarathb) |
 
 ## Add yours
 
