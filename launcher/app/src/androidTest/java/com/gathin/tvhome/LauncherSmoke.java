@@ -358,9 +358,14 @@ public final class LauncherSmoke extends Instrumentation {
                     name + " keeps final grid geometry throughout animation");
         }
         check(intermediate >= 3, name + " produces multiple intermediate animation frames");
+        // Home is never faded (FolderTransition: an alpha layer would cut off the dock and tile shadows);
+        // the opaque backdrop covers it, and it is hidden once the folder is open.
+        boolean opened = name.equals("open");
         check(!((FolderTransition) fieldUnchecked(activity, "folderMotion")).isRunning()
-                && host.getAlpha() == (name.equals("open") ? 0f : 1f) && host.getScaleX() == 1f,
-                name + " completes motion with the live Home grid intact");
+                && host.getAlpha() == 1f && host.getScaleX() == 1f
+                && host.getVisibility() == (opened ? View.INVISIBLE : View.VISIBLE),
+                name + " completes motion with the live Home grid intact: alpha=" + host.getAlpha()
+                        + " scale=" + host.getScaleX() + " visibility=" + host.getVisibility());
     }
     private static android.widget.EditText findInput(View view) {
         if (view instanceof android.widget.EditText) return (android.widget.EditText) view;
