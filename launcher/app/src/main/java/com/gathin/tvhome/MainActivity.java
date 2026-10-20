@@ -92,6 +92,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String sourcePanelAction;
 
     private AppAdapter adapter;
+    private AppAnnouncer announcer;
     private RecyclerView grid;
     private FrameLayout root;
     private GlassView glass;
@@ -129,6 +130,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Festive skin from the theme (see Festival); applied while it is active today. */
     private Festival festival = Festival.NONE;
     private boolean festive;
+    /** Wallpaper mode from launcher settings; India calendar event when mode is india. */
+    private String wallpaperMode = WallpaperPrefs.MODE_DEFAULT;
+    private IndiaEvents.Event indiaEvent;
     private DiyaDrawable diya;
     private BellDrawable bell;
     private MarigoldDrawable marigold;
@@ -218,6 +222,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         reducedMotion = cfg.reducedMotion;
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
+        wallpaperMode = WallpaperPrefs.mode(this);
+        indiaEvent = WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)
+                ? IndiaEvents.forDate(LocalDate.now()) : null;
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
         inputAction = cfg.inputAction;
@@ -226,11 +233,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         root = findViewById(R.id.root);
         root.setBackgroundColor(cfg.backgroundColor);
-        if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
+        applyWallpaper(cfg);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
         if (festive) glass.setAccent(festival.accentColor());
+        else if (indiaEvent != null) glass.setAccent(indiaEvent.accent);
         ambient = findViewById(R.id.ambient);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
@@ -273,7 +281,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public boolean requestChildRectangleOnScreen(@NonNull RecyclerView parent, @NonNull View child,
                                                          @NonNull Rect rect, boolean immediate,
                                                          boolean focusedChildVisible) {
-                if (getPosition(child) < COLUMNS) return false;
+                if (adapter != null && adapter.inDock(getPosition(child))) return false;
                 int top = child.getTop() + rect.top;
                 int bottom = top + rect.height();
                 int limitBottom = getHeight() - getPaddingBottom();
@@ -297,6 +305,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     AnimationUtils.loadAnimation(this, enterAnim), enterDelay));
         }
         adapter = new AppAdapter(this, this, COLUMNS, cfg);
+        announcer = new AppAnnouncer(this);
+        adapter.setAnnouncer(announcer);
         grid.setAdapter(adapter);
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
@@ -307,9 +317,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Item height follows the tile size, which follows the column count (AppAdapter.tileWidthPx).
             int inner = (r - l) - grid.getPaddingLeft() - grid.getPaddingRight();
             int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(AppAdapter.tileWidthPx(inner, COLUMNS, density)), density);
-            int dockRow = itemH + (int) ((6 + 12) * density);   // item height plus DockDecoration offsets
+            // Two dock rows + DockDecoration offsets (6+4 on row1, 4+12 on row2).
+            int dockBlock = itemH * AppAdapter.DOCK_ROWS + (int) ((6 + 4 + 4 + 12) * density);
             int gridRows = itemH * rowsBelowDock;
-            int want = Math.max(0, h - dockRow - gridRows - (int) (30 * density));
+            int want = Math.max(0, h - dockBlock - gridRows - (int) (30 * density));
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
             }
@@ -373,7 +384,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                 // Back to the dock tile Up came from, not wherever the focus finder lands.
-                focusTile(lastFocused % COLUMNS);
+                focusTile(lastFocused % COLUMNS); // land on dock row 1, same column
                 return true;
             }
             int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : R.id.btnWifi;
@@ -427,36 +438,68 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * A theme's full-screen picture behind everything. Decoded once at the size CENTER_CROP shows, so it
-     * costs a screen-sized bitmap (about 4 MB at 1080p), which is the price of a wallpaper on a 1 GB TV.
-     * A picture over 4K is refused rather than decoded (#166); the plain colour stays.
+     * Wallpaper from launcher settings: default (theme file / plain), custom image, or India special-day
+     * auto backdrop. Decoded once at cover size (about 4 MB at 1080p max for photos).
      */
-    private void showWallpaper(File file) {
+    private void applyWallpaper(Config cfg) {
+        removeWallpaperView();
+        String mode = wallpaperMode;
+        if (WallpaperPrefs.MODE_CUSTOM.equals(mode) && WallpaperPrefs.hasCustom(this)) {
+            showWallpaperFile(WallpaperPrefs.customFile(this));
+            return;
+        }
+        if (WallpaperPrefs.MODE_INDIA.equals(mode)) {
+            IndiaEvents.Event event = indiaEvent != null ? indiaEvent : IndiaEvents.everyday();
+            showWallpaperBitmap(EventWallpaper.render(event,
+                    getResources().getDisplayMetrics().widthPixels,
+                    getResources().getDisplayMetrics().heightPixels));
+            return;
+        }
+        if (cfg.wallpaper != null) showWallpaperFile(cfg.wallpaper);
+    }
+
+    private void removeWallpaperView() {
+        View existing = root.findViewWithTag("wallpaper");
+        if (existing != null) root.removeView(existing);
+    }
+
+    private void showWallpaperBitmap(android.graphics.Bitmap bmp) {
+        if (bmp == null) return;
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        android.graphics.Bitmap fitted = bmp;
+        if (bmp.getWidth() != dm.widthPixels || bmp.getHeight() != dm.heightPixels) {
+            fitted = EventWallpaper.coverExact(bmp, dm.widthPixels, dm.heightPixels);
+            if (fitted != bmp) bmp.recycle();
+        }
+        android.widget.ImageView wall = new android.widget.ImageView(this);
+        wall.setTag("wallpaper");
+        // Exact screen bitmap → FIT_XY fills the TV edge-to-edge with no letterbox.
+        wall.setScaleType(android.widget.ImageView.ScaleType.FIT_XY);
+        wall.setAdjustViewBounds(false);
+        wall.setImageBitmap(fitted);
+        root.addView(wall, 0, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    private void showWallpaperFile(File file) {
         try {
             android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+            int screenW = dm.widthPixels;
+            int screenH = dm.heightPixels;
             android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
             opts.inJustDecodeBounds = true;
             android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
             int w = opts.outWidth, h = opts.outHeight;
             if (w <= 0 || h <= 0) return;
-            int sample = WallpaperSize.sampleSize(w, h, dm.widthPixels, dm.heightPixels);
-            // The limit applies to what is decoded, so a 12 MP photo still works once it is sampled down.
+            int sample = WallpaperSize.sampleSize(w, h, screenW, screenH);
             if (!WallpaperSize.accepted(w / sample, h / sample)) return;
             opts.inJustDecodeBounds = false;
             opts.inSampleSize = sample;
-            int[] scale = WallpaperSize.coverScale(w / sample, h / sample, dm.widthPixels, dm.heightPixels);
-            if (scale != null) {
-                opts.inScaled = true;
-                opts.inDensity = scale[0];
-                opts.inTargetDensity = scale[1];
-            }
-            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
+            opts.inScaled = false;
+            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;
             android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
             if (bmp == null) return;
-            android.widget.ImageView wall = new android.widget.ImageView(this);
-            wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
-            wall.setImageBitmap(bmp);
-            root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            showWallpaperBitmap(bmp);
         } catch (Exception | OutOfMemoryError e) {
             // A bad or huge picture must never take the home screen down; the plain colour stays.
         }
@@ -491,10 +534,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
-        // A festival that started or ended while Home was in the background: rebuild with or without it.
+        // A festival / India special day that started or ended while Home was in the background.
         if (festive != festival.active(LocalDate.now())) {
             recreate();
             return;
+        }
+        if (WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)) {
+            IndiaEvents.Event now = IndiaEvents.forDate(LocalDate.now());
+            String was = indiaEvent != null ? indiaEvent.id : "";
+            String is = now != null ? now.id : "";
+            if (!was.equals(is)) {
+                recreate();
+                return;
+            }
         }
         promptsPaused = false;
         if (rebuildOnResume) {
@@ -613,6 +665,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onDestroy() {
+        if (announcer != null) {
+            announcer.shutdown();
+            announcer = null;
+        }
         super.onDestroy();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -672,10 +728,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(y - glassScrollShift);
         }
         View item = (View) card.getParent();
-        if (position < COLUMNS) {
-            // Dock: park it at the bottom of the screen and show the top shelf for this app.
-            int decoratedTop = item.getTop() - (int) (6 * density);
-            int dy = decoratedTop - grid.getPaddingTop();
+        if (adapter.inDock(position)) {
+            // Dock (both pin rows): park row 1 at the padding line and show the top shelf.
+            int row1Top = position < COLUMNS
+                    ? item.getTop() - (int) (6 * density)
+                    : item.getTop() - itemHeightApprox() - (int) (6 * density);
+            int dy = row1Top - grid.getPaddingTop();
             // A 1px mismatch used to start a scroll on every dock move. Only scroll when the row is
             // actually off; reduced motion does it in one jump so it does not fight the highlight.
             boolean scroll = Math.abs(dy) > (int) (8 * density);
@@ -690,6 +748,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
             grid.requestChildRectangleOnScreen(item, want, reducedMotion);
         }
+    }
+
+    private int itemHeightApprox() {
+        int inner = grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight();
+        return AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(AppAdapter.tileWidthPx(inner, COLUMNS, density)), density);
     }
 
     // ---- top shelf -------------------------------------------------------------------------------
@@ -838,13 +901,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Horizontal: swallow the key at a row's ends so focus never wraps to the next row or
         // escapes up into the top bar. Mid-row moves fall through to the default focus search.
         if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-            // In the dock, the last app is the row's end: the empty slots after it take no focus.
-            int rowCount = position < COLUMNS ? Math.min(count, adapter.dockFilled()) : count;
-            return GridNavigation.atHorizontalEdge(position, rowCount, COLUMNS,
+            // In a dock row, the last app is the row's end: empty slots after it take no focus.
+            int rowCount = adapter.inDock(position)
+                    ? Math.min(count, adapter.dockFilledInRow(position))
+                    : count;
+            // For dock row 2, pretend positions are local for edge math by shifting.
+            int edgePos = position;
+            if (adapter.inDock(position) && position >= COLUMNS) {
+                edgePos = position - COLUMNS;
+                rowCount = Math.min(COLUMNS, adapter.dockFilledInRow(position));
+                return GridNavigation.atHorizontalEdge(edgePos, rowCount, COLUMNS,
+                        rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
+            }
+            return GridNavigation.atHorizontalEdge(edgePos, rowCount, COLUMNS,
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+            if (position < COLUMNS) return false;          // dock row 1: let focus move to the top bar
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
@@ -856,6 +929,84 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.playSoundEffect(keyCode == KeyEvent.KEYCODE_DPAD_UP
                 ? SoundEffectConstants.NAVIGATION_UP : SoundEffectConstants.NAVIGATION_DOWN);
         return true;
+    }
+
+    @Override
+    public void onTileLongPress(int position, View card) {
+        AppAdapter.Entry e = adapter.entryAt(position);
+        if (e == null || e.kind == AppAdapter.Entry.EMPTY) return;
+        showPinMenu(e, card);
+    }
+
+    /** Hold OK on a tile: pin / move left-right / move between dock rows, or open app info. */
+    private void showPinMenu(AppAdapter.Entry e, View anchor) {
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (280 * density));
+        PinnedApps pins = adapter.pinned();
+        int row = pins.rowOf(e.pkg);
+        // Visual left/right: mirror swap direction when the app grid is RTL.
+        int leftDelta = rtlAppGrid ? 1 : -1;
+        int rightDelta = -leftDelta;
+        if (row == 0) {
+            addSettingsMenuRow(rows, popup, R.string.pin_to_row1, () -> pinApp(e.pkg, 1, false));
+            addSettingsMenuRow(rows, popup, R.string.pin_to_row2, () -> pinApp(e.pkg, 2, false));
+        } else {
+            if (pins.canMove(e.pkg, leftDelta)) {
+                addSettingsMenuRow(rows, popup, R.string.move_left, () -> shiftPin(e.pkg, leftDelta));
+            }
+            if (pins.canMove(e.pkg, rightDelta)) {
+                addSettingsMenuRow(rows, popup, R.string.move_right, () -> shiftPin(e.pkg, rightDelta));
+            }
+            if (row == 1) {
+                addSettingsMenuRow(rows, popup, R.string.move_to_row2, () -> pinApp(e.pkg, 2, true));
+            } else {
+                addSettingsMenuRow(rows, popup, R.string.move_to_row1, () -> pinApp(e.pkg, 1, true));
+            }
+            addSettingsMenuRow(rows, popup, R.string.unpin, () -> unpinApp(e.pkg));
+        }
+        if (e.kind != AppAdapter.Entry.HOME_SETTINGS) {
+            addSettingsMenuRow(rows, popup, R.string.app_info, () -> adapter.openAppInfo(e.pkg));
+        }
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (280 * density), panel.getMeasuredWidth()));
+        popup.showAsDropDown(anchor, 0, (int) (8 * density));
+        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
+    private void pinApp(String pkg, int row, boolean moved) {
+        if (!adapter.pinned().setRow(pkg, row)) {
+            Toast.makeText(this, R.string.pin_row_full, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Toast.makeText(this, getString(moved ? R.string.moved_toast : R.string.pinned_toast, row),
+                Toast.LENGTH_SHORT).show();
+        reloadApps(false);
+        focusPinned(pkg);
+    }
+
+    private void shiftPin(String pkg, int delta) {
+        if (!adapter.pinned().moveInRow(pkg, delta)) return;
+        Toast.makeText(this, R.string.moved_side_toast, Toast.LENGTH_SHORT).show();
+        reloadApps(false);
+        focusPinned(pkg);
+    }
+
+    private void unpinApp(String pkg) {
+        adapter.pinned().unpin(pkg);
+        Toast.makeText(this, R.string.unpinned_toast, Toast.LENGTH_SHORT).show();
+        reloadApps(false);
+    }
+
+    private void focusPinned(String pkg) {
+        if (pkg == null) return;
+        for (int i = 0; i < adapter.getItemCount(); i++) {
+            AppAdapter.Entry e = adapter.entryAt(i);
+            if (e != null && pkg.equals(e.pkg)) {
+                focusTile(i);
+                return;
+            }
+        }
     }
 
     private void focusTile(int position) {
@@ -908,6 +1059,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!festiveGreeting.isEmpty()) {
             greeting.setText(festiveGreeting);
             greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
+        } else if (indiaEvent != null) {
+            greeting.setText(indiaEvent.title);
+            greeting.setTextColor(liftTowardsWhite(indiaEvent.accent, 0.25f));
         } else {
             greeting.setText(res);
             greeting.setTextColor(greetingColor);

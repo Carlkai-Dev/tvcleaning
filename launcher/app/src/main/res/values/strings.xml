@@ -18,6 +18,7 @@
     <string name="offline">Offline</string>
     <string name="not_available">Not available on this TV</string>
     <string name="cant_open">Can\'t open %1$s</string>
+    <string name="open_app_announce">Open %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
     <!-- Date next to the clock on Home; a locale can split it over two lines with \n. -->
     <string name="date_format_home" translatable="false">@string/date_format</string>
@@ -66,4 +67,27 @@
     <string name="card_state_new">New</string>
     <string name="card_state_new_key">New key</string>
     <string name="card_state_new_label">New name</string>
+    <string name="pin_to_row1">Pin to row 1</string>
+    <string name="pin_to_row2">Pin to row 2</string>
+    <string name="move_to_row1">Move to row 1</string>
+    <string name="move_to_row2">Move to row 2</string>
+    <string name="move_left">Move left</string>
+    <string name="move_right">Move right</string>
+    <string name="unpin">Unpin</string>
+    <string name="app_info">App info</string>
+    <string name="pin_row_full">That row is full</string>
+    <string name="pinned_toast">Pinned to row %1$d</string>
+    <string name="moved_toast">Moved to row %1$d</string>
+    <string name="moved_side_toast">Moved</string>
+    <string name="unpinned_toast">Unpinned</string>
+    <string name="wallpaper_section">Wallpaper / background</string>
+    <string name="wallpaper_hint">Choose a plain look, your own picture, or auto India special-day themes.</string>
+    <string name="wallpaper_default">Default (theme / plain)</string>
+    <string name="wallpaper_custom">Custom picture</string>
+    <string name="wallpaper_india">Maharashtra then India festivals (auto)</string>
+    <string name="wallpaper_pick">Choose picture…</string>
+    <string name="wallpaper_state">Wallpaper: %1$s</string>
+    <string name="wallpaper_custom_missing">No picture yet — choose one</string>
+    <string name="wallpaper_saved">Wallpaper saved</string>
+    <string name="wallpaper_pick_failed">Could not use that picture</string>
 </resources>

@@ -121,6 +121,7 @@ id banner_loading
 id banner_title
 id banner_webview
 id blocking
+id btn_add_site
 id btn_back_page
 id btn_forward
 id btn_home
@@ -131,6 +132,8 @@ id forever
 id icon
 id icon_group
 id info
+id input_title
+id input_url
 id italic
 id line1
 id line3
@@ -154,17 +157,8 @@ id tag_unhandled_key_listeners
 id text
 id text2
 id tile_accent
-id tile_cinegram
-id tile_cinejoy
 id tile_desc
-id tile_kartoons
-id tile_movy
-id tile_nightflix
-id tile_redflix
-id tile_row_1
-id tile_row_2
 id tile_rows
-id tile_tbcpl
 id tile_title
 id time
 id title
@@ -173,6 +167,7 @@ integer status_bar_notification_info_maxnum
 layout activity_browser
 layout activity_home
 layout custom_dialog
+layout dialog_add_site
 layout item_banner_slide
 layout item_site_tile
 layout notification_action
@@ -181,6 +176,14 @@ layout notification_template_custom_big
 layout notification_template_icon_group
 layout notification_template_part_chronometer
 layout notification_template_part_time
+string add_site
+string add_site_bad_url
+string add_site_cancel
+string add_site_failed
+string add_site_name_hint
+string add_site_ok
+string add_site_title
+string add_site_url_hint
 string app_name
 string banner_preview
 string blocked_popup
@@ -192,6 +195,8 @@ string menu_back
 string menu_forward
 string menu_home
 string menu_reload
+string remove_site
+string remove_site_confirm
 string site_cinegram
 string site_cinegram_desc
 string site_cinejoy
@@ -204,6 +209,7 @@ string site_nightflix
 string site_nightflix_desc
 string site_redflix
 string site_redflix_desc
+string site_removed
 string site_tbcpl
 string site_tbcpl_desc
 string status_bar_notification_info_overflow

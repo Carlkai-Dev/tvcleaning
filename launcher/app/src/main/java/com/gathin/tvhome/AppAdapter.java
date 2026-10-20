@@ -41,17 +41,21 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * App tiles. The first {@link MainActivity#COLUMNS} positions are the pinned dock (favourites, fixed order,
- * then empty slots up to a full row, see {@link DockSlots}), then the module cards the owner chose to show
- * (by label), the rest is alphabetical.
+ * App tiles. The first two rows ({@link MainActivity#COLUMNS} × 2) are the pinned docks (row 1 + bookmarks
+ * row 2), then module cards, then the alphabetical grid. Hold OK on a tile to pin / move / unpin.
  */
 public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
+
+    static final int DOCK_ROWS = 2;
 
     interface TileListener {
         void onTileFocused(int position, View card);
 
         /** Called for a D-pad direction key on a tile. Return true when handled (focus stays put). */
         boolean onTileVerticalKey(int position, int keyCode);
+
+        /** Hold OK: pin / move between dock rows, or open app info. */
+        void onTileLongPress(int position, View card);
     }
 
     static final class Entry {
@@ -111,13 +115,16 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     private final Context ctx;
     private final TileListener listener;
-    private final int dockSize;
-    /** Dock order (config.xml dock_apps, or a theme's config.json). */
-    private final List<String> favourites;
-    /** Grid apps fill the dock slots dock_apps leaves free (config.xml, fill_dock). */
+    /** Speaks “Open &lt;app&gt;” on OK; may be null. */
+    private AppAnnouncer announcer;
+    /** Tiles per dock row (= columns). */
+    private final int columns;
+    private final PinnedApps pinned;
+    /** Grid apps fill free slots on dock row 1 (config.xml, fill_dock). */
     private final boolean fillDock;
-    /** Dock apps found at the last reload, and the empty slots after them. */
-    private int docked, emptySlots;
+    /** Filled slots on dock row 1 / row 2 after the last reload. */
+    private int docked1, docked2;
+    private int empty1, empty2;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final boolean animations;
@@ -127,11 +134,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final boolean reducedMotion;
     private final List<Entry> items = new ArrayList<>();
 
-    AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
+    AppAdapter(Context ctx, TileListener listener, int columns, Config cfg) {
         this.ctx = ctx;
         this.listener = listener;
-        this.dockSize = dockSize;
-        this.favourites = cfg.dockApps;
+        this.columns = columns;
+        this.pinned = new PinnedApps(ctx, cfg.dockApps, cfg.dockApps2, columns);
         this.fillDock = cfg.fillDock;
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.animations = cfg.animations;
@@ -143,9 +150,26 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         setHasStableIds(true);
     }
 
+    PinnedApps pinned() {
+        return pinned;
+    }
+
+    void setAnnouncer(AppAnnouncer announcer) {
+        this.announcer = announcer;
+    }
+
+    /** Total dock slots (two full rows). */
+    int dockSlots() {
+        return columns * DOCK_ROWS;
+    }
+
+    boolean inDock(int position) {
+        return position >= 0 && position < dockSlots();
+    }
+
     /**
      * Rebuilds the tiles. A shown module card stands in for every tile of its package (same component,
-     * so focus follows it); hidden_apps wins over a card, and a card's package in dock_apps takes that slot.
+     * so focus follows it); hidden_apps wins over a card, and pinned packages take their dock slots.
      */
     void reload(List<Cards.Card> cards) {
         PackageManager pm = ctx.getPackageManager();
@@ -153,26 +177,28 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         Map<String, Cards.Card> cardByPkg = new HashMap<>();
         for (Cards.Card c : cards) cardByPkg.put(c.pkg, c);
-        List<Entry> fresh = new ArrayList<>();
+        Map<String, Entry> byPkg = new HashMap<>();
+        List<Entry> all = new ArrayList<>();
         for (ResolveInfo ri : found) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
             ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
             Cards.Card card = cardByPkg.get(pkg);
-            if (card != null && !card.component.equals(component)) continue;   // the card stands in for this tile
+            if (card != null && !card.component.equals(component)) continue;
             Drawable banner = loadBanner(pm, ri);
             Drawable icon = ri.loadIcon(pm);
+            Entry e;
             if (card != null) {
-                fresh.add(new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent));
+                e = new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent);
             } else {
-                // Same cleaner as the card prompt: an app label with a bidi override or line separator must not
-                // redraw the tile name as something else (#117).
-                fresh.add(new Entry(Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg), component, banner, icon));
+                e = new Entry(Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg), component, banner, icon);
             }
+            all.add(e);
+            byPkg.put(pkg, e);
         }
         // Phone Chrome and Chromecast have no LEANBACK_LAUNCHER entry; add direct-launch tiles when present
-        // so dock_apps can pin them like any other favourite.
+        // so dock pins can include them like any other favourite.
         ComponentName chrome = new ComponentName("com.android.chrome",
                 "com.google.android.apps.chrome.Main");
         try {
@@ -185,7 +211,9 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                     if (label != null && label.length() > 0) chromeLabel = label.toString();
                 } catch (PackageManager.NameNotFoundException ignored) {
                 }
-                fresh.add(new Entry(Entry.BROWSER, chromeLabel, chrome, null, chromeIcon, null, 0));
+                Entry e = new Entry(Entry.BROWSER, chromeLabel, chrome, null, chromeIcon, null, 0);
+                all.add(e);
+                byPkg.put(chrome.getPackageName(), e);
             }
         } catch (PackageManager.NameNotFoundException ignored) {
         }
@@ -198,39 +226,77 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                     castIcon = pm.getApplicationIcon(cast.getPackageName());
                 } catch (PackageManager.NameNotFoundException ignored) {
                 }
-                fresh.add(new Entry(Entry.CAST, ctx.getString(R.string.cast), cast, null, castIcon, null, 0));
+                Entry e = new Entry(Entry.CAST, ctx.getString(R.string.cast), cast, null, castIcon, null, 0);
+                all.add(e);
+                byPkg.put(cast.getPackageName(), e);
             }
         } catch (PackageManager.NameNotFoundException ignored) {
         }
-        Collections.sort(fresh, (a, b) -> {
-            int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
-            if (fa >= 0 || fb >= 0) {
-                if (fa < 0) return 1;
-                if (fb < 0) return -1;
-                return Integer.compare(fa, fb);
-            }
-            // Cards come right after the configured dock apps, before the alphabetical grid.
+
+        List<Entry> row1 = resolvePinned(pinned.row1(), byPkg);
+        List<Entry> row2 = resolvePinned(pinned.row2(), byPkg);
+        Set<String> pinnedPkgs = new HashSet<>();
+        for (Entry e : row1) pinnedPkgs.add(e.pkg);
+        for (Entry e : row2) pinnedPkgs.add(e.pkg);
+
+        List<Entry> rest = new ArrayList<>();
+        for (Entry e : all) {
+            if (!pinnedPkgs.contains(e.pkg)) rest.add(e);
+        }
+        Collections.sort(rest, (a, b) -> {
             boolean ca = a.kind == Entry.CARD, cb = b.kind == Entry.CARD;
             if (ca != cb) return ca ? -1 : 1;
             return a.label.compareToIgnoreCase(b.label);
         });
-        // Retain the optional Default-home tile until dependent tile-ordering work is merged.
         if (showHomeSettings
                 && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
-            fresh.add(new Entry(Entry.HOME_SETTINGS, ctx.getString(R.string.home_settings),
+            rest.add(new Entry(Entry.HOME_SETTINGS, ctx.getString(R.string.home_settings),
                     new ComponentName(ctx, HomeSettingsActivity.class), null,
                     ctx.getDrawable(R.drawable.ic_home_settings), null, 0));
         }
-        docked = 0;
-        while (docked < fresh.size() && favourites.contains(fresh.get(docked).pkg)) docked++;
-        emptySlots = DockSlots.empty(docked, dockSize, fresh.size(), fillDock);
-        for (int i = 0; i < emptySlots; i++) {
-            fresh.add(docked + i, new Entry(Entry.EMPTY, "", new ComponentName(ctx, "empty-dock-slot-" + i),
-                    null, null, null, 0));
+
+        List<Entry> fresh = new ArrayList<>();
+        docked1 = row1.size();
+        empty1 = DockSlots.empty(docked1, columns, docked1 + rest.size(), fillDock);
+        fresh.addAll(row1);
+        for (int i = 0; i < empty1; i++) {
+            fresh.add(emptySlot("r1-" + i));
         }
+        // fill_dock: pull first grid apps into remaining row-1 slots
+        if (fillDock && fresh.size() < columns) {
+            int need = columns - fresh.size();
+            for (int i = 0; i < need && !rest.isEmpty(); i++) {
+                fresh.add(rest.remove(0));
+                docked1++;
+            }
+        }
+        while (fresh.size() < columns) fresh.add(emptySlot("r1-pad-" + fresh.size()));
+
+        docked2 = row2.size();
+        empty2 = columns - docked2;
+        fresh.addAll(row2);
+        for (int i = 0; i < empty2; i++) {
+            fresh.add(emptySlot("r2-" + i));
+        }
+        fresh.addAll(rest);
+
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    private static List<Entry> resolvePinned(List<String> order, Map<String, Entry> byPkg) {
+        List<Entry> out = new ArrayList<>();
+        for (String pkg : order) {
+            Entry e = byPkg.get(pkg);
+            if (e != null) out.add(e);
+        }
+        return out;
+    }
+
+    private Entry emptySlot(String id) {
+        return new Entry(Entry.EMPTY, "", new ComponentName(ctx, "empty-dock-slot-" + id),
+                null, null, null, 0);
     }
 
     private Drawable loadBanner(PackageManager pm, ResolveInfo ri) {
@@ -255,7 +321,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         float density = parent.getResources().getDisplayMetrics().density;
         int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
         int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
-        int w = tileWidthPx(inner, dockSize, density), h = tileHeightPx(w);
+        int w = tileWidthPx(inner, columns, density), h = tileHeightPx(w);
         View card = v.findViewById(R.id.card);
         ViewGroup.LayoutParams cardLp = card.getLayoutParams();
         cardLp.width = w;
@@ -286,7 +352,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.card.setVisibility(View.VISIBLE);
         h.card.setFocusable(true);
         h.name.setText(e.name);
-        h.name.setVisibility(position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
+        // Dock rows use the top hero label; grid tiles show the name under the card.
+        h.name.setVisibility(inDock(position) ? View.INVISIBLE : View.VISIBLE);
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused && animations ? focusScale() : 1f);
@@ -310,18 +377,33 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
+            int pos = h.getBindingAdapterPosition();
+            if (listener != null && pos != RecyclerView.NO_POSITION) {
+                listener.onTileLongPress(pos, v);
+                return true;
             }
-            return true;
+            return false;
         });
+    }
+
+    Entry entryAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position) : null;
+    }
+
+    /** Open the system app-info screen for this package. */
+    void openAppInfo(String pkg) {
+        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            ctx.startActivity(i);
+        } catch (ActivityNotFoundException ignored) {
+        }
     }
 
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
     private void launch(Entry e) {
+        // Remote OK: speak “Open &lt;name&gt;” then start the app (voice does not block launch).
+        if (announcer != null) announcer.sayOpen(e.label);
         if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -373,14 +455,25 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         return -1;
     }
 
-    /** Dock slots that hold an app: the whole dock unless some slots are empty. */
-    int dockFilled() {
-        return emptySlots > 0 ? docked : dockSize;
+    /** Apps (not empties) on the dock row that contains {@code position}. */
+    int dockFilledInRow(int position) {
+        if (!inDock(position)) return columns;
+        if (position < columns) return empty1 > 0 ? docked1 : columns;
+        return empty2 > 0 ? docked2 : columns;
     }
 
-    /** A position focus can land on: an empty dock slot gives the last dock app. */
+    /** A position focus can land on: an empty dock slot gives the last app in that row. */
     int focusablePosition(int position) {
-        return DockSlots.focusable(position, docked, emptySlots);
+        if (!inDock(position)) return position;
+        if (position < columns) {
+            if (docked1 <= 0) return Math.min(dockSlots(), Math.max(0, getItemCount() - 1));
+            return DockSlots.focusable(position, docked1, empty1);
+        }
+        if (docked2 <= 0) {
+            return docked1 > 0 ? docked1 - 1 : Math.min(dockSlots(), Math.max(0, getItemCount() - 1));
+        }
+        int local = position - columns;
+        return columns + DockSlots.focusable(local, docked2, empty2);
     }
 
     String labelAt(int position) {

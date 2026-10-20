@@ -24,5 +24,16 @@
     <string name="menu_reload">Reload</string>
     <string name="menu_back">Back page</string>
     <string name="menu_forward">Forward</string>
-    <string name="hint_remote">Banner ←→ switch · OK open · Menu controls in browser</string>
+    <string name="hint_remote">Banner ←→ · OK open · Hold OK remove site · Add site button</string>
+    <string name="add_site">Add site</string>
+    <string name="add_site_title">Add website</string>
+    <string name="add_site_name_hint">Name (optional)</string>
+    <string name="add_site_url_hint">https://example.com</string>
+    <string name="add_site_ok">Add</string>
+    <string name="add_site_cancel">Cancel</string>
+    <string name="add_site_bad_url">Enter a valid http(s) URL</string>
+    <string name="add_site_failed">Could not add site</string>
+    <string name="remove_site">Remove site</string>
+    <string name="remove_site_confirm">Remove %1$s from Stream TV?</string>
+    <string name="site_removed">Removed</string>
 </resources>

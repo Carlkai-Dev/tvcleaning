@@ -13,24 +13,49 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/title"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/home_title"
-            android:textColor="@color/text_primary"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.02" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/subtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="@string/home_subtitle"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.02" />
+
+                <TextView
+                    android:id="@+id/subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/home_subtitle"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_add_site"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:background="@drawable/menu_btn_bg"
+                android:focusable="true"
+                android:minWidth="140dp"
+                android:text="@string/add_site"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary" />
+        </LinearLayout>
 
         <FrameLayout
             android:id="@+id/banner_frame"
@@ -43,7 +68,7 @@
             android:focusable="true"
             android:focusableInTouchMode="true"
             android:foreground="?android:attr/selectableItemBackground"
-            android:nextFocusDown="@id/tile_tbcpl"
+            android:nextFocusDown="@id/tile_rows"
             android:padding="3dp">
 
             <ViewFlipper
@@ -64,102 +89,21 @@
             android:gravity="center"
             android:orientation="horizontal" />
 
-        <LinearLayout
-            android:id="@+id/tile_rows"
+        <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1.0"
             android:layout_marginTop="12dp"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:fillViewport="true"
+            android:scrollbars="none">
 
             <LinearLayout
-                android:id="@+id/tile_row_1"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
+                android:id="@+id/tile_rows"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
                 android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <include
-                    android:id="@+id/tile_tbcpl"
-                    layout="@layout/item_site_tile"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="10dp"
-                    android:layout_marginBottom="6dp" />
-
-                <include
-                    android:id="@+id/tile_kartoons"
-                    layout="@layout/item_site_tile"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="10dp"
-                    android:layout_marginBottom="6dp" />
-
-                <include
-                    android:id="@+id/tile_nightflix"
-                    layout="@layout/item_site_tile"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="10dp"
-                    android:layout_marginBottom="6dp" />
-
-                <include
-                    android:id="@+id/tile_cinegram"
-                    layout="@layout/item_site_tile"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginBottom="6dp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/tile_row_2"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <include
-                    android:id="@+id/tile_cinejoy"
-                    layout="@layout/item_site_tile"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="10dp"
-                    android:layout_marginTop="6dp" />
-
-                <include
-                    android:id="@+id/tile_movy"
-                    layout="@layout/item_site_tile"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="10dp"
-                    android:layout_marginTop="6dp" />
-
-                <include
-                    android:id="@+id/tile_redflix"
-                    layout="@layout/item_site_tile"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="10dp"
-                    android:layout_marginTop="6dp" />
-
-                <!-- spacer so row-2 tiles match row-1 width -->
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:layout_marginTop="6dp" />
-            </LinearLayout>
-        </LinearLayout>
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
 
         <TextView
             android:layout_width="wrap_content"
