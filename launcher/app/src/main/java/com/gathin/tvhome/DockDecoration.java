@@ -17,14 +17,20 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
+    /** Extra room under the dock row, used by the row of connected inputs. */
+    private int extraBottom;
 
-    DockDecoration(int dockSize, float density) {
+    DockDecoration(int dockSize, float density, int bandColor, int edgeColor) {
         this.dockSize = dockSize;
         this.density = density;
-        band.setColor(0xFF141416);
+        band.setColor(bandColor);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
-        edge.setColor(0x1FFFFFFF);
+        edge.setColor(edgeColor);
+    }
+
+    void setExtraBottom(int px) {
+        extraBottom = px;
     }
 
     @Override
@@ -33,7 +39,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         int pos = parent.getChildAdapterPosition(view);
         if (pos >= 0 && pos < dockSize) {
             outRect.top = (int) (6 * density);
-            outRect.bottom = (int) (12 * density);
+            outRect.bottom = (int) (12 * density) + extraBottom;
         }
     }
 

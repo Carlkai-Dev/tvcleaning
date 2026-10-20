@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * Module cards (docs/specs/card.md): an installed app can declare a card for its tile, with its own
+ * Module cards (CARDS.md): an installed app can declare a card for its tile, with its own
  * label, caption and glow colour. Nothing is shown until the TV owner says so on the prompt; the
  * decision is pinned to the app's signing certificate in the launcher's private storage.
  *
@@ -49,7 +49,7 @@ import java.util.TreeMap;
  */
 final class Cards {
 
-    /** One place for the names a module declares; see docs/specs/card.md. */
+    /** One place for the names a module declares; see CARDS.md. */
     static final String CATEGORY = "com.gathin.tvhome.category.DOCK_CARD";
     static final String META_DATA = "com.gathin.tvhome.card";
     static final int SPEC_SUPPORTED = 1;
@@ -337,7 +337,7 @@ final class Cards {
     /** The launcher's own UI names in the TV's language, folded. */
     private static Set<String> uiNames(Resources res) {
         int[] ids = {R.string.app_name, R.string.settings, R.string.inputs, R.string.choose_input, R.string.wifi,
-                R.string.live_tv, R.string.home_settings, R.string.app_library, R.string.dream_name};
+                R.string.live_tv, R.string.home_settings, R.string.dream_name};
         Set<String> out = new HashSet<>();
         for (int id : ids) out.add(fold(res.getString(id)));
         return out;
