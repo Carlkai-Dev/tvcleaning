@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.*;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import rikka.shizuku.Shizuku;
@@ -42,7 +43,18 @@ final class CpuSettings implements AutoCloseable {
         } catch (RuntimeException e) { Toast.makeText(activity, R.string.cpu_setup_help, Toast.LENGTH_LONG).show(); }
         refresh();
     }
+    private boolean shizukuInstalled() {
+        try {
+            activity.getPackageManager().getPackageInfo("moe.shizuku.privileged.api", 0);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
     void refresh() {
+        boolean installed = shizukuInstalled();
+        activity.findViewById(R.id.cpuSettingsGroup).setVisibility(installed ? View.VISIBLE : View.GONE);
+        if (!installed) return;
         toggle.setText(activity.getString(R.string.cpu_access_state,
                 activity.getString(ShizukuCpu.enabled(activity) ? R.string.on : R.string.off)));
         ((TextView) activity.findViewById(R.id.cpuAuthorizeChoice)).setText(ShizukuCpu.authorized()
