@@ -222,7 +222,7 @@ public class SettingsActivity extends Activity {
         row(R.string.language_setting, R.string.language_sub, languageLabel(), this::chooseLanguage);
         row(R.string.appearance_setting, R.string.appearance_sub, modeLabel(UiMode.mode(this)), this::chooseAppearance);
         row(R.string.columns, R.string.columns_sub, String.valueOf(cfg.columns), () -> chooseNumber(
-                getString(R.string.columns), Prefs.COLUMNS, 3, 8, cfg.columns));
+                getString(R.string.columns), Prefs.COLUMNS, 4, 8, cfg.columns));
         toggle(R.string.inputs_row_setting, R.string.inputs_row_sub, Prefs.INPUTS_ROW, cfg.showInputsRow);
         toggle(R.string.featured_setting, R.string.featured_sub, Prefs.FEATURED, cfg.showFeatured);
         if (cfg.showFeatured) {

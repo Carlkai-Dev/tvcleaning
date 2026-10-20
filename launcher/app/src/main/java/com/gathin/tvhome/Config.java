@@ -126,7 +126,7 @@ final class Config {
             panelService = string(json, "source_panel_service", panelService);
             panelAction = string(json, "source_panel_action", panelAction);
             inputAction = string(json, "input_action", inputAction);
-            columns = integer(json, "columns", columns, 1, 8);
+            columns = integer(json, "columns", columns, 4, 8);
             rowsBelow = integer(json, "rows_below_dock", rowsBelow, 0, 3);
             moduleCards = bool(json, "module_cards", moduleCards);
             vpn = string(json, "vpn_app", vpn);
@@ -153,7 +153,7 @@ final class Config {
         if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
 
         return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
-                Math.max(1, columns), Math.max(0, rowsBelow), moduleCards, vpn, homeSettings, background,
+                Math.max(4, Math.min(8, columns)), Math.max(0, rowsBelow), moduleCards, vpn, homeSettings, background,
                 sortMode, manualOrder, inputsRow, featured, dockColor,
                 wallpaper, applied);
     }
