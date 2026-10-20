@@ -58,8 +58,9 @@ public final class FireTvHomeService extends AccessibilityService {
     /** Match only declared HOME activities, never every window from the configured package. */
     private static String[] homeClasses(Context context, String pkg) {
         List<String> classes = new ArrayList<>();
+        // HOME filters need not declare CATEGORY_DEFAULT. Keep package/export checks explicit.
         for (ResolveInfo info : context.getPackageManager().queryIntentActivities(
-                stockHome(pkg), PackageManager.MATCH_DEFAULT_ONLY)) {
+                stockHome(pkg), 0)) {
             if (info.activityInfo != null && info.activityInfo.enabled && info.activityInfo.exported
                     && pkg.equals(info.activityInfo.packageName)) {
                 classes.add(info.activityInfo.name);
