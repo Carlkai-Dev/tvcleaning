@@ -1,37 +1,41 @@
-# ==============================================================================
-# OnePlus Y1 43" (Model: Y Series, Device: shibuya, Android 11, Build: RTO9.231122.002)
-# Debloat Package List tailored to user preferences.
+# OnePlus TV (Y Series 43", codename shibuya), Android TV 11, firmware RTO9.231122.002
+# Live TV app: com.mediatek.wwtv.tvcenter. Stock launcher: com.google.android.tvlauncher.
 #
-# Packages are disabled for user 0 (pm disable-user --user 0), never uninstalled.
-# Undo with: TV_HOST=192.168.1.82 tools/restore.sh examples/oneplus-tv-y1/debloat.txt
-# ==============================================================================
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/oneplus-tv-y1/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/oneplus-tv-y1/debloat.txt
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Kept on purpose: Google Assistant (com.google.android.katniss), Chromecast
+# (com.google.android.apps.mediashell), Google Play Services, Bluetooth Remote &
+# Gboard (LatinIME). Live TV tuner uses com.mediatek.wwtv.tvcenter.
+# For quick one-command restore on this model, run: examples/oneplus-tv-y1/restore.sh
 
-# --- Manufacturer Telemetry & Analytics ---
-com.google.android.feedback
-android.autoinstalls.config.skyworth
+# Manufacturer Telemetry & Analytics
+com.google.android.feedback               # User feedback agent
+android.autoinstalls.config.skyworth      # Skyworth OEM partner configuration
 
-# --- Ad Services & Recommendation Rows ---
-com.google.android.leanbacklauncher.partnercustomizer
-com.google.android.tvrecommendations
+# Ad Services & Recommendation Rows
+com.google.android.leanbacklauncher.partnercustomizer # Sponsored leanback partner channels
+com.google.android.tvrecommendations      # Home screen recommendation ad service
 
-# --- Retail Demos & Factory Testing Tools ---
-com.smartdevice.common.demonow
-fusion.android.tv.demo
-com.coocaa.factory
-com.mediatek.testpq
-com.mediatek.tv.factory
-com.airoha.ble.ota
+# Retail Demos & Factory Testing Tools
+com.smartdevice.common.demonow            # In-store retail demo
+fusion.android.tv.demo                    # Fusion TV demo app
+com.coocaa.factory                        # Coocaa factory test suite
+com.mediatek.testpq                       # MediaTek picture quality test tool
+com.mediatek.tv.factory                   # MediaTek TV factory diagnostics
+com.airoha.ble.ota                        # Airoha Bluetooth OTA updater
 
-# --- Redundant Background Bloat ---
-com.Smartdevice.emanual
-com.mstar.android.tv.disclaimercustomization
-com.google.android.syncadapters.calendar
-com.android.providers.calendar
-com.google.android.boot.appsplashscreen
+# Redundant Background Bloat
+com.Smartdevice.emanual                   # Built-in electronic user manual
+com.mstar.android.tv.disclaimercustomization # MStar disclaimer splash screen
+com.google.android.syncadapters.calendar  # Background calendar synchronization
+com.android.providers.calendar            # Calendar content provider
+com.google.android.boot.appsplashscreen   # Boot splash screen animator
 
-# --- Unused Preloaded / Streaming Apps (Confirmed by User) ---
-com.vodafone.vodafoneplay
-com.viacom18.tv.voot
-com.jio.media.stb.ondemand
-com.google.android.play.games
-com.google.android.videos
+# Preloaded / Unused Streaming Apps (User Confirmed)
+com.vodafone.vodafoneplay                 # Vodafone Play
+com.viacom18.tv.voot                      # Voot TV
+com.jio.media.stb.ondemand                # JioCinema / Jio TV
+com.google.android.play.games             # Google Play Games
+com.google.android.videos                 # Google TV / Play Movies

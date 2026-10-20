@@ -81,7 +81,11 @@ DISCRETIONARY = {
 def load_installed_packages(path="backup/packages_all.txt"):
     pkgs = set()
     if not os.path.exists(path):
-        return pkgs
+        alt = os.path.join(os.path.dirname(__file__), "..", "..", "backup", "packages_all.txt")
+        if os.path.exists(alt):
+            path = alt
+        else:
+            return pkgs
     with open(path) as f:
         for line in f:
             line = line.strip()

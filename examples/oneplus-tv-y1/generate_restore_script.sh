@@ -3,16 +3,16 @@
 # Generate dynamic restore script from a specific debloat file or disabled list
 # ==============================================================================
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 DEBLOAT_LIST="${1:-examples/oneplus-tv-y1/debloat.txt}"
-OUTPUT_SCRIPT="${2:-tools/restore_oneplus_y1.sh}"
+OUTPUT_SCRIPT="${2:-examples/oneplus-tv-y1/restore.sh}"
 
 echo "[+] Generating customized restore script: $OUTPUT_SCRIPT from $DEBLOAT_LIST..."
 cat << 'EOF' > "$OUTPUT_SCRIPT"
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 TV_HOST="${TV_HOST:-192.168.1.82}"
 PY=tools/venv/bin/python
 [ -x "$PY" ] || PY=python3

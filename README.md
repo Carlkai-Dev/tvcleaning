@@ -129,6 +129,9 @@ tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt        # undo it and resto
 | [`tools/tv.py`](tools/tv.py) | A pure-Python ADB client: shell, batch, push, pull. Works where the stock `adb` binary is blocked. |
 | [`tools/b64push.py`](tools/b64push.py) | Uploads larger files such as APKs as base64 chunks and verifies the checksum. |
 | [`tools/disable.sh`](tools/disable.sh) / [`tools/restore.sh`](tools/restore.sh) | Apply or undo a debloat list. PowerShell versions sit next to them. |
+| [`tools/backup.sh`](tools/backup.sh) | Exports full package inventory, disabled packages, getprop, and settings tables to `backup/`. |
+| [`tools/screenshot.sh`](tools/screenshot.sh) | Captures TV screenshots or runs the verification suite (Home, App Grid, Inputs). |
+| [`tools/check_debloat.sh`](tools/check_debloat.sh) | Validates and lints a model's debloat profile against contribution standards. |
 
 ### Windows
 
@@ -170,7 +173,7 @@ tools/venv/bin/python tools/tv.py 'pm enable <package.name>'
 ```
 To restore all packages on OnePlus Y1 and switch back to the stock launcher:
 ```bash
-./tools/restore_oneplus_y1.sh
+examples/oneplus-tv-y1/restore.sh
 ```
 
 **Build and install** with one command:
@@ -184,6 +187,12 @@ It needs JDK 17 and the Android SDK (platform 34, build-tools 34.0.0). On macOS:
 ```bash
 brew install openjdk@17 android-commandlinetools
 sdkmanager "platforms;android-34" "build-tools;34.0.0"
+```
+
+On Linux (Ubuntu / Debian / WSL), run:
+
+```bash
+sudo launcher/setup-linux.sh
 ```
 
 Without Homebrew, the script also finds a JDK 17 known to `/usr/libexec/java_home` and an SDK in

@@ -1,12 +1,18 @@
+# Python bytecode caches
+*.pyc
+__pycache__/
+**/__pycache__/
+
 tools/venv/
 tools/adbkey/
-tools/__pycache__/
 launcher/.gradle/
 launcher/build/
 launcher/app/build/
 launcher/local.properties
 # your own TV's dumps (serial, android_id, device names) stay local
 backup/
+# local UI screenshot capture sessions (reference images go in examples/<model>/)
+screenshots/
 .DS_Store
 
 # Beads / Dolt files (added by bd init)
