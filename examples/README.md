@@ -116,6 +116,7 @@ on that firmware, grouped and commented. These are starting points: comment out 
 Notes for models that have no tested list yet live in [`docs/devices/`](../docs/devices/):
 
 - [TCL `75c63b`](../docs/devices/tcl-75c63b.md), owner-reported retail model, `Smart TV Pro` / `BeyondTV4`, Android 11, `V8-R51MT05-LF1V652`: launcher-only installation, HOME priorities and component restrictions, correct Live TV player package, restoration and explicit test limits.
+- [TCL `85C755` / G08 / V643](../docs/devices/tcl-85c755-g08-v643.md), Android 14, `V8-T653T01-LF1V643`: preservation-only testing, HOME-role/resolver mismatch, exact Live TV component, and accessibility/TclAppBoot reboot caveats. No tested package-disable list.
 - [Xiaomi MiTV-MFTR0 "freeguy"](../docs/devices/xiaomi-mitv-mftr0-freeguy.txt), China, Android 14: inputs, Xiaomi settings intents, app discovery.
 
 Notes for a model that has no tested list yet live in [`docs/devices/`](../docs/devices/) (Xiaomi MiTV-MFTR0 "freeguy", China, Android 14: inputs, Xiaomi settings intents, app discovery).
