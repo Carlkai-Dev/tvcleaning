@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.accessibilityservice.AccessibilityService;
 import android.content.Intent;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 
@@ -10,28 +11,26 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * Sends the remote's Home button to this launcher on remotes that emit KEYCODE_ALL_APPS for Home
- * (Xiaomi sticks and boxes). Android TV 9 routes that key only to the system-image launcher, so once
- * the stock launcher is disabled the button does nothing. Every other key passes through untouched.
- *
- * Enable over adb:
- *   settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService
- *   settings put secure accessibility_enabled 1
+ * High-performance remote key and window manager for Fire TV:
+ * Intercepts KEYCODE_HOME and window state changes to eliminate the stock home screen delay.
  */
 public class HomeKeyService extends AccessibilityService {
 
-    /** Remote buttons that should open Settings (config.xml, settings_key_scancodes and settings_key_keycodes). */
+    private static final String TAG = "HomeKeyService";
+    private static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
+    private static final String AMAZON_HOMESTARTER = "com.amazon.firehomestarter";
+
     private int[] settingsScancodes = new int[0];
     private int[] settingsKeycodes = new int[0];
     private boolean settingsPanel;
-    /** app_keys, the same map InputKeyService reads, for setups that run only this service. */
     private Map<Integer, String> appKeys = Collections.emptyMap();
+
+    private long lastLaunchTime = 0;
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         settingsScancodes = getResources().getIntArray(R.array.settings_key_scancodes);
-        // Keycodes and the panel choice can also come from a theme; theme.sh restarts this service.
         Config config = Config.load(this);
         settingsKeycodes = config.settingsKeycodes;
         settingsPanel = config.settingsKeyPanel;
@@ -45,9 +44,36 @@ public class HomeKeyService extends AccessibilityService {
         return false;
     }
 
+    private void launchCleanYourTV() {
+        long now = System.currentTimeMillis();
+        if (now - lastLaunchTime > 120) {
+            lastLaunchTime = now;
+            Intent home = new Intent(this, MainActivity.class);
+            home.setAction(Intent.ACTION_MAIN);
+            home.addCategory(Intent.CATEGORY_HOME);
+            home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+            try {
+                startActivity(home);
+            } catch (Exception e) {
+                Log.w(TAG, "startActivity failed", e);
+            }
+        }
+    }
+
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
-        // The stock launcher handled the remote's Settings button; with it disabled the button does nothing.
+        int keyCode = event.getKeyCode();
+
+        // Fast key-level interception
+        if (keyCode == KeyEvent.KEYCODE_HOME || keyCode == KeyEvent.KEYCODE_ALL_APPS) {
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+                launchCleanYourTV();
+            }
+            return true;
+        }
+
         if (isSettingsKey(event)) {
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
                 Intent open = settingsPanel ? new Intent(this, QuickSettingsActivity.class)
@@ -56,24 +82,27 @@ public class HomeKeyService extends AccessibilityService {
             }
             return true;
         }
-        String app = appKeys.get(event.getKeyCode());
+
+        String app = appKeys.get(keyCode);
         if (app != null) {
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) RemoteKeys.launch(this, app);
             return true;
         }
-        if (event.getKeyCode() != KeyEvent.KEYCODE_ALL_APPS) return false;
-        if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-            Intent home = new Intent(Intent.ACTION_MAIN)
-                    .addCategory(Intent.CATEGORY_HOME)
-                    .setPackage(getPackageName())
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-            startActivity(home);
-        }
-        return true;
+
+        return false;
     }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            CharSequence pkgSeq = event.getPackageName();
+            if (pkgSeq != null) {
+                String pkg = pkgSeq.toString();
+                if (pkg.equals(AMAZON_LAUNCHER) || pkg.equals(AMAZON_HOMESTARTER)) {
+                    launchCleanYourTV();
+                }
+            }
+        }
     }
 
     @Override

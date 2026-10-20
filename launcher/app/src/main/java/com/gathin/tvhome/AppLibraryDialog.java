@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
@@ -369,6 +371,39 @@ final class AppLibraryDialog {
         boolean home = onHome.test(pkg);
         addAction(rows, home ? R.string.library_remove_shortcut : R.string.library_add_home,
                 () -> changeHome(app, !home));
+        boolean isSystemApp = false;
+        try {
+            ApplicationInfo ai = activity.getPackageManager().getApplicationInfo(pkg, 0);
+            isSystemApp = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0
+                    && (ai.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0;
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
+        if (!isSystemApp) {
+            addAction(rows, R.string.uninstall_app, () -> {
+                close();
+                try {
+                    Intent uninstall = new Intent(Intent.ACTION_UNINSTALL_PACKAGE);
+                    uninstall.setData(Uri.parse("package:" + pkg));
+                    uninstall.putExtra(Intent.EXTRA_RETURN_RESULT, true);
+                    uninstall.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    activity.startActivity(uninstall);
+                } catch (Exception ex) {
+                    try {
+                        Intent del = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + pkg));
+                        del.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        activity.startActivity(del);
+                    } catch (Exception ex2) {
+                        try {
+                            Intent details = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg));
+                            details.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            activity.startActivity(details);
+                        } catch (Exception ex3) {
+                            Toast.makeText(activity, R.string.not_available, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+            });
+        }
         addAction(rows, R.string.library_app_info, () -> {
             close();
             try {
@@ -507,6 +542,12 @@ final class AppLibraryDialog {
                 }
             });
             holder.itemView.setOnKeyListener((v, key, event) -> {
+                if (key == KeyEvent.KEYCODE_MENU) {
+                    if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+                        showActions(app, v);
+                    }
+                    return true;
+                }
                 int index = holder.getBindingAdapterPosition();
                 return event.getAction() == KeyEvent.ACTION_DOWN && (key == KeyEvent.KEYCODE_DPAD_UP
                         || key == KeyEvent.KEYCODE_DPAD_DOWN

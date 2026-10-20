@@ -11,6 +11,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.graphics.Typeface;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
+import android.widget.EditText;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -102,7 +109,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private WallpaperPlayer wallpaperPlayer;
     private GlassView glass;
     private View ambient;
+    private View heroLayout;
     private TextView heroName;
+    private TextView heroBadge;
+    private TextView heroSubtitle;
     private int ambientColor = -1;
     private ValueAnimator ambientAnimator;
     private boolean heroShown;
@@ -111,6 +121,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView greeting;
     private View btnInputs;
     private TextView btnWifi;
+    private TextView catAll, catMovies, catSports, catMedia, catTools;
+    private TextView activeCategoryView;
     private TextView shamsiDate;
     private TextView stats;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
@@ -235,6 +247,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateWifiLabel();
+            updateRamLabel();
             sky.update();
             wallpaperPlayer.update();
             handler.postDelayed(this, MINUTE_MS);
@@ -274,9 +287,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
+        heroLayout = findViewById(R.id.heroLayout);
         heroName = findViewById(R.id.heroName);
-        // dock_title false: the name above the dock never shows; the glow still follows the dock.
-        if (!cfg.dockTitle) heroName.setVisibility(View.GONE);
+        heroBadge = findViewById(R.id.heroBadge);
+        heroSubtitle = findViewById(R.id.heroSubtitle);
+        // aurora view removed
+        if (!cfg.dockTitle && heroLayout != null) heroLayout.setVisibility(View.GONE);
         greeting = findViewById(R.id.greeting);
         greetingColor = greeting.getCurrentTextColor();
         btnWifi = findViewById(R.id.btnWifi);
@@ -433,7 +449,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> showTvDashboardMenu());
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
@@ -539,14 +555,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
         promptsPaused = false;
-        if (rebuildOnResume) {
+        if (rebuildOnResume || adapter.getItemCount() == 0) {
             tilesReady = false;
             reloadApps(true);
         }
         rebuildOnResume = false;
         updateGreeting();
         updateWifiLabel();
+        updateRamLabel();
         updateInputsButton();
+        // aurora inactive
         if (showStats) startStats();
         sky.update();
         wallpaperPlayer.start();
@@ -641,6 +659,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        // aurora inactive
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
         stopAmbientAnimation();
@@ -718,6 +737,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (handleSettingsKey(event)) return true;
+        if (event.getKeyCode() == KeyEvent.KEYCODE_SEARCH) {
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+                showSearchDialog();
+            }
+            return true;
+        }
+        if (event.getKeyCode() == KeyEvent.KEYCODE_MENU) {
+            if (openPopup != null) {
+                if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+                    openPopup.dismiss();
+                }
+                return true;
+            }
+            int pos = focusedTilePosition();
+            if (pos >= 0) {
+                if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+                    onTileMenu(pos, getCurrentFocus());
+                }
+                return true;
+            }
+        }
         if (!reordering) return super.dispatchKeyEvent(event);
         if (dockEditing) return dispatchDockEdit(event);
         boolean down = event.getAction() == KeyEvent.ACTION_DOWN;
@@ -893,12 +933,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         List<String> before = orderAtStart;
         orderAtStart = null;
         if (!keys.equals(before)) {
-            Order order = new Order(Order.dockKey(dockApps), keys);
-            if (Order.save(Order.file(this), order)) {
-                adapter.setSavedOrder(Order.ranks(order, dockApps));
-            } else {
-                Toast.makeText(this, R.string.reorder_not_saved, Toast.LENGTH_SHORT).show();
-            }
+            saveOrder();
         }
         if (fillDockLeavesSlots) reloadTiles();   // the empty dock slots left out while reordering come back
     }
@@ -987,6 +1022,604 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         appLibrary.show();
     }
 
+    private void setupCategoryPill(TextView pill, int category) {
+        if (pill == null) return;
+        pill.setOnClickListener(v -> {
+            if (activeCategoryView != null) activeCategoryView.setActivated(false);
+            pill.setActivated(true);
+            activeCategoryView = pill;
+            adapter.setCategoryFilter(category);
+        });
+    }
+
+    private void updateRamLabel() {}
+
+    private void showRamDetailsDialog() {
+        if (openPopup != null) openPopup.dismiss();
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        TextView header = new TextView(this);
+        header.setText("⚡ TV Performance & Memory");
+        header.setTextSize(16f);
+        header.setTextColor(0xFFFFFFFF);
+        header.setTypeface(null, Typeface.BOLD);
+        header.setPadding((int) (16 * density), (int) (12 * density), (int) (16 * density), (int) (8 * density));
+        header.setFocusable(false);
+        rows.addView(header);
+
+        PopupWindow popup = glassPopup(panel, (int) (280 * density));
+
+        int freePercent = SmartRamOptimizer.getFreeRamPercent(this);
+        long freeMb = SmartRamOptimizer.getFreeRamMb(this);
+
+        addTileMenuRow(rows, popup, "Free RAM: " + freeMb + " MB (" + freePercent + "% free)", () -> {});
+        addTileMenuRow(rows, popup, "🚀 Boost & Clean Memory Now", () -> {
+            SmartRamOptimizer.Result res = SmartRamOptimizer.optimize(this);
+            updateRamLabel();
+            Toast.makeText(this, "⚡ Freed " + res.freedMb + " MB RAM! Now " + res.newPercentFree + "% free (" + res.newAvailMb + " MB)", Toast.LENGTH_SHORT).show();
+        });
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (280 * density), panel.getMeasuredWidth()));
+
+        panel.setAlpha(0f);
+        panel.setScaleX(0.92f);
+        panel.setScaleY(0.92f);
+        popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(200)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+
+        if (rows.getChildCount() > 2) rows.getChildAt(2).requestFocus();
+    }
+
+    private void showSearchDialog() {
+        if (openPopup != null) openPopup.dismiss();
+        View panel = getLayoutInflater().inflate(R.layout.dialog_search, root, false);
+        EditText searchQuery = panel.findViewById(R.id.searchQuery);
+        TextView searchCount = panel.findViewById(R.id.searchCount);
+        RecyclerView searchResults = panel.findViewById(R.id.searchResults);
+        View btnClear = panel.findViewById(R.id.btnClear);
+
+        List<AppAdapter.Entry> allApps = adapter.getAllAppEntries();
+        List<AppAdapter.Entry> displayed = new ArrayList<>(allApps);
+
+        PopupWindow popup = glassPopup(panel, (int) (520 * density));
+        searchResults.setLayoutManager(new LinearLayoutManager(this));
+
+        SearchAdapter searchAdapter = new SearchAdapter(displayed, entry -> {
+            popup.dismiss();
+            SmartUsageManager.getInstance(this).recordLaunch(entry.pkg);
+            RemoteKeys.launch(this, entry.pkg);
+        });
+        searchResults.setAdapter(searchAdapter);
+        searchCount.setText(displayed.size() + " apps installed");
+
+        searchQuery.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String q = s.toString().trim().toLowerCase(Locale.US);
+                displayed.clear();
+                if (q.isEmpty()) {
+                    displayed.addAll(allApps);
+                    btnClear.setVisibility(View.GONE);
+                } else {
+                    btnClear.setVisibility(View.VISIBLE);
+                    for (AppAdapter.Entry e : allApps) {
+                        if (e.label.toLowerCase(Locale.US).contains(q) || e.pkg.toLowerCase(Locale.US).contains(q)) {
+                            displayed.add(e);
+                        }
+                    }
+                }
+                searchAdapter.notifyDataSetChanged();
+                searchCount.setText(displayed.size() + (displayed.size() == 1 ? " match found" : " matches found"));
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        });
+
+        btnClear.setOnClickListener(v -> searchQuery.setText(""));
+
+        panel.setAlpha(0f);
+        panel.setScaleX(0.94f);
+        panel.setScaleY(0.94f);
+        popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(220)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+
+        searchQuery.requestFocus();
+    }
+
+    static class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.Holder> {
+        interface Listener { void onAppSelected(AppAdapter.Entry e); }
+        private final List<AppAdapter.Entry> items;
+        private final Listener listener;
+
+        SearchAdapter(List<AppAdapter.Entry> items, Listener listener) {
+            this.items = items;
+            this.listener = listener;
+        }
+
+        static class Holder extends RecyclerView.ViewHolder {
+            final ImageView icon;
+            final TextView title;
+            final TextView status;
+            Holder(View v) {
+                super(v);
+                icon = v.findViewById(R.id.icon);
+                title = v.findViewById(R.id.title);
+                status = v.findViewById(R.id.status);
+                v.findViewById(R.id.dot).setVisibility(View.GONE);
+            }
+        }
+
+        @NonNull @Override
+        public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_input, parent, false);
+            return new Holder(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull Holder h, int position) {
+            AppAdapter.Entry e = items.get(position);
+            h.title.setText(e.label);
+            h.icon.setImageDrawable(e.icon != null ? e.icon : e.banner);
+            h.icon.setVisibility(View.VISIBLE);
+            h.icon.setImageTintList(null);
+            int count = SmartUsageManager.getInstance(h.itemView.getContext()).getLaunchCount(e.pkg);
+            h.status.setText(count > 0 ? count + " launches" : "App");
+            h.status.setVisibility(View.VISIBLE);
+            h.itemView.setOnClickListener(v -> listener.onAppSelected(e));
+        }
+
+        @Override public int getItemCount() { return items.size(); }
+    }
+
+
+    private void uninstallPackage(String pkg) {
+        try {
+            Intent uninstall = new Intent(Intent.ACTION_UNINSTALL_PACKAGE);
+            uninstall.setData(Uri.parse("package:" + pkg));
+            uninstall.putExtra(Intent.EXTRA_RETURN_RESULT, true);
+            uninstall.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(uninstall);
+        } catch (Exception e1) {
+            try {
+                Intent delete = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + pkg));
+                delete.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(delete);
+            } catch (Exception e2) {
+                try {
+                    Intent details = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg));
+                    details.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(details);
+                } catch (Exception e3) {
+                    Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    private void showTvDashboardMenu() {
+        if (openPopup != null) openPopup.dismiss();
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        TextView header = new TextView(this);
+        header.setText("✨ TV Settings & Dashboard");
+        header.setTextSize(16f);
+        header.setTextColor(0xFFFFFFFF);
+        header.setTypeface(null, Typeface.BOLD);
+        header.setPadding((int) (16 * density), (int) (12 * density), (int) (16 * density), (int) (6 * density));
+        header.setFocusable(false);
+        rows.addView(header);
+
+        PopupWindow popup = glassPopup(panel, (int) (270 * density));
+
+        addTileMenuRow(rows, popup, "🎨 Backdrop & Wallpapers", this::showBackdropSettingsDialog);
+
+        int freePercent = SmartRamOptimizer.getFreeRamPercent(this);
+        addTileMenuRow(rows, popup, "⚡ Boost RAM (" + freePercent + "% free)", () -> {
+            SmartRamOptimizer.Result res = SmartRamOptimizer.optimize(this);
+            Toast.makeText(this, "⚡ Freed " + res.freedMb + " MB RAM! Now " + res.newPercentFree + "% Free", Toast.LENGTH_SHORT).show();
+        });
+
+        int remaining = SleepTimerManager.getInstance(this).getRemainingMinutes();
+        String sleepStr = remaining > 0 ? "🌙 Sleep Timer (" + remaining + "m left)" : "🌙 Sleep Timer";
+        addTileMenuRow(rows, popup, sleepStr, this::showSleepTimerPicker);
+
+        addTileMenuRow(rows, popup, "🔍 Search Apps", this::showSearchDialog);
+
+        addTileMenuRow(rows, popup, "⚙️ Fire TV Settings", () -> open(systemIntent(Settings.ACTION_SETTINGS)));
+
+        addTileMenuRow(rows, popup, "🛠️ Launcher Preferences", () -> startActivityForResult(
+                new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
+
+        addTileMenuRow(rows, popup, "📱 Reorder Apps", this::toggleReorder);
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (270 * density), panel.getMeasuredWidth()));
+
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.START : Gravity.END);
+        if (rows.getChildCount() > 1) {
+            rows.getChildAt(1).requestFocus();
+        }
+    }
+
+    private void showBackdropSettingsDialog() {
+        if (openPopup != null) openPopup.dismiss();
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        BackdropThemeManager btm = BackdropThemeManager.getInstance(this);
+        String currentMode = btm.getMode();
+        boolean isWallpaper = BackdropThemeManager.MODE_WALLPAPER.equals(currentMode);
+
+        TextView header = new TextView(this);
+        header.setText("🎨 Backdrop Theme & Style");
+        header.setTextSize(16f);
+        header.setTextColor(0xFFFFFFFF);
+        header.setTypeface(null, Typeface.BOLD);
+        header.setPadding((int) (16 * density), (int) (12 * density), (int) (16 * density), (int) (6 * density));
+        header.setFocusable(false);
+        rows.addView(header);
+
+        PopupWindow popup = glassPopup(panel, (int) (310 * density));
+
+        // Switcher button between Gradient and Wallpaper
+        String modeSwitchText = isWallpaper ? "🔄 Switch to: 🌈 Gradient Mode" : "🔄 Switch to: 🖼️ Wallpaper Mode";
+        addTileMenuRow(rows, popup, modeSwitchText, () -> {
+            String newMode = isWallpaper ? BackdropThemeManager.MODE_GRADIENT : BackdropThemeManager.MODE_WALLPAPER;
+            btm.setMode(newMode);
+            setAmbient(ambientColor);
+            Toast.makeText(this, "Switched to " + (isWallpaper ? "Gradient Mode" : "Wallpaper Mode"), Toast.LENGTH_SHORT).show();
+            root.post(this::showBackdropSettingsDialog);
+        });
+
+        if (!isWallpaper) {
+            TextView section = new TextView(this);
+            section.setText("Select Gradient Preset:");
+            section.setTextSize(12f);
+            section.setTextColor(0xB36EC1FF);
+            section.setPadding((int) (16 * density), (int) (8 * density), (int) (16 * density), (int) (4 * density));
+            section.setFocusable(false);
+            rows.addView(section);
+
+            String curGrad = btm.getGradientPreset();
+            addGradientRow(rows, popup, btm, "Midnight Ruby (Default / Screenshot 1)", BackdropThemeManager.GRAD_RUBY, curGrad);
+            addGradientRow(rows, popup, btm, "Dynamic App Bloom (Auto-match)", BackdropThemeManager.GRAD_DYNAMIC, curGrad);
+            addGradientRow(rows, popup, btm, "Aurora Sapphire (Cosmic Blue)", BackdropThemeManager.GRAD_SAPPHIRE, curGrad);
+            addGradientRow(rows, popup, btm, "Cyber Emerald (Dark Green)", BackdropThemeManager.GRAD_EMERALD, curGrad);
+            addGradientRow(rows, popup, btm, "Royal Amethyst (Imperial Purple)", BackdropThemeManager.GRAD_AMETHYST, curGrad);
+            addGradientRow(rows, popup, btm, "Sunset Ember (Warm Orange)", BackdropThemeManager.GRAD_AMBER, curGrad);
+            addGradientRow(rows, popup, btm, "OLED Pure Black (Zero Glow)", BackdropThemeManager.GRAD_OLED, curGrad);
+        } else {
+            TextView section = new TextView(this);
+            section.setText("Select 4K TV Wallpaper:");
+            section.setTextSize(12f);
+            section.setTextColor(0xB36EC1FF);
+            section.setPadding((int) (16 * density), (int) (8 * density), (int) (16 * density), (int) (4 * density));
+            section.setFocusable(false);
+            rows.addView(section);
+
+            String curWall = btm.getWallpaperPreset();
+            addWallpaperRow(rows, popup, btm, "Cosmic Deep Space", BackdropThemeManager.WALL_SPACE, curWall);
+            addWallpaperRow(rows, popup, btm, "Minimalist Dark Peaks", BackdropThemeManager.WALL_PEAKS, curWall);
+            addWallpaperRow(rows, popup, btm, "Obsidian Abstract Waves", BackdropThemeManager.WALL_OBSIDIAN, curWall);
+            addWallpaperRow(rows, popup, btm, "Nordic Aurora Borealis", BackdropThemeManager.WALL_AURORA, curWall);
+        }
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (310 * density), panel.getMeasuredWidth()));
+
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.START : Gravity.END);
+        if (rows.getChildCount() > 1) {
+            rows.getChildAt(1).requestFocus();
+        }
+    }
+
+    private void addGradientRow(LinearLayout rows, PopupWindow popup, BackdropThemeManager btm, String title, String preset, String curGrad) {
+        String prefix = preset.equals(curGrad) ? "✓  " : "    ";
+        addTileMenuRow(rows, popup, prefix + title, () -> {
+            btm.setMode(BackdropThemeManager.MODE_GRADIENT);
+            btm.setGradientPreset(preset);
+            setAmbient(ambientColor);
+            Toast.makeText(this, "Gradient applied: " + title, Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void addWallpaperRow(LinearLayout rows, PopupWindow popup, BackdropThemeManager btm, String title, String preset, String curWall) {
+        String prefix = preset.equals(curWall) ? "✓  " : "    ";
+        addTileMenuRow(rows, popup, prefix + title, () -> {
+            btm.setMode(BackdropThemeManager.MODE_WALLPAPER);
+            btm.setWallpaperPreset(preset);
+            setAmbient(ambientColor);
+            Toast.makeText(this, "Wallpaper applied: " + title, Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void showSleepTimerPicker() {
+        if (openPopup != null) openPopup.dismiss();
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        TextView header = new TextView(this);
+        header.setText("🌙 Sleep Timer");
+        header.setTextSize(16f);
+        header.setTextColor(0xFFFFFFFF);
+        header.setTypeface(null, Typeface.BOLD);
+        header.setPadding((int) (16 * density), (int) (12 * density), (int) (16 * density), (int) (6 * density));
+        header.setFocusable(false);
+        rows.addView(header);
+
+        PopupWindow popup = glassPopup(panel, (int) (240 * density));
+        SleepTimerManager stm = SleepTimerManager.getInstance(this);
+
+        int[] mins = {15, 30, 45, 60, 90};
+        for (int m : mins) {
+            addTileMenuRow(rows, popup, "⏲️ " + m + " Minutes", () -> {
+                stm.setTimer(m);
+                Toast.makeText(this, "Sleep timer set for " + m + " minutes", Toast.LENGTH_SHORT).show();
+            });
+        }
+        if (stm.getRemainingMinutes() > 0) {
+            addTileMenuRow(rows, popup, "❌ Cancel Timer", () -> {
+                stm.setTimer(0);
+                Toast.makeText(this, "Sleep timer cancelled", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (240 * density), panel.getMeasuredWidth()));
+
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.START : Gravity.END);
+        if (rows.getChildCount() > 1) {
+            rows.getChildAt(1).requestFocus();
+        }
+    }
+
+    private void showControlCenter() {
+        if (openPopup != null) openPopup.dismiss();
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        TextView header = new TextView(this);
+        header.setText("⚡ TV Control Center");
+        header.setTextSize(16f);
+        header.setTextColor(0xFFFFFFFF);
+        header.setTypeface(null, Typeface.BOLD);
+        header.setPadding((int) (16 * density), (int) (12 * density), (int) (16 * density), (int) (6 * density));
+        header.setFocusable(false);
+        rows.addView(header);
+
+        PopupWindow popup = glassPopup(panel, (int) (320 * density));
+
+        int remaining = SleepTimerManager.getInstance(this).getRemainingMinutes();
+        String timerLabel = remaining > 0 ? "⏱️ Sleep Timer: In " + remaining + "m (Click to change)" : "⏱️ Set Sleep Timer";
+        addTileMenuRow(rows, popup, timerLabel, this::showSleepTimerOptions);
+
+        addTileMenuRow(rows, popup, "📶 Wi-Fi Details & Signal", this::openNetworkPill);
+
+        addTileMenuRow(rows, popup, "🚀 Boost RAM (" + SmartRamOptimizer.getFreeRamPercent(this) + "% Free)", () -> {
+            SmartRamOptimizer.Result res = SmartRamOptimizer.optimize(this);
+            updateRamLabel();
+            Toast.makeText(this, "⚡ Freed " + res.freedMb + " MB RAM! Now " + res.newPercentFree + "% free (" + res.newAvailMb + " MB)", Toast.LENGTH_SHORT).show();
+        });
+
+        addTileMenuRow(rows, popup, "🌙 Sleep Screen Now", () -> SleepTimerManager.getInstance(this).sleepNow());
+
+        addTileMenuRow(rows, popup, "🔄 Restart Fire TV", () -> {
+            try {
+                Runtime.getRuntime().exec("reboot");
+            } catch (Exception e) {
+                open(systemIntent(Settings.ACTION_SETTINGS));
+            }
+        });
+
+        addTileMenuRow(rows, popup, "⚙️ Fire TV Settings", () -> open(systemIntent(Settings.ACTION_SETTINGS)));
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (320 * density), panel.getMeasuredWidth()));
+
+        panel.setAlpha(0f);
+        panel.setScaleX(0.92f);
+        panel.setScaleY(0.92f);
+        popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(200)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+
+        if (rows.getChildCount() > 1) rows.getChildAt(1).requestFocus();
+    }
+
+    private void showSleepTimerOptions() {
+        if (openPopup != null) openPopup.dismiss();
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        TextView header = new TextView(this);
+        header.setText("⏱️ Select Sleep Timer");
+        header.setTextSize(16f);
+        header.setTextColor(0xFFFFFFFF);
+        header.setTypeface(null, Typeface.BOLD);
+        header.setPadding((int) (16 * density), (int) (12 * density), (int) (16 * density), (int) (6 * density));
+        header.setFocusable(false);
+        rows.addView(header);
+
+        PopupWindow popup = glassPopup(panel, (int) (260 * density));
+
+        addTileMenuRow(rows, popup, "15 Minutes", () -> SleepTimerManager.getInstance(this).setTimer(15));
+        addTileMenuRow(rows, popup, "30 Minutes", () -> SleepTimerManager.getInstance(this).setTimer(30));
+        addTileMenuRow(rows, popup, "45 Minutes", () -> SleepTimerManager.getInstance(this).setTimer(45));
+        addTileMenuRow(rows, popup, "60 Minutes (1 Hour)", () -> SleepTimerManager.getInstance(this).setTimer(60));
+        addTileMenuRow(rows, popup, "90 Minutes", () -> SleepTimerManager.getInstance(this).setTimer(90));
+        addTileMenuRow(rows, popup, "Turn Off Timer", () -> SleepTimerManager.getInstance(this).setTimer(0));
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (260 * density), panel.getMeasuredWidth()));
+
+        panel.setAlpha(0f);
+        panel.setScaleX(0.92f);
+        panel.setScaleY(0.92f);
+        popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(200)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+
+        if (rows.getChildCount() > 1) rows.getChildAt(1).requestFocus();
+    }
+
+    private void saveOrder() {
+        List<String> keys = adapter.movableKeys();
+        Order order = new Order(Order.dockKey(dockApps), keys);
+        if (Order.save(Order.file(this), order)) {
+            adapter.setSavedOrder(Order.ranks(order, dockApps));
+        } else {
+            Toast.makeText(this, R.string.reorder_not_saved, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onTileMenu(int position, View card) {
+        AppAdapter.Entry e = adapter.getItem(position);
+        if (e == null || e.kind != AppAdapter.Entry.APP) return;
+        if (reordering) return;
+        showTileOptions(position, e, card);
+    }
+
+    private void showTileOptions(int position, AppAdapter.Entry e, View card) {
+        if (openPopup != null) openPopup.dismiss();
+
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        TextView header = new TextView(this);
+        header.setText(e.label);
+        header.setTextSize(16f);
+        header.setTextColor(0xFFFFFFFF);
+        header.setTypeface(null, Typeface.BOLD);
+        header.setPadding((int) (16 * density), (int) (12 * density), (int) (16 * density), (int) (8 * density));
+        header.setFocusable(false);
+        rows.addView(header);
+
+        String usageSummary = SmartUsageManager.getInstance(this).getUsageSummary(e.pkg);
+        TextView usageText = new TextView(this);
+        usageText.setText("📊 " + usageSummary);
+        usageText.setTextSize(12f);
+        usageText.setTextColor(0xB36EC1FF);
+        usageText.setPadding((int) (16 * density), 0, (int) (16 * density), (int) (6 * density));
+        usageText.setFocusable(false);
+        rows.addView(usageText);
+
+        PopupWindow popup = glassPopup(panel, (int) (250 * density));
+
+        boolean isDocked = position < COLUMNS;
+        if (isDocked) {
+            addTileMenuRow(rows, popup, getString(R.string.remove_from_favorites), () -> {
+                int target = Math.min(COLUMNS, adapter.movableCount() - 1);
+                if (target > position) {
+                    keepScroll(() -> {
+                        adapter.move(position, target);
+                        saveOrder();
+                    });
+                }
+            });
+        } else {
+            addTileMenuRow(rows, popup, getString(R.string.add_to_favorites), () -> {
+                keepScroll(() -> {
+                    adapter.move(position, 0);
+                    saveOrder();
+                });
+                refocusAfterLayout(0);
+            });
+        }
+
+        addTileMenuRow(rows, popup, getString(R.string.move_app), () -> {
+            if (!beginReorder()) return;
+            pickUp(position);
+            Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
+        });
+
+        addTileMenuRow(rows, popup, getString(R.string.library_remove_shortcut), () -> {
+            LibraryApps.save(this, e.pkg, false);
+            reloadApps(false);
+            Toast.makeText(this, R.string.library_remove_shortcut, Toast.LENGTH_SHORT).show();
+        });
+
+        boolean isSystemApp = false;
+        try {
+            ApplicationInfo ai = getPackageManager().getApplicationInfo(e.pkg, 0);
+            isSystemApp = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0
+                    && (ai.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0;
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
+
+        if (!isSystemApp) {
+            addTileMenuRow(rows, popup, getString(R.string.uninstall_app), () -> uninstallPackage(e.pkg));
+        }
+
+        addTileMenuRow(rows, popup, getString(R.string.library_app_info), () -> {
+            try {
+                Intent info = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
+                info.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(info);
+            } catch (ActivityNotFoundException | SecurityException ex) {
+                Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (240 * density), panel.getMeasuredWidth()));
+
+        panel.setAlpha(0f);
+        panel.setScaleX(0.92f);
+        panel.setScaleY(0.92f);
+        popup.showAtLocation(root, Gravity.CENTER, 0, 0);
+        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(200)
+                .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+
+        if (rows.getChildCount() > 1) {
+            rows.getChildAt(1).requestFocus();
+        }
+    }
+
+    private void addTileMenuRow(LinearLayout rows, PopupWindow popup, String title, Runnable action) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        row.findViewById(R.id.icon).setVisibility(View.GONE);
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        row.findViewById(R.id.status).setVisibility(View.GONE);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        row.setOnClickListener(v -> {
+            popup.dismiss();
+            action.run();
+        });
+        final boolean[] pressed = {false};
+        row.setOnKeyListener((v, code, event) -> {
+            if (code == KeyEvent.KEYCODE_MENU) {
+                if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+                    popup.dismiss();
+                }
+                return true;
+            }
+            if (code != KeyEvent.KEYCODE_DPAD_CENTER && code != KeyEvent.KEYCODE_ENTER) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (event.getRepeatCount() == 0) pressed[0] = true;
+                return true;
+            }
+            boolean activate = pressed[0];
+            pressed[0] = false;
+            if (activate) {
+                popup.dismiss();
+                action.run();
+            }
+            return true;
+        });
+        rows.addView(row);
+    }
+
     @Override
     public void onTileFocused(int position, View card) {
         lastFocused = position;
@@ -1056,18 +1689,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void showHero(int position, float dockTopInRoot) {
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
-        float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
+        View targetHero = heroLayout != null ? heroLayout : heroName;
+        float y = dockTopInRoot - 14 * density - 26 * density - targetHero.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
 
+        String pkg = adapter.keyAt(position);
+        HeroMetadata.Info info = HeroMetadata.getInfo(pkg, label);
+
+        heroName.setText(label);
+        if (heroBadge != null) heroBadge.setText(info.badge);
+        if (heroSubtitle != null) heroSubtitle.setText(info.subtitle);
+
         if (!animations || reducedMotion) {
-            // Snap the shelf instead of sliding and fading it: each of those frames repaints the
-            // full-screen panel, and this switch exists for the GPUs that cannot afford it.
-            heroName.animate().cancel();
+            targetHero.animate().cancel();
             ambient.animate().cancel();
-            heroName.setText(label);
-            heroName.setY(y);
-            heroName.setTranslationX(0f);
-            heroName.setAlpha(1f);
+            targetHero.setY(y);
+            targetHero.setTranslationX(0f);
+            targetHero.setAlpha(1f);
             setAmbient(color);
             if (!animations) {
                 ambient.setAlpha(1f);
@@ -1082,22 +1720,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         if (!heroShown) {
             stopAmbientAnimation();
-            heroName.animate().cancel();
+            targetHero.animate().cancel();
             ambient.animate().cancel();
-            heroName.setText(label);
-            heroName.setY(y);
-            heroName.setTranslationX(0f);
-            heroName.animate().alpha(1f).setDuration(260).start();
+            targetHero.setY(y);
+            targetHero.setTranslationX(0f);
+            targetHero.animate().alpha(1f).setDuration(260).start();
             setAmbient(color);
             ambient.animate().alpha(1f).setDuration(600).start();
             heroShown = true;
         } else if (changed) {
-            if (advancedEffects) heroName.animate().cancel();
-            heroName.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
-                heroName.setText(label);
-                heroName.setY(y);
-                heroName.setTranslationX(12 * density);
-                heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
+            if (advancedEffects) targetHero.animate().cancel();
+            targetHero.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
+                targetHero.setY(y);
+                targetHero.setTranslationX(12 * density);
+                targetHero.animate().alpha(1f).translationX(0f).setDuration(200).start();
             }).start();
             if (advancedEffects) {
                 transitionAmbient(color);
@@ -1108,7 +1744,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }).start();
             }
         } else {
-            heroName.setY(y);
+            targetHero.setY(y);
         }
     }
 
@@ -1120,27 +1756,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * so changing apps neither repaints it on the CPU (about 11 ms) nor uploads it again.
      */
     private void setAmbient(int color) {
-        if (color == ambientColor && ambient.getBackground() != null) return;
+        if (ambient == null) return;
         ambientColor = color;
-        BitmapDrawable glow = (BitmapDrawable) ambient.getBackground();
-        if (glow == null) {
-            int w = 480;
-            int h = 270;
-            Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(bmp);
-            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            paint.setShader(new RadialGradient(
-                    w * 0.32f, h * 0.42f, w * 0.62f,
-                    new int[]{0x5CFFFFFF, 0x26FFFFFF, 0x00FFFFFF},
-                    new float[]{0f, 0.45f, 1f},
-                    Shader.TileMode.CLAMP));
-            canvas.drawRect(0, 0, w, h, paint);
-            glow = new BitmapDrawable(getResources(), bmp);
-            glow.setGravity(Gravity.FILL);
-            ambient.setBackground(glow);
-        }
-        // The default tint mode, SRC_IN, keeps the mask's alpha and takes the colour from the tint.
-        glow.setTint(0xFF000000 | color);
+        int w = root != null && root.getWidth() > 0 ? root.getWidth() : 1920;
+        int h = root != null && root.getHeight() > 0 ? root.getHeight() : 1080;
+        Bitmap bmp = BackdropThemeManager.getInstance(this).getBackdropBitmap(w, h, color);
+        BitmapDrawable glow = new BitmapDrawable(getResources(), bmp);
+        glow.setGravity(Gravity.FILL);
+        ambient.setBackground(glow);
+        ambient.setAlpha(1f);
     }
 
     private void transitionAmbient(int color) {
@@ -1172,9 +1796,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void showGlowOnly(int position) {
         int color = adapter.ambientColorAt(position);
         stopAmbientAnimation();
-        heroName.animate().cancel();
+        View targetHero = heroLayout != null ? heroLayout : heroName;
+        targetHero.animate().cancel();
         ambient.animate().cancel();
-        heroName.setAlpha(0f);
+        targetHero.setAlpha(0f);
         heroShown = false;
         if (!animations || reducedMotion) {
             setAmbient(color);
@@ -1195,14 +1820,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void hideHero() {
         if (!heroShown) return;
         stopAmbientAnimation();
-        heroName.animate().cancel();
+        View targetHero = heroLayout != null ? heroLayout : heroName;
+        targetHero.animate().cancel();
         ambient.animate().cancel();
         heroShown = false;
         if (animations) {
-            heroName.animate().alpha(0f).setDuration(reducedMotion ? 100 : 160).start();
+            targetHero.animate().alpha(0f).setDuration(reducedMotion ? 100 : 160).start();
             ambient.animate().alpha(0f).setDuration(reducedMotion ? 140 : 300).start();
         } else {
-            heroName.setAlpha(0f);
+            targetHero.setAlpha(0f);
             ambient.setAlpha(0f);
         }
     }
