@@ -1,12 +1,13 @@
 # SBL – Slightly Better Launcher
 
 A small, fast home screen for Android TV. Your favourite apps sit in one row, the app you are on shows what
-you were watching, and everything else (inputs, weather, settings) is one press away. About 400 KB, no ads,
+you were watching, and everything else (inputs, weather, settings) is one press away. About 480 KB, no ads,
 no account, no accessibility service needed.
 
 ![SBL home screen](docs/home.png)
 
-Version 0.1 · Android 8.0+ (API 26) · Android TV and Google TV · English and Turkish
+Version 0.1 · Android 8.0+ (API 26) · Android TV and Google TV · English, Türkçe, Español, Français, Deutsch,
+Русский, Українська, Português, Čeština, Polski
 
 ## What it does
 
@@ -29,6 +30,8 @@ Version 0.1 · Android 8.0+ (API 26) · Android TV and Google TV · English and 
 - **Hold OK on a tile** for *Move*, *App info*, *Hide from home* and *Add to / Remove from favourites*.
 
 **Look**
+- **Languages** – ten, picked automatically from the TV's language (English when SBL is not translated into it)
+  or chosen by hand in *SBL settings → Home screen → Language*, whatever the TV itself is set to.
 - **Dark and light** looks, switched in the settings.
 - **Themes** – a folder with a `config.json` and an optional wallpaper. Install from a USB drive, the TV's storage
   or a web address, switch or delete them in the settings. See [`themes/`](themes/README.md).
@@ -36,7 +39,7 @@ Version 0.1 · Android 8.0+ (API 26) · Android TV and Google TV · English and 
   xxhdpi or higher and only scaled down), a splash that looks like the home screen instead of a white flash.
 
 **SBL settings** (gear button → *SBL settings*)
-- *Home screen*: columns, inputs row, Watch Next on/off and turning time, weather on/off and unit, module cards.
+- *Home screen*: language, columns, inputs row, Watch Next on/off and turning time, weather on/off and unit, module cards.
 - *Apps*: sort order, hidden apps, clear usage statistics.
 - *Theme*: appearance (dark/light) and themes.
 - *Permissions*: what SBL can use and why.
