@@ -5,11 +5,9 @@ import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -31,7 +29,6 @@ import android.net.NetworkRequest;
 import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -133,6 +130,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** App of the last focused tile, so focus follows it when the app list changes. */
     private static String lastFocusedKey;
     private float density;
+    /** Scratch rects for onTileFocused, which runs on every D-pad move. */
+    private final Rect tileRect = new Rect();
+    private final Rect revealRect = new Rect();
+    /** config.xml show_home_settings_shortcut, passed to the loader with the tile size it should draw at. */
+    private boolean showHomeSettings;
+    private int rowsBelowDock;
+    private boolean dockTitle;
+    /** Tile width the loader was last asked to draw banners at; the grid's layout corrects a cold-start estimate. */
+    private int loaderTileWidth;
+    private boolean started;
+    /** A loader result waits while the owner is arranging tiles; apply the latest snapshot after saving. */
+    private boolean appsRefreshPending;
     /** Module cards (res/values/config.xml, module_cards): discovered on resume, shown only after the owner's Show. */
     private boolean moduleCards;
     /** config settings_key_keycodes / settings_key_panel, so the Settings button works on Home without HomeKeyService. */
@@ -219,17 +228,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             handler.post(MainActivity.this::updateWifiLabel);
         }
     };
-    private final IntentFilter packageFilter = new IntentFilter();
-    private final BroadcastReceiver packageReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // Updates send REMOVED followed by ADDED; keep the tile until the new APK is ready.
-            if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())
-                    && intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) return;
-            reloadApps(false);
-            if (appLibrary != null) appLibrary.refresh();
-        }
-    };
     private final Runnable minuteTick = new Runnable() {
         @Override
         public void run() {
@@ -264,7 +262,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelAction = cfg.sourcePanelAction;
 
         root = findViewById(R.id.root);
-        root.setBackgroundColor(cfg.backgroundColor);
+        // The colour goes on the window, not on root: a second full-screen fill under everything only costs GPU time.
+        getWindow().setBackgroundDrawable(new ColorDrawable(cfg.backgroundColor));
         wallpaperPlayer = new WallpaperPlayer(this, root, cfg);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
@@ -294,6 +293,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         vpnApp = cfg.vpnApp;
         moduleCards = cfg.moduleCards;
         hiddenApps = new HashSet<>(cfg.hiddenApps);
+        showHomeSettings = cfg.showHomeSettingsShortcut;
+        rowsBelowDock = cfg.rowsBelowDock;
+        dockTitle = cfg.dockTitle;
 
         grid = findViewById(R.id.grid);
         rtlAppGrid = getResources().getBoolean(R.bool.rtl_app_grid);
@@ -387,6 +389,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
             }
+            // Banners were drawn for an estimated size on a cold start: redraw them if the real tiles differ.
+            if (started && tileW != loaderTileWidth) loadApps();
         });
 
         // Keep the glass glued to its tile while the grid scrolls.
@@ -478,11 +482,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!onTile) hideGlass();
         });
 
-        packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
-        packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
-        packageFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
-        packageFilter.addDataScheme("package");
-
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.registerCallback(inputCallback, handler);
@@ -523,11 +522,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onStart() {
         super.onStart();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(packageReceiver, packageFilter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(packageReceiver, packageFilter);
-        }
+        started = true;
+        // Started, not resumed: an app removed or disabled from a settings side panel, which only pauses Home,
+        // still refreshes the tiles.
+        loadApps();
     }
 
     @Override
@@ -539,6 +537,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
         promptsPaused = false;
+        // Tiles are cached for the life of the process: show them right away. The loader checks for installed,
+        // updated or removed apps in the background and only calls back when something changed.
         if (rebuildOnResume) {
             tilesReady = false;
             reloadApps(true);
@@ -585,8 +585,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             heroName.setAlpha(0f);
             ambient.setAlpha(0f);
         }
+        boolean firstFill = adapter.appCount() == 0;
         reloadTiles();
-        if (animate && animations && !reducedMotion) grid.scheduleLayoutAnimation();
+        // Tiles rise in when they first appear, not on every Home press.
+        if (animate && firstFill && adapter.appCount() > 0 && animations && !reducedMotion) {
+            grid.scheduleLayoutAnimation();
+        }
 
         if (restoreFocus) {
             // Keep a focused footer at the end even when the app count changes.
@@ -605,27 +609,73 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * Rebuilds the tiles; the module cards the owner chose to show stand in for their app's tile.
+     * Lays out the loader's tiles; the module cards the owner chose to show stand in for their app's tile.
      * Every step into the card code runs under CardFeature: if it fails, the tiles are the ordinary
      * ones and cards stay off for this process.
      */
     private void reloadTiles() {
+        appsRefreshPending = false;
         if (reordering) endReorder();   // an app installed or removed while reordering: keep the order so far
-        // Read these before reload(): rebinding can move focus to the first tile and overwrite them.
+        // Read these before setTiles(): rebinding can move focus to the first tile and overwrite them.
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
         final List<Cards.Card> none = Collections.emptyList();
         cards = moduleCards ? CardFeature.run(() -> Cards.discover(this, hiddenApps, Cards.load(Cards.storeFile(this))), none) : none;
-        adapter.reload(cards.isEmpty() ? none : CardFeature.run(() -> Cards.shown(cards), none));
+        AppLoader.Snapshot apps = AppLoader.cached();
+        if (apps != null) adapter.setTiles(apps, cards.isEmpty() ? none : CardFeature.run(() -> Cards.shown(cards), none));
         lastFocusedKey = returnKey;
         lastFocused = returnSlot;
     }
 
+    /** Asks the loader for tiles at the size this grid draws them; see AppAdapter.tileWidthPx. */
+    private void loadApps() {
+        int w = AppAdapter.tileWidthPx(gridInnerWidth(), grid.getHeight(), COLUMNS, rowsBelowDock, dockTitle,
+                dockRow, density);
+        loaderTileWidth = w;
+        AppLoader.Request req = new AppLoader.Request(hiddenApps, showHomeSettings, w, AppAdapter.tileHeightPx(w),
+                adapter.bannerZoom());
+        AppLoader.start(this, req, this::onAppsChanged, () -> {
+            if (appLibrary != null) appLibrary.refresh();
+        });
+    }
+
+    /** The loader found different tiles: the first ones of a cold start, or a package change. */
+    private void onAppsChanged() {
+        if (isDestroyed()) return;
+        if (reordering) {
+            appsRefreshPending = true;
+            return;
+        }
+        // The first tiles get the full welcome (entrance, focus); later changes must not steal focus.
+        reloadApps(adapter.appCount() == 0);
+    }
+
+    /**
+     * The grid's inner width, before its first layout too: the window width minus every horizontal padding
+     * and margin between the window and the grid, so a cold start can draw banners at their final size.
+     */
+    private int gridInnerWidth() {
+        if (grid.getWidth() > 0) return grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight();
+        int w = getResources().getDisplayMetrics().widthPixels;
+        for (View v = grid; v != null; v = v.getParent() instanceof View ? (View) v.getParent() : null) {
+            w -= v.getPaddingStart() + v.getPaddingEnd();
+            if (v.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+                ViewGroup.MarginLayoutParams m = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+                w -= m.getMarginStart() + m.getMarginEnd();
+            }
+            if (v == root) break;
+        }
+        return w;
+    }
+
     /**
      * Return to the app we left from, or the same slot if that app is gone. Always refocus: after
-     * reload() the view that holds focus may no longer show the app it had.
+     * setTiles() the view that holds focus may no longer show the app it had.
      */
     private void restoreFocus() {
+        // Cold start: the tiles are still loading, and an empty grid would park focus on a pill.
+        // onAppsChanged() comes back here once they arrive.
+        if (AppLoader.cached() == null) return;
         final boolean returnToLibrary = libraryFocusPending;
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
@@ -659,7 +709,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onStop() {
         super.onStop();
-        unregisterReceiver(packageReceiver);
+        started = false;
+        AppLoader.stop();
         rebuildOnResume = true;
     }
 
@@ -900,7 +951,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 Toast.makeText(this, R.string.reorder_not_saved, Toast.LENGTH_SHORT).show();
             }
         }
-        if (fillDockLeavesSlots) reloadTiles();   // the empty dock slots left out while reordering come back
+        if (appsRefreshPending) {
+            // Use the focus-restoring path too: the deferred result may remove the focused tile.
+            if (started) onAppsChanged();
+        } else if (fillDockLeavesSlots) {
+            reloadTiles();   // the empty dock slots left out while reordering come back
+        }
     }
 
     /**
@@ -975,7 +1031,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (appLibrary != null) appLibrary.close();
         if (openPopup != null) openPopup.dismiss();
         libraryFocusPending = false;
-        appLibrary = new AppLibraryDialog(this, animations, reducedMotion, adapter::containsPackage, () -> reloadApps(false), () -> {
+        appLibrary = new AppLibraryDialog(this, animations, reducedMotion, adapter::containsPackage,
+                () -> AppLoader.reload(this), () -> {
             appLibrary = null;
             openPopup = null;
             libraryFocusPending = true;
@@ -992,7 +1049,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
         // Tile rect in root coordinates, using layout positions (ignores the scale animation).
-        Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
+        Rect r = tileRect;
+        r.set(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
         float pad = 6f * density;        // matches GlassView's glow inset
         float scale = adapter.focusScale();
@@ -1046,8 +1104,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (dockRow) hideHero();
             else showGlowOnly(position);
             // Scroll just enough so the whole glass (not only the tile) is visible.
-            Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-            grid.requestChildRectangleOnScreen(item, want, reducedMotion);
+            revealRect.set(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
+            grid.requestChildRectangleOnScreen(item, revealRect, reducedMotion);
         }
     }
 
