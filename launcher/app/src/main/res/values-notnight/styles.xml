@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.TvHome" parent="android:Theme.Material.Light.NoActionBar.Fullscreen">
+    <style name="Theme.Sbl" parent="android:Theme.Material.Light.NoActionBar.Fullscreen">
         <item name="android:windowBackground">@drawable/splash_bg</item>
         <item name="android:colorBackground">@color/ui_bg</item>
         <item name="android:windowAnimationStyle">@null</item>

@@ -28,7 +28,7 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
-            <category android:name="com.gathin.tvhome.category.DOCK_CARD" />
+            <category android:name="com.bbu.sbl.category.DOCK_CARD" />
         </intent>
         <package android:name="io.github.jqssun.airplay" />
     </queries>
@@ -37,7 +37,7 @@
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/banner"
-        android:theme="@style/Theme.TvHome"
+        android:theme="@style/Theme.Sbl"
         android:allowBackup="false"
         android:usesCleartextTraffic="true"
         android:localeConfig="@xml/locales_config">
@@ -67,7 +67,7 @@
             android:name=".SettingsActivity"
             android:exported="false"
             android:excludeFromRecents="true"
-            android:theme="@style/Theme.TvHome.Panel"
+            android:theme="@style/Theme.Sbl.Panel"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
             android:screenOrientation="landscape" />
 
@@ -93,7 +93,7 @@
         </service>
 
         <!-- Screensaver: pick it in Settings, or `settings put secure screensaver_components
-             com.gathin.tvhome/.ClockDream` over adb. -->
+             com.bbu.sbl/.ClockDream` over adb. -->
         <service
             android:name=".ClockDream"
             android:label="@string/dream_name"

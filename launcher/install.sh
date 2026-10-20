@@ -16,7 +16,7 @@ TARGET="$TV_HOST:5555"
 "$ADB" connect "$TARGET"
 "$ADB" -s "$TARGET" install -r "$APK"
 # Watch Next rows and backups/themes on the TV's storage need these two; both can also be granted in SBL settings.
-"$ADB" -s "$TARGET" shell pm grant com.gathin.tvhome android.permission.READ_TV_LISTINGS
-"$ADB" -s "$TARGET" shell appops set com.gathin.tvhome MANAGE_EXTERNAL_STORAGE allow
-"$ADB" -s "$TARGET" shell am start -n com.gathin.tvhome/.MainActivity
+"$ADB" -s "$TARGET" shell pm grant com.bbu.sbl android.permission.READ_TV_LISTINGS
+"$ADB" -s "$TARGET" shell appops set com.bbu.sbl MANAGE_EXTERNAL_STORAGE allow
+"$ADB" -s "$TARGET" shell am start -n com.bbu.sbl/.MainActivity
 echo "Installed. To make SBL the Home screen, press Home on the remote and choose it, or see README."

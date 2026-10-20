@@ -21,7 +21,7 @@ $target = "${TvHost}:5555"
 & $adb -s $target install -r $apk
 if ($LASTEXITCODE) { throw 'install failed' }
 # Watch Next rows and backups/themes on the TV's storage need these two; both can also be granted in SBL settings.
-& $adb -s $target shell pm grant com.gathin.tvhome android.permission.READ_TV_LISTINGS
-& $adb -s $target shell appops set com.gathin.tvhome MANAGE_EXTERNAL_STORAGE allow
-& $adb -s $target shell am start -n com.gathin.tvhome/.MainActivity
+& $adb -s $target shell pm grant com.bbu.sbl android.permission.READ_TV_LISTINGS
+& $adb -s $target shell appops set com.bbu.sbl MANAGE_EXTERNAL_STORAGE allow
+& $adb -s $target shell am start -n com.bbu.sbl/.MainActivity
 Write-Host 'Installed. To make SBL the Home screen, press Home on the remote and choose it, or see README.'

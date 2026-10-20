@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.TvHome" parent="android:Theme.Material.NoActionBar.Fullscreen">
+    <style name="Theme.Sbl" parent="android:Theme.Material.NoActionBar.Fullscreen">
         <item name="android:windowBackground">@drawable/splash_bg</item>
         <item name="android:colorBackground">@color/ui_bg</item>
         <item name="android:windowAnimationStyle">@null</item>
@@ -27,7 +27,7 @@
     <style name="TopButton" parent="TopButtonBase" />
 
     <!-- The settings panel: translucent, so the home screen stays visible (dimmed) behind it. -->
-    <style name="Theme.TvHome.Panel" parent="Theme.TvHome">
+    <style name="Theme.Sbl.Panel" parent="Theme.Sbl">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:colorBackground">@android:color/transparent</item>

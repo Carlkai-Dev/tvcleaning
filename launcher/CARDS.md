@@ -20,9 +20,9 @@ filter (the one the launcher shows as a tile):
     </intent-filter>
     <intent-filter>
         <action android:name="android.intent.action.MAIN" />
-        <category android:name="com.gathin.tvhome.category.DOCK_CARD" />
+        <category android:name="com.bbu.sbl.category.DOCK_CARD" />
     </intent-filter>
-    <meta-data android:name="com.gathin.tvhome.card" android:resource="@xml/module_card" />
+    <meta-data android:name="com.bbu.sbl.card" android:resource="@xml/module_card" />
 </activity>
 ```
 
@@ -72,7 +72,7 @@ A label is rejected when:
   nothing a module declares is ever presented as endorsed (the same two words are refused in the
   caption);
 - it is one of the names the launcher's own UI uses, in English or in the TV's language:
-  `Home`, `Settings`, `Inputs`, `Wi-Fi`, `Live TV`, `Default home`, `Clock`, `cleanyourtv`, `tv-vibehack`;
+  `Home`, `Settings`, `Inputs`, `Wi-Fi`, `Live TV`, `Default home`, `Clock`, `SBL`, `Slightly Better Launcher`;
 - it names an input the Inputs menu shows: `HDMI` and anything starting with it, `AV`;
 - while the prompt is due (a new card, or one whose signing key or label changed): it equals the label of
   another app installed on this TV (the names on the home screen), or the app's own label equals
@@ -103,7 +103,7 @@ any violation drops that one card, with a log line and no other effect.
 ## Launcher behaviour
 
 1. Discovery. Every time the home screen comes to the front, the launcher asks the package manager
-   for activities with `MAIN` + `com.gathin.tvhome.category.DOCK_CARD` (a package manager query,
+   for activities with `MAIN` + `com.bbu.sbl.category.DOCK_CARD` (a package manager query,
    no polling, no services, no network). For each one it checks the activity, reads the XML through the package
    manager, applies the rules above and computes the signer digest. Every card is read inside its
    own error boundary.
@@ -169,14 +169,14 @@ any violation drops that one card, with a log line and no other effect.
 
 ## Rejections
 
-Every rejected card produces one line in logcat under the tag `TvHomeCards`, with the package and
+Every rejected card produces one line in logcat under the tag `SblCards`, with the package and
 the reason, for example:
 
 ```
-W TvHomeCards: io.example.spoof: label 'Retro' is the name of another installed app
-W TvHomeCards: io.example.deep: XML nested deeper than 2
-W TvHomeCards: io.example.big: label is longer than 24 characters
+W SblCards: io.example.spoof: label 'Retro' is the name of another installed app
+W SblCards: io.example.deep: XML nested deeper than 2
+W SblCards: io.example.big: label is longer than 24 characters
 ```
 
-Read them with `adb logcat -s TvHomeCards`. A rejected
+Read them with `adb logcat -s SblCards`. A rejected
 card has no other effect: the app keeps its ordinary tile.

@@ -240,7 +240,7 @@
         android:clickable="true"
         android:visibility="gone">
 
-        <com.gathin.tvhome.FadeLayout
+        <com.bbu.sbl.FadeLayout
             android:id="@+id/featuredArt"
             android:layout_width="420dp"
             android:layout_height="match_parent"
@@ -258,7 +258,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:alpha="0.01" />
-        </com.gathin.tvhome.FadeLayout>
+        </com.bbu.sbl.FadeLayout>
 
         <LinearLayout
             android:id="@+id/featuredInfo"
@@ -375,7 +375,7 @@
         android:visibility="gone" />
 
     <!-- The single floating glass highlight that springs between tiles. -->
-    <com.gathin.tvhome.GlassView
+    <com.bbu.sbl.GlassView
         android:id="@+id/glass"
         android:layout_width="10dp"
         android:layout_height="10dp"

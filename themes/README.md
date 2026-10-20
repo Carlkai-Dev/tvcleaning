@@ -8,8 +8,8 @@ Install a theme from SBL settings → Theme: from a folder on the TV or a USB dr
 or from a web address (a `.zip` or a `config.json`). You can also push one by hand:
 
 ```bash
-adb push themes/aurora/config.json /sdcard/Android/data/com.gathin.tvhome/files/config.json
-adb push themes/aurora/wallpaper.jpg /sdcard/Android/data/com.gathin.tvhome/files/wallpaper.jpg
+adb push themes/aurora/config.json /sdcard/Android/data/com.bbu.sbl/files/config.json
+adb push themes/aurora/wallpaper.jpg /sdcard/Android/data/com.bbu.sbl/files/wallpaper.jpg
 ```
 
 | Theme | What it does |
