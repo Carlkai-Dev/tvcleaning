@@ -40,4 +40,5 @@
     <string name="off">Off</string>
     <string name="preview">Preview now</string>
     <string name="needs_permission">Run launcher/build-and-install.sh once to allow changing this.</string>
+    <string name="tv_setup">TV Setup</string>
 </resources>

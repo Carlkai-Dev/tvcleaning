@@ -21,6 +21,7 @@ prompt that did it is in this repo so you can do the same with yours.
 - [What you get](#what-you-get)
 - [Supported TVs](#supported-tvs)
 - [Doing it by hand](#doing-it-by-hand)
+- [One-file install (no computer)](#one-file-install-no-computer)
 - [The launcher](#the-launcher)
 - [Troubleshooting](#troubleshooting)
 - [Questions people ask](#questions-people-ask)
@@ -144,6 +145,24 @@ powershell -ExecutionPolicy Bypass -File tools\restore.ps1 -TvHost 192.168.1.50 
 The install script stops before touching the stock launcher if the install or the home-screen
 switch fails. Git Bash also works; the `.sh` scripts detect a Windows venv and disable MSYS path
 rewriting themselves.
+
+## One-file install (no computer)
+
+`dist/tv-setup.apk` does the clean-up from the TV itself, so you can send it to someone who has no
+computer or coding assistant.
+
+1. On the TV, turn on **USB debugging** (and the Network/ADB debugging toggle if there is one) in Developer options.
+2. Install `tv-setup.apk` (Send Files to TV, or a USB stick).
+3. Open **TV Setup** from the Apps row and choose **Clean & set up**. If the TV asks "Allow USB debugging?",
+   tick *Always allow* and press OK.
+
+It disables the apps in [`my-tv/debloat.txt`](my-tv/debloat.txt) that exist on that TV, makes the launcher the
+home screen (and only then disables the stock one), and stops the Play Store updating in the background.
+**Restore original** undoes all of it. Nothing is uninstalled.
+
+How it works: the app talks to the TV's own debug bridge on `127.0.0.1:5555`, the same commands the scripts
+run from a computer. The list is baked in at build time, so it is this TV's list (Xiaomi MiTV-AXSO0). For another
+brand, edit `my-tv/debloat.txt` and rebuild with `launcher/gradlew assembleDebug`.
 
 ## The launcher
 
