@@ -18,6 +18,7 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour |
 | `dussehra/` | Festive skin for Dussehra (ends 21 Oct 2026): a marigold toran, a faint gold rangoli, a diya for Wi-Fi, a bell for Inputs, a marigold for Settings and a petal shower |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock |
+| `glass-night/` | A day and a night wallpaper (switching at 18:00 and 06:00) behind a frosted glass dock and glass pills |
 
 ## Keys
 
@@ -50,6 +51,8 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `sky_intensity` | 0 to 100 | Time-of-day backdrop: a dark gradient that follows the clock, 0 hides it (default) |
 | `wallpaper` | bool | Show `wallpaper.jpg` from the theme folder (`true`), or ignore it (`false`) |
+| `night_from`, `night_until` | `HH:MM` | When `wallpaper_night.jpg` replaces `wallpaper.jpg`; 18:00 and 06:00 by default. The switch crossfades and is checked every minute |
+| `dock_glass` | bool | The dock band and the top pills as frosted glass over a blurred copy of the wallpaper (`true` by default); only with a wallpaper |
 | `festival` | string | Turns on a festive skin: the network pill becomes a diya whose flame follows the connection, Inputs a temple bell, Settings a marigold, and the first Home of the day gets a petal shower. `dussehra` and `diwali` have built-in greetings |
 | `festival_until` | `YYYY-MM-DD` | Last day the festive skin shows; it switches itself off after that. A malformed date turns it off |
 | `greeting` | string | Replaces the time-of-day greeting while the festive skin is on |
@@ -59,10 +62,15 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 
 ## Wallpapers
 
-`wallpaper.jpg` is drawn full screen behind the launcher, centre-cropped. Keep it dark, 1920×1080 and
+`wallpaper.jpg` is drawn full screen behind the launcher, centre-cropped. An optional
+`wallpaper_night.jpg` takes its place from `night_from` to `night_until`. Keep it dark, 1920×1080 and
 under about 300 KB: the text, the hero name and the dock band are designed for black, and a 1 GB TV
 decodes the picture into memory on every Home start. Pictures larger than the screen are scaled down to
 it; a picture that is still over 4K (about 8.4 million pixels) after it is sampled down to the screen is not shown at all, and the plain colour stays.
+
+With a wallpaper, `dock_glass` blurs one 160×90 copy of it when it loads and draws that copy under the dock
+band and the top pills, lined up with the picture behind them. Android 11 and older have no live blur, and the
+wallpaper does not move, so nothing is redrawn per frame.
 
 ## Reduced motion
 

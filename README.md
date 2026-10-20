@@ -123,7 +123,7 @@ Tested lists from contributors, one folder per model in [`examples/`](examples/)
 
 **TCL** 18 · **Sony** 16 · **Xiaomi** 15 · **Philips** 6 · **Hisense** 5 · **BenQ** 2 · **CHiQ** 2 ·
 **Haier** 2 · **Hitachi** 2 · **NVIDIA Shield** 2 · **Panasonic** 2 · **Skyworth** 2 · AiPro2K ·
-Amazon Fire TV Stick · Chromecast with Google TV · Insignia Fire TV · Kalley · OnePlus · onn · PRISM+ · RCA ·
+Amazon Fire TV Stick · Chromecast with Google TV · Insignia Fire TV · Kalley · OnePlus · onn · Polytron · PRISM+ · RCA ·
 Redmi · SANYO · Thomson · Toshiba Fire TV · Vu · JMGO, Portronics, Stellamore, Wanbo and XGIMI projectors
 
 <details>
@@ -163,6 +163,7 @@ Redmi · SANYO · Thomson · Toshiba Fire TV · Vu · JMGO, Portronics, Stellamo
 | Philips R8G Google TV (MOKA, whitefield, Realtek RTD2851F), US | Google TV 14 |
 | Philips Smart 4K TV (Skyworth, eleonas, MediaTek), India | Google TV 14 |
 | Portronics Beem 470 Smart LED Projector (Allwinner H713, 1 GB), India | Android 11 |
+| Polytron 2K (WLTV POLYTRON2K, hayward; Hisense/CVTE, MediaTek mt5867) | Android TV 11 |
 | PRISM+ Q65 Ultra 2026 QLED 4K AI Google TV (R10G, PRISMPLUS_FFM, MOKA, Realtek RTD2875 SoC, RTD6748 platform) | Google TV 14 |
 | RCA AI PONT SA (Changhong, redwood, ISDB92RC; also sold as realme 40-inch) | Android 14 |
 | Redmi TV (MiTV-ANTL0, starwars) | Android 5.1.1 (not Android TV) |
@@ -274,7 +275,7 @@ The install scripts ask the TV which launcher owns Home and only disable one the
 ## The launcher
 
 A small native Android TV app (`com.gathin.tvhome`, about 370 KB installed) in plain Java with
-AndroidX RecyclerView and nothing heavier. Built for sets with 1 GB of RAM: no blur, no video, no
+AndroidX RecyclerView and nothing heavier. Built for sets with 1 GB of RAM: no live blur, no video, no
 network, no background services. It needs JDK 17 and Android SDK platform 34 to build; on macOS,
 `brew install openjdk@17 android-commandlinetools` and `sdkmanager "platforms;android-34" "build-tools;34.0.0"`. On Linux
 the install script finds `~/Android/Sdk` and the `java` on your PATH.
@@ -283,7 +284,10 @@ the install script finds `~/Android/Sdk` and the `java` on your PATH.
 - **App library (optional):** enable `app_library` in config.xml or a theme to browse installed apps and add or remove Home shortcuts with the remote. See [the app library guide](docs/app-library.md).
 - **On-TV launcher settings:** click Settings for the TV's system settings, or hold OK on Settings and choose Launcher settings to set 4, 5, 6 or 7 apps per row, turn animations on or off, and opt into advanced effects. The advanced option adds tile lift, icon zoom and smooth ambient-colour transitions; it may use more memory. Use Follow theme to clear on-TV choices. Pushing or resetting a theme also clears them.
 - **Change the default home:** Launcher settings and the optional Default-home tile (`show_home_settings_shortcut`) open Android's home picker. Choose the original launcher to stop using CleanYourTV as Home, or CleanYourTV to return. The original launcher must be enabled. If the install script disabled it, use the restore script below first. Some TVs provide no home picker.
-- **Themes** set the same keys plus a background colour and a wallpaper from a `config.json` pushed to the TV, no rebuild. Four ship in [`themes/`](themes/), documented there.
+- **Themes** set the same keys plus a background colour and a wallpaper from a `config.json` pushed to the TV, no rebuild. Five ship in [`themes/`](themes/), documented there.
+- **Glass and day/night** ([`glass-night`](themes/glass-night/)): with a wallpaper, the dock band and the top pills are frosted glass over a blurred copy of it (`dock_glass`), and an optional `wallpaper_night.jpg` takes over from `night_from` to `night_until` with a crossfade. The wallpaper is decoded in full colour so night skies do not band.
+- **Top bar**: four round icon pills, Inputs, Wi-Fi (its own icon offline, Ethernet when wired), Tools and Settings. **Tools** holds Reorder apps and **Recents**: apps used in the last three days, OK opens, hold OK closes one, Close all ends every sideloaded app in the background and shows how much memory came back (usage access is granted by the install script, since Android TV has no screen for it).
+- **Wi-Fi panel**: the Wi-Fi pill opens a panel with the current network, band, link speed, signal and IP, a hint when the 5 GHz network is strong while the TV sits on 2.4 GHz, and the networks nearby. Android 10+ lets only system apps switch networks, so choosing one (or Change network) opens the TV's Wi-Fi settings; hold OK on the pill to go there directly.
 - **Language** follows the TV: English, German, Spanish, Catalan, French, Russian, Serbian (Latin), Polish, Portuguese, Turkish, Arabic, Hebrew, Simplified Chinese, Traditional Chinese (Taiwan), Thai, Finnish, Vietnamese. Android 13+ can set it for the launcher alone: `tools/tv.py 'cmd locale set-app-locales com.gathin.tvhome --locales ca'`.
   Hebrew places the menu buttons on the left and the date and clock on the right, with the greeting above the clock. The Clock screensaver right-aligns its date and time, and Hebrew dates include the month prefix ב (for example, 19 באוקטובר). Hebrew dock and app-grid rows start on the right, with matching left/right remote navigation. The Hebrew input selector places icons and labels on the right, status on the left, and aligns the dropdown with the Inputs button’s right edge. Other languages keep their original layouts.
   Russian includes the module-card approval and management screens and the VPN-off badge.

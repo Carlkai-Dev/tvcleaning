@@ -30,7 +30,7 @@ tv() { "$PY" -I tv.py "$@"; }
 RESTART="a=\$(settings get secure enabled_accessibility_services); am force-stop $PKG; am start -n $PKG/.MainActivity >/dev/null; case \"\$a\" in *$PKG*) sleep 1; settings put secure enabled_accessibility_services ''; settings put secure enabled_accessibility_services \"\$a\"; settings put secure accessibility_enabled 1 ;; esac"
 
 if [ "${1:-}" = --reset ]; then
-  tv "mkdir -p $DIR; rm -f $DIR/config.json $DIR/wallpaper.jpg; printf '%s' '$REVISION' > $DIR/theme_revision; $RESTART; echo reset" | tail -n 1
+  tv "mkdir -p $DIR; rm -f $DIR/config.json $DIR/wallpaper.jpg $DIR/wallpaper_night.jpg; printf '%s' '$REVISION' > $DIR/theme_revision; $RESTART; echo reset" | tail -n 1
   exit 0
 fi
 THEME="${THEME_ARG:?usage: theme.sh <theme folder> | --reset}"
@@ -44,6 +44,12 @@ if [ -f "$THEME/wallpaper.jpg" ]; then
   "$PY" -I b64push.py "$THEME/wallpaper.jpg" "$DIR/wallpaper.jpg"
 else
   tv "rm -f $DIR/wallpaper.jpg" >/dev/null
+fi
+# Optional night wallpaper, shown from night_from to night_until (18:00-06:00 by default).
+if [ -f "$THEME/wallpaper_night.jpg" ]; then
+  "$PY" -I b64push.py "$THEME/wallpaper_night.jpg" "$DIR/wallpaper_night.jpg"
+else
+  tv "rm -f $DIR/wallpaper_night.jpg" >/dev/null
 fi
 tv "printf '%s' '$REVISION' > $DIR/theme_revision" >/dev/null
 tv "$RESTART; echo applied" | tail -n 1

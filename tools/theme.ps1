@@ -28,7 +28,7 @@ $revision = [guid]::NewGuid().ToString('N')
 $restart = "a=`$(settings get secure enabled_accessibility_services); am force-stop $pkg; am start -n $pkg/.MainActivity >/dev/null; case `"`$a`" in *$pkg*) sleep 1; settings put secure enabled_accessibility_services ''; settings put secure enabled_accessibility_services `"`$a`"; settings put secure accessibility_enabled 1 ;; esac"
 
 if ($Reset) {
-    & $py -I tv.py "mkdir -p $dir; rm -f $dir/config.json $dir/wallpaper.jpg; printf '%s' '$revision' > $dir/theme_revision; $restart; echo reset"
+    & $py -I tv.py "mkdir -p $dir; rm -f $dir/config.json $dir/wallpaper.jpg $dir/wallpaper_night.jpg; printf '%s' '$revision' > $dir/theme_revision; $restart; echo reset"
     exit 0
 }
 if (-not $Theme) { throw 'usage: theme.ps1 <theme folder> | -Reset' }
@@ -40,6 +40,9 @@ try { Get-Content $config -Raw | ConvertFrom-Json | Out-Null } catch { throw "$c
 & $py -I tv.py --push $config "$dir/config.json"
 $wall = Join-Path $Theme 'wallpaper.jpg'
 if (Test-Path $wall) { & $py -I b64push.py $wall "$dir/wallpaper.jpg" } else { & $py -I tv.py "rm -f $dir/wallpaper.jpg" | Out-Null }
+# Optional night wallpaper, shown from night_from to night_until (18:00-06:00 by default).
+$night = Join-Path $Theme 'wallpaper_night.jpg'
+if (Test-Path $night) { & $py -I b64push.py $night "$dir/wallpaper_night.jpg" } else { & $py -I tv.py "rm -f $dir/wallpaper_night.jpg" | Out-Null }
 & $py -I tv.py "printf '%s' '$revision' > $dir/theme_revision" | Out-Null
 & $py -I tv.py "$restart; echo applied"
 Write-Host "Theme $(Split-Path $Theme -Leaf) is on the TV. Undo with: tools\theme.ps1 -TvHost $TvHost -Reset"
