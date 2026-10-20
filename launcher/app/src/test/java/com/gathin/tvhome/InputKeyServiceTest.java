@@ -40,6 +40,13 @@ public class InputKeyServiceTest {
     }
 
     @Test
+    public void vendorKeycodesWithoutANameAreAcceptedByNumber() {
+        // TCL Google TV remotes send the TV button as 4001; KeyEvent.keyCodeToString(4001) is "4001".
+        Map<String, String> map = InputKeyService.parseKeyLaunchMap("4001=uc.flex.bg.smarttv");
+        assertEquals("uc.flex.bg.smarttv", map.get("4001"));
+    }
+
+    @Test
     public void severalEntriesAreSeparatedBySemicolons() {
         Map<String, String> map = InputKeyService.parseKeyLaunchMap(
                 "KEYCODE_MEDIA_PLAY=com.zattoo.player;126=com.netflix.ninja;KEYCODE_TV=com.a.b");

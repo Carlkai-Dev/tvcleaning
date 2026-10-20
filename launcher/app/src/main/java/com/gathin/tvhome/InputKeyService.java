@@ -72,15 +72,16 @@ public class InputKeyService extends AccessibilityService {
         return true;
     }
 
-    /** The intent that opens {@code pkg}, or null when the package is missing or has no launch entry point. */
+    /**
+     * The intent that opens {@code pkg}, or null when the package is missing or has no launch entry point.
+     * Leanback entry first: an app that ships both a phone and a TV activity must open its TV one, as the
+     * launcher's own tiles do. The phone-style entry is only the fallback.
+     */
     private Intent launchIntent(String pkg) {
         PackageManager pm = getPackageManager();
-        Intent intent = pm.getLaunchIntentForPackage(pkg);
-        if (intent == null) {
-            // Some TV apps only declare a leanback launcher entry.
-            intent = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER).setPackage(pkg);
-            if (pm.resolveActivity(intent, 0) == null) return null;
-        }
+        Intent intent = pm.getLeanbackLaunchIntentForPackage(pkg);
+        if (intent == null) intent = pm.getLaunchIntentForPackage(pkg);
+        if (intent == null) return null;
         return intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
     }
 

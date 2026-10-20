@@ -69,7 +69,9 @@
          streaming button some remotes have. Semicolon-separated KEYCODE=package entries; the key is an
          Android keycode name (KEYCODE_MEDIA_PLAY) or its number (126). Empty (the default) leaves every key
          alone. Needs the InputKeyService accessibility service (INPUT_KEY_SERVICE=1); KEYCODE_TV stays
-         reserved for the input switcher. -->
+         reserved for the input switcher. Vendor keys have no name, so use the number: TCL Google TV remotes
+         send the TV button as 4001 (the firmware turns it into the programme guide), e.g. 4001=<package>.
+         Match keycodes, never scancodes: TCL sends several buttons (TV 4001, Settings 83) as scancode 240. -->
     <string name="key_launch_map" translatable="false"></string>
 
     <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own
