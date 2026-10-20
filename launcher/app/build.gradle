@@ -25,6 +25,15 @@ android {
         }
     }
 
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging true
+        }
+        resources {
+            excludes += ['kotlin/**', 'META-INF/*.version', 'META-INF/com/**', 'META-INF/version-control-info.textproto', 'DebugProbesKt.bin']
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17

@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Outline;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.Settings;
@@ -18,6 +19,7 @@ import android.view.ViewOutlineProvider;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.view.animation.OvershootInterpolator;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -192,6 +194,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private Set<String> leanbackPackages = new HashSet<>();
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): no overshoot, shorter fades. */
     private final boolean reducedMotion;
+    final Typeface fontMedium;
+    final Typeface fontRegular;
+    final ViewOutlineProvider cardOutline;
     private final List<Entry> items = new ArrayList<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
@@ -207,6 +212,16 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.rowsBelowDock = cfg.rowsBelowDock;
         this.dockTitle = cfg.dockTitle;
         this.dockRow = cfg.dockRow;
+        android.content.res.Resources res = ctx.getResources();
+        final float density = res.getDisplayMetrics().density;
+        this.fontMedium = res.getFont(R.font.outfit_medium);
+        this.fontRegular = res.getFont(R.font.outfit_regular);
+        this.cardOutline = new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadius(view.getWidth(), density));
+            }
+        };
         // Tiles keep their identity across setTiles(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -287,28 +302,50 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             });
             return new RecyclerView.ViewHolder(row) { };
         }
-        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_app, parent, false);
+        Context c = parent.getContext();
         float density = parent.getResources().getDisplayMetrics().density;
         int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
         int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
         int w = tileWidthPx(inner, parent.getHeight(), dockSize, rowsBelowDock, dockTitle, dockRow, density), h = tileHeightPx(w);
-        View card = v.findViewById(R.id.card);
-        ViewGroup.LayoutParams cardLp = card.getLayoutParams();
-        cardLp.width = w;
-        cardLp.height = h;
-        card.setLayoutParams(cardLp);
-        View name = v.findViewById(R.id.name);
-        ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) name.getLayoutParams();
-        nameLp.width = w;
+
+        FrameLayout v = new FrameLayout(c);
+        int padV = Math.round((dockRow ? 8 : 4) * density);
+        v.setPadding(0, padV, 0, padV);
+        v.setClipChildren(false);
+        v.setClipToPadding(false);
+        v.setLayoutParams(new RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        FrameLayout card = new FrameLayout(c);
+        card.setId(R.id.card);
+        card.setFocusable(true);
+        card.setClickable(true);
+        v.addView(card, new FrameLayout.LayoutParams(w, h, android.view.Gravity.CENTER_HORIZONTAL | android.view.Gravity.TOP));
+
+        ImageView banner = new ImageView(c);
+        banner.setId(R.id.banner);
+        banner.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        banner.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        card.addView(banner, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        TextView name = new TextView(c);
+        name.setId(R.id.name);
+        name.setGravity(android.view.Gravity.CENTER);
+        name.setSingleLine(true);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        name.setAlpha(0f);
+        name.setTranslationY(-6f * density);
+        name.setTextColor(0xF2FFFFFF);
+        name.setTextSize(14f);
+        name.setTypeface(fontMedium);
+        name.setLetterSpacing(0.02f);
+        FrameLayout.LayoutParams nameLp = new FrameLayout.LayoutParams(
+                w, Math.round((dockRow ? 22 : 20) * density),
+                android.view.Gravity.CENTER_HORIZONTAL | android.view.Gravity.TOP);
         nameLp.topMargin = h + Math.round((dockRow ? 7 : 4) * density);
-        if (!dockRow) {
-            // Compact spacing (COMPACT_ITEM_EXTRA_DP): 4dp item padding and a 20dp name instead of 8dp and 22dp.
-            nameLp.height = Math.round(20 * density);
-            int pad = Math.round(4 * density);
-            v.setPadding(v.getPaddingLeft(), pad, v.getPaddingRight(), pad);
-        }
-        name.setLayoutParams(nameLp);
-        return new Holder(this, v, listener, animations, advancedEffects, reducedMotion);
+        v.addView(name, nameLp);
+        return new Holder(this, v, card, banner, name, listener, animations, advancedEffects, reducedMotion);
     }
 
     @Override
@@ -323,7 +360,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.card.setFocusable(false);
             h.name.setVisibility(View.INVISIBLE);
             h.banner.setImageDrawable(null);
-            h.icon.setImageDrawable(null);
+            if (h.icon != null) h.icon.setImageDrawable(null);
             return;
         }
         h.card.setVisibility(View.VISIBLE);
@@ -339,11 +376,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.banner.setScaleX(focused && advancedEffects ? 1.035f : 1f);
         h.banner.setScaleY(focused && advancedEffects ? 1.035f : 1f);
         if (e.banner != null) {
+            h.card.setBackground(null);   // banner is opaque (#FF1C1C1E baked in): skip overdrawing tile_bg behind it
             h.banner.setImageBitmap(e.banner);
             h.banner.setVisibility(View.VISIBLE);
-            h.icon.setVisibility(View.GONE);
-            h.label.setVisibility(View.GONE);
+            if (h.icon != null) h.icon.setVisibility(View.GONE);
+            if (h.label != null) h.label.setVisibility(View.GONE);
         } else {
+            h.ensureFallbackViews();
+            h.card.setBackgroundResource(R.drawable.tile_bg);
             h.banner.setImageDrawable(null);
             h.banner.setVisibility(View.GONE);
             h.icon.setImageDrawable(e.icon);
@@ -495,10 +535,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     static final class Holder extends RecyclerView.ViewHolder {
-        final View card;
+        final AppAdapter adapter;
+        final FrameLayout card;
         final ImageView banner;
-        final ImageView icon;
-        final TextView label;
+        ImageView icon;
+        TextView label;
         final TextView name;
         final boolean animations;
         final boolean advancedEffects;
@@ -506,26 +547,49 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         /** The tile this view currently shows. */
         Entry entry;
 
-        Holder(AppAdapter adapter, View v, TileListener listener, boolean animations, boolean advancedEffects,
-               boolean reducedMotion) {
+        /** Lazily creates the fallback icon and label views only when a tile has no 16:9 banner. */
+        void ensureFallbackViews() {
+            if (icon != null) return;
+            Context c = card.getContext();
+            float d = c.getResources().getDisplayMetrics().density;
+            icon = new ImageView(c);
+            int size = Math.round(48 * d);
+            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams(size, size, android.view.Gravity.CENTER);
+            iconLp.bottomMargin = Math.round(14 * d);
+            card.addView(icon, iconLp);
+
+            label = new TextView(c);
+            FrameLayout.LayoutParams labelLp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                    android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL);
+            int padH = Math.round(10 * d);
+            label.setPadding(padH, 0, padH, Math.round(8 * d));
+            label.setGravity(android.view.Gravity.CENTER);
+            label.setSingleLine(true);
+            label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            label.setTextColor(0xFFFFFFFF);
+            label.setTextSize(13f);
+            label.setTypeface(adapter.fontRegular);
+            label.forceHasOverlappingRendering(false);
+            card.addView(label, labelLp);
+        }
+
+        Holder(AppAdapter adapter, View v, FrameLayout card, ImageView banner, TextView name,
+               TileListener listener, boolean animations, boolean advancedEffects, boolean reducedMotion) {
             super(v);
-            card = v.findViewById(R.id.card);
-            banner = v.findViewById(R.id.banner);
-            icon = v.findViewById(R.id.icon);
-            label = v.findViewById(R.id.label);
-            name = v.findViewById(R.id.name);
+            this.adapter = adapter;
+            v.forceHasOverlappingRendering(false);
+            this.card = card;
+            card.forceHasOverlappingRendering(false);
+            this.banner = banner;
+            this.name = name;
+            name.forceHasOverlappingRendering(false);
             this.animations = animations;
             this.advancedEffects = advancedEffects;
             this.reducedMotion = reducedMotion;
 
             final float density = v.getResources().getDisplayMetrics().density;
-            card.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    // 16dp at the design width, scaled down with the tile so small tiles keep the same shape.
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadius(view.getWidth(), density));
-                }
-            });
+            card.setOutlineProvider(adapter.cardOutline);
             card.setClipToOutline(true);
 
             card.setOnClickListener(view -> {
@@ -571,7 +635,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                             .translationZ(focused && advancedEffects ? 8f * density : 0f)
                             .setDuration(focused ? 120 : 80)
                             .setInterpolator(FOCUS_REDUCED)
-                            .withLayer().start();
+                            .start();
                     name.animate().alpha(focused ? 1f : 0f).setDuration(100).start();
                     // Same place as the full motion's slide ends: the layout's -6dp is only its starting point, and
                     // left there the name overlaps the zoomed tile.
@@ -583,7 +647,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                             .translationZ(focused && advancedEffects ? 8f * density : 0f)
                             .setDuration(advancedEffects ? (focused ? 220 : 170) : (focused ? 260 : 180))
                             .setInterpolator(!focused ? FOCUS_OUT : advancedEffects ? FOCUS_IN_SOFT : FOCUS_IN)
-                            .withLayer().start();
+                            .start();
                     if (advancedEffects) {
                         banner.animate().scaleX(focused ? 1.035f : 1f).scaleY(focused ? 1.035f : 1f)
                                 .setDuration(280).start();

@@ -27,7 +27,7 @@ import java.util.Set;
 final class TileStore {
 
     private static final int MAGIC = 0x54494C45;   // "TILE"
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
     private static final String INDEX = "index";
 
     /** One saved tile: the banner, or the icon of an app without one. */
@@ -98,12 +98,51 @@ final class TileStore {
         } catch (IOException | RuntimeException e) {
             return null;
         }
-        // About 13 ms per tile on a TV CPU, while the main thread inflates the layout. Decoding on more threads
-        // measured no earlier: the extra threads slow the inflation down by as much.
-        BitmapFactory.Options opts = new BitmapFactory.Options();
-        opts.inPreferredConfig = Bitmap.Config.HARDWARE;
+        // With RustCore, LZ4 tiles decode in ~0.15 ms each into a single reused scratch Bitmap before
+        // uploading to GPU HARDWARE memory; legacy PNG tiles fall back to BitmapFactory.
+        int count = c.tiles.size();
+        if (RustCore.AVAILABLE && count > 0) {
+            boolean packed = RustCore.loadPackLz4(new File(dir, "pack.lz4").getPath()) == count;
+            Bitmap scratch = null;
+            for (int i = 0; i < count; i++) {
+                Tile t = c.tiles.get(i);
+                if (!t.file.endsWith(".lz4")) continue;
+                String path = packed ? null : new File(dir, t.file).getPath();
+                int tw = c.width, th = c.height;
+                if (!t.banner) {
+                    long hdr = packed ? RustCore.readPackHeader(i) : RustCore.readBitmapLz4Header(path);
+                    tw = (int) ((hdr >>> 16) & 0xFFFF);
+                    th = (int) (hdr & 0xFFFF);
+                }
+                if (tw <= 0 || th <= 0) continue;
+                Bitmap.Config wantCfg = t.banner ? Bitmap.Config.RGB_565 : Bitmap.Config.ARGB_8888;
+                if (scratch == null || scratch.getWidth() != tw || scratch.getHeight() != th
+                        || scratch.getConfig() != wantCfg) {
+                    if (scratch != null) scratch.recycle();
+                    scratch = Bitmap.createBitmap(tw, th, wantCfg);
+                }
+                int ok = packed ? RustCore.readPackBitmap(i, scratch) : RustCore.readBitmapLz4(path, scratch);
+                if (ok == 1) {
+                    if (t.banner) {
+                        Bitmap hw = scratch.copy(Bitmap.Config.HARDWARE, false);
+                        t.image = hw != null ? hw : scratch.copy(Bitmap.Config.RGB_565, false);
+                    } else {
+                        scratch.setHasAlpha(true);
+                        t.image = scratch;
+                        scratch = null;
+                    }
+                }
+            }
+            if (scratch != null) scratch.recycle();
+        }
+        BitmapFactory.Options opts = null;
         for (Tile t : c.tiles) {
+            if (t.image != null || t.file.endsWith(".lz4")) continue;
             try {
+                if (opts == null) {
+                    opts = new BitmapFactory.Options();
+                    opts.inPreferredConfig = Bitmap.Config.HARDWARE;
+                }
                 t.image = BitmapFactory.decodeFile(new File(dir, t.file).getPath(), opts);
             } catch (RuntimeException ignored) {
             }
@@ -113,12 +152,19 @@ final class TileStore {
 
     /** Saves one tile image and returns its file name, or null when it could not be written. */
     String writeImage(Bitmap image) {
-        // Banners live in GPU memory; copy() reads one back, which compress() cannot do.
+        // Banners live in GPU memory unless passed from AppLoader.Built as software bitmaps.
         Bitmap soft = image.getConfig() == Bitmap.Config.HARDWARE ? image.copy(Bitmap.Config.ARGB_8888, false) : image;
         if (soft == null) return null;
         try {
             if (!dir.isDirectory() && !dir.mkdirs()) return null;
-            // Never reuse a name: the current index may still point at it (the clock can step back at boot).
+            if (RustCore.AVAILABLE) {
+                String name;
+                do {
+                    name = Long.toHexString(System.currentTimeMillis()) + "-" + (written++) + ".lz4";
+                } while (new File(dir, name).exists());
+                if (RustCore.writeBitmapLz4(new File(dir, name).getPath(), soft) == 1) return name;
+            }
+            // Fallback: standard PNG compression.
             String name;
             do {
                 name = Long.toHexString(System.currentTimeMillis()) + "-" + (written++) + ".png";
@@ -162,8 +208,14 @@ final class TileStore {
                 }
             }
             if (!tmp.renameTo(new File(dir, INDEX))) return;
+            if (RustCore.AVAILABLE && !tiles.isEmpty()) {
+                StringBuilder manifest = new StringBuilder(dir.getPath());
+                for (Tile t : tiles) manifest.append('\n').append(t.file);
+                RustCore.writePackLz4(manifest.toString());
+            }
             Set<String> keep = new HashSet<>();
             keep.add(INDEX);
+            keep.add("pack.lz4");
             for (Tile t : tiles) keep.add(t.file);
             File[] files = dir.listFiles();
             if (files == null) return;

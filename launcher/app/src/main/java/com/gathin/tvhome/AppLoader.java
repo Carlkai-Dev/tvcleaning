@@ -103,7 +103,7 @@ final class AppLoader {
     // Worker thread only: the disk copy of the tiles.
     private static TileStore store;
     /** Read at process start, used once by the first load. */
-    private static TileStore.Contents restored;
+    private static volatile TileStore.Contents restored;
     /** The saved record of each cached tile, by key. */
     private static final Map<String, TileStore.Tile> SAVED = new HashMap<>();
     /** Restored tiles whose app has not been checked against the package manager yet. */
@@ -152,10 +152,11 @@ final class AppLoader {
     static void preload(Context ctx) {
         if (preloaded) return;
         preloaded = true;
-        Context app = ctx.getApplicationContext();
+        Context appCtx = ctx.getApplicationContext();
+        final Context app = appCtx != null ? appCtx : ctx;
         WORKER.execute(() -> {
             store = new TileStore(app);
-            restored = store.read(stamp(app.getPackageManager(), app.getPackageName()));
+            restored = store.read(selfStamp(app));
         });
     }
 
@@ -187,8 +188,17 @@ final class AppLoader {
     private static void refresh(Context app) {
         final Request req = request;
         if (req == null || active == null) return;
+        // If restore() already decoded the tiles during preload(), deliver them on the main thread right away
+        // instead of waiting for a round-trip through the worker queue.
+        if (restored != null && CACHE.isEmpty()) {
+            Snapshot saved = restore(app, req);
+            if (saved != null) {
+                last = saved;
+                deliver();
+            }
+        }
         WORKER.execute(() -> {
-            // Cold start: show the saved tiles first, then let the load check them against the package manager.
+            // Cold start: if preload() was still running when start() was called, show the saved tiles first.
             Snapshot saved = restore(app, req);
             if (saved != null) {
                 last = saved;
@@ -353,7 +363,7 @@ final class AppLoader {
      * the same locale and banner size. They go into the cache unchecked; {@link #load} then keeps each one only if
      * its app was not updated since, and drops the apps that were removed, disabled or hidden.
      */
-    private static Snapshot restore(Context app, Request req) {
+    private static synchronized Snapshot restore(Context app, Request req) {
         TileStore.Contents c = restored;
         restored = null;
         if (c == null || !CACHE.isEmpty()) return null;
@@ -411,8 +421,18 @@ final class AppLoader {
             if (t != null) tiles.add(t);
         }
         Request r = cacheRequest;
-        store.writeIndex(stamp(app.getPackageManager(), app.getPackageName()), cacheLocale,
+        store.writeIndex(selfStamp(app), cacheLocale,
                 bannerSize(r.tileWidth, r.zoom), bannerSize(r.tileHeight, r.zoom), tiles);
+    }
+
+    /** The launcher APK's own mtime via local stat(), avoiding a PackageManager Binder IPC during preload. */
+    private static long selfStamp(Context app) {
+        String codePath = app.getPackageCodePath();
+        if (codePath != null) {
+            long mtime = new java.io.File(codePath).lastModified();
+            if (mtime > 0) return mtime;
+        }
+        return stamp(app.getPackageManager(), app.getPackageName());
     }
 
     /** When the package was last installed or updated, or 0 if it is gone. */
@@ -474,7 +494,13 @@ final class AppLoader {
 
     /** Draws a drawable into a bitmap of exactly this size, centre-cropped like the tile's ImageView. */
     private static Bitmap render(Drawable d, int w, int h, boolean crop) {
-        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        // Banners are 100% opaque (#FF1C1C1E baked in), so RGB_565 halves their RAM, disk and GPU bandwidth.
+        Bitmap bmp = Bitmap.createBitmap(w, h, crop ? Bitmap.Config.RGB_565 : Bitmap.Config.ARGB_8888);
+        if (crop) {
+            bmp.eraseColor(0xFF1C1C1E);
+            d.setDither(true);
+            d.setFilterBitmap(true);
+        }
         int dw = d.getIntrinsicWidth(), dh = d.getIntrinsicHeight();
         if (crop && dw > 0 && dh > 0) {
             float s = Math.max((float) w / dw, (float) h / dh);
@@ -490,6 +516,9 @@ final class AppLoader {
 
     /** A vivid colour sampled from the banner (or icon), for the glow behind the top shelf. */
     private static int vividColor(Bitmap src) {
+        if (RustCore.AVAILABLE && src.getConfig() != Bitmap.Config.HARDWARE) {
+            return RustCore.vividColor(src);
+        }
         int n = 12;
         Bitmap bmp = src.getWidth() == n && src.getHeight() == n ? src : Bitmap.createScaledBitmap(src, n, n, true);
         int[] px = new int[n * n];
