@@ -114,6 +114,10 @@ final class InputRows {
                     rows.add(new Row(device.id, unnamed ? label : name, unnamed ? null : label, port.hdmi, true));
                 }
                 if (!keepPorts) continue;
+                // The port's own row under keepPorts is just the port: a name given to it in Settings > Inputs
+                // names the box behind it, which its device rows above already show.
+                rows.add(new Row(port.id, label, null, port.hdmi, false));
+                continue;
             }
             // The name given in Settings > Inputs (e.g. "MacBook Pro") goes first, the port after it.
             rows.add(named ? new Row(port.id, custom, label, port.hdmi, false)

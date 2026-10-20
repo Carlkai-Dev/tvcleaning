@@ -82,6 +82,15 @@ public class InputRowsTest {
         assertEquals(Collections.singletonList("Living room box \u00B7 HDMI 1"), texts(InputRows.build(inputs, false)));
     }
 
+    /** Sony BRAVIA with HDMI 2 named "AppleTV" in Settings > Inputs and the Apple TV on it: two "AppleTV" tiles. */
+    @Test public void keepPortsShowsANamedPortWithDevicesAsThePort() {
+        List<InputRows.Input> inputs = Arrays.asList(
+                new InputRows.Input(EXT + "HW2", null, "HDMI 2", "AppleTV", true, true, false),
+                new InputRows.Input(EXT + "HDMI200004", EXT + "HW2", "AppleTV", null, true, true, false));
+        assertEquals(Arrays.asList("AppleTV \u00B7 HDMI 2", "HDMI 2"), texts(InputRows.build(inputs, true)));
+        assertEquals(Collections.singletonList("AppleTV \u00B7 HDMI 2"), texts(InputRows.build(inputs, false)));
+    }
+
     @Test public void hiddenAndNonPassthroughInputsStayOut() {
         List<InputRows.Input> inputs = Arrays.asList(
                 port("HW1", "HDMI 1", true),
