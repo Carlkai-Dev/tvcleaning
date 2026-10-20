@@ -50,7 +50,7 @@
     <string name="wallpaper_custom">Custom image</string>
     <string name="wallpaper_custom_title">Choose a custom wallpaper</string>
     <string name="wallpaper_applied">Wallpaper changed</string>
-    <string name="wallpaper_no_images">No custom images found. Put JPG, PNG or WebP images in Android/data/com.gathin.tvhome/files/wallpapers/, or allow photo access to pick from the TV\'s library.</string>
+    <string name="wallpaper_no_images">No custom images found. Put JPG/PNG/WebP in Android/data/com.gathin.tvhome/files/wallpapers/, or allow photo access.</string>
     <string name="wallpaper_grant_access">Allow photo access</string>
     <string name="reset_icon_order">Reset icon order</string>
     <string name="reset_icon_order_message">Put the dock and app grid back in their theme and alphabetical order?</string>

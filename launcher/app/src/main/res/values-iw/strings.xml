@@ -104,7 +104,7 @@
     <string name="wallpaper_custom">תמונה מותאמת אישית</string>
     <string name="wallpaper_custom_title">בחירת טפט מותאם אישית</string>
     <string name="wallpaper_applied">הטפט הוחלף</string>
-    <string name="wallpaper_no_images">לא נמצאו תמונות מותאמות אישית. יש לשים קבצי JPG, PNG או WebP בתיקייה Android/data/com.gathin.tvhome/files/wallpapers/, או לאשר גישה לתמונות כדי לבחור מספריית הטלוויזיה.</string>
+    <string name="wallpaper_no_images">לא נמצאו תמונות מותאמות אישית. יש לשים קבצי JPG/PNG/WebP בתיקייה Android/data/com.gathin.tvhome/files/wallpapers/, או לאשר גישה לתמונות.</string>
     <string name="wallpaper_grant_access">אישור גישה לתמונות</string>
     <string name="reset_icon_order">איפוס סדר הסמלים</string>
     <string name="reset_icon_order_message">להחזיר את העגינה ואת רשת האפליקציות לסדר של ערכת הנושא ולסדר האלפביתי?</string>
