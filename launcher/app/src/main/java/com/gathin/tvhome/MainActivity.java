@@ -1847,7 +1847,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     label = custom + " \u00B7 " + label;
                 }
                 final String id = info.getId();
-                int state = hdmi && hdmiStateBogus ? -1 : tim.getInputState(id);
+                // Analog AV jacks have no hotplug detection, and some TVs report them as always connected
+                // (TCL Smart TV Pro G03 says "Connected" with nothing plugged in), so AV rows show no state.
+                int state = !hdmi || hdmiStateBogus ? -1 : tim.getInputState(id);
                 if (child != null && state != -1 && tim.getInputState(child.getId()) == TvInputManager.INPUT_STATE_CONNECTED) {
                     state = TvInputManager.INPUT_STATE_CONNECTED;
                 }
