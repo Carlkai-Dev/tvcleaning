@@ -53,7 +53,10 @@ class DebloatPathsTest(unittest.TestCase):
             '  shift 2\n'
             f'  exec "{sys.executable}" "{ROOT / "tools" / "recovery.py"}" "$@"\n'
             'fi\n'
-            'cat > "$CAPTURE"\n'
+            'case "$*" in\n'
+            '  *--batch*) cat > "$CAPTURE" ;;\n'
+            '  *) exit 0 ;;\n'
+            'esac\n'
         )
         client.chmod(0o755)
         home = repo.parent / "home"

@@ -19,4 +19,7 @@
     <locale android:name="iw" />
     <locale android:name="tr" />
     <locale android:name="pt" />
+    <locale android:name="fi" />
+    <locale android:name="vi" />
+    <locale android:name="bn" />
 </locale-config>

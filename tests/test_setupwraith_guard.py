@@ -31,7 +31,11 @@ class SetupwraithGuardTest(unittest.TestCase):
                 'case "$*" in\n'
                 '  *recovery.py*) exit 0 ;;\n'
                 f'  *dumpsys*) {answer} ;;\n'
-                '  *) cat > "$CAPTURE" ;;\n'
+                # The Home guard asks which app owns Home and which ones answer it.
+                '  *resolve-activity*) echo "com.google.android.tvlauncher/.MainActivity" ;;\n'
+                '  *query-activities*) echo "  com.google.android.tvlauncher/.MainActivity" ;;\n'
+                '  *--batch*) cat > "$CAPTURE" ;;\n'
+                '  *) exit 0 ;;\n'
                 'esac\n')
             client.chmod(0o755)
             (repo / "debloat.txt").write_text(LIST)
