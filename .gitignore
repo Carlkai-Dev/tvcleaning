@@ -22,3 +22,6 @@ screenshots/
 .beads-credential-key
 .beads/proxieddb/
 *.gate.lock*
+
+# Feature specifications
+specs/
