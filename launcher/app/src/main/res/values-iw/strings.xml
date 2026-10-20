@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_redirect_name">הפניית מסך הבית</string>
+    <string name="home_redirect_stock_home">שימוש במסך הבית המקורי</string>
+    <string name="home_redirect_description">יש להפעיל את הפניית מסך הבית בהגדרות הנגישות כדי לפתוח את CleanYourTV לאחר הופעת מסך הבית המקורי שהוגדר. הקושחה עשויה לעכב את ההפניה. תוכן המסך והמקשים אינם נקראים. בחרו שימוש במסך הבית המקורי כדי לכבות את ההפניה.</string>
     <string name="app_name">בית</string>
     <string name="inputs">כניסות</string>
     <string name="wifi">Wi-Fi</string>

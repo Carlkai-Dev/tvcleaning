@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -14,8 +15,10 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.Toast;
+import java.util.ArrayList;
+import java.util.List;
 
-/** Optional Fire OS fallback. Amazon keeps HOME; this requests our activity afterward. */
+/** Shared stock-HOME fallback. Component name is retained for installed Fire TV builds. */
 public final class FireTvHomeService extends AccessibilityService {
     private static final String PREFS = "fire_tv_home";
     private static volatile boolean bound;
@@ -28,7 +31,7 @@ public final class FireTvHomeService extends AccessibilityService {
         try {
             PendingIntent.getActivity(this, 1, home,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE).send();
-            Log.i("FireTvHome", "Home requested; Fire OS may defer the activity start");
+            Log.i("FireTvHome", "Home requested; firmware may defer the activity start");
         } catch (PendingIntent.CanceledException | RuntimeException error) {
             Log.w("FireTvHome", "Home request refused", error);
         }
@@ -43,18 +46,51 @@ public final class FireTvHomeService extends AccessibilityService {
         context.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean("enabled", value).apply();
     }
 
+    private static String targetPackage(Context context) {
+        String configured = Config.load(context).homeRedirectPackage;
+        return configured.isEmpty() ? context.getString(R.string.fire_tv_stock_package) : configured;
+    }
+
+    private static Intent stockHome(String pkg) {
+        return new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setPackage(pkg);
+    }
+
+    /** Match only declared HOME activities, never every window from the configured package. */
+    private static String[] homeClasses(Context context, String pkg) {
+        List<String> classes = new ArrayList<>();
+        for (ResolveInfo info : context.getPackageManager().queryIntentActivities(
+                stockHome(pkg), PackageManager.MATCH_DEFAULT_ONLY)) {
+            if (info.activityInfo != null && info.activityInfo.enabled && info.activityInfo.exported
+                    && pkg.equals(info.activityInfo.packageName)) {
+                classes.add(info.activityInfo.name);
+                // Accessibility reports the target class when HOME is declared by an activity-alias.
+                if (info.activityInfo.targetActivity != null) classes.add(info.activityInfo.targetActivity);
+            }
+        }
+        if (pkg.equals(context.getString(R.string.fire_tv_stock_package))) {
+            for (String cls : context.getResources().getStringArray(R.array.fire_tv_home_classes)) {
+                if (!classes.contains(cls)) classes.add(cls);
+            }
+        }
+        return classes.toArray(new String[0]);
+    }
+
     static boolean available(Context context) {
         try {
-            String pkg = context.getString(R.string.fire_tv_stock_package);
-            return context.getPackageManager().getApplicationInfo(pkg, 0).enabled;
+            String pkg = targetPackage(context);
+            return !pkg.equals(context.getPackageName())
+                    && context.getPackageManager().getApplicationInfo(pkg, 0).enabled
+                    && homeClasses(context, pkg).length > 0;
         } catch (PackageManager.NameNotFoundException unavailable) { return false; }
     }
 
     /** Used by both existing default-Home entry points; other TVs keep their system picker. */
     static boolean showHomeOptions(Activity activity) {
         if (!available(activity)) return false;
-        new AlertDialog.Builder(activity).setTitle(R.string.fire_tv_home_name)
-                .setMessage(R.string.fire_tv_home_description)
+        String pkg = targetPackage(activity);
+        boolean amazon = pkg.equals(activity.getString(R.string.fire_tv_stock_package));
+        new AlertDialog.Builder(activity).setTitle(R.string.home_redirect_name)
+                .setMessage(amazon ? R.string.fire_tv_home_description : R.string.home_redirect_description)
                 .setPositiveButton(R.string.enable, (dialog, which) -> {
                     enabled(activity, true);
                     if (!bound) {
@@ -64,11 +100,10 @@ public final class FireTvHomeService extends AccessibilityService {
                         }
                     }
                 })
-                .setNeutralButton(R.string.fire_tv_stock_home, (dialog, which) -> {
+                .setNeutralButton(amazon ? R.string.fire_tv_stock_home : R.string.home_redirect_stock_home, (dialog, which) -> {
                     enabled(activity, false);
                     try {
-                        String pkg = activity.getString(R.string.fire_tv_stock_package);
-                        String cls = activity.getResources().getStringArray(R.array.fire_tv_home_classes)[0];
+                        String cls = homeClasses(activity, pkg)[0];
                         activity.startActivity(new Intent().setClassName(pkg, cls)
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                     } catch (RuntimeException unavailable) {
@@ -80,8 +115,8 @@ public final class FireTvHomeService extends AccessibilityService {
 
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
-        policy = new FireTvHomePolicy(getString(R.string.fire_tv_stock_package),
-                getResources().getStringArray(R.array.fire_tv_home_classes));
+        String stockPackage = targetPackage(this);
+        policy = new FireTvHomePolicy(stockPackage, homeClasses(this, stockPackage));
         bound = available(this);
         Log.i("FireTvHome", bound ? "Home service bound" : "No supported stock Home installed");
     }

@@ -20,6 +20,10 @@
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
         <intent>
@@ -100,9 +104,9 @@
                 android:resource="@xml/home_key_service" />
         </service>
 
-        <!-- Fire OS fallback: opt-in through Accessibility, never enabled by the normal installer. -->
+        <!-- Shared HOME redirect; retain component name for upgrades. Explicit Accessibility opt-in. -->
         <service android:name=".FireTvHomeService"
-            android:label="@string/fire_tv_home_name"
+            android:label="@string/home_redirect_name"
             android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>

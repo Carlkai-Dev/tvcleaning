@@ -74,6 +74,8 @@ final class Config {
     final int[] settingsKeycodes;
     /** The Settings button opens the quick settings panel instead of the TV's Settings (settings_key_panel). */
     final boolean settingsKeyPanel;
+    /** Stock HOME package to redirect, empty unless explicitly configured. */
+    final String homeRedirectPackage;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
     final File wallpaper;
     /** Whether the overlay file was present and parsed. */
@@ -87,7 +89,8 @@ final class Config {
                    boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean dockTitle, boolean dockRow, boolean reorderButton, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
                    int[] settingsKeycodes, boolean settingsKeyPanel, File wallpaper, boolean overlayApplied,
-                   Festival festival) {
+                   Festival festival, String homeRedirectPackage) {
+        this.homeRedirectPackage = homeRedirectPackage;
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.fillDock = fillDock;
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
@@ -154,6 +157,7 @@ final class Config {
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
         int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
+        String homeRedirect = res.getString(R.string.home_redirect_package).trim();
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -188,6 +192,7 @@ final class Config {
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
             settingsKeycodes = intArray(json, "settings_key_keycodes", settingsKeycodes);
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
+            homeRedirect = string(json, "home_redirect_package", homeRedirect).trim();
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -209,7 +214,7 @@ final class Config {
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, greetingName, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaper, applied,
-                festival);
+                festival, homeRedirect);
     }
 
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
