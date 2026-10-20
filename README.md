@@ -19,6 +19,15 @@
   <a href="https://buymeacoffee.com/gathint"><img src="https://img.shields.io/badge/support-%E2%9D%A4-ff5e8a?style=flat&labelColor=15181e" alt="Support, buy me a coffee"></a>
 </p>
 
+<p align="center">
+  <a href="https://www.producthunt.com/products/cleanyourtv?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-cleanyourtv">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1286319&theme=dark">
+      <img alt="CleanYourTV on Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1286319&theme=light">
+    </picture>
+  </a>
+</p>
+
 Strip the bloatware from any Android TV or Google TV over Wi-Fi, and replace the ad-filled home
 screen with a clean launcher that looks like an Apple TV. **No root, no cable, nothing uninstalled,
 and a one-line restore if you change your mind.**
@@ -68,8 +77,9 @@ before touching anything you might use.
 
 ## Quick start
 
-You need a computer on the same Wi-Fi as the TV and a coding assistant with shell access
-(Claude Code or similar).
+You need a computer on the same Wi-Fi as the TV and a coding assistant with shell access.
+Suggested: Claude Code on [0G Private Computer](https://pc.0g.ai), one API key for 100+ models.
+Claude Code with an Anthropic plan, Codex or Gemini CLI work too.
 
 | | |
 |---|---|
