@@ -9,7 +9,7 @@
 
     <!-- First dock row. Hold OK on a tile to pin / move / unpin between rows. -->
     <string-array name="dock_apps">
-        <item>com.gathin.streambrowser</item>
+        <item>com.patilweb.streambrowser</item>
         <item>com.google.android.youtube.tv</item>
         <item>com.android.chrome</item>
         <item>com.android.vending</item>

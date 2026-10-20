@@ -4,7 +4,7 @@
     "type": "MERGED_MANIFESTS",
     "kind": "Directory"
   },
-  "applicationId": "com.gathin.streambrowser",
+  "applicationId": "com.patilweb.streambrowser",
   "variantName": "release",
   "elements": [
     {

@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.gathin.streambrowser'
+    namespace 'com.patilweb.streambrowser'
     compileSdk 34
 
     defaultConfig {
-        applicationId 'com.gathin.streambrowser'
+        applicationId 'com.patilweb.streambrowser'
         minSdk 26
         targetSdk 34
         versionCode 1

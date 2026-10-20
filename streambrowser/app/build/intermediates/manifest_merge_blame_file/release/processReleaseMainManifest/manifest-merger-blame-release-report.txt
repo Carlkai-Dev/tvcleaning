@@ -1,6 +1,6 @@
 1<?xml version="1.0" encoding="utf-8"?>
 2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-3    package="com.gathin.streambrowser"
+3    package="com.patilweb.streambrowser"
 4    android:versionCode="1"
 5    android:versionName="1.0" >
 6
@@ -51,7 +51,7 @@
 31-->C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:15:9-44
 32        <activity
 32-->C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:20:9-42:20
-33            android:name="com.gathin.streambrowser.HomeActivity"
+33            android:name="com.patilweb.streambrowser.HomeActivity"
 33-->C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:21:13-41
 34            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
 34-->C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:25:13-90
@@ -102,7 +102,7 @@
 58        </activity>
 59        <activity
 59-->C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:44:9-49:50
-60            android:name="com.gathin.streambrowser.BrowserActivity"
+60            android:name="com.patilweb.streambrowser.BrowserActivity"
 60-->C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:45:13-44
 61            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
 61-->C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:48:13-90

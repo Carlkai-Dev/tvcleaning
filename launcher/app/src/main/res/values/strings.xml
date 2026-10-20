@@ -19,6 +19,9 @@
     <string name="not_available">Not available on this TV</string>
     <string name="cant_open">Can\'t open %1$s</string>
     <string name="open_app_announce">Open %1$s</string>
+    <string name="voice_open_apps">Say “Open app” on OK</string>
+    <string name="voice_open_apps_state">Say “Open app”: %1$s</string>
+    <string name="voice_open_apps_hint">When on, pressing OK on an app tile speaks “Open” and the app name.</string>
     <string name="date_format">EEEE  d MMMM</string>
     <!-- Date next to the clock on Home; a locale can split it over two lines with \n. -->
     <string name="date_format_home" translatable="false">@string/date_format</string>

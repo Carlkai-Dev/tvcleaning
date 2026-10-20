@@ -1,6 +1,6 @@
 <variant
     name="release"
-    package="com.gathin.streambrowser"
+    package="com.patilweb.streambrowser"
     minSdkVersion="26"
     targetSdkVersion="34"
     mergedManifest="build\intermediates\merged_manifest\release\processReleaseMainManifest\AndroidManifest.xml"
@@ -23,7 +23,7 @@
   <artifact
       classOutputs="build\intermediates\javac\release\compileReleaseJavaWithJavac\classes;build\intermediates\compile_and_runtime_not_namespaced_r_class_jar\release\processReleaseResources\R.jar"
       type="MAIN"
-      applicationId="com.gathin.streambrowser"
+      applicationId="com.patilweb.streambrowser"
       generatedSourceFolders="build\generated\ap_generated_sources\release\out"
       generatedResourceFolders="build\generated\res\resValues\release"
       desugaredMethodsFiles="C:\Users\amolp\.gradle\caches\8.9\transforms\56b501a37975adfe37588e72fb20f04e\transformed\D8BackportedDesugaredMethods.txt">

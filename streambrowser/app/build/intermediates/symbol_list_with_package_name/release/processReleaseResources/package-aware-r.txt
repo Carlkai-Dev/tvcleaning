@@ -1,4 +1,4 @@
-com.gathin.streambrowser
+com.patilweb.streambrowser
 attr alpha
 attr font
 attr fontProviderAuthority

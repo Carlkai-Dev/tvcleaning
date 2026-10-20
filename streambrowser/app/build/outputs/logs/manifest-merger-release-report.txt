@@ -63,7 +63,7 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.0] C:\Users\am
 		ADDED from C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:14:9-51
 	android:usesCleartextTraffic
 		ADDED from C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:15:9-44
-activity#com.gathin.streambrowser.HomeActivity
+activity#com.patilweb.streambrowser.HomeActivity
 ADDED from C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:20:9-42:20
 	android:screenOrientation
 		ADDED from C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:24:13-50
@@ -103,7 +103,7 @@ ADDED from C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\Andro
 		ADDED from C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:41:17-52
 	android:name
 		ADDED from C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:40:17-54
-activity#com.gathin.streambrowser.BrowserActivity
+activity#com.patilweb.streambrowser.BrowserActivity
 ADDED from C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:44:9-49:50
 	android:screenOrientation
 		ADDED from C:\Users\amolp\Downloads\cleanyourtv\streambrowser\app\src\main\AndroidManifest.xml:47:13-50

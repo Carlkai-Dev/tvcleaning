@@ -31,9 +31,11 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView wallpaperIndia;
     private TextView wallpaperPick;
     private TextView wallpaperState;
+    private TextView voiceOpenChoice;
     private int columns;
     private boolean animations;
     private boolean advancedEffects;
+    private boolean voiceOpenApps;
     private String wallpaperMode;
 
     @Override
@@ -46,6 +48,7 @@ public final class LauncherSettingsActivity extends Activity {
         animations = config.animations;
         advancedEffects = config.animations && config.advancedEffects;
         wallpaperMode = WallpaperPrefs.mode(this);
+        voiceOpenApps = AppAnnouncer.isEnabled(this);
 
         int[] ids = {R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7};
         for (int i = 0; i < ids.length; i++) {
@@ -86,16 +89,25 @@ public final class LauncherSettingsActivity extends Activity {
                         .show();
             }
         });
+        voiceOpenChoice = findViewById(R.id.voiceOpenChoice);
+        voiceOpenChoice.setOnClickListener(v -> {
+            voiceOpenApps = !voiceOpenApps;
+            AppAnnouncer.setEnabled(this, voiceOpenApps);
+            setResult(RESULT_OK);
+            refresh();
+        });
+
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
-                    .remove(WallpaperPrefs.KEY_MODE).commit();
+                    .remove(WallpaperPrefs.KEY_MODE).remove(AppAnnouncer.KEY_ENABLED).commit();
             Config current = Config.load(this);
             columns = current.columns;
             animations = current.animations;
             advancedEffects = current.animations && current.advancedEffects;
             wallpaperMode = WallpaperPrefs.MODE_DEFAULT;
+            voiceOpenApps = true;
             setResult(RESULT_OK);
             refresh();
         });
@@ -222,6 +234,8 @@ public final class LauncherSettingsActivity extends Activity {
                 getString(advancedEffects ? R.string.on : R.string.off)));
         advancedChoice.setEnabled(animations);
         advancedChoice.setAlpha(animations ? 1f : 0.5f);
+        voiceOpenChoice.setText(getString(R.string.voice_open_apps_state,
+                getString(voiceOpenApps ? R.string.on : R.string.off)));
         followThemeChoice.setSelected(!hasOnTvChoices());
 
         wallpaperDefault.setSelected(WallpaperPrefs.MODE_DEFAULT.equals(wallpaperMode));
@@ -236,7 +250,8 @@ public final class LauncherSettingsActivity extends Activity {
 
     private boolean hasOnTvChoices() {
         return choices.contains("columns") || choices.contains("animations")
-                || choices.contains("advanced_effects") || choices.contains(WallpaperPrefs.KEY_MODE);
+                || choices.contains("advanced_effects") || choices.contains(WallpaperPrefs.KEY_MODE)
+                || choices.contains(AppAnnouncer.KEY_ENABLED);
     }
 
     private void open(Intent intent) {

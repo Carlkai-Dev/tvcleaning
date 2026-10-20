@@ -32,8 +32,8 @@ $py = '..\tools\venv\Scripts\python.exe'
 $apk = 'app\build\outputs\apk\release\app-release.apk'
 & $py -I ..\tools\b64push.py $apk /data/local/tmp/streambrowser.apk
 if ($LASTEXITCODE -ne 0) { throw 'APK upload failed' }
-$out = & $py -I ..\tools\tv.py 'pm install -r /data/local/tmp/streambrowser.apk; rm -f /data/local/tmp/streambrowser.apk'
+$out = & $py -I ..\tools\tv.py 'pm uninstall com.gathin.streambrowser >/dev/null 2>&1; pm install -r /data/local/tmp/streambrowser.apk; rm -f /data/local/tmp/streambrowser.apk'
 Write-Host $out
 if ("$out" -notmatch 'Success') { throw 'pm install failed' }
-& $py -I ..\tools\tv.py 'am start -n com.gathin.streambrowser/.HomeActivity'
+& $py -I ..\tools\tv.py 'am start -n com.patilweb.streambrowser/.HomeActivity'
 Write-Host 'Installed and launched Stream TV.'

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.gathin.streambrowser"
+    package="com.patilweb.streambrowser"
     android:versionCode="1"
     android:versionName="1.0" >
 
@@ -30,7 +30,7 @@
         android:theme="@style/Theme.StreamBrowser"
         android:usesCleartextTraffic="true" >
         <activity
-            android:name="com.gathin.streambrowser.HomeActivity"
+            android:name="com.patilweb.streambrowser.HomeActivity"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
             android:exported="true"
             android:launchMode="singleTask"
@@ -57,7 +57,7 @@
                 android:resource="@xml/module_card" />
         </activity>
         <activity
-            android:name="com.gathin.streambrowser.BrowserActivity"
+            android:name="com.patilweb.streambrowser.BrowserActivity"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
             android:exported="false"
             android:hardwareAccelerated="true"
