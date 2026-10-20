@@ -28,16 +28,67 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `live_tv_package`, `live_tv_action` | string | The Live TV app and, if it has no leanback entry, the action to start it with |
 | `source_panel_service`, `source_panel_action` | string | The TV's own source panel, for sets with no TvInputManager |
 | `input_action` | string | Action sent with an HDMI/AV row's channel URI when nothing handles the standard `VIEW` (XGIMI: `com.xgimi.action.hdmiPlayer`) |
+| `settings_package` | string | First package tried for settings slice resources, followed by discovered system Settings packages; empty disables slice lookup and discovery |
+| `settings_fallback_component` | component string | Firmware settings entry used only when neither the requested public settings page nor general settings is available |
+| `settings_slice_action`, `settings_slice_uri_extra` | string | Firmware slice activity action and the name of its content-URI extra |
+| `quick_audio_output_component`, `quick_apps_component`, `quick_bluetooth_component`, `quick_screensaver_component` | component string | Optional firmware activities, written as `package/.Activity` or `package/full.class.Name` |
+| `quick_audio_output_slice_resource`, `quick_bluetooth_slice_resource` | string | Names of string resources in `settings_package` containing settings slice content URIs |
+| `quick_screensaver_action` | string | Optional firmware action that starts the current screensaver |
 | `columns` | 1 to 8 | Tiles per row; tiles shrink to fit from 5 up |
 | `rows_below_dock` | 0 to 3 | Grid rows left visible under the dock |
 | `shamsi_date` | bool | Show the Solar Hijri date above the Gregorian one |
 | `module_cards` | bool | Look for module cards and ask about them (`true`); `false` turns the feature off |
 | `reduced_motion` | bool | Calmer motion for weak GPUs: stiff highlight spring, no tile overshoot, short fades, no entrance replay |
-| `navigation_sounds` | bool | Navigation and button sounds for Home tiles, folders, header buttons and quick settings; defaults to `false`. Set `true` to enable; follows the TV's system sound setting |
+| `navigation_sounds` | bool | Navigation and button sounds for Home tiles, folders, header buttons and quick settings; defaults to `true`. Set `false` to silence them; follows the TV's system sound setting |
 | `vpn_app` | string | App the network pill opens when a VPN is configured; also shows a red "VPN off" badge while no VPN is up |
 | `show_home_settings_shortcut` | bool | The "Default home" tile, where the TV has a home picker |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `wallpaper` | bool | Show `wallpaper.jpg` from the theme folder (`true`), or ignore it (`false`) |
+
+## Firmware settings routes
+
+The launcher uses public Android settings actions, with optional firmware destinations configured in
+`launcher/app/src/main/res/values/config.xml`. The built-in defaults retain the known Android TV,
+Google TV and Xiaomi destinations. For optional settings slices, the launcher also discovers
+launchable system apps handling Android's public Settings action and tries their resource overlays.
+The configured package is tried first, duplicate packages are skipped, and ordinary third-party
+apps are not automatically used for slice discovery. No vendor-name or model-name check is needed.
+Every route key above can also be overridden in a theme;
+an empty string disables that route, while an absent or wrongly typed key keeps its built-in value.
+They are identifiers, not translated UI text.
+
+The lookup order is:
+
+- **Audio Output:** configured component, configured audio-output slice, public sound settings.
+- **Apps:** configured component, public application-management settings, all-app management,
+  application settings, general settings.
+- **Bluetooth:** configured accessories slice, public Bluetooth settings, configured accessories
+  component, public wireless settings, general settings.
+- **Screensaver:** configured start action, public screensaver settings, configured component,
+  general settings.
+- **Picture, Sound and All Settings:** their public Android settings actions.
+- **Wi-Fi:** public Wi-Fi settings, wireless settings, general settings.
+
+When a requested public page is missing, the launcher tries general settings and then
+`settings_fallback_component`. It skips missing, disabled, non-exported and permission-protected
+activities it cannot launch. Missing packages/resources and invalid slice URIs are also skipped.
+If nothing is available, the caller shows the existing unavailable message instead of crashing.
+The precise pages remain firmware-dependent. This allows standard Android TV and Google TV
+implementations from different vendors to resolve their own settings apps, but it does not claim
+physical-device validation for every brand or guarantee every specialized page. It does not add
+support for TVs running a different operating system.
+
+For example, to disable a dedicated vendor audio-output activity while retaining the other routes:
+
+```json
+{ "quick_audio_output_component": "" }
+```
+
+On Android 11+, a custom package must be visible to the launcher for availability checks and resource
+lookup to work. The APK declares the built-in settings packages and public actions in its manifest's
+`<queries>`. If an additional firmware package is not already visible through those declarations,
+add its package to `<queries>` when building for that TV. This is a package-visibility declaration,
+not a new permission; a theme cannot change the installed APK's manifest.
 
 ## Wallpapers
 

@@ -4,7 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.view.View;
 
-/** One tiny home-screen snapshot on folder entry, softened once rather than blurring every frame. */
+/** Cached backdrop snapshots for quick settings and small menu/dialog surfaces. */
 final class FolderBackdrop {
     static Bitmap capture(View home) {
         int width = 160, height = Math.max(1, width * home.getHeight() / Math.max(1, home.getWidth()));
@@ -18,6 +18,11 @@ final class FolderBackdrop {
         canvas.scale(width / (float) region.width(), height / (float) region.height());
         canvas.translate(-region.left, -region.top);
         home.draw(canvas);
+        return soften(bitmap, radius);
+    }
+
+    private static Bitmap soften(Bitmap bitmap, int radius) {
+        int width = bitmap.getWidth(), height = bitmap.getHeight();
         int[] pixels = new int[width * height], scratch = new int[pixels.length];
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
         for (int pass = 0; pass < 3; pass++) {

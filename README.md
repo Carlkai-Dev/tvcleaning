@@ -66,7 +66,7 @@ screenshots pulled from the TV. With this repo as context it takes about fifteen
 - **A softly coloured backdrop** and a translucent dock of your favourite apps at the bottom, with a broad, frosted glass band and a lit upper edge inspired by Apple TV.
 - **A top shelf** naming the focused app in large type, with an ambient glow in a colour taken from its artwork.
 - **A full-screen, six-column app grid** that slides up when you press Down from the dock.
-- **Folders with 2×2 app previews** and a three-column glass panel. Hold OK for **Add to Folder → New Folder**, or choose an existing folder. Previews show up to four apps; all apps remain available inside. Names can be left blank. Rename a folder from its menu or, when named, its title; move its last app back to **Home Screen** to remove the folder.
+- **Folders with 2×2 app previews** and a glass panel with four smaller tiles per row, centred contents and a height that fits its rows. Opening and closing are animated. Hold OK on a Home app for **Add to Folder → New Folder**, or choose an existing folder. Inside a folder, hold OK on an app and choose **Remove from folder** to return it to Home; the folder stays open so you can continue organizing. Removing the final app closes the empty folder. Names can be left blank: the title area stays empty until you press Up into it, revealing **Untitled folder** as the naming control. The name editor stays above the keyboard without shifting Home.
 - **A soft focus halo in each app's colour**, with a lifted tile and a name below it. The halo leaves the app artwork untouched, without a white frame or frosted overlay.
 - **Three frosted buttons**: Inputs (HDMI ports, AV, Live TV), Wi-Fi or Ethernet with the network name, Settings.
 - **A greeting, a thin clock and the date** in [Outfit](https://fonts.google.com/specimen/Outfit), and a matching Clock screensaver.
@@ -207,8 +207,10 @@ The install scripts ask the TV which launcher owns Home and only disable one the
 A small native Android TV app (`com.gathin.tvhome`, about 280 KB installed) in plain Java with
 AndroidX RecyclerView and nothing heavier. Built for sets with 1 GB of RAM: static colour fields and
 translucent glass surfaces, with no live blur, video, network requests, or background services.
-Opening a folder softens one 160-pixel-wide snapshot of Home behind the panel; app menus and folder
-dialogs blur a small snapshot of their own bounds once when opened. The material approximates the
+Folders use a solid black backdrop that fades over the intact Home view, preserving the dock and
+tile corners throughout the transition. No screenshot or blur preparation delays opening, and Home
+stays laid out for an immediate return on Back. App menus and folder dialogs blur a small
+snapshot of their own bounds once when opened. The material approximates the
 screenshots on older Android TVs; it does not use Apple's native Liquid Glass renderer.
 It needs JDK 17 and Android SDK platform 34 to build; on macOS,
 `brew install openjdk@17 android-commandlinetools` and `sdkmanager "platforms;android-34" "build-tools;34.0.0"`. On Linux
@@ -260,6 +262,20 @@ physical TV. It checks the icon entry, control geometry and accessibility, D-pad
 return focus using monitored external launches. Install the matching **debug app and test APK**
 (the optimized release APK removes resource classes used by instrumentation). Build its test APK with
 `-PlauncherTestRunner=com.gathin.tvhome.QuickSettingsSmoke`.
+
+`FolderMotionSmoke` measures click-to-motion and Back-to-motion timing, verifies that Home's holders
+are retained, and compares native screenshot pixels around tile and dock corners at five points in
+each transition. It also checks the solid black folder backdrop. It uses an existing folder on a
+physical TV without changing its saved layout, and synthetic apps on an emulator.
+
+Firmware-specific settings components, actions and slice resource names are declared in `config.xml`
+and can be overridden through a theme; see [firmware settings routes](themes/README.md#firmware-settings-routes).
+Other system Settings packages are discovered through Android's Settings action, with additional
+public Apps and wireless settings fallbacks for firmware that omits a dedicated page.
+`SettingsRoutingSmoke` checks those overrides, package discovery, destination availability and fallback order without
+launching external settings pages. Run it on an emulator: it temporarily writes a test theme overlay
+and restores the previous file before finishing. Select it with
+`-PlauncherTestRunner=com.gathin.tvhome.SettingsRoutingSmoke`.
 
 ## Restoring your TV
 

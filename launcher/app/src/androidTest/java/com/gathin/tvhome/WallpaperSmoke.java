@@ -58,16 +58,33 @@ public final class WallpaperSmoke extends Instrumentation {
             expectBlue("Wallpaper is visible after returning to Home");
             close();
 
+            // Turning wallpaper off must reveal the same black backdrop as main, even with a file present.
+            Files.write(config.toPath(), ("{\"wallpaper\":false,\"columns\":6,"
+                    + "\"rows_below_dock\":0,\"module_cards\":false}").getBytes(StandardCharsets.UTF_8));
+            launch();
+            expectBlack("Wallpaper off leaves Home black outside the app glow");
+            expand();
+            expectBlack("Wallpaper off keeps the expanded grid black");
+            call("syncFolderPresentation"); settle();
+            expectBlack("Refreshing the expanded grid keeps the backdrop black");
+            call("setExpanded", boolean.class, false); settle();
+            expectBlack("Returning to Home keeps the backdrop black");
+            close();
+
             // A failed decode must retain the normal plain-background treatment.
+            Files.write(config.toPath(), ("{\"wallpaper\":true,\"columns\":6,"
+                    + "\"rows_below_dock\":0,\"module_cards\":false}").getBytes(StandardCharsets.UTF_8));
             Files.write(wallpaper.toPath(), new byte[]{1, 2, 3, 4});
-            launch(); expand();
-            runOnMainSync(() -> check(activity.findViewById(R.id.atmosphere).getAlpha() > .9f,
-                    "Invalid wallpaper keeps the plain-grid fallback"));
+            launch();
+            expectBlack("Invalid wallpaper leaves Home black");
+            expand();
+            expectBlack("Invalid wallpaper keeps the expanded grid black");
             close();
             Files.delete(wallpaper.toPath());
-            launch(); expand();
-            runOnMainSync(() -> check(activity.findViewById(R.id.atmosphere).getAlpha() > .9f,
-                    "Missing wallpaper keeps the plain-grid fallback"));
+            launch();
+            expectBlack("Missing wallpaper leaves Home black");
+            expand();
+            expectBlack("Missing wallpaper keeps the expanded grid black");
             result.putString("stream", "PASS: " + checks + " wallpaper checks.\n");
         } catch (Throwable failure) {
             code = Activity.RESULT_CANCELED;
@@ -129,6 +146,18 @@ public final class WallpaperSmoke extends Instrumentation {
             frame.recycle();
             check(Color.blue(pixel) - Math.max(Color.red(pixel), Color.green(pixel)) > 50,
                     message + ": pixel=" + Integer.toHexString(pixel));
+        });
+    }
+
+    private void expectBlack(String message) {
+        runOnMainSync(() -> {
+            View root = activity.findViewById(R.id.root);
+            Bitmap frame = Bitmap.createBitmap(root.getWidth(), root.getHeight(), Bitmap.Config.ARGB_8888);
+            root.draw(new Canvas(frame));
+            // The right margin is outside the dock app's radial glow and all tile/header content.
+            int pixel = frame.getPixel(root.getWidth() - 2, root.getHeight() / 2);
+            frame.recycle();
+            check(pixel == Color.BLACK, message + ": pixel=" + Integer.toHexString(pixel));
         });
     }
 

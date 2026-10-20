@@ -42,7 +42,7 @@ public final class LauncherSmoke extends Instrumentation {
                 try { seed(); } catch (Exception e) { throw new RuntimeException(e); }
             });
             settle();
-            check(adapter.getItemCount() == 36, "36 fixture apps");
+            check(activeAdapter().getItemCount() == 36, "36 fixture apps");
             Bitmap[] halo = new Bitmap[1];
             runOnMainSync(() -> {
                 GlassView light = new GlassView(activity, null);
@@ -87,12 +87,12 @@ public final class LauncherSmoke extends Instrumentation {
             capture("menu");
             key(KeyEvent.KEYCODE_DPAD_CENTER);
             check(field(activity, "movingKey") != null, "Move begins rearranging");
-            List<String> before = new ArrayList<>(adapter.keys());
+            List<String> before = new ArrayList<>(activeAdapter().keys());
             key(KeyEvent.KEYCODE_DPAD_RIGHT);
-            check(!before.equals(adapter.keys()), "D-pad reorders");
+            check(!before.equals(activeAdapter().keys()), "D-pad reorders");
             key(KeyEvent.KEYCODE_BACK);
-            check(before.equals(adapter.keys()), "Back restores snapshot");
-            HomeLayout original = adapter.snapshotLayout();
+            check(before.equals(activeAdapter().keys()), "Back restores snapshot");
+            HomeLayout original = activeAdapter().snapshotLayout();
             runOnMainSync(() -> activity.onTileLongPressed(0, activity.getCurrentFocus()));
             settle();
             key(KeyEvent.KEYCODE_DPAD_DOWN);
@@ -113,9 +113,9 @@ public final class LauncherSmoke extends Instrumentation {
             runOnMainSync(() -> ((AlertDialog) fieldUnchecked(activity, "editDialog"))
                     .getButton(AlertDialog.BUTTON_POSITIVE).performClick());
             settle();
-            String created = adapter.keyAt(0);
-            check(adapter.isFolder(0), "New Folder dialog saves a real folder");
-            check(adapter.folder(created).name.isEmpty(), "Confirm without typing creates a nameless folder");
+            String created = activeAdapter().keyAt(0);
+            check(activeAdapter().isFolder(0), "New Folder dialog saves a real folder");
+            check(activeAdapter().folder(created).name.isEmpty(), "Confirm without typing creates a nameless folder");
             check(new HomeLayoutStore(getTargetContext()).read().folders.get(created).name.isEmpty(),
                     "Empty folder name survives disk reload");
             check(activity.getCurrentFocus().getId() == R.id.card
@@ -123,18 +123,25 @@ public final class LauncherSmoke extends Instrumentation {
                     .equals(activity.getString(R.string.unnamed_folder)),
                     "Naming a folder returns focus from touch mode to its tile");
             key(KeyEvent.KEYCODE_DPAD_CENTER);
-            check(created.equals(adapter.activeFolder()), "OK opens the newly created folder");
-            check(activity.findViewById(R.id.folderTitle).getVisibility() == View.GONE,
-                    "Nameless folder has no empty title pill");
+            check(created.equals(activeAdapter().activeFolder()), "OK opens the newly created folder");
+            check(((android.widget.TextView) activity.findViewById(R.id.folderTitle)).getText().length() == 0
+                    && activity.findViewById(R.id.folderTitle).getAlpha() == 0,
+                    "Nameless folder leaves the title area empty");
             key(KeyEvent.KEYCODE_DPAD_UP);
-            check(activity.getCurrentFocus().getId() == R.id.card,
-                    "Up in nameless folder keeps focus on a real app");
+            check(activity.findViewById(R.id.folderTitle).isFocused()
+                    && activity.findViewById(R.id.folderTitle).getAlpha() == 1
+                    && ((android.widget.TextView) activity.findViewById(R.id.folderTitle)).getText()
+                    .equals(activity.getString(R.string.untitled_folder)),
+                    "Up in nameless folder reveals its selectable naming field");
+            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            check(activity.findViewById(R.id.folderTitle).getAlpha() == 0,
+                    "Leaving an unnamed title hides the naming field again");
             key(KeyEvent.KEYCODE_BACK);
             check(new HomeLayoutStore(getTargetContext()).write(original), "Restore fixture order after create test");
-            runOnMainSync(() -> adapter.restoreLayout(original));
+            runOnMainSync(() -> activeAdapter().restoreLayout(original));
             settle();
 
-            HomeLayout draft = adapter.snapshotLayout();
+            HomeLayout draft = activeAdapter().snapshotLayout();
             String folder = draft.createFolder(before.get(1), "Entertainment");
             draft.moveTo(before.get(2), folder); draft.moveTo(before.get(3), folder);
             draft.moveTo(before.get(4), folder); draft.moveTo(before.get(5), folder);
@@ -143,17 +150,31 @@ public final class LauncherSmoke extends Instrumentation {
             HomeLayout restored = new HomeLayoutStore(getTargetContext()).read();
             check(restored.folders.get(folder).apps.size() == 6, "Folder membership reloads");
             runOnMainSync(() -> {
-                adapter.restoreLayout(restored);
-                activity.onFolderOpened(folder);
+                activeAdapter().restoreLayout(restored);
+                invokeFocus(folder);
             });
             settle();
-            check(adapter.activeFolder().equals(folder), "Folder opens");
-            check(adapter.getItemCount() == 6 && adapter.columns() == 3, "Folder has 3 columns");
-            RecyclerView folderGrid = activity.findViewById(R.id.grid);
+            sampleFolderTransition("open", () -> activity.onFolderOpened(folder));
+            check(activeAdapter().activeFolder().equals(folder), "Folder opens");
+            check(activeAdapter().getItemCount() == 6 && activeAdapter().columns() == 4, "Folder has four columns");
+            RecyclerView folderGrid = activeGrid();
+            int expectedWidth = AppAdapter.tileWidthPx(folderGrid.getWidth(), 4,
+                    activity.getResources().getDisplayMetrics().density);
+            for (int i = 0; i < 6; i++) check(folderGrid.findViewHolderForAdapterPosition(i)
+                    .itemView.findViewById(R.id.card).getWidth() == expectedWidth,
+                    "Every folder tile uses the final panel width on first entry");
             View first = folderGrid.findViewHolderForAdapterPosition(0).itemView;
             check(first.getTop() < folderGrid.getHeight() / 3, "Folder starts at top of panel");
             View last = folderGrid.findViewHolderForAdapterPosition(5).itemView;
             check(last.getBottom() <= folderGrid.getHeight(), "Both folder rows fit in panel");
+            View panel = activity.findViewById(R.id.folderPanel);
+            check(panel.getHeight() < activity.findViewById(R.id.root).getHeight() - 210,
+                    "Folder panel fits its rows instead of filling the screen");
+            View fourth = folderGrid.findViewHolderForAdapterPosition(3).itemView;
+            check(fourth.getTop() == first.getTop(), "Four apps fit on the first folder row");
+            View fifth = folderGrid.findViewHolderForAdapterPosition(4).itemView;
+            check(Math.abs((fifth.getLeft() + last.getRight()) / 2f - folderGrid.getWidth() / 2f) <= 2,
+                    "Partial final folder row is centred in the panel");
             android.graphics.Rect rect = new android.graphics.Rect(0, 0,
                     activity.getCurrentFocus().getWidth(), activity.getCurrentFocus().getHeight());
             ((android.view.ViewGroup) activity.findViewById(R.id.root))
@@ -161,30 +182,77 @@ public final class LauncherSmoke extends Instrumentation {
             View highlight = activity.findViewById(R.id.glass);
             check(Math.abs(highlight.getTranslationY() + highlight.getHeight() / 2f - rect.exactCenterY()) < 12,
                     "Folder highlight follows tile after layout");
-            SystemClock.sleep(1800); // Let the platform cancellation toast clear before the screenshot.
             capture("folder");
             key(KeyEvent.KEYCODE_DPAD_UP);
             check(activity.findViewById(R.id.folderTitle).isFocused(), "Up reaches folder title");
+            int[] homeBounds = homeBounds();
             key(KeyEvent.KEYCODE_DPAD_CENTER);
             check(field(activity, "editDialog") instanceof AlertDialog, "Title opens rename");
+            AlertDialog renameDialog = (AlertDialog) field(activity, "editDialog");
+            check(renameDialog.getWindow().getDecorView().getRootWindowInsets()
+                    .isVisible(android.view.WindowInsets.Type.ime()), "TV keyboard is visible during bounds checks");
+            check(java.util.Arrays.equals(homeBounds, homeBounds()), "Keyboard does not pan or resize Home");
+            check((renameDialog.getWindow().getAttributes().softInputMode
+                    & android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST)
+                    == android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING,
+                    "Naming window does not pan the folder");
+            check((findInput(renameDialog.getWindow().getDecorView()).getImeOptions()
+                    & android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN) != 0,
+                    "Naming suppresses fullscreen IME extraction");
+            capture("folder-keyboard");
             runOnMainSync(() -> {
                 AlertDialog rename = (AlertDialog) fieldUnchecked(activity, "editDialog");
                 findInput(rename.getWindow().getDecorView()).setText("   ");
                 rename.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
             });
             settle();
-            check(adapter.folder(folder).name.isEmpty(), "Rename accepts whitespace as an empty name");
+            check(activeAdapter().folder(folder).name.isEmpty(), "Rename accepts whitespace as an empty name");
             check(new HomeLayoutStore(getTargetContext()).read().folders.get(folder).name.isEmpty(),
                     "Renamed blank folder persists without losing its apps");
-            check(adapter.getItemCount() == 6 && activity.findViewById(R.id.folderTitle).getVisibility() == View.GONE,
+            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            check(activeAdapter().getItemCount() == 6 && activity.findViewById(R.id.folderTitle).getAlpha() == 0,
                     "Blank rename keeps the folder open and all six members");
-            key(KeyEvent.KEYCODE_BACK);
-            check(adapter.activeFolder() == null, "Back closes folder");
+            String removed = activeAdapter().keyAt(0), next = activeAdapter().keyAt(1);
+            openFolderActions();
+            capture("folder-actions");
+            key(KeyEvent.KEYCODE_DPAD_DOWN);
+            key(KeyEvent.KEYCODE_DPAD_CENTER);
+            check(folder.equals(activeAdapter().activeFolder()) && activeAdapter().getItemCount() == 5,
+                    "Removing one member keeps the folder open");
+            check(next.equals(field(activity, "lastFocusedKey")), "Removal focuses the next remaining member");
+            HomeLayout afterRemoval = new HomeLayoutStore(getTargetContext()).read();
+            check(afterRemoval.home.contains(removed) && !afterRemoval.folders.get(folder).apps.contains(removed),
+                    "Removed app persists on Home without being deleted");
+            sampleFolderTransition("close", activity::onBackPressed);
+            check(activeAdapter().activeFolder() == null, "Back closes folder");
+            runOnMainSync(() -> activity.onFolderOpened(folder));
+            SystemClock.sleep(85);
+            runOnMainSync(activity::onBackPressed);
+            settle();
+            check(activeAdapter().activeFolder() == null && activity.findViewById(R.id.folderGridHost).getVisibility() != View.VISIBLE,
+                    "Back reverses opening and releases its outgoing frame");
+            runOnMainSync(() -> activity.onFolderOpened(folder));
+            SystemClock.sleep(85);
+            runOnMainSync(() -> activity.onNewIntent(new Intent(Intent.ACTION_MAIN)));
+            settle();
+            check(activeAdapter().activeFolder() == null && activity.findViewById(R.id.gridHost).getAlpha() == 1f,
+                    "Home interrupts a folder transition without leaving an invisible grid");
+            runOnMainSync(() -> activity.onFolderOpened(folder));
+            settle();
+            for (int i = 0; i < 5 && activeAdapter().activeFolder() != null; i++) {
+                openFolderActions();
+                key(KeyEvent.KEYCODE_DPAD_DOWN);
+                key(KeyEvent.KEYCODE_DPAD_CENTER);
+            }
+            check(!new HomeLayoutStore(getTargetContext()).read().folders.containsKey(folder),
+                    "Removing the last app retires only the empty folder");
+            check(activity.getCurrentFocus().getId() == R.id.card,
+                    "Last removal returns to a usable Home tile");
             for (int row = 0; row < 6; row++) key(KeyEvent.KEYCODE_DPAD_DOWN);
             runOnMainSync(() -> activity.onNewIntent(new Intent(Intent.ACTION_MAIN)));
             settle();
             check(Boolean.FALSE.equals(field(activity, "expanded")), "Home collapses grid");
-            check(adapter.keyAt(0).equals(field(activity, "lastFocusedKey")), "Home returns to first tile");
+            check(activeAdapter().keyAt(0).equals(field(activity, "lastFocusedKey")), "Home returns to first tile");
             check(activity.getCurrentFocus().getId() == R.id.card
                     && ((RecyclerView) activity.findViewById(R.id.grid)).findContainingViewHolder(
                     activity.getCurrentFocus()).getBindingAdapterPosition() == 0,
@@ -196,7 +264,7 @@ public final class LauncherSmoke extends Instrumentation {
                 activity.onNewIntent(new Intent(Intent.ACTION_MAIN));
             });
             check(((Integer) field(activity, "lastFocused")) == 0
-                    && adapter.keyAt(0).equals(field(activity, "lastFocusedKey")),
+                    && activeAdapter().keyAt(0).equals(field(activity, "lastFocusedKey")),
                     "Home reset survives delivery while activity is paused");
             runOnMainSync(() -> callActivityOnResume(activity));
 
@@ -234,6 +302,66 @@ public final class LauncherSmoke extends Instrumentation {
         focus.setAccessible(true); focus.invoke(activity, 0);
     }
     private void key(int code) { sendKeyDownUpSync(code); settle(); }
+    private void openFolderActions() throws Exception {
+        long now = SystemClock.uptimeMillis();
+        sendKeySync(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_CENTER, 0));
+        sendKeySync(new KeyEvent(now, now + 600, KeyEvent.ACTION_DOWN,
+                KeyEvent.KEYCODE_DPAD_CENTER, 1, 0, -1, 0, KeyEvent.FLAG_LONG_PRESS));
+        sendKeySync(new KeyEvent(now, now + 650, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_CENTER, 0));
+        settle();
+        android.widget.PopupWindow menu = (android.widget.PopupWindow) field(activity, "tileMenu");
+        check(menu != null, "Long-press inside a folder opens the app action menu");
+        android.view.ViewGroup panel = (android.view.ViewGroup) menu.getContentView();
+        check(((android.widget.TextView) panel.getChildAt(2)).getText()
+                .equals(activity.getString(R.string.remove_from_folder)),
+                "Folder app menu replaces Add to Folder with Remove from folder");
+    }
+    private AppAdapter activeAdapter() { return (AppAdapter) fieldUnchecked(activity, "adapter"); }
+    private RecyclerView activeGrid() { return (RecyclerView) fieldUnchecked(activity, "grid"); }
+    private void invokeFocus(String key) {
+        try {
+            Method focus = MainActivity.class.getDeclaredMethod("focusKey", String.class, int.class);
+            focus.setAccessible(true); focus.invoke(activity, key, 0);
+        } catch (Exception e) { throw new RuntimeException(e); }
+    }
+    private int[] homeBounds() {
+        int[] bounds = new int[6];
+        runOnMainSync(() -> {
+            View root = activity.findViewById(R.id.root), host = activity.findViewById(R.id.gridHost);
+            root.getLocationOnScreen(bounds);
+            bounds[2] = root.getWidth(); bounds[3] = root.getHeight();
+            bounds[4] = host.getTop(); bounds[5] = host.getHeight();
+        });
+        return bounds;
+    }
+    private void sampleFolderTransition(String name, Runnable change) {
+        View root = activity.findViewById(R.id.root), host = activity.findViewById(R.id.gridHost);
+        View cover = activity.findViewById(R.id.folderPanel);
+        List<float[]> frames = new ArrayList<>();
+        android.view.ViewTreeObserver.OnPreDrawListener observer = () -> {
+            frames.add(new float[]{cover.getAlpha(), host.getAlpha(), host.getLeft(), host.getTop(),
+                    host.getWidth(), host.getHeight()});
+            return true;
+        };
+        runOnMainSync(() -> {
+            root.getViewTreeObserver().addOnPreDrawListener(observer);
+            change.run();
+            check(((FolderTransition) fieldUnchecked(activity, "folderMotion")).isRunning(),
+                    name + " starts live motion immediately");
+        });
+        settle();
+        runOnMainSync(() -> root.getViewTreeObserver().removeOnPreDrawListener(observer));
+        int intermediate = 0;
+        for (float[] frame : frames) {
+            if (frame[0] > 0f && frame[0] < 1f) intermediate++;
+            for (int i = 2; i < frame.length; i++) check(frame[i] == frames.get(0)[i],
+                    name + " keeps final grid geometry throughout animation");
+        }
+        check(intermediate >= 3, name + " produces multiple intermediate animation frames");
+        check(!((FolderTransition) fieldUnchecked(activity, "folderMotion")).isRunning()
+                && host.getAlpha() == (name.equals("open") ? 0f : 1f) && host.getScaleX() == 1f,
+                name + " completes motion with the live Home grid intact");
+    }
     private static android.widget.EditText findInput(View view) {
         if (view instanceof android.widget.EditText) return (android.widget.EditText) view;
         if (view instanceof android.view.ViewGroup) {

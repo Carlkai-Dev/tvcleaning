@@ -69,16 +69,19 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         boolean found = false;
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
-            int pos = parent.getChildAdapterPosition(child);
+            // Follow the laid-out slots, not app identities already shifted by notifyItemMoved.
+            int pos = parent.getChildLayoutPosition(child);
             if (pos < 0 || pos >= dockSize) continue;
             View card = child.findViewById(R.id.card);
             float l = child.getLeft() + card.getLeft();
-            float t = child.getTop() + card.getTop() + child.getTranslationY();
+            // Reordering translates individual tiles. The dock belongs to the first row's layout
+            // and must never travel with those tiles into another row.
+            float t = child.getTop() + card.getTop();
             if (!found) { rect.set(l, t, l + card.getWidth(), t + card.getHeight()); found = true; }
             else rect.union(l, t, l + card.getWidth(), t + card.getHeight());
         }
         if (!found) return;
-        rect.inset(-22 * density, -20 * density);
+        rect.inset(-18 * density, -16 * density);
         float radius = 36 * density;
         shaders(rect.width(), rect.height());
         matrix.setTranslate(rect.left, rect.top);

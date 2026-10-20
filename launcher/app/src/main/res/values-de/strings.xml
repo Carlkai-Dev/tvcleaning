@@ -27,8 +27,6 @@
     <string name="app_grid">Apps</string>
     <string name="move_app_hint">%1$s verschieben · %2$d von %3$d · %4$s\n← ↑ ↓ → Verschieben · OK Speichern · Zurück Abbrechen</string>
     <string name="saving_app_order">Reihenfolge wird gespeichert…</string>
-    <string name="app_order_saved">Reihenfolge gespeichert</string>
-    <string name="app_order_cancelled">Verschieben abgebrochen</string>
     <string name="app_order_failed">Reihenfolge konnte nicht gespeichert werden. OK zum Wiederholen oder Zurück zum Abbrechen.</string>
     <string name="move_to">Zu Ordner hinzufügen</string>
     <string name="new_folder">Neuer Ordner</string>
@@ -46,4 +44,29 @@
     <string name="home_key_name">Home-Taste</string>
     <string name="home_key_description">Öffnet diesen Launcher mit der Home-Taste der Fernbedienung.</string>
     <string name="unnamed_folder">Unbenannter Ordner</string>
+    <string name="untitled_folder">Unbenannter Ordner</string>
+    <string name="folder_item_removed">%1$s zum Startbildschirm zurückgelegt</string>
+    <string name="remove_from_folder">Aus Ordner entfernen</string>
+
+    <string name="vpn">VPN</string>
+    <string name="vpn_off">VPN aus</string>
+    <string name="card_prompt_title">Neue Karte von %1$s</string>
+    <string name="card_prompt_body">%1$s kann eine Karte auf dem Startbildschirm anzeigen. Wenn sie ausgeblendet bleibt, ändert sich die normale App-Kachel nicht.</string>
+    <string name="card_prompt_names">Die Karte heißt „%1$s“. Die App heißt „%2$s“.</string>
+    <string name="card_prompt_resigned">%1$s wurde mit einem anderen Signaturschlüssel aktualisiert. Ihre bisherige Auswahl gilt daher nicht mehr. Entscheiden Sie erneut über die Karte.</string>
+    <string name="card_prompt_relabelled">%1$s hat seit Ihrer Auswahl den Namen der Karte geändert. Entscheiden Sie erneut über die Karte.</string>
+    <string name="card_prompt_hint">Sie können dies später ändern: Halten Sie OK auf Einstellungen gedrückt.</string>
+    <string name="card_prompt_identity">%1$s, Schlüssel %2$s</string>
+    <string name="card_keep_hidden">Ausgeblendet lassen</string>
+    <string name="card_show">Karte anzeigen</string>
+    <string name="card_not_saved">Auswahl konnte nicht gespeichert werden</string>
+    <string name="module_cards">Modulkarten</string>
+    <string name="no_module_cards">Keine Modulkarten installiert</string>
+    <string name="card_app_name">App: %1$s</string>
+    <string name="card_state_shown">Angezeigt</string>
+    <string name="card_state_over_limit">Angezeigt, über dem Limit von 8</string>
+    <string name="card_state_hidden">Ausgeblendet</string>
+    <string name="card_state_new">Neu</string>
+    <string name="card_state_new_key">Neuer Schlüssel</string>
+    <string name="card_state_new_label">Neuer Name</string>
 </resources>

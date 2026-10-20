@@ -40,6 +40,24 @@
          (XGIMI projectors: com.xgimi.action.hdmiPlayer). Leave empty to omit. -->
     <string name="input_action" translatable="false"></string>
 
+    <!-- Optional firmware-specific Settings destinations. Standard Android settings actions remain
+         the fallback; a missing, disabled, non-exported or protected destination is skipped.
+         These keys can also be overridden in a theme's config.json; an empty string disables one.
+         Components use package/class or package/.Class. See themes/README.md for the route order. -->
+    <!-- Tried first for optional slices; other launchable system Settings packages are discovered
+         through Android's SETTINGS action. Empty disables slice lookup and discovery. -->
+    <string name="settings_package" translatable="false">com.android.tv.settings</string>
+    <string name="settings_fallback_component" translatable="false">com.xiaomi.mitv.settings/.entry.MainActivity</string>
+    <string name="settings_slice_action" translatable="false">android.settings.SLICE_SETTINGS</string>
+    <string name="settings_slice_uri_extra" translatable="false">slice_uri</string>
+    <string name="quick_audio_output_component" translatable="false">com.android.tv.settings/com.xiaomi.gtv.settings.display.sound.MiAudioOutputActivity</string>
+    <string name="quick_audio_output_slice_resource" translatable="false">default_audio_output_settings_slice_uri</string>
+    <string name="quick_apps_component" translatable="false">com.android.tv.settings/.device.apps.AppsActivity</string>
+    <string name="quick_bluetooth_component" translatable="false">com.android.tv.settings/.accessories.AccessoriesActivity</string>
+    <string name="quick_bluetooth_slice_resource" translatable="false">connected_devices_slice_uri</string>
+    <string name="quick_screensaver_action" translatable="false">com.google.android.pano.action.SLEEP</string>
+    <string name="quick_screensaver_component" translatable="false">com.android.tv.settings/.device.display.daydream.DaydreamActivity</string>
+
     <!-- Remote buttons that open Settings, by Linux scancode (HOME_KEY_SERVICE=1 build-and-install.sh). Remotes
          that send KEYCODE_SETTINGS need no entry. Some send a code Android does not map: the Xiaomi/Fengmi
          projector remote's gear button is scancode 384 (KEY_TAPE). Find yours with
@@ -76,6 +94,6 @@
     <bool name="reduced_motion">false</bool>
 
     <!-- Navigation and button sounds for Home tiles, folders, header buttons and quick settings.
-         Off for now; set true here or use "navigation_sounds": true in a theme's config.json. -->
-    <bool name="navigation_sounds">false</bool>
+         Set false here or use "navigation_sounds": false in a theme's config.json to silence them. -->
+    <bool name="navigation_sounds">true</bool>
 </resources>

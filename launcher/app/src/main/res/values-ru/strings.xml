@@ -46,4 +46,27 @@
     <string name="card_state_new">Новая</string>
     <string name="card_state_new_key">Новый ключ</string>
     <string name="card_state_new_label">Новое название</string>
+    <string name="untitled_folder">Папка без названия</string>
+    <string name="folder_item_removed">%1$s возвращено на главный экран</string>
+    <string name="remove_from_folder">Убрать из папки</string>
+
+    <string name="move_app">Переместить</string>
+    <string name="app_settings">Настройки приложения</string>
+    <string name="app_dock">Панель приложений</string>
+    <string name="app_grid">Приложения</string>
+    <string name="move_app_hint">Перемещение %1$s · %2$d из %3$d · %4$s\n← ↑ ↓ → Переместить · OK Сохранить · Назад Отменить</string>
+    <string name="saving_app_order">Сохранение порядка…</string>
+    <string name="app_order_failed">Не удалось сохранить порядок. Нажмите OK, чтобы повторить, или Назад, чтобы отменить.</string>
+    <string name="move_to">Добавить в папку</string>
+    <string name="new_folder">Новая папка</string>
+    <string name="rename_folder">Переименовать папку</string>
+    <string name="folder_name">Название папки</string>
+    <string name="folder_default_name">Развлечения</string>
+    <string name="folder_description">%1$s, папка</string>
+    <string name="move_to_home">Главный экран</string>
+    <string name="done">Готово</string>
+    <string name="cancel">Отмена</string>
+    <string name="folder_save_failed">Не удалось сохранить изменения. Попробуйте ещё раз.</string>
+    <string name="folder_move_hint">Перемещение %1$s · %2$d из %3$d\n← ↑ ↓ → Переместить · OK Сохранить · Назад Отменить</string>
+    <string name="unnamed_folder">Папка без названия</string>
 </resources>

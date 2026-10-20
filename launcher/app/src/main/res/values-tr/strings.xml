@@ -46,4 +46,27 @@
     <string name="card_state_new">Yeni</string>
     <string name="card_state_new_key">Yeni anahtar</string>
     <string name="card_state_new_label">Yeni ad</string>
+    <string name="untitled_folder">Adsız klasör</string>
+    <string name="folder_item_removed">%1$s ana ekrana döndürüldü</string>
+    <string name="remove_from_folder">Klasörden çıkar</string>
+
+    <string name="move_app">Taşı</string>
+    <string name="app_settings">Uygulama ayarları</string>
+    <string name="app_dock">Uygulama çubuğu</string>
+    <string name="app_grid">Uygulamalar</string>
+    <string name="move_app_hint">%1$s taşınıyor · %2$d / %3$d · %4$s\n← ↑ ↓ → Taşı · OK Kaydet · Geri İptal</string>
+    <string name="saving_app_order">Sıralama kaydediliyor…</string>
+    <string name="app_order_failed">Sıralama kaydedilemedi. Yeniden denemek için OK, iptal etmek için Geri tuşuna basın.</string>
+    <string name="move_to">Klasöre ekle</string>
+    <string name="new_folder">Yeni klasör</string>
+    <string name="rename_folder">Klasörü yeniden adlandır</string>
+    <string name="folder_name">Klasör adı</string>
+    <string name="folder_default_name">Eğlence</string>
+    <string name="folder_description">%1$s, klasör</string>
+    <string name="move_to_home">Ana ekran</string>
+    <string name="done">Bitti</string>
+    <string name="cancel">İptal</string>
+    <string name="folder_save_failed">Değişiklikler kaydedilemedi. Lütfen yeniden deneyin.</string>
+    <string name="folder_move_hint">%1$s taşınıyor · %2$d / %3$d\n← ↑ ↓ → Taşı · OK Kaydet · Geri İptal</string>
+    <string name="unnamed_folder">Adsız klasör</string>
 </resources>

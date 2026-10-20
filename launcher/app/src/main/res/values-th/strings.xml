@@ -27,8 +27,6 @@
     <string name="app_grid">แอป</string>
     <string name="move_app_hint">กำลังย้าย %1$s · %2$d จาก %3$d · %4$s\n← ↑ ↓ → ย้าย · OK บันทึก · ย้อนกลับ ยกเลิก</string>
     <string name="saving_app_order">กำลังบันทึกลำดับ…</string>
-    <string name="app_order_saved">บันทึกลำดับแล้ว</string>
-    <string name="app_order_cancelled">ยกเลิกการย้ายแล้ว</string>
     <string name="app_order_failed">บันทึกลำดับไม่ได้ กด OK เพื่อลองอีกครั้ง หรือกดย้อนกลับเพื่อยกเลิก</string>
     <string name="move_to">เพิ่มลงในโฟลเดอร์</string>
     <string name="new_folder">โฟลเดอร์ใหม่</string>
@@ -47,4 +45,29 @@
     <string name="home_key_description">เปิดตัวเรียกใช้นี้ด้วยปุ่มหน้าหลักบนรีโมต</string>
     <string name="input_key_service_description">เปิดตัวเลือกอินพุตเมื่อกดปุ่มอินพุตบนรีโมต</string>
     <string name="unnamed_folder">โฟลเดอร์ไม่มีชื่อ</string>
+    <string name="untitled_folder">โฟลเดอร์ไม่มีชื่อ</string>
+    <string name="folder_item_removed">ย้าย %1$s กลับหน้าหลักแล้ว</string>
+    <string name="remove_from_folder">นำออกจากโฟลเดอร์</string>
+
+    <string name="vpn">VPN</string>
+    <string name="vpn_off">ปิด VPN</string>
+    <string name="card_prompt_title">การ์ดใหม่จาก %1$s</string>
+    <string name="card_prompt_body">%1$s สามารถแสดงการ์ดบนหน้าจอหลักได้ หากซ่อนการ์ดไว้ ไทล์ปกติของแอปจะยังคงเหมือนเดิม</string>
+    <string name="card_prompt_names">การ์ดชื่อ “%1$s” แอปชื่อ “%2$s”</string>
+    <string name="card_prompt_resigned">%1$s ได้รับการอัปเดตด้วยคีย์การลงนามที่ต่างออกไป จึงใช้ตัวเลือกเดิมไม่ได้อีก โปรดเลือกอีกครั้งว่าจะให้แสดงการ์ดหรือไม่</string>
+    <string name="card_prompt_relabelled">%1$s เปลี่ยนชื่อการ์ดหลังจากที่คุณเลือกไว้ โปรดเลือกอีกครั้งว่าจะให้แสดงการ์ดหรือไม่</string>
+    <string name="card_prompt_hint">คุณเปลี่ยนตัวเลือกนี้ภายหลังได้ โดยกด OK ค้างไว้บนปุ่มตั้งค่า</string>
+    <string name="card_prompt_identity">%1$s, คีย์ %2$s</string>
+    <string name="card_keep_hidden">ซ่อนต่อไป</string>
+    <string name="card_show">แสดงการ์ด</string>
+    <string name="card_not_saved">บันทึกตัวเลือกไม่ได้</string>
+    <string name="module_cards">การ์ดโมดูล</string>
+    <string name="no_module_cards">ไม่มีการ์ดโมดูลติดตั้งอยู่</string>
+    <string name="card_app_name">แอป: %1$s</string>
+    <string name="card_state_shown">แสดงอยู่</string>
+    <string name="card_state_over_limit">แสดงอยู่ เกินขีดจำกัด 8 การ์ด</string>
+    <string name="card_state_hidden">ซ่อนอยู่</string>
+    <string name="card_state_new">ใหม่</string>
+    <string name="card_state_new_key">คีย์ใหม่</string>
+    <string name="card_state_new_label">ชื่อใหม่</string>
 </resources>

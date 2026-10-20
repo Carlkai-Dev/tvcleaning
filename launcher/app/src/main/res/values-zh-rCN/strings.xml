@@ -26,8 +26,6 @@
     <string name="app_grid">应用</string>
     <string name="move_app_hint">正在移动 %1$s · 第 %2$d 项，共 %3$d 项 · %4$s\n← ↑ ↓ → 移动 · 确认 保存 · 返回 取消</string>
     <string name="saving_app_order">正在保存顺序…</string>
-    <string name="app_order_saved">顺序已保存</string>
-    <string name="app_order_cancelled">已取消移动</string>
     <string name="app_order_failed">无法保存顺序。按确认键重试，或按返回键取消。</string>
     <string name="move_to">添加到文件夹</string>
     <string name="new_folder">新建文件夹</string>
@@ -46,4 +44,29 @@
     <string name="home_key_description">使用遥控器的主页键打开此启动器。</string>
     <string name="input_key_service_description">按下遥控器的输入键时打开输入切换器。</string>
     <string name="unnamed_folder">未命名文件夹</string>
+    <string name="untitled_folder">未命名文件夹</string>
+    <string name="folder_item_removed">%1$s已移回主屏幕</string>
+    <string name="remove_from_folder">从文件夹移除</string>
+
+    <string name="vpn">VPN</string>
+    <string name="vpn_off">VPN 已关闭</string>
+    <string name="card_prompt_title">来自 %1$s 的新卡片</string>
+    <string name="card_prompt_body">%1$s 可以在主屏幕上显示一张卡片。保持隐藏不会改变应用原有的图块。</string>
+    <string name="card_prompt_names">卡片名为“%1$s”，应用名为“%2$s”。</string>
+    <string name="card_prompt_resigned">%1$s 更新后使用了不同的签名密钥，因此您之前的选择不再适用。请重新决定是否显示其卡片。</string>
+    <string name="card_prompt_relabelled">%1$s 在您做出选择后更改了卡片名称。请重新决定是否显示该卡片。</string>
+    <string name="card_prompt_hint">您可以稍后更改：在“设置”上长按确认键。</string>
+    <string name="card_prompt_identity">%1$s，密钥 %2$s</string>
+    <string name="card_keep_hidden">保持隐藏</string>
+    <string name="card_show">显示卡片</string>
+    <string name="card_not_saved">无法保存选择</string>
+    <string name="module_cards">模块卡片</string>
+    <string name="no_module_cards">未安装模块卡片</string>
+    <string name="card_app_name">应用：%1$s</string>
+    <string name="card_state_shown">已显示</string>
+    <string name="card_state_over_limit">已显示，超过 8 张的上限</string>
+    <string name="card_state_hidden">已隐藏</string>
+    <string name="card_state_new">新卡片</string>
+    <string name="card_state_new_key">新密钥</string>
+    <string name="card_state_new_label">新名称</string>
 </resources>

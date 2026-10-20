@@ -15,7 +15,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The launcher's settings: the values in res/values/config.xml, with an optional overlay read from
@@ -38,6 +40,8 @@ final class Config {
     final String sourcePanelService;
     final String sourcePanelAction;
     final String inputAction;
+    /** Optional firmware destinations, with the same flat keys in config.xml and a theme. */
+    final Map<String, String> settingsRoutes;
     final int columns;
     final int rowsBelowDock;
     final boolean shamsiDate;
@@ -60,7 +64,7 @@ final class Config {
                    boolean shamsiDate, boolean moduleCards, boolean reducedMotion, boolean navigationSounds,
                    String vpnApp,
                    boolean showHomeSettingsShortcut, int backgroundColor,
-                   File wallpaper, boolean overlayApplied) {
+                   File wallpaper, boolean overlayApplied, Map<String, String> settingsRoutes) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
         this.liveTvPackage = liveTvPackage;
@@ -68,6 +72,7 @@ final class Config {
         this.sourcePanelService = sourcePanelService;
         this.sourcePanelAction = sourcePanelAction;
         this.inputAction = inputAction;
+        this.settingsRoutes = settingsRoutes;
         this.columns = columns;
         this.rowsBelowDock = rowsBelowDock;
         this.shamsiDate = shamsiDate;
@@ -135,7 +140,23 @@ final class Config {
 
         return new Config(dock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), shamsi, moduleCards, reducedMotion, navigationSounds,
-                vpn, homeSettings, background, wallpaper, applied);
+                vpn, homeSettings, background, wallpaper, applied, settingsRoutes(res, json));
+    }
+
+    private static Map<String, String> settingsRoutes(Resources res, JSONObject overlay) {
+        int[] ids = {R.string.settings_package, R.string.settings_fallback_component,
+                R.string.settings_slice_action, R.string.settings_slice_uri_extra,
+                R.string.quick_audio_output_component, R.string.quick_audio_output_slice_resource,
+                R.string.quick_apps_component, R.string.quick_bluetooth_component,
+                R.string.quick_bluetooth_slice_resource, R.string.quick_screensaver_action,
+                R.string.quick_screensaver_component};
+        Map<String, String> routes = new LinkedHashMap<>();
+        for (int id : ids) {
+            String key = res.getResourceEntryName(id);
+            String value = res.getString(id).trim();
+            routes.put(key, overlay != null ? string(overlay, key, value) : value);
+        }
+        return Collections.unmodifiableMap(routes);
     }
 
     /** Reads and parses the overlay; any problem means "no overlay", never a crash on the home screen. */

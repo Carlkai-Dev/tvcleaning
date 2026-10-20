@@ -76,6 +76,19 @@ public class AppOrderTest {
         }
     }
 
+    @Test public void centeredFolderRowsNavigateToTheVisuallyNearestApp() {
+        assertEquals(4, AppOrder.centeredTarget(0, 6, 4, AppOrder.Direction.DOWN));
+        assertEquals(4, AppOrder.centeredTarget(1, 6, 4, AppOrder.Direction.DOWN));
+        assertEquals(5, AppOrder.centeredTarget(2, 6, 4, AppOrder.Direction.DOWN));
+        assertEquals(5, AppOrder.centeredTarget(3, 6, 4, AppOrder.Direction.DOWN));
+        assertEquals(1, AppOrder.centeredTarget(4, 6, 4, AppOrder.Direction.UP));
+        assertEquals(2, AppOrder.centeredTarget(5, 6, 4, AppOrder.Direction.UP));
+        assertEquals(4, AppOrder.centeredTarget(4, 6, 4, AppOrder.Direction.LEFT));
+        assertEquals(5, AppOrder.centeredTarget(5, 6, 4, AppOrder.Direction.DOWN));
+        assertEquals(0, AppOrder.centeredTarget(0, 1, 4, AppOrder.Direction.UP));
+        assertEquals(0, AppOrder.centeredTarget(4, 8, 4, AppOrder.Direction.UP));
+    }
+
     @Test public void emptyInventoryAndInvalidPositionsAreHarmless() {
         assertEquals(Collections.emptyList(), AppOrder.reconcile(Collections.emptyList(), keys("missing")));
         assertEquals(-1, AppOrder.target(-1, 0, 4, AppOrder.Direction.DOWN));

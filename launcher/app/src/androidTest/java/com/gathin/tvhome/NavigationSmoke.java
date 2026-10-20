@@ -79,7 +79,7 @@ public final class NavigationSmoke extends Instrumentation {
             // A holder may already exist while its card temporarily cannot accept focus.
             home(0);
             runOnMainSync(() -> {
-                RecyclerView grid = activity.findViewById(R.id.grid);
+                RecyclerView grid = (RecyclerView) fieldUnchecked("grid");
                 View target = grid.findViewHolderForAdapterPosition(1).itemView.findViewById(R.id.card);
                 target.setFocusable(false);
                 dispatch(KeyEvent.KEYCODE_DPAD_RIGHT);
@@ -144,19 +144,19 @@ public final class NavigationSmoke extends Instrumentation {
                 activity.onFolderOpened(folder[0]);
             });
             settle();
-            for (int column = 0; column < 3; column++) {
+            for (int column = 0; column < AppAdapter.FOLDER_COLUMNS; column++) {
                 final int c = column;
                 runOnMainSync(() -> invoke("focusTile", new Class<?>[]{int.class}, c));
                 settle();
                 int expected = c;
-                for (int row = 0; row < 4; row++) {
+                for (int row = 0; row < (14 + AppAdapter.FOLDER_COLUMNS - 1) / AppAdapter.FOLDER_COLUMNS - 1; row++) {
                     key(KeyEvent.KEYCODE_DPAD_DOWN, 90);
-                    expected = AppOrder.target(expected, 14, 3, AppOrder.Direction.DOWN);
+                    expected = AppOrder.centeredTarget(expected, 14, AppAdapter.FOLDER_COLUMNS, AppOrder.Direction.DOWN);
                     expect(expected, "Folder Down column " + c + " row " + row);
                 }
-                for (int row = 0; row < 4; row++) {
+                for (int row = 0; row < (14 + AppAdapter.FOLDER_COLUMNS - 1) / AppAdapter.FOLDER_COLUMNS - 1; row++) {
                     key(KeyEvent.KEYCODE_DPAD_UP, 90);
-                    expected = AppOrder.target(expected, 14, 3, AppOrder.Direction.UP);
+                    expected = AppOrder.centeredTarget(expected, 14, AppAdapter.FOLDER_COLUMNS, AppOrder.Direction.UP);
                     expect(expected, "Folder Up column " + c + " row " + row);
                 }
                 key(KeyEvent.KEYCODE_DPAD_UP, 90);
@@ -165,7 +165,7 @@ public final class NavigationSmoke extends Instrumentation {
                 expect(expected, "Folder title returns to same column");
             }
             key(KeyEvent.KEYCODE_BACK, 100);
-            check(adapter.activeFolder() == null, "Back closes navigated folder");
+            check(((AppAdapter) field("adapter")).activeFolder() == null, "Back closes navigated folder");
             // A Home intent delivered while paused must discard both pending navigation and folder.
             runOnMainSync(() -> {
                 callActivityOnPause(activity);
@@ -209,7 +209,7 @@ public final class NavigationSmoke extends Instrumentation {
     private void expect(int position, String action) {
         int[] actual = {-1};
         runOnMainSync(() -> {
-            RecyclerView grid = activity.findViewById(R.id.grid);
+            RecyclerView grid = (RecyclerView) fieldUnchecked("grid");
             View focused = activity.getCurrentFocus();
             RecyclerView.ViewHolder holder = focused == null ? null : grid.findContainingViewHolder(focused);
             if (holder != null) actual[0] = holder.getBindingAdapterPosition();
@@ -233,6 +233,9 @@ public final class NavigationSmoke extends Instrumentation {
                     + ", requested=" + field("requestedFocusKey") + ", transition=" + field("gridTransition")
                     + ", expanded=" + field("expanded");
         } catch (Exception e) { return e.toString(); }
+    }
+    private Object fieldUnchecked(String name) {
+        try { return field(name); } catch (Exception e) { throw new RuntimeException(e); }
     }
     private Object field(String name) throws Exception {
         Field field = MainActivity.class.getDeclaredField(name); field.setAccessible(true); return field.get(activity);

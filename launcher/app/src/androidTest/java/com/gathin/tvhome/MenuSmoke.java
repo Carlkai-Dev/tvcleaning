@@ -92,12 +92,65 @@ public final class MenuSmoke extends Instrumentation {
             check(field("movingKey") == null && ((View) field("moveIndicator")).getVisibility() == View.GONE,
                     "Save clears move presentation");
             check(before.equals(adapter.keys()), "Unchanged save preserves order");
+            verifyDockDuringScrolledMove();
             result.putString("stream", "PASS: " + checks + " menu and move checks.\n");
             finish(-1, result);
         } catch (Throwable error) {
             result.putString("stream", "FAIL after " + checks + " checks: " + android.util.Log.getStackTraceString(error));
             finish(0, result);
         }
+    }
+
+    private void verifyDockDuringScrolledMove() throws Exception {
+        focus(8);
+        runOnMainSync(() -> activity.onTileLongPressed(8, activity.getCurrentFocus()));
+        settle(); key(KeyEvent.KEYCODE_DPAD_CENTER);
+        String moving = (String) field("movingKey");
+        RecyclerView grid = activity.findViewById(R.id.grid);
+        View root = activity.findViewById(R.id.root);
+        List<String> misplaced = new ArrayList<>();
+        int[] samples = {0};
+        android.view.ViewTreeObserver.OnPreDrawListener observer = () -> {
+            // Draw only the decoration so tile artwork cannot hide a band in the wrong row.
+            Bitmap image = Bitmap.createBitmap(grid.getWidth(), grid.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(image);
+            for (int i = 0; i < grid.getItemDecorationCount(); i++)
+                if (grid.getItemDecorationAt(i) instanceof DockDecoration)
+                    grid.getItemDecorationAt(i).onDraw(canvas, grid, new RecyclerView.State());
+            int bottom = -1;
+            for (int i = 0; i < grid.getChildCount(); i++) {
+                View child = grid.getChildAt(i);
+                int position = grid.getChildAdapterPosition(child);
+                if (position < 0 || position >= adapter.columns()) continue;
+                View card = child.findViewById(R.id.card);
+                bottom = Math.max(bottom, child.getTop() + card.getTop() + card.getHeight());
+            }
+            int pad = Math.round(22 * activity.getResources().getDisplayMetrics().density);
+            for (int y = Math.max(0, bottom + pad); y < image.getHeight(); y += 3) {
+                if (android.graphics.Color.alpha(image.getPixel(image.getWidth() / 2, y)) != 0) {
+                    misplaced.add("band at y=" + y + ", dock bottom=" + bottom);
+                    break;
+                }
+            }
+            image.recycle();
+            samples[0]++;
+            return true;
+        };
+        runOnMainSync(() -> {
+            root.getViewTreeObserver().addOnPreDrawListener(observer);
+            long now = SystemClock.uptimeMillis();
+            activity.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN, 0));
+            activity.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_DOWN, 0));
+            // Focus can scroll the viewport during the same traversal as the reordered layout.
+            grid.scrollBy(0, Math.round(96 * activity.getResources().getDisplayMetrics().density));
+        });
+        settle();
+        runOnMainSync(() -> root.getViewTreeObserver().removeOnPreDrawListener(observer));
+        capture("move-third-row");
+        check(adapter.positionOf(moving) == 14, "Second-row Move reaches the third row");
+        check(samples[0] > 3, "Row move samples multiple animation frames");
+        check(misplaced.isEmpty(), "Dock backdrop stays with first row during a scrolled move: " + misplaced);
+        key(KeyEvent.KEYCODE_BACK);
     }
 
     private void verifyBlur() {

@@ -46,4 +46,27 @@
     <string name="card_state_new">Nowa</string>
     <string name="card_state_new_key">Nowy klucz</string>
     <string name="card_state_new_label">Nowa nazwa</string>
+    <string name="untitled_folder">Folder bez nazwy</string>
+    <string name="folder_item_removed">%1$s przeniesiono na ekran główny</string>
+    <string name="remove_from_folder">Usuń z folderu</string>
+
+    <string name="move_app">Przenieś</string>
+    <string name="app_settings">Ustawienia aplikacji</string>
+    <string name="app_dock">Dock</string>
+    <string name="app_grid">Aplikacje</string>
+    <string name="move_app_hint">Przenoszenie: %1$s · %2$d z %3$d · %4$s\n← ↑ ↓ → Przenieś · OK Zapisz · Wstecz Anuluj</string>
+    <string name="saving_app_order">Zapisywanie kolejności…</string>
+    <string name="app_order_failed">Nie udało się zapisać kolejności. Naciśnij OK, aby spróbować ponownie, lub Wstecz, aby anulować.</string>
+    <string name="move_to">Dodaj do folderu</string>
+    <string name="new_folder">Nowy folder</string>
+    <string name="rename_folder">Zmień nazwę folderu</string>
+    <string name="folder_name">Nazwa folderu</string>
+    <string name="folder_default_name">Rozrywka</string>
+    <string name="folder_description">%1$s, folder</string>
+    <string name="move_to_home">Ekran główny</string>
+    <string name="done">Gotowe</string>
+    <string name="cancel">Anuluj</string>
+    <string name="folder_save_failed">Nie udało się zapisać zmian. Spróbuj ponownie.</string>
+    <string name="folder_move_hint">Przenoszenie: %1$s · %2$d z %3$d\n← ↑ ↓ → Przenieś · OK Zapisz · Wstecz Anuluj</string>
+    <string name="unnamed_folder">Folder bez nazwy</string>
 </resources>

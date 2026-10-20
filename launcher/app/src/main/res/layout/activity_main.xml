@@ -7,13 +7,6 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
-    <com.gathin.tvhome.AtmosphereView
-        android:id="@+id/atmosphere"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="0.42"
-        android:importantForAccessibility="no" />
-
     <!-- Ambient glow in the colour of the focused dock app. An image, not a background: with no
          background an ImageView fades by drawing its one bitmap with alpha, not through a full-screen layer. -->
     <ImageView
@@ -25,15 +18,6 @@
         android:importantForAccessibility="no"
         android:contentDescription="@null" />
 
-    <ImageView
-        android:id="@+id/folderBackdrop"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:alpha="0.88"
-        android:visibility="gone"
-        android:importantForAccessibility="no"
-        android:contentDescription="@null" />
 
     <!-- Top shelf: the focused dock app's name, positioned above the dock in code. -->
     <TextView
@@ -216,6 +200,38 @@
 
     </LinearLayout>
 
+    <FrameLayout
+        android:id="@+id/gridHost"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="12dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/grid"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="28dp"
+            android:paddingBottom="40dp"
+            android:clipToPadding="false"
+            android:clipChildren="false"
+            android:overScrollMode="never"
+            android:scrollbars="none"
+            android:descendantFocusability="afterDescendants" />
+    </FrameLayout>
+
+    <View
+        android:id="@+id/folderBackdrop"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FF000000"
+        android:alpha="0"
+        android:visibility="gone"
+        android:importantForAccessibility="no"
+        android:contentDescription="@null" />
+
     <View
         android:id="@+id/folderPanel"
         android:layout_width="match_parent"
@@ -237,7 +253,9 @@
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
         android:gravity="center"
-        android:fontFamily="@font/outfit"
+        android:fontFamily="sans-serif"
+        android:fontVariationSettings="'wght' 400"
+        android:letterSpacing="0"
         android:textSize="25sp"
         android:textColor="#FFFFFFFF"
         android:singleLine="true"
@@ -249,20 +267,20 @@
         android:visibility="gone" />
 
     <FrameLayout
-        android:id="@+id/gridHost"
+        android:id="@+id/folderGridHost"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginStart="180dp"
+        android:layout_marginEnd="180dp"
         android:clipChildren="false"
-        android:clipToPadding="false">
+        android:clipToPadding="false"
+        android:visibility="gone">
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/grid"
+            android:id="@+id/folderGrid"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingTop="28dp"
-            android:paddingBottom="40dp"
+            android:paddingTop="18dp"
+            android:paddingBottom="18dp"
             android:clipToPadding="false"
             android:clipChildren="false"
             android:overScrollMode="never"

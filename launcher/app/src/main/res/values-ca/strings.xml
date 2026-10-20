@@ -25,8 +25,6 @@
     <string name="app_grid">Aplicacions</string>
     <string name="move_app_hint">Movent %1$s · %2$d de %3$d · %4$s\n← ↑ ↓ → Mou · OK Desa · Enrere Cancel·la</string>
     <string name="saving_app_order">Desant l’ordre…</string>
-    <string name="app_order_saved">Ordre desat</string>
-    <string name="app_order_cancelled">Moviment cancel·lat</string>
     <string name="app_order_failed">No s’ha pogut desar l’ordre. Prem OK per tornar-ho a provar o Enrere per cancel·lar.</string>
     <string name="move_to">Afegeix a una carpeta</string>
     <string name="new_folder">Carpeta nova</string>
@@ -46,4 +44,29 @@
     <string name="date_format">EEEE d MMMM</string>
     <string name="input_key_service_description">Obre el selector d’entrades en prémer el botó Entrada del comandament.</string>
     <string name="unnamed_folder">Carpeta sense nom</string>
+    <string name="untitled_folder">Carpeta sense títol</string>
+    <string name="folder_item_removed">%1$s ha tornat a la pantalla inicial</string>
+    <string name="remove_from_folder">Treu de la carpeta</string>
+
+    <string name="vpn">VPN</string>
+    <string name="vpn_off">VPN desactivada</string>
+    <string name="card_prompt_title">Targeta nova de %1$s</string>
+    <string name="card_prompt_body">%1$s pot mostrar una targeta a la pantalla d’inici. Si la mantens oculta, la fitxa habitual de l’aplicació no canvia.</string>
+    <string name="card_prompt_names">La targeta es diu «%1$s». L’aplicació es diu «%2$s».</string>
+    <string name="card_prompt_resigned">%1$s s’ha actualitzat amb una clau de signatura diferent i la teva resposta anterior ja no és vàlida. Torna a decidir sobre la seva targeta.</string>
+    <string name="card_prompt_relabelled">%1$s ha canviat el nom de la seva targeta des que vas decidir. Torna a decidir sobre la targeta.</string>
+    <string name="card_prompt_hint">Ho pots canviar més endavant: mantén premut OK sobre Configuració.</string>
+    <string name="card_prompt_identity">%1$s, clau %2$s</string>
+    <string name="card_keep_hidden">Mantén oculta</string>
+    <string name="card_show">Mostra la targeta</string>
+    <string name="card_not_saved">No s’ha pogut desar l’elecció</string>
+    <string name="module_cards">Targetes de mòduls</string>
+    <string name="no_module_cards">No hi ha targetes de mòduls instal·lades</string>
+    <string name="card_app_name">Aplicació: %1$s</string>
+    <string name="card_state_shown">Visible</string>
+    <string name="card_state_over_limit">Visible, supera el límit de 8</string>
+    <string name="card_state_hidden">Oculta</string>
+    <string name="card_state_new">Nova</string>
+    <string name="card_state_new_key">Clau nova</string>
+    <string name="card_state_new_label">Nom nou</string>
 </resources>

@@ -100,18 +100,20 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     static final float FOCUS_SCALE = 1.10f;
-    /** Design size of a tile (dp); tiles shrink from here when the columns don't fit, see tileWidthPx. */
+    static final int FOLDER_COLUMNS = 4;
+    /** Artwork proportions; the size calculation leaves room for focus zoom in every column count. */
     static final float DESIGN_W_DP = 180f, DESIGN_H_DP = 108f;
 
     /**
      * Tile width for a grid of this inner width: the cell minus room for the focus zoom and the glass
-     * highlight, capped at the design size so 4 columns on a 1080p TV look exactly as before.
+     * highlight. A tighter gutter makes dense grids a little larger; sparse grids can grow 10%
+     * beyond the original design size.
      */
     static int tileWidthPx(int innerWidthPx, int columns, float density) {
-        int design = Math.round(DESIGN_W_DP * density);
+        int design = Math.round(DESIGN_W_DP * 1.10f * density);
         if (innerWidthPx <= 0 || columns <= 0) return design;
         int cell = innerWidthPx / columns;
-        int fit = (int) ((cell - 12 * density) / FOCUS_SCALE);
+        int fit = (int) ((cell - 4 * density) / FOCUS_SCALE);
         return Math.max(Math.round(80 * density), Math.min(design, fit));
     }
 
@@ -121,7 +123,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     /** Height of one grid item: the tile, the name label under it and the item's own padding. */
     static int itemHeightPx(int tileHeightPx, float density) {
-        return tileHeightPx + Math.round(45 * density);
+        return tileHeightPx + Math.round(38 * density);
     }
 
     private final Context ctx;
@@ -155,12 +157,34 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     int columns() { return columns; }
     boolean isFolder(int position) { return layout.folders.containsKey(keyAt(position)); }
     HomeLayout.Folder folder(String key) { return layout.folders.get(key); }
-    void showFolder(String key) { activeFolder = key; columns = key == null ? dockSize : 3; rebuild(); }
+    void showFolder(String key) { activeFolder = key; columns = key == null ? dockSize : FOLDER_COLUMNS; rebuild(); }
     void restoreLayout(HomeLayout saved) { layout = saved.copy(); rebuild(); }
+
+    AppAdapter folderAdapter(String key) {
+        AppAdapter copy = new AppAdapter(this);
+        copy.inventory.putAll(inventory);
+        copy.layout = layout.copy();
+        copy.showFolder(key);
+        return copy;
+    }
+
+    private AppAdapter(AppAdapter source) {
+        ctx = source.ctx;
+        listener = source.listener;
+        layoutStore = source.layoutStore;
+        dockSize = source.dockSize;
+        favourites = source.favourites;
+        hidden = source.hidden;
+        showHomeSettings = source.showHomeSettings;
+        reducedMotion = source.reducedMotion;
+        navigationSounds = source.navigationSounds;
+        columns = FOLDER_COLUMNS;
+        setHasStableIds(true);
+    }
 
     private void rebuild() {
         if (activeFolder != null && !layout.folders.containsKey(activeFolder)) activeFolder = null;
-        columns = activeFolder == null ? dockSize : 3;
+        columns = activeFolder == null ? dockSize : FOLDER_COLUMNS;
         items.clear();
         List<String> available = new ArrayList<>(inventory.keySet());
         for (String key : layout.visible(activeFolder, available)) {
@@ -304,9 +328,36 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         View name = v.findViewById(R.id.name);
         ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) name.getLayoutParams();
         nameLp.width = w;
-        nameLp.topMargin = h + Math.round(7 * density);
+        nameLp.topMargin = h + Math.round(6 * density);
         name.setLayoutParams(nameLp);
         return new Holder(v, listener, reducedMotion);
+    }
+
+    @Override public void onViewAttachedToWindow(@NonNull Holder holder) {
+        super.onViewAttachedToWindow(holder);
+        if (holder.itemView.getParent() instanceof RecyclerView)
+            resizeTile(holder, (RecyclerView) holder.itemView.getParent());
+    }
+
+    void resizeAttachedTiles(RecyclerView parent) {
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            RecyclerView.ViewHolder holder = parent.getChildViewHolder(parent.getChildAt(i));
+            if (holder instanceof Holder) resizeTile((Holder) holder, parent);
+        }
+    }
+
+    private void resizeTile(Holder holder, RecyclerView parent) {
+        float density = ctx.getResources().getDisplayMetrics().density;
+        int width = tileWidthPx(parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight(), columns, density);
+        int height = tileHeightPx(width), nameTop = height + Math.round(6 * density);
+        ViewGroup.LayoutParams card = holder.card.getLayoutParams();
+        if (card.width != width || card.height != height) {
+            card.width = width; card.height = height; holder.card.setLayoutParams(card);
+        }
+        ViewGroup.MarginLayoutParams name = (ViewGroup.MarginLayoutParams) holder.name.getLayoutParams();
+        if (name.width != width || name.topMargin != nameTop) {
+            name.width = width; name.topMargin = nameTop; holder.name.setLayoutParams(name);
+        }
     }
 
     @Override
@@ -315,17 +366,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         float d = ctx.getResources().getDisplayMetrics().density;
         RecyclerView parent = (RecyclerView) h.itemView.getParent();
         if (parent != null) {
-            // Only when the size changed: setLayoutParams always asks for a new layout pass.
-            int w = tileWidthPx(parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight(), columns, d);
-            int height = tileHeightPx(w), nameTop = height + Math.round(7 * d);
-            ViewGroup.LayoutParams cardLp = h.card.getLayoutParams();
-            if (cardLp.width != w || cardLp.height != height) {
-                cardLp.width = w; cardLp.height = height; h.card.setLayoutParams(cardLp);
-            }
-            ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) h.name.getLayoutParams();
-            if (nameLp.width != w || nameLp.topMargin != nameTop) {
-                nameLp.width = w; nameLp.topMargin = nameTop; h.name.setLayoutParams(nameLp);
-            }
+            resizeTile(h, parent);
         }
         boolean glyphTile = "com.spotify.tv.android".equals(e.pkg) && e.icon != null;
         int backdrop = glyphTile ? Holder.BACKDROP_GLYPH : isFolder(position) ? Holder.BACKDROP_GLASS : Holder.BACKDROP_TILE;
@@ -338,14 +379,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                             new int[]{0xFF242624, 0xFF101311})
                     : ctx.getDrawable(R.drawable.tile_bg));
         }
-        android.text.SpannableString caption = new android.text.SpannableString("●  " + e.name);
-        caption.setSpan(new FocusDotSpan(d), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        h.name.setText(caption);
+        h.name.setText(e.name);
         h.name.setVisibility(e.label.isEmpty() || (activeFolder == null && position < dockSize) || movingKey != null ? View.INVISIBLE : View.VISIBLE);
         // Keep captions quiet during rearrangement; the lifted app and direction handles show selection.
         h.card.setActivated(e.key.equals(movingKey)
                 || e.key.equals(menuKey));
         boolean focused = h.card.isFocused() || h.card.isActivated();   // a rebind after reload() can hit the focused tile
+        h.name.animate().cancel();
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.animate().cancel();
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
@@ -382,6 +422,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.card.setTranslationZ(focused ? 4 * d : 0f);
         h.card.setForeground(null);
         h.card.setOnClickListener(v -> {
+            int pos = h.getBindingAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION) return;
             if (listener == null || !listener.onTileClicked()) {
                 if (e.component == null) { if (listener != null) listener.onFolderOpened(e.key); }
                 else launch(e);
@@ -525,20 +567,6 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         Bitmap glyph = Bitmap.createBitmap(bitmap, left, top, right - left + 1, bottom - top + 1);
         if (glyph != bitmap) bitmap.recycle();
         return new android.graphics.drawable.BitmapDrawable(ctx.getResources(), glyph);
-    }
-
-    private static final class FocusDotSpan extends android.text.style.ReplacementSpan {
-        private final float radius;
-        FocusDotSpan(float density) { radius = 4.5f * density; }
-        @Override public int getSize(@NonNull android.graphics.Paint paint, CharSequence text,
-                int start, int end, android.graphics.Paint.FontMetricsInt metrics) { return Math.round(radius * 2); }
-        @Override public void draw(@NonNull Canvas canvas, CharSequence text, int start, int end,
-                float x, int top, int y, int bottom, @NonNull android.graphics.Paint paint) {
-            int colour = paint.getColor();
-            paint.setColor(0xFF009AFF);
-            canvas.drawCircle(x + radius, y + (paint.ascent() + paint.descent()) / 2, radius, paint);
-            paint.setColor(colour);
-        }
     }
 
     /** A vivid colour sampled from the app's banner (or icon), cached per entry; a card's accent when it set one. */

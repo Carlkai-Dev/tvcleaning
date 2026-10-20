@@ -46,4 +46,27 @@
     <string name="card_state_new">جديدة</string>
     <string name="card_state_new_key">مفتاح جديد</string>
     <string name="card_state_new_label">اسم جديد</string>
+    <string name="untitled_folder">مجلد بلا عنوان</string>
+    <string name="folder_item_removed">تمت إعادة %1$s إلى الشاشة الرئيسية</string>
+    <string name="remove_from_folder">إزالة من المجلد</string>
+
+    <string name="move_app">نقل</string>
+    <string name="app_settings">إعدادات التطبيق</string>
+    <string name="app_dock">شريط التطبيقات</string>
+    <string name="app_grid">التطبيقات</string>
+    <string name="move_app_hint">نقل %1$s · %2$d من %3$d · %4$s\n← ↑ ↓ → نقل · OK حفظ · رجوع إلغاء</string>
+    <string name="saving_app_order">جارٍ حفظ الترتيب…</string>
+    <string name="app_order_failed">تعذّر حفظ الترتيب. اضغط على OK للمحاولة مجددًا أو على رجوع للإلغاء.</string>
+    <string name="move_to">إضافة إلى مجلد</string>
+    <string name="new_folder">مجلد جديد</string>
+    <string name="rename_folder">إعادة تسمية المجلد</string>
+    <string name="folder_name">اسم المجلد</string>
+    <string name="folder_default_name">ترفيه</string>
+    <string name="folder_description">%1$s، مجلد</string>
+    <string name="move_to_home">الشاشة الرئيسية</string>
+    <string name="done">تم</string>
+    <string name="cancel">إلغاء</string>
+    <string name="folder_save_failed">تعذّر حفظ التغييرات. يُرجى المحاولة مجددًا.</string>
+    <string name="folder_move_hint">نقل %1$s · %2$d من %3$d\n← ↑ ↓ → نقل · OK حفظ · رجوع إلغاء</string>
+    <string name="unnamed_folder">مجلد بلا اسم</string>
 </resources>

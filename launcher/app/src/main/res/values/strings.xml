@@ -48,8 +48,6 @@
     <string name="app_grid">Apps</string>
     <string name="move_app_hint">Moving %1$s · %2$d of %3$d · %4$s\n← ↑ ↓ → Move · OK Save · Back Cancel</string>
     <string name="saving_app_order">Saving order…</string>
-    <string name="app_order_saved">Order saved</string>
-    <string name="app_order_cancelled">Move cancelled</string>
     <string name="app_order_failed">Couldn\'t save order. Press OK to retry or Back to cancel.</string>
     <string name="move_to">Add to Folder</string>
     <string name="new_folder">New Folder</string>
@@ -63,6 +61,8 @@
     <string name="folder_save_failed">Couldn\'t save changes. Please try again.</string>
     <string name="folder_move_hint">Moving %1$s · %2$d of %3$d\n← ↑ ↓ → Move · OK Save · Back Cancel</string>
     <string name="unnamed_folder">Unnamed Folder</string>
+    <string name="untitled_folder">Untitled folder</string>
+    <string name="folder_item_removed">%1$s returned to Home</string>
     <string name="card_prompt_title">New card from %1$s</string>
     <string name="card_prompt_body">%1$s can show a card on your home screen. Keeping it hidden leaves the app\'s normal tile as it is.</string>
     <string name="card_prompt_names">The card is named \'%1$s\'. The app is \'%2$s\'.</string>
@@ -82,4 +82,5 @@
     <string name="card_state_new">New</string>
     <string name="card_state_new_key">New key</string>
     <string name="card_state_new_label">New name</string>
+    <string name="remove_from_folder">Remove from folder</string>
 </resources>

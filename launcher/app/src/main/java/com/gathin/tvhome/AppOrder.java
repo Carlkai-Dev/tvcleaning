@@ -46,4 +46,18 @@ final class AppOrder {
             default: return position;
         }
     }
+
+    /** The folder's short final row is centred: vertical focus follows the closest visible tile. */
+    static int centeredTarget(int position, int count, int columns, Direction direction) {
+        int ordinary = target(position, count, columns, direction);
+        if (position < 0 || position >= count || columns < 1) return ordinary;
+        int remainder = count % columns, lastRow = count - remainder;
+        if (remainder == 0 || lastRow == 0) return ordinary;
+        float inset = (columns - remainder) / 2f;
+        if (direction == Direction.UP && position >= lastRow)
+            return lastRow - columns + Math.min(columns - 1, Math.round(position - lastRow + inset));
+        if (direction == Direction.DOWN && position >= lastRow - columns && position < lastRow)
+            return lastRow + Math.max(0, Math.min(remainder - 1, Math.round(position % columns - inset)));
+        return ordinary;
+    }
 }
