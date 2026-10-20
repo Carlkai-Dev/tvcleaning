@@ -125,6 +125,27 @@
          with TV settings, Display, Network, Apps (re-enable an app) and Launcher settings, over whatever is on screen.
          Both keys can also be set from a theme's config.json ("settings_key_keycodes": [83]). -->
     <bool name="settings_key_panel">false</bool>
+    <!-- With settings_key_panel false: the intent action those Settings buttons open, instead of the TV's Settings.
+         Empty = Settings, and Settings again if nothing answers the action. Also what the Picture & Sound panel
+         below opens when it cannot read the TV's slices. Realtek Google TV sets (KTC LUMIO VISION) answer
+         android.settings.DISPLAY_SOUND_SETTINGS with their picture and sound settings page. -->
+    <string name="settings_key_action" translatable="false"></string>
+    <!-- Opt-in. true: those Settings buttons open a Picture & Sound panel down the right side, over whatever is on
+         screen, like the stock Google TV panel, ahead of settings_key_panel. It lists Display & Picture and Sound,
+         each drawn from the TV's own menu slices (Android 9+; the launcher must be the default Home app to bind
+         them). Left/Right change a picture mode, sound style or slider live; OK opens a sub-page or runs an
+         action; Back goes up a level; Settings closes the panel. If neither page below can be read it opens
+         settings_key_action instead. Checked on a Realtek Google TV (KTC LUMIO VISION, Google TV 14). -->
+    <bool name="settings_key_picture_sound">false</bool>
+    <!-- The panel's two pages: slice URIs of the TV's own picture and sound menus (Realtek com.realtek.menuslices).
+         Another vendor's provider can be put here; a page that cannot be read is left out. -->
+    <string name="picture_sound_picture_uri" translatable="false">content://com.realtek.menuslices/MainMenu_Picture</string>
+    <string name="picture_sound_sound_uri" translatable="false">content://com.realtek.menuslices/MainMenu_Sound</string>
+    <!-- Choices applied only on OK, never while cycling with Left/Right, because the TV opens its own adjust
+         screen for them, which would close the panel (Realtek: Personal). Matched by label, ignoring case. -->
+    <string-array name="picture_sound_ok_only" translatable="false">
+        <item>Personal</item>
+    </string-array>
 
     <!-- More remote buttons that open the input switcher, by Android keycode (INPUT_KEY_SERVICE=1
          build-and-install.sh; KEYCODE_TV always does). For buttons only a disabled app answered: the Xiaomi

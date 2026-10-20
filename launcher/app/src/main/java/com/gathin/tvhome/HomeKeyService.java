@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.UserManager;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -37,6 +38,8 @@ public class HomeKeyService extends AccessibilityService {
     private int[] settingsScancodes = new int[0];
     private int[] settingsKeycodes = new int[0];
     private boolean settingsPanel;
+    /** config.xml settings_key_picture_sound: the Picture & Sound panel, ahead of settingsPanel. */
+    private boolean pictureSound;
     /** app_keys, the same maps InputKeyService reads, for setups that run only this service. */
     private Map<Integer, String> appKeys = Collections.emptyMap();
     private Map<Integer, String> appScancodes = Collections.emptyMap();
@@ -92,6 +95,7 @@ public class HomeKeyService extends AccessibilityService {
         Config config = Config.load(this);
         settingsKeycodes = config.settingsKeycodes;
         settingsPanel = config.settingsKeyPanel;
+        pictureSound = pictureSoundEnabled(this);
         appKeys = RemoteKeys.parseAppKeys(config.appKeys);
         appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
         RemoteKeys.applyKeyFilter(this, config.keyFilter);
@@ -104,6 +108,22 @@ public class HomeKeyService extends AccessibilityService {
         }
         holdAppKeys = RemoteKeys.parseHoldAppKeys(config.appKeys);
         holdAppScancodes = RemoteKeys.parseHoldAppScancodes(config.appKeys);
+    }
+
+    /** settings_key_picture_sound, on Android 9+ only (the slice API); older TVs keep the other targets. */
+    static boolean pictureSoundEnabled(Context c) {
+        return c.getResources().getBoolean(R.bool.settings_key_picture_sound)
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P;
+    }
+
+    /** config.xml settings_key_action, e.g. the TV's own picture & sound page; empty or unanswered: Settings. */
+    static Intent settingsActionIntent(Context c) {
+        String action = c.getString(R.string.settings_key_action).trim();
+        if (!action.isEmpty()) {
+            Intent open = new Intent(action);
+            if (open.resolveActivity(c.getPackageManager()) != null) return open;
+        }
+        return SystemSettings.intent(c, Settings.ACTION_SETTINGS);
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -121,8 +141,9 @@ public class HomeKeyService extends AccessibilityService {
         // The stock launcher handled the remote's Settings button; with it disabled the button does nothing.
         if (isSettingsKey(event)) {
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-                Intent open = settingsPanel ? new Intent(this, QuickSettingsActivity.class)
-                        : SystemSettings.intent(this, Settings.ACTION_SETTINGS);
+                Intent open = pictureSound ? new Intent(this, PictureSoundActivity.class)
+                        : settingsPanel ? new Intent(this, QuickSettingsActivity.class)
+                        : settingsActionIntent(this);
                 try {
                     startActivity(open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 } catch (ActivityNotFoundException | SecurityException unavailable) {

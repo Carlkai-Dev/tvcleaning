@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picture & Sound panel opened by the remote's Settings button (settings_key_picture_sound): a full-height
+     dark column on the right, like Google TV's own panel, over Home or whatever app is playing. The rest of the
+     screen stays clear (no dim) so a picture change shows on the video behind. Rows are added in code. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scrim"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ScrollView
+        android:id="@+id/scroll"
+        android:layout_width="272dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="24dp"
+        android:background="@drawable/ps_panel"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp"
+        android:elevation="12dp"
+        android:scrollbars="none"
+        android:visibility="invisible">
+
+        <LinearLayout
+            android:id="@+id/rows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+</FrameLayout>

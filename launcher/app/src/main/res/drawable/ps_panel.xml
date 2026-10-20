@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picture & Sound panel: the dark rounded column of Google TV's own settings panel, without blur. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#F51F2023" />
+    <corners android:radius="28dp" />
+</shape>

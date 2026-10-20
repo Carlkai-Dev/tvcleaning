@@ -59,6 +59,10 @@
         <!-- Coocaa OS sources for the Inputs menu (coocaa_sources); see CoocaaSources. -->
         <provider android:authorities="com.skyworth.tv.provider" />
         <provider android:authorities="com.skyworth.tv.sdk.provider" />
+        <!-- config.xml settings_key_action, the example in its comment: a Realtek TV's picture & sound page. -->
+        <intent>
+            <action android:name="android.settings.DISPLAY_SOUND_SETTINGS" />
+        </intent>
     </queries>
 
     <application
@@ -115,6 +119,17 @@
         <!-- Remote Settings button panel (settings_key_panel); own task so the app behind stays put. -->
         <activity
             android:name=".QuickSettingsActivity"
+            android:exported="false"
+            android:taskAffinity=""
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+        <!-- Picture & Sound panel for the remote's Settings button (config.xml settings_key_picture_sound). Started
+             only by HomeKeyService and MainActivity, so it is not exported. -->
+        <activity
+            android:name=".PictureSoundActivity"
             android:exported="false"
             android:taskAffinity=""
             android:launchMode="singleTop"

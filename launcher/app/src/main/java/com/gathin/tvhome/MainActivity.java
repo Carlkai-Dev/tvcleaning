@@ -998,8 +998,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (int code : settingsKeycodes) {
             if (event.getKeyCode() != code) continue;
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-                open(settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
-                        : systemIntent(Settings.ACTION_SETTINGS));
+                open(HomeKeyService.pictureSoundEnabled(this) ? new Intent(this, PictureSoundActivity.class)
+                        : settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
+                        : HomeKeyService.settingsActionIntent(this));
             }
             return true;
         }
