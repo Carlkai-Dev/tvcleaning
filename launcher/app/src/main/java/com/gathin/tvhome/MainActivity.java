@@ -2063,7 +2063,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ComponentName c = ComponentName.unflattenFromString(sourcePanelService);
         if (c != null) i.setComponent(c);
         List<String> targets = targetServicePackages(i);
-        runAuthorizedTargets(targets, 0, AppAccessPolicy.Path.LAUNCHER_INTENT, () -> {
+        runAuthorizedTargets(targets, targetQueryMayOmitProtectedApp(i), () -> {
             try { startService(i); }
             catch (Exception e) { Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show(); }
         });
@@ -2087,15 +2087,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return true;
         }
         List<String> targets = targetActivityPackages(i);
-        if (targets.isEmpty()) {
-            boolean opened = startIntent(i, showError);
-            if (!opened && onNotFound != null) {
-                onNotFound.run();
-                return true;
-            }
-            return opened;
-        }
-        runAuthorizedTargets(targets, 0, AppAccessPolicy.Path.LAUNCHER_INTENT, () -> {
+        runAuthorizedTargets(targets, targetQueryMayOmitProtectedApp(i), () -> {
             if (!startIntent(i, showError) && onNotFound != null) onNotFound.run();
         });
         return true;
@@ -2162,27 +2154,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return result;
     }
 
-    private void runAuthorizedTargets(List<String> packages, int index, AppAccessPolicy.Path path, Runnable action) {
-        if (parentalSnapshot == null || !parentalSnapshot.storageHealthy) {
-            showParentalStateError();
-            return;
-        }
-        if (index >= packages.size()) {
-            action.run();
-            return;
-        }
-        String pkg = packages.get(index);
-        AppAccessPolicy.Decision decision = AppAccessPolicy.forOpen(parentalSnapshot, pkg, false, path);
-        if (decision == AppAccessPolicy.Decision.DENY_STORAGE_ERROR) {
-            showParentalStateError();
-        } else if (decision == AppAccessPolicy.Decision.AUTHENTICATION_REQUIRED) {
-            authenticatePin(getString(R.string.parental_unlock_app, applicationLabel(pkg)),
-                    () -> runAuthorizedTargets(packages, index + 1, path, action));
-        } else {
-            runAuthorizedTargets(packages, index + 1, path, action);
-        }
+    private boolean targetQueryMayOmitProtectedApp(Intent intent) {
+        if (intent == null || intent.getComponent() != null || intent.getPackage() != null) return false;
+        return LauncherTargetAccess.mayHaveHiddenProtectedTargets(parentalSnapshot,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.R, packageName -> {
+                    try {
+                        getPackageManager().getApplicationInfo(packageName, 0);
+                        return true;
+                    } catch (Exception notQueryableOrInstalled) {
+                        // Package visibility can hide package information while still allowing startActivity().
+                        return false;
+                    }
+                });
     }
 
+    private void runAuthorizedTargets(List<String> packages, boolean targetsMayBeIncomplete, Runnable action) {
+        LauncherTargetAccess.run(parentalSnapshot, packages, targetsMayBeIncomplete,
+                AppAccessPolicy.Path.LAUNCHER_INTENT, action,
+                (packageName, onAuthenticated) -> {
+                    String prompt = packageName == null
+                            ? getString(R.string.parental_enter_pin_title)
+                            : getString(R.string.parental_unlock_app, applicationLabel(packageName));
+                    authenticatePin(prompt, onAuthenticated);
+                }, this::showParentalStateError);
+    }
     private String applicationLabel(String packageName) {
         try {
             ApplicationInfo info = getPackageManager().getApplicationInfo(packageName, 0);
