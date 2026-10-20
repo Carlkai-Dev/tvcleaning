@@ -32,19 +32,20 @@ Version 0.1 · Android 8.0+ (API 26) · Android TV and Google TV · English, Tü
 **Look**
 - **Languages** – ten, picked automatically from the TV's language (English when SBL is not translated into it)
   or chosen by hand in *SBL settings → Home screen → Language*, whatever the TV itself is set to.
-- **Dark and light** looks, switched in the settings.
-- **Themes** – a folder with a `config.json` and an optional wallpaper. Install from a USB drive, the TV's storage
-  or a web address, switch or delete them in the settings. See [`themes/`](themes/README.md).
+- **Dark, light or automatic** – automatic is light by day and dark from sunset to sunrise at the TV's position
+  (worked out on the TV, no network needed once the position is known).
 - Everything is drawn for a TV: glass menus, a hollow focus frame, sharp artwork (banners and icons are loaded at
   xxhdpi or higher and only scaled down), a splash that looks like the home screen instead of a white flash.
 
 **SBL settings** (gear button → *SBL settings*)
-- *Home screen*: language, columns, inputs row, Watch Next on/off and turning time, weather on/off and unit, module cards.
+- *Home screen*: language, appearance, columns, inputs row, Watch Next on/off and turning time, weather on/off and unit, module cards.
 - *Apps*: sort order, hidden apps, clear usage statistics.
-- *Theme*: appearance (dark/light) and themes.
 - *Permissions*: what SBL can use and why.
 - *Backup, reset and about*: back up every setting, favourites, order and usage to the TV or a USB drive, restore
-  it, reset the menu choices.
+  it, reset the menu choices. Backups made by earlier builds (`TVLauncher` folder) are found too.
+
+Themes (a folder with a `config.json` and an optional wallpaper, see [`themes/`](themes/README.md)) are in the code
+but switched off in the settings for now.
 
 **Also inherited from the project SBL grew out of:** module cards (an app can offer its own labelled tile, see
 [`launcher/CARDS.md`](launcher/CARDS.md)), a clock screensaver, and optional remote-key helpers.
@@ -59,7 +60,7 @@ Version 0.1 · Android 8.0+ (API 26) · Android TV and Google TV · English, Tü
 3. Start **SBL**. On the first run Android asks whether SBL may read TV listings; say *Allow* to get Watch Next.
    Everything else works without it.
 4. Optional: **SBL settings → Permissions** opens Android's *All files access* page. Only needed to save backups
-   and read themes on the TV's storage or a USB drive.
+   and read backups on the TV's storage or a USB drive.
 
 SBL is a normal app until you make it your Home screen, so you can try it first and just press Home to leave.
 To make it the Home screen without a computer, press Home on the remote: if your TV asks which launcher to use,
