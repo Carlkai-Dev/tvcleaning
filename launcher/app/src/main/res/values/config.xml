@@ -7,6 +7,13 @@
 -->
 <resources>
 
+    <!-- Optional Fire OS Home redirect. Keep the protected stock launcher enabled. -->
+    <string name="fire_tv_stock_package" translatable="false">com.amazon.tv.launcher</string>
+    <string-array name="fire_tv_home_classes">
+        <item>com.amazon.tv.launcher.ui.HomeActivity_vNext</item>
+        <item>com.amazon.tv.launcher.ui.HomeActivity</item>
+    </string-array>
+
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
         <item>com.netflix.ninja</item>

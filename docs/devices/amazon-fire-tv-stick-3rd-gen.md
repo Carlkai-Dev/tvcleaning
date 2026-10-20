@@ -8,41 +8,9 @@ Tested on 20 October 2026, in one session:
 
 This is a compatibility report, not a debloat list or a supported Home takeover.
 The experiment used a separately built launcher (`tv.cleanmy.home`), not this
-repository's reference launcher or its `HomeKeyService`.
-
-## Same-day cleanup observations
-
-These seven packages were disabled for user 0 with one `pm disable-user`
-command per shell call, then verified as disabled after a reboot. No package
-needed reapplying in that check. This is a record of one owner's choices, not
-an apply-ready list: the several-days-of-use requirement in CONTRIBUTING.md has
-not been met.
-
-| Package | Reason or observed component |
-| --- | --- |
-| `com.netflix.ninja` | Netflix, unused by this owner |
-| `com.amazon.bueller.music` | Amazon Music, unused by this owner |
-| `com.amazon.shoptv.client` | Shopping, unused by this owner |
-| `com.amazon.shoptv.firetv.client` | Live Shopping, unused by this owner |
-| `com.amazon.hybridadidservice` | FETCH_AD_ID service and advertising-ID update receiver |
-| `com.amazon.perfcollection` | PerfStatsCService, ConfigurationSyncService, boot/screen-on receiver |
-| `com.amazon.wirelessmetrics.service` | WirelessMetricsService |
-
-Alexa/voice search, casting, firmware updates, Appstore, input/remote services
-and the owner's streaming apps were deliberately left enabled during this
-cleanup. `com.amazon.firebat` resolved to Prime Video on this stick; it was not
-treated as telemetry. `com.amazon.logan` exposes voice/language and Dolby
-activities, and `com.amazon.device.rdmapplication` exposes remote battery/device
-services, so both were kept. `com.amazon.device.metrics` refused disable as a
-protected package and was left unchanged. `com.android.nfc` was already disabled
-before the session and is not part of these seven changes.
-
-The original enabled states were recorded before each change. For one package,
-restore its recorded default state with `pm default-state --user 0 <package>`,
-or its explicitly enabled state with `pm enable --user 0 <package>`. Do not
-restore unrelated pre-existing disables or advertise these observations as
-complete tracking removal. Longer use is still needed before proposing an
-`examples/.../debloat.txt` list.
+repository's reference launcher or its `HomeKeyService`. The opt-in port is
+documented in [FIRE_TV_HOME.md](../FIRE_TV_HOME.md); the source experiment and
+the port are distinguished rather than claiming identical device coverage.
 
 ## Standard Home replacement did not work
 
