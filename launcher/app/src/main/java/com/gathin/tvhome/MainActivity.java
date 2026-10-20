@@ -10,7 +10,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -1397,6 +1400,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- navigation ------------------------------------------------------------------------------
 
     @Override
+    public void onTileOpen(String pkg, Runnable open) {
+        AppLock.guard(this, pkg, open);
+    }
+
+    @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
         int count = adapter.appCount();
         int target;
@@ -1940,6 +1948,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> startActivityForResult(
                 new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         if (moduleCards) addSettingsMenuRow(rows, popup, R.string.module_cards, this::showModuleCards);
+        addSettingsMenuRow(rows, popup, R.string.app_lock, this::openAppLock);
         if (dockRow) addSettingsMenuRow(rows, popup, R.string.dock_edit, this::startDockEdit);
         addSettingsMenuRow(rows, popup, R.string.reorder, this::toggleReorder);
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
@@ -2104,14 +2113,80 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             rows.addView(row);
         }
         updateCardStates(rows);
-        // Scroll inside the panel instead of running off the bottom of a 720p screen.
+        fitBelow(popup, panel, anchor);
+        dropIn(popup, panel, anchor, Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /** Scroll inside the panel instead of running off the bottom of a 720p screen. */
+    private void fitBelow(PopupWindow popup, View panel, View anchor) {
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         int[] at = new int[2];
         anchor.getLocationInWindow(at);
         int room = root.getHeight() - (at[1] + anchor.getHeight()) - (int) (34 * density);
         popup.setHeight(Math.min(panel.getMeasuredHeight(), Math.max(room, (int) (120 * density))));
-        dropIn(popup, panel, anchor, Gravity.END);
+    }
+
+    // ---- app lock ---------------------------------------------------------------------------------
+
+    /** Settings, App lock: the PIN first (a new one when none is set), then the list of apps. */
+    private void openAppLock() {
+        if (AppLock.hasPin(AppLock.prefs(this))) AppLock.verify(this, getString(R.string.app_lock_enter), this::showAppLockList);
+        else AppLock.choosePin(this, this::showAppLockList);
+    }
+
+    /** Dropdown under the Settings pill: Change PIN, then every app with a TV entry; OK toggles its lock. */
+    private void showAppLockList() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_cards, root, false);
+        ((TextView) panel.findViewById(R.id.heading)).setText(R.string.app_lock);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = glassPopup(panel, (int) (400 * density));
+        final SharedPreferences prefs = AppLock.prefs(this);
+
+        addAppLockRow(rows, getString(R.string.app_lock_change_pin), null).setOnClickListener(v -> {
+            popup.dismiss();
+            AppLock.choosePin(this, this::showAppLockList);
+        });
+
+        PackageManager pm = getPackageManager();
+        List<ResolveInfo> found = pm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
+        final List<String[]> apps = new ArrayList<>();   // {label, package}
+        Set<String> seen = new HashSet<>();
+        for (ResolveInfo ri : found) {
+            if (ri.activityInfo == null) continue;
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(getPackageName()) || !seen.add(pkg)) continue;
+            apps.add(new String[] {String.valueOf(ri.loadLabel(pm)), pkg});
+        }
+        Collections.sort(apps, (a, b) -> a[0].compareToIgnoreCase(b[0]));
+        Set<String> locked = AppLock.apps(prefs);
+        for (String[] app : apps) {
+            final String pkg = app[1];
+            View row = addAppLockRow(rows, app[0], getString(locked.contains(pkg) ? R.string.app_lock_locked : R.string.app_lock_open));
+            final TextView status = row.findViewById(R.id.status);
+            row.setOnClickListener(v -> {
+                boolean on = !AppLock.apps(prefs).contains(pkg);
+                AppLock.setLocked(prefs, pkg, on);
+                status.setText(on ? R.string.app_lock_locked : R.string.app_lock_open);
+            });
+        }
+        fitBelow(popup, panel, anchor);
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END);
         rows.getChildAt(0).requestFocus();
+    }
+
+    private View addAppLockRow(LinearLayout rows, String title, String status) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        row.findViewById(R.id.icon).setVisibility(View.GONE);
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        TextView s = row.findViewById(R.id.status);
+        if (status != null) s.setText(status);
+        else s.setVisibility(View.GONE);
+        rows.addView(row);
+        return row;
     }
 
     private Cards.Card cardFor(String pkg) {

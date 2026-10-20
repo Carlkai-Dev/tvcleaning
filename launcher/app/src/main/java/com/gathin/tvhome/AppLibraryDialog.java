@@ -337,6 +337,10 @@ final class AppLibraryDialog {
 
     private void open(ResolveInfo app) {
         close();
+        AppLock.guard(activity, app.activityInfo.packageName, () -> start(app));
+    }
+
+    private void start(ResolveInfo app) {
         Intent intent = new Intent(Intent.ACTION_MAIN).setComponent(
                 new ComponentName(app.activityInfo.packageName, app.activityInfo.name));
         // TV apps keep the leanback launch intent, so an app already running resumes instead of restarting.
@@ -371,11 +375,14 @@ final class AppLibraryDialog {
                 () -> changeHome(app, !home));
         addAction(rows, R.string.library_app_info, () -> {
             close();
-            try {
-                activity.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg)));
-            } catch (ActivityNotFoundException | SecurityException e) {
-                Toast.makeText(activity, activity.getString(R.string.cant_open, label(app)), Toast.LENGTH_SHORT).show();
-            }
+            // The info page has an Open button, so a locked app asks here too.
+            AppLock.guard(activity, pkg, () -> {
+                try {
+                    activity.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg)));
+                } catch (ActivityNotFoundException | SecurityException e) {
+                    Toast.makeText(activity, activity.getString(R.string.cant_open, label(app)), Toast.LENGTH_SHORT).show();
+                }
+            });
         });
         int menuWidth = dp(220);
         for (int i = 0; i < rows.getChildCount(); i++) {

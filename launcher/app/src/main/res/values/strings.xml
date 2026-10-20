@@ -90,4 +90,16 @@
     </plurals>
     <!-- The greeting, then greeting_name: "Good morning, Mr. Trịnh". -->
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="app_lock">App lock</string>
+    <string name="app_lock_change_pin">Change PIN</string>
+    <string name="app_lock_locked">Needs PIN</string>
+    <string name="app_lock_open">Opens freely</string>
+    <string name="app_lock_enter">Enter PIN</string>
+    <string name="app_lock_enter_for">PIN for %1$s</string>
+    <string name="app_lock_new">New 4-digit PIN</string>
+    <string name="app_lock_confirm">Enter the new PIN again</string>
+    <string name="app_lock_mismatch">The two PINs differ. Start again.</string>
+    <string name="app_lock_wrong">Wrong PIN</string>
+    <string name="app_lock_wait">Too many tries. Wait %1$d seconds.</string>
+    <string name="app_lock_saved">PIN saved</string>
 </resources>

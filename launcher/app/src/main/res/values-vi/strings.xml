@@ -68,4 +68,16 @@
     <string name="dock_edit">Chỉnh sửa dock</string>
     <string name="dock_edit_hint">Chọn vị trí trên dock cần đổi rồi nhấn OK. Nhấn Quay lại để kết thúc.</string>
     <string name="dock_edit_pick_app">Giờ chọn ứng dụng để đặt vào đó rồi nhấn OK. Nhấn Quay lại để chọn vị trí khác.</string>
+    <string name="app_lock">Khoá ứng dụng</string>
+    <string name="app_lock_change_pin">Đổi mã PIN</string>
+    <string name="app_lock_locked">Cần mã PIN</string>
+    <string name="app_lock_open">Mở tự do</string>
+    <string name="app_lock_enter">Nhập mã PIN</string>
+    <string name="app_lock_enter_for">Mã PIN để mở %1$s</string>
+    <string name="app_lock_new">Mã PIN mới gồm 4 số</string>
+    <string name="app_lock_confirm">Nhập lại mã PIN mới</string>
+    <string name="app_lock_mismatch">Hai mã PIN không khớp. Nhập lại từ đầu.</string>
+    <string name="app_lock_wrong">Sai mã PIN</string>
+    <string name="app_lock_wait">Sai quá nhiều lần. Chờ %1$d giây.</string>
+    <string name="app_lock_saved">Đã lưu mã PIN</string>
 </resources>

@@ -88,4 +88,16 @@
         <item quantity="other">%1$d אפליקציות</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="app_lock">נעילת אפליקציות</string>
+    <string name="app_lock_change_pin">שינוי קוד PIN</string>
+    <string name="app_lock_locked">דורש קוד PIN</string>
+    <string name="app_lock_open">נפתחת בחופשיות</string>
+    <string name="app_lock_enter">הזן קוד PIN</string>
+    <string name="app_lock_enter_for">קוד PIN עבור %1$s</string>
+    <string name="app_lock_new">קוד PIN חדש בן 4 ספרות</string>
+    <string name="app_lock_confirm">הזן שוב את קוד ה-PIN החדש</string>
+    <string name="app_lock_mismatch">שני הקודים שונים. התחל מחדש.</string>
+    <string name="app_lock_wrong">קוד PIN שגוי</string>
+    <string name="app_lock_wait">יותר מדי ניסיונות. המתן %1$d שניות.</string>
+    <string name="app_lock_saved">קוד ה-PIN נשמר</string>
 </resources>
