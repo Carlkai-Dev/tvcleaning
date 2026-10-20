@@ -11,6 +11,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
@@ -32,7 +33,9 @@ import java.util.concurrent.Executors;
 /**
  * Finds the launchable apps and prepares their tiles on a background thread. Tiles are kept for the life of the
  * process, so returning Home costs one package query instead of decoding every banner again; an app is only
- * rebuilt when the system reports it installed, updated, enabled, disabled or removed.
+ * rebuilt when the system reports it installed, updated, enabled, disabled or removed. They are also saved to disk
+ * ({@link TileStore}), so a cold start shows them before opening any APK and then rebuilds only the apps that
+ * changed while the launcher was not running.
  *
  * Module cards are not handled here: the adapter puts them over these tiles on the main thread (see
  * {@link AppAdapter#setTiles}), so the card code keeps running where its guard and decision file expect it.
@@ -97,6 +100,33 @@ final class AppLoader {
     private static String cacheLocale;
     private static Request cacheRequest;
 
+    // Worker thread only: the disk copy of the tiles.
+    private static TileStore store;
+    /** Read at process start, used once by the first load. */
+    private static TileStore.Contents restored;
+    /** The saved record of each cached tile, by key. */
+    private static final Map<String, TileStore.Tile> SAVED = new HashMap<>();
+    /** Restored tiles whose app has not been checked against the package manager yet. */
+    private static final Set<String> UNCHECKED = new HashSet<>();
+    /** Tiles built since the last save. */
+    private static final Map<String, Built> BUILT = new HashMap<>();
+    private static boolean storeDirty;
+
+    /**
+     * What saving a new tile needs: its package's lastUpdateTime, read before the tile was built so an update
+     * during the build cannot pass for the new version, and the software bitmap rendered before GPU upload so
+     * saving never reads a HARDWARE texture back from the GPU.
+     */
+    private static final class Built {
+        final long stamp;
+        final Bitmap softImage;
+
+        Built(long stamp, Bitmap softImage) {
+            this.stamp = stamp;
+            this.softImage = softImage;
+        }
+    }
+
     /** The last snapshot handed out; written on the worker, read anywhere. */
     private static volatile Snapshot last;
 
@@ -105,6 +135,7 @@ final class AppLoader {
     private static Runnable active;
     private static Runnable packageListener;
     private static boolean watching;
+    private static boolean preloaded;
 
     private AppLoader() {
     }
@@ -112,6 +143,20 @@ final class AppLoader {
     /** Tiles from the last load, or null before the first one finishes. */
     static Snapshot cached() {
         return last;
+    }
+
+    /**
+     * Starts reading the tiles an earlier process saved. Call it at the top of onCreate: the worker decodes them
+     * while the layout inflates, so the first load can show them right away.
+     */
+    static void preload(Context ctx) {
+        if (preloaded) return;
+        preloaded = true;
+        Context app = ctx.getApplicationContext();
+        WORKER.execute(() -> {
+            store = new TileStore(app);
+            restored = store.read(stamp(app.getPackageManager(), app.getPackageName()));
+        });
     }
 
     /**
@@ -143,11 +188,18 @@ final class AppLoader {
         final Request req = request;
         if (req == null || active == null) return;
         WORKER.execute(() -> {
+            // Cold start: show the saved tiles first, then let the load check them against the package manager.
+            Snapshot saved = restore(app, req);
+            if (saved != null) {
+                last = saved;
+                MAIN.post(AppLoader::deliver);
+            }
             Snapshot fresh = load(app, req);
             if (!fresh.sameAs(last)) {
                 last = fresh;
                 MAIN.post(AppLoader::deliver);
             }
+            save(app);
         });
     }
 
@@ -198,12 +250,20 @@ final class AppLoader {
         String locale = res.getConfiguration().getLocales().toLanguageTags();
         if (!locale.equals(cacheLocale) || !req.sameAs(cacheRequest)) {
             CACHE.clear();
+            SAVED.clear();
+            UNCHECKED.clear();
+            for (Built b : BUILT.values()) {
+                if (b.softImage != null) b.softImage.recycle();
+            }
+            BUILT.clear();
             homeTile = null;
             cacheLocale = locale;
             cacheRequest = req;
+            storeDirty = true;
         }
         int w = bannerSize(req.tileWidth, req.zoom);
         int h = bannerSize(req.tileHeight, req.zoom);
+        int iconSize = iconSize(app, req.zoom);
 
         Set<String> stale;
         synchronized (STALE) {
@@ -242,20 +302,35 @@ final class AppLoader {
             String key = component.flattenToShortString();
             seenKeys.add(key);
             AppAdapter.Entry e = stale.contains(pkg) ? null : CACHE.get(key);
+            // A restored tile stays only if its app has not been updated since the tile was saved.
+            if (e != null && UNCHECKED.contains(key) && SAVED.get(key).stamp != stamp(pm, pkg)) e = null;
+            UNCHECKED.remove(key);
             if (e == null) {
+                long stamp = stamp(pm, pkg);
                 String label = Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg);
                 if (!seen.add(pkg + '\n' + label)) {
                     CACHE.put(key, new AppAdapter.Entry(AppAdapter.Entry.APP, label, component, null, null, null, 0));
+                    SAVED.remove(key);
                     continue;
                 }
-                e = build(app, pm, ri, component, label, w, h);
+                Bitmap[] softOut = new Bitmap[1];
+                e = build(app, pm, ri, component, label, w, h, iconSize, softOut);
                 CACHE.put(key, e);
+                SAVED.remove(key);
+                BUILT.put(key, new Built(stamp, softOut[0]));
+                storeDirty = true;
             } else if (!seen.add(pkg + '\n' + e.label)) {
                 continue;
             }
             apps.add(e);
         }
-        CACHE.keySet().retainAll(seenKeys);
+        for (Map.Entry<String, Built> b : BUILT.entrySet()) {
+            if (!seenKeys.contains(b.getKey()) && b.getValue().softImage != null) b.getValue().softImage.recycle();
+        }
+        if (CACHE.keySet().retainAll(seenKeys)) storeDirty = true;
+        SAVED.keySet().retainAll(seenKeys);
+        UNCHECKED.retainAll(seenKeys);
+        BUILT.keySet().retainAll(seenKeys);
         return new Snapshot(apps, tvPackages, homeTile(app, pm, req));
     }
 
@@ -273,21 +348,109 @@ final class AppLoader {
         return homeTile;
     }
 
+    /**
+     * The tiles saved by an earlier process as a snapshot, on the first load of this one, when they were drawn for
+     * the same locale and banner size. They go into the cache unchecked; {@link #load} then keeps each one only if
+     * its app was not updated since, and drops the apps that were removed, disabled or hidden.
+     */
+    private static Snapshot restore(Context app, Request req) {
+        TileStore.Contents c = restored;
+        restored = null;
+        if (c == null || !CACHE.isEmpty()) return null;
+        Resources res = app.getResources();
+        String locale = res.getConfiguration().getLocales().toLanguageTags();
+        if (!c.locale.equals(locale) || c.width != bannerSize(req.tileWidth, req.zoom)
+                || c.height != bannerSize(req.tileHeight, req.zoom)) {
+            return null;
+        }
+        cacheLocale = locale;
+        cacheRequest = req;
+        Set<String> added = LibraryApps.load(app);
+        Set<String> removed = LibraryApps.loadRemoved(app);
+        List<AppAdapter.Entry> apps = new ArrayList<>();
+        Set<String> tvPackages = new HashSet<>();
+        for (TileStore.Tile t : c.tiles) {
+            ComponentName component = ComponentName.unflattenFromString(t.key);
+            if (t.image == null || component == null) continue;
+            AppAdapter.Entry e = t.banner
+                    ? new AppAdapter.Entry(AppAdapter.Entry.APP, t.label, component, t.image, null, null, t.ambient)
+                    : new AppAdapter.Entry(AppAdapter.Entry.APP, t.label, component, null,
+                            new BitmapDrawable(res, t.image), null, t.ambient);
+            CACHE.put(e.key, e);
+            SAVED.put(e.key, t);
+            UNCHECKED.add(e.key);
+            if (t.leanback) tvPackages.add(e.pkg);
+            if (LibraryApps.visible(t.leanback, req.hidden.contains(e.pkg), added.contains(e.pkg), removed.contains(e.pkg))) {
+                apps.add(e);
+            }
+        }
+        return apps.isEmpty() ? null : new Snapshot(apps, tvPackages, homeTile(app, app.getPackageManager(), req));
+    }
+
+    /** Saves the last snapshot after a load that changed the tiles; writes only the images of new tiles. */
+    private static void save(Context app) {
+        Snapshot s = last;
+        if (!storeDirty || s == null) return;
+        storeDirty = false;
+        if (store == null) store = new TileStore(app);
+        List<TileStore.Tile> tiles = new ArrayList<>(s.apps.size());
+        for (AppAdapter.Entry e : s.apps) {
+            TileStore.Tile t = SAVED.get(e.key);
+            Built b = t == null ? BUILT.get(e.key) : null;
+            if (b != null) {
+                Bitmap image = b.softImage != null ? b.softImage : e.banner;
+                String file = image != null ? store.writeImage(image) : null;
+                if (file != null) {
+                    t = new TileStore.Tile(e.key, e.label, b.stamp, e.ambient, e.banner != null,
+                            s.leanbackPackages.contains(e.pkg), file);
+                    SAVED.put(e.key, t);
+                    BUILT.remove(e.key);
+                }
+                if (b.softImage != null) b.softImage.recycle();
+            }
+            if (t != null) tiles.add(t);
+        }
+        Request r = cacheRequest;
+        store.writeIndex(stamp(app.getPackageManager(), app.getPackageName()), cacheLocale,
+                bannerSize(r.tileWidth, r.zoom), bannerSize(r.tileHeight, r.zoom), tiles);
+    }
+
+    /** When the package was last installed or updated, or 0 if it is gone. */
+    private static long stamp(PackageManager pm, String pkg) {
+        try {
+            return pm.getPackageInfo(pkg, 0).lastUpdateTime;
+        } catch (PackageManager.NameNotFoundException e) {
+            return 0;
+        }
+    }
+
     /** Banners are drawn at the largest size they are shown at, so the zoomed tile stays sharp. */
     private static int bannerSize(int tilePx, float zoom) {
         return Math.round(tilePx * zoom);
     }
 
+    /** The saved icon of an app without a banner: the tile's 48dp icon at the zoomed size. */
+    private static int iconSize(Context app, float zoom) {
+        return Math.round(48 * app.getResources().getDisplayMetrics().density * zoom);
+    }
+
     private static AppAdapter.Entry build(Context app, PackageManager pm, ResolveInfo ri, ComponentName component,
-                                          String label, int w, int h) {
+                                          String label, int w, int h, int iconSize, Bitmap[] softOut) {
         Drawable banner = loadBanner(app, pm, ri);
         if (banner != null) {
             Bitmap tile = render(banner, w, h, true);
             int ambient = vividColor(tile);
-            return new AppAdapter.Entry(AppAdapter.Entry.APP, label, component, toHardware(tile), null, null, ambient);
+            Bitmap hw = tile.copy(Bitmap.Config.HARDWARE, false);
+            if (hw != null) {
+                softOut[0] = tile;
+                return new AppAdapter.Entry(AppAdapter.Entry.APP, label, component, hw, null, null, ambient);
+            }
+            return new AppAdapter.Entry(AppAdapter.Entry.APP, label, component, tile, null, null, ambient);
         }
         Drawable icon = ri.loadIcon(pm);
-        int ambient = icon != null ? vividColor(render(icon, 12, 12, false)) : 0xFF444444;
+        Bitmap renderedIcon = icon != null ? render(icon, iconSize, iconSize, false) : null;
+        int ambient = renderedIcon != null ? vividColor(renderedIcon) : 0xFF444444;
+        softOut[0] = renderedIcon;
         return new AppAdapter.Entry(AppAdapter.Entry.APP, label, component, null, icon, null, ambient);
     }
 
@@ -323,14 +486,6 @@ final class AppLoader {
         }
         d.draw(new Canvas(bmp));
         return bmp;
-    }
-
-    /** GPU-only copy: no second copy in the app's memory and no upload on first draw. */
-    private static Bitmap toHardware(Bitmap bmp) {
-        Bitmap hw = bmp.copy(Bitmap.Config.HARDWARE, false);
-        if (hw == null) return bmp;
-        bmp.recycle();
-        return hw;
     }
 
     /** A vivid colour sampled from the banner (or icon), for the glow behind the top shelf. */
