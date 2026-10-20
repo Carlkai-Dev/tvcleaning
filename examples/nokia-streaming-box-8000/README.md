@@ -75,8 +75,27 @@ four there.
 ## Settings on the TV
 
 Hold OK on the **Einstellungen** pill (top right) and pick **Launcher-Einstellungen**: apps per row,
-animations and *Nachfedern* (the bounce of the highlight). A short press on the pill still opens the
-TV's own settings.
+animations, *Hintergrund* (below) and *Nachfedern* (the bounce of the highlight). A short press on the
+pill still opens the TV's own settings.
+
+**Rearrange apps:** hold OK on an app and pick **Verschieben**: the app is picked up in reorder mode,
+the D-pad moves it, Back puts it down, Back again ends the mode. **App-Info** in the same menu opens
+Android's page for the app. *Apps anordnen* in the Settings pill's hold menu starts the same mode.
+The order is kept on the box until `dock_apps` changes, so push the same theme every time.
+
+## Background
+
+Launcher-Einstellungen > **Hintergrund**: each OK switches to the next choice: *Design* (what the
+theme says), *Schwarz*, *Tageszeit* (a dark gradient that follows the clock, redrawn once a minute),
+*Aurora* (built in) and *Eigenes Bild*, offered once your picture is on the box. A dark 1920×1080 JPEG
+works best:
+
+```bash
+tools/venv/bin/python -I tools/b64push.py my-picture.jpg /sdcard/Android/data/com.gathin.tvhome/files/background.jpg
+```
+
+Push a new file the same way to change it, then pick the choice again. Pushing a theme keeps the
+choice; *Design übernehmen* goes back to the theme's background.
 
 ## Wallpaper
 

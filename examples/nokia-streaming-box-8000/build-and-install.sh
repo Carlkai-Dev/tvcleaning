@@ -7,6 +7,8 @@
 # opens the new launcher, and it steps in front of the stock one whenever that comes up.
 #
 # Usage: TV_HOST=192.168.1.50 examples/nokia-streaming-box-8000/build-and-install.sh
+#        THEME=<your theme folder> to push your own dock instead of theme/ (a dock_apps change drops the
+#        order arranged on the TV, so keep pushing the same one)
 # Needs JDK 17 or 21 (JAVA_HOME) and the Android SDK (ANDROID_HOME, default ~/Android/Sdk).
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -24,7 +26,7 @@ OUT=$(STOCK_LAUNCHER=none "$ROOT/launcher/build-and-install.sh" 2>&1); echo "$OU
 echo "$OUT" | grep -q '^Success' || { echo "ERROR: install failed, see above" >&2; exit 1; }
 
 # 2. Theme first (dock, hidden apps, home redirect, network pill), so the service reads it when it binds.
-"$ROOT/tools/theme.sh" "$HERE/theme"
+"$ROOT/tools/theme.sh" "${THEME:-$HERE/theme}"
 
 # 3. HomeKeyService on, without dropping other accessibility services, then check it is bound.
 tv 's=$(settings get secure enabled_accessibility_services); case "$s" in *HomeKeyService*) ;; null|"") settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService ;; *) settings put secure enabled_accessibility_services "$s:com.gathin.tvhome/.HomeKeyService" ;; esac; settings put secure accessibility_enabled 1'

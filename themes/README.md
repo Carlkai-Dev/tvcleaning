@@ -61,6 +61,10 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 
 ## Wallpapers
 
+On the TV, Launcher settings > Background overrides the theme until *Follow theme*: black, the
+time-of-day sky, the built-in aurora, or an own picture at
+`/sdcard/Android/data/com.gathin.tvhome/files/background.jpg`. Pushing a theme keeps that choice.
+
 
 `wallpaper.jpg` is drawn full screen behind the launcher, centre-cropped. Keep it dark, 1920×1080 and
 under about 300 KB: the text, the hero name and the dock band are designed for black, and a 1 GB TV

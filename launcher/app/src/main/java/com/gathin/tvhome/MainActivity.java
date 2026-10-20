@@ -810,6 +810,51 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
     }
 
+    /**
+     * OK held on a tile: Move (reorder mode with this tile already picked up) and App info. The menu
+     * hangs under the tile, or sits above it when the screen ends first (the lower grid rows).
+     */
+    @Override
+    public void onTileLongPress(int position, View card) {
+        if (reordering) return;
+        final String key = adapter.keyAt(position);
+        final String pkg = key != null ? key.split("/", 2)[0] : null;
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (200 * density));
+        if (position < adapter.movableCount() && adapter.movableCount() >= 2) {
+            addSettingsMenuRow(rows, popup, R.string.move_tile, () -> moveFromMenu(key));
+        }
+        addSettingsMenuRow(rows, popup, R.string.library_app_info, () -> {
+            if (pkg != null) adapter.openAppInfo(pkg);
+        });
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
+        int[] at = new int[2];
+        card.getLocationInWindow(at);
+        int gap = (int) (10 * density);
+        if (at[1] + card.getHeight() + gap + panel.getMeasuredHeight() <= root.getHeight()) {
+            dropIn(popup, panel, card, Gravity.START);
+        } else {
+            panel.setAlpha(0f);
+            popup.showAtLocation(root, Gravity.TOP | Gravity.START, at[0],
+                    Math.max(0, at[1] - gap - panel.getMeasuredHeight()));
+            panel.animate().alpha(1f).setDuration(160).start();
+        }
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /** Move from the tile menu: reorder mode as from the Settings menu, with the held tile already carried. */
+    private void moveFromMenu(String key) {
+        toggleReorder();
+        if (!reordering) return;
+        int pos = adapter.positionOf(key);
+        if (pos < 0 || pos >= adapter.movableCount()) return;
+        lastFocused = pos;
+        focusTile(pos);
+        pickUp(pos);
+    }
+
     private void pickUp(int pos) {
         if (pos >= adapter.movableCount()) return;   // the "Default home" tile stays put
         movingKey = adapter.keyAt(pos);
