@@ -56,6 +56,25 @@ public final class QuickSettingsSmoke extends Instrumentation {
             sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_UP); waitForIdleSync();
             check(currentFocus() == R.id.quickAllSettings && allLabel.getVisibility() == View.VISIBLE,
                     "Returning to the gear shows its label again");
+            sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_LEFT); waitForIdleSync();
+            View launcherIcon = panel().findViewById(R.id.quickLauncherSettings);
+            TextView launcherLabel = panel().findViewById(R.id.quickLauncherSettingsLabel);
+            check(currentFocus() == R.id.quickLauncherSettings && launcherLabel.getVisibility() == View.VISIBLE
+                    && allLabel.getVisibility() == View.INVISIBLE, "Left of All Settings is Launcher settings, with its caption");
+            check(launcherIcon instanceof android.widget.ImageView
+                    && activity.getString(R.string.quick_launcher_settings).contentEquals(launcherLabel.getText()),
+                    "Launcher settings is an icon captioned Open Launcher Settings");
+            Rect launcherRect = new Rect(), gearRect = new Rect();
+            launcherIcon.getGlobalVisibleRect(launcherRect);
+            allGear.getGlobalVisibleRect(gearRect);
+            check(launcherRect.right < gearRect.left && Math.abs(launcherRect.centerY() - gearRect.centerY()) <= 2
+                    && launcherLabel.getTop() >= launcherIcon.getBottom(),
+                    "Launcher settings sits left of the gear on its row, caption below");
+            sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_LEFT); waitForIdleSync();
+            check(currentFocus() == R.id.quickLauncherSettings, "Left stops at Launcher settings");
+            sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_RIGHT); waitForIdleSync();
+            check(currentFocus() == R.id.quickAllSettings && launcherLabel.getVisibility() == View.INVISIBLE
+                    && allLabel.getVisibility() == View.VISIBLE, "Right returns to All Settings");
             sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_RIGHT); waitForIdleSync();
             View closeLabel = panel().findViewById(R.id.quickCloseLabel);
             check(currentFocus() == R.id.quickClose && closeLabel.getVisibility() == View.VISIBLE
@@ -81,7 +100,8 @@ public final class QuickSettingsSmoke extends Instrumentation {
                 check(currentFocus() == move[1], "D-pad reaches control " + move[1]);
             }
             for (int id : new int[]{R.id.quickBluetooth, R.id.quickScreensaver, R.id.quickPicture,
-                    R.id.quickSound, R.id.quickAudioOutput, R.id.quickApps, R.id.quickAllSettings, R.id.quickClose}) {
+                    R.id.quickSound, R.id.quickAudioOutput, R.id.quickApps, R.id.quickLauncherSettings,
+                    R.id.quickAllSettings, R.id.quickClose}) {
                 focus(id);
                 SystemClock.sleep(180);
                 waitForIdleSync();
@@ -115,7 +135,8 @@ public final class QuickSettingsSmoke extends Instrumentation {
                     "All Settings label is hidden while Close is focused");
             check(textCount(contents, activity.getString(R.string.wifi)) == 0,
                     "Wi-Fi is absent from the panel");
-            check(focusableCount(contents) == 8, "Only six tiles plus All Settings and Close are present");
+            check(focusableCount(contents) == 9,
+                    "Only six tiles plus Launcher settings, All Settings and Close are present");
             sendKeyDownUpSync(KeyEvent.KEYCODE_BACK); settle();
             check(panel() == null, "Back closes controls");
             check(activity.findViewById(R.id.btnSettings).isFocused(), "Back restores gear focus");
@@ -161,6 +182,24 @@ public final class QuickSettingsSmoke extends Instrumentation {
                 }
                 runOnMainSync(() -> panel().dismiss()); settle();
             }
+            runOnMainSync(() -> activity.findViewById(R.id.btnSettings).performClick()); settle();
+            launched = null; launches = 0;
+            runOnMainSync(() -> {
+                View control = panel().findViewById(R.id.quickLauncherSettings);
+                control.performClick();
+                control.performClick(); // A second press during exit must not launch twice.
+            });
+            settle();
+            check(launches == 1 && launched != null && launched.getComponent() != null
+                    && LauncherSettingsActivity.class.getName().equals(launched.getComponent().getClassName()),
+                    "Launcher settings opens the launcher's own settings screen once");
+            check((launched.getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) == 0,
+                    "Launcher settings stays in Home's task, so a change can come back to Home");
+            runOnMainSync(() -> { callActivityOnPause(activity); callActivityOnResume(activity); });
+            settle();
+            check(panel() != null && currentFocus() == R.id.quickLauncherSettings,
+                    "Return restores Launcher settings focus");
+            runOnMainSync(() -> panel().dismiss()); settle();
             removeMonitor(monitor);
             result.putString("stream", "PASS: " + checks + " quick settings checks.\n");
             finish(Activity.RESULT_OK, result);

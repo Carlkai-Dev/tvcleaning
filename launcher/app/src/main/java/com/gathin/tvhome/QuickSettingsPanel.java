@@ -50,7 +50,7 @@ final class QuickSettingsPanel extends FrameLayout {
     private final int shortcutLayer;
     private final View previousFocus;
     private final ArrayList<HomeChildState> homeChildren = new ArrayList<>();
-    private TextView allSettingsLabel, closeLabel;
+    private TextView launcherSettingsLabel, allSettingsLabel, closeLabel;
     private ValueAnimator transition;
     private ViewTreeObserver.OnPreDrawListener entryDraw;
     private float progress;
@@ -59,13 +59,14 @@ final class QuickSettingsPanel extends FrameLayout {
     private int selected = R.id.quickAllSettings;
     private boolean restoreFocus = true;
 
-    QuickSettingsPanel(Activity activity, View home, boolean reducedMotion, boolean navigationSounds,
-                       Listener listener) {
+    QuickSettingsPanel(Activity activity, View home, boolean reducedMotion, boolean animations,
+                       boolean navigationSounds, Listener listener) {
         super(activity);
         this.activity = activity;
         this.home = (ViewGroup) home;
         this.listener = listener;
-        animationsEnabled = ValueAnimator.areAnimatorsEnabled();
+        // Launcher settings' Animations off, like the system's animator scale at 0, opens and closes in place.
+        animationsEnabled = animations && ValueAnimator.areAnimatorsEnabled();
         this.reducedMotion = reducedMotion || !animationsEnabled;
         this.navigationSounds = navigationSounds;
         unit = Math.min(home.getWidth() / 960f, home.getHeight() / 540f);
@@ -299,6 +300,25 @@ final class QuickSettingsPanel extends FrameLayout {
         back.setPadding(px(24), 0, 0, 0);
         header.addView(back, new LinearLayout.LayoutParams(0, px(38), 1));
         back.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout launcherSettings = column();
+        launcherSettings.setGravity(Gravity.CENTER_HORIZONTAL);
+        launcherSettings.setClipChildren(false);
+        // As far from All settings as All settings is from Close; All settings sits 10 to the right.
+        launcherSettings.setTranslationX(px(12));
+        launcherSettings.addView(circle(R.id.quickLauncherSettings, R.drawable.ic_quick_launcher_settings,
+                R.string.quick_launcher_settings, () -> listener.onAction(R.id.quickLauncherSettings)));
+        launcherSettingsLabel = text(activity.getString(R.string.quick_launcher_settings), 11, 500, 0xDBFFFFFF);
+        launcherSettingsLabel.setId(R.id.quickLauncherSettingsLabel);
+        launcherSettingsLabel.setGravity(Gravity.CENTER);
+        launcherSettingsLabel.setMaxLines(2);
+        launcherSettingsLabel.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        launcherSettingsLabel.setVisibility(View.INVISIBLE);
+        LinearLayout.LayoutParams launcherLabelParams = new LinearLayout.LayoutParams(
+                px(100), ViewGroup.LayoutParams.WRAP_CONTENT);
+        launcherLabelParams.gravity = Gravity.CENTER_HORIZONTAL;
+        launcherLabelParams.topMargin = px(6);
+        launcherSettings.addView(launcherSettingsLabel, launcherLabelParams);
+        header.addView(launcherSettings, new LinearLayout.LayoutParams(px(38), ViewGroup.LayoutParams.WRAP_CONTENT));
         LinearLayout allSettings = column();
         allSettings.setGravity(Gravity.CENTER_HORIZONTAL);
         allSettings.setClipChildren(false);
@@ -356,7 +376,9 @@ final class QuickSettingsPanel extends FrameLayout {
         third.addView(pill(R.id.quickApps, R.drawable.ic_quick_apps, R.string.quick_apps,
                 activity.getString(R.string.settings)), halfRight());
         add(third, 10);
-        connect(R.id.quickAllSettings, R.id.quickAllSettings, R.id.quickClose, R.id.quickAllSettings, R.id.quickBluetooth);
+        connect(R.id.quickLauncherSettings, R.id.quickLauncherSettings, R.id.quickAllSettings,
+                R.id.quickLauncherSettings, R.id.quickBluetooth);
+        connect(R.id.quickAllSettings, R.id.quickLauncherSettings, R.id.quickClose, R.id.quickAllSettings, R.id.quickBluetooth);
         connect(R.id.quickClose, R.id.quickAllSettings, R.id.quickClose, R.id.quickClose, R.id.quickAudioOutput);
         connect(R.id.quickBluetooth, R.id.quickBluetooth, R.id.quickAudioOutput, R.id.quickAllSettings, R.id.quickPicture);
         connect(R.id.quickAudioOutput, R.id.quickBluetooth, R.id.quickAudioOutput, R.id.quickClose, R.id.quickSound);
@@ -446,6 +468,8 @@ final class QuickSettingsPanel extends FrameLayout {
         });
         view.setOnFocusChangeListener((v, focused) -> {
             if (focused) selected = v.getId();
+            if (v.getId() == R.id.quickLauncherSettings && launcherSettingsLabel != null)
+                launcherSettingsLabel.setVisibility(focused ? View.VISIBLE : View.INVISIBLE);
             if (v.getId() == R.id.quickAllSettings && allSettingsLabel != null)
                 allSettingsLabel.setVisibility(focused ? View.VISIBLE : View.INVISIBLE);
             if (v.getId() == R.id.quickClose && closeLabel != null)

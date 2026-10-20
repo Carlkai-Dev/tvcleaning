@@ -2,6 +2,7 @@
 <resources>
     <string name="quick_settings">Configuració ràpida</string>
     <string name="quick_all_settings">Obre tots els ajustos</string>
+    <string name="quick_launcher_settings">Obre la configuració del llançador</string>
     <string name="quick_close">Tanca la configuració ràpida</string>
     <string name="quick_close_label">Tanca</string>
     <string name="quick_back">Enrere per tancar</string>

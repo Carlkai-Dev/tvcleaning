@@ -7,6 +7,13 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
+    <!-- Time-of-day backdrop, drawn once a minute (config.xml sky_intensity; 0 keeps it hidden). -->
+    <com.gathin.tvhome.SkyView
+        android:id="@+id/sky"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no" />
+
     <!-- Ambient glow in the colour of the focused dock app. An image, not a background: with no
          background an ImageView fades by drawing its one bitmap with alpha, not through a full-screen layer. -->
     <ImageView
@@ -28,8 +35,7 @@
         android:alpha="0"
         android:textColor="#FFFFFFFF"
         android:textSize="48sp"
-        android:fontFamily="@font/outfit"
-        android:fontVariationSettings="'wght' 300"
+        android:fontFamily="@font/outfit_light"
         android:letterSpacing="-0.02"
         android:includeFontPadding="false"
         android:singleLine="true" />
@@ -69,8 +75,7 @@
                     android:layout_marginStart="4dp"
                     android:textColor="#8CFFFFFF"
                     android:textSize="12sp"
-                    android:fontFamily="@font/outfit"
-                    android:fontVariationSettings="'wght' 500"
+                    android:fontFamily="@font/outfit_medium"
                     android:letterSpacing="0.22"
                     android:textAllCaps="true" />
 
@@ -88,8 +93,7 @@
                         android:format24Hour="HH:mm"
                         android:textColor="#FFFFFFFF"
                         android:textSize="52sp"
-                        android:fontFamily="@font/outfit"
-                        android:fontVariationSettings="'wght' 300"
+                        android:fontFamily="@font/outfit_light"
                         android:letterSpacing="-0.04"
                         android:includeFontPadding="false" />
 
@@ -104,8 +108,7 @@
                         android:format24Hour=""
                         android:textColor="#B3FFFFFF"
                         android:textSize="15sp"
-                        android:fontFamily="@font/outfit"
-                        android:fontVariationSettings="'wght' 500"
+                        android:fontFamily="@font/outfit_medium"
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
 
@@ -136,8 +139,7 @@
                             android:ellipsize="end"
                             android:textColor="#E6FFFFFF"
                             android:textSize="17sp"
-                            android:fontFamily="@font/outfit"
-                            android:fontVariationSettings="'wght' 400"
+                            android:fontFamily="@font/outfit_regular"
                             android:letterSpacing="0.02"
                             android:includeFontPadding="false"
                             android:visibility="gone" />
@@ -153,8 +155,7 @@
                             android:format24Hour="@string/date_format"
                             android:textColor="#A6FFFFFF"
                             android:textSize="14sp"
-                            android:fontFamily="@font/outfit"
-                            android:fontVariationSettings="'wght' 400"
+                            android:fontFamily="@font/outfit_regular"
                             android:letterSpacing="0.14"
                             android:textAllCaps="true" />
                     </LinearLayout>
@@ -254,7 +255,6 @@
         android:paddingEnd="24dp"
         android:gravity="center"
         android:fontFamily="sans-serif"
-        android:fontVariationSettings="'wght' 400"
         android:letterSpacing="0"
         android:textSize="25sp"
         android:textColor="#FFFFFFFF"

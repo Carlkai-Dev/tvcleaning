@@ -2,6 +2,7 @@
 <resources>
     <string name="quick_settings">Schnelleinstellungen</string>
     <string name="quick_all_settings">Alle Einstellungen öffnen</string>
+    <string name="quick_launcher_settings">Launcher-Einstellungen öffnen</string>
     <string name="quick_close">Schnelleinstellungen schließen</string>
     <string name="quick_close_label">Schließen</string>
     <string name="quick_back">Zurück zum Schließen</string>

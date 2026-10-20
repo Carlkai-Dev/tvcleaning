@@ -2,6 +2,7 @@
 <resources>
     <string name="quick_settings">Быстрые настройки</string>
     <string name="quick_all_settings">Открыть все настройки</string>
+    <string name="quick_launcher_settings">Открыть настройки главного экрана</string>
     <string name="quick_close">Закрыть быстрые настройки</string>
     <string name="quick_close_label">Закрыть</string>
     <string name="quick_back">Назад — закрыть</string>

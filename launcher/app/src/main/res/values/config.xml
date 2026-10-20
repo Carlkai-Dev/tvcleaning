@@ -64,6 +64,12 @@
          `tools/tv.py 'getevent -lt'` while pressing the button. Leave empty to omit. -->
     <integer-array name="settings_key_scancodes">
     </integer-array>
+    <!-- The same by Android keycode, for buttons whose scancode is shared. TCL Google TV remotes send their
+         Settings button as keycode 83 (KEYCODE_NOTIFICATION, which the stock Google TV home turned into its quick
+         settings panel) on scancode 240 (KEY_UNKNOWN), the scancode several TCL buttons share. Find the keycode
+         with `tools/tv.py 'logcat -v time -s InputReader:D'` while pressing the button. Leave empty to omit. -->
+    <integer-array name="settings_key_keycodes">
+    </integer-array>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->
@@ -79,8 +85,12 @@
          shrink to fit from 5 up (about 144dp at 5, 120dp at the default 6 on a 1080p TV). -->
     <integer name="columns">6</integer>
 
-    <!-- "Default home" tile that opens Android's home-screen picker, for TVs whose settings have one
-         (most Android TVs don't; the tile only appears when the page exists). Off by default. -->
+    <!-- Basic motion is on; advanced effects are opt-in in the launcher's own Settings screen. -->
+    <bool name="animations">true</bool>
+    <bool name="advanced_effects">false</bool>
+
+    <!-- Optional Default-home tile; keep this key for existing themes and tile-ordering work.
+         Off by default because the chooser is also available from launcher settings. -->
     <bool name="show_home_settings_shortcut">false</bool>
 
     <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own
@@ -96,4 +106,10 @@
     <!-- Navigation and button sounds for Home tiles, folders, header buttons and quick settings.
          Set false here or use "navigation_sounds": false in a theme's config.json to silence them. -->
     <bool name="navigation_sounds">true</bool>
+
+    <!-- Time-of-day backdrop behind everything: a dark gradient that follows the clock, with a warm
+         horizon glow around sunrise and sunset. 0 keeps the plain background (the default); 1 to 100
+         sets its opacity. Around 60 reads clearly without hiding a wallpaper. Can also be set with
+         "sky_intensity": 60 in a theme's config.json. -->
+    <integer name="sky_intensity">0</integer>
 </resources>

@@ -2,6 +2,7 @@
 <resources>
     <string name="quick_settings">快捷设置</string>
     <string name="quick_all_settings">打开所有设置</string>
+    <string name="quick_launcher_settings">打开简洁桌面设置</string>
     <string name="quick_close">关闭快捷设置</string>
     <string name="quick_close_label">关闭</string>
     <string name="quick_back">按返回键关闭</string>

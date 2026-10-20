@@ -2,6 +2,7 @@
 <resources>
     <string name="quick_settings">Brza podešavanja</string>
     <string name="quick_all_settings">Otvori sva podešavanja</string>
+    <string name="quick_launcher_settings">Otvori podešavanja početnog ekrana</string>
     <string name="quick_close">Zatvori brza podešavanja</string>
     <string name="quick_close_label">Zatvori</string>
     <string name="quick_back">Nazad za zatvaranje</string>

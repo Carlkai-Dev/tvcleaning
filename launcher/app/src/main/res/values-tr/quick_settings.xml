@@ -2,6 +2,7 @@
 <resources>
     <string name="quick_settings">Hızlı ayarlar</string>
     <string name="quick_all_settings">Tüm Ayarları Aç</string>
+    <string name="quick_launcher_settings">Başlatıcı Ayarlarını Aç</string>
     <string name="quick_close">Hızlı ayarları kapat</string>
     <string name="quick_close_label">Kapat</string>
     <string name="quick_back">Kapatmak için Geri</string>

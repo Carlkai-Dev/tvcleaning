@@ -7,6 +7,8 @@
     <item name="quickSound" type="id" />
     <item name="quickAllSettings" type="id" />
     <item name="quickAllSettingsLabel" type="id" />
+    <item name="quickLauncherSettings" type="id" />
+    <item name="quickLauncherSettingsLabel" type="id" />
     <item name="quickClose" type="id" />
     <item name="quickCloseLabel" type="id" />
     <item name="quickAudioOutput" type="id" />

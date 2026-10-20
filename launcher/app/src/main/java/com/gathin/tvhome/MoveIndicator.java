@@ -13,10 +13,13 @@ final class MoveIndicator extends View {
     private final Path arrow = new Path();
     private final RectF tile = new RectF();
     private final float density;
+    /** The grid runs right to left (Hebrew): the handle on the left points one place on in the order. */
+    private final boolean rtl;
     private int position, count, columns;
 
-    MoveIndicator(Context context) {
+    MoveIndicator(Context context, boolean rtl) {
         super(context);
+        this.rtl = rtl;
         density = getResources().getDisplayMetrics().density;
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
         setFocusable(false);
@@ -29,8 +32,8 @@ final class MoveIndicator extends View {
     }
 
     @Override protected void onDraw(Canvas canvas) {
-        handle(canvas, tile.left - 10 * density, tile.centerY(), -90, AppOrder.Direction.LEFT);
-        handle(canvas, tile.right + 10 * density, tile.centerY(), 90, AppOrder.Direction.RIGHT);
+        handle(canvas, tile.left - 10 * density, tile.centerY(), -90, rtl ? AppOrder.Direction.RIGHT : AppOrder.Direction.LEFT);
+        handle(canvas, tile.right + 10 * density, tile.centerY(), 90, rtl ? AppOrder.Direction.LEFT : AppOrder.Direction.RIGHT);
         handle(canvas, tile.centerX(), tile.top - 10 * density, 0, AppOrder.Direction.UP);
         handle(canvas, tile.centerX(), tile.bottom + 10 * density, 180, AppOrder.Direction.DOWN);
     }

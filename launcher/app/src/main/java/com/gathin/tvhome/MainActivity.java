@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.animation.Animator;
+import android.animation.ArgbEvaluator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.widget.EditText;
@@ -73,6 +74,7 @@ import java.util.Set;
 public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     static final String ACTION_QUICK_SETTINGS = "com.gathin.tvhome.action.QUICK_SETTINGS";
+    private static final int LAUNCHER_SETTINGS_REQUEST = 42;
 
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
@@ -95,6 +97,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView heroName;
     /** Glow colour on screen, and the one a running cross-fade is heading to. */
     private int ambientColor = -1, ambientTarget = -1;
+    /** Advanced effects blend the glow from one app's colour to the next instead of dipping it. */
+    private ValueAnimator ambientAnimator;
     /** Top-shelf title a running cross-fade is heading to; the old one stays on screen until it ends. */
     private String heroLabel;
     private boolean heroShown;
@@ -107,6 +111,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean quickSettingsAwaitingLayout;
     private TextView shamsiDate;
     private boolean shamsi;
+    /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
+    private SkyView sky;
     private String vpnApp;
     private float glassTargetX, glassTargetY;
     private boolean glassShown;
@@ -147,6 +153,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean moduleCards;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     private boolean reducedMotion;
+    /** Launcher settings: Animations off jumps every transition to its end; advanced effects add lift and colour blends. */
+    private boolean animations, advancedEffects;
+    /** Hebrew mirrors the app grid and the header buttons (values-iw/bools.xml). */
+    private boolean rtlAppGrid, rtlMenuBar;
     private boolean navigationSounds;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
     private Set<String> hiddenApps = Collections.emptySet();
@@ -158,6 +168,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean promptsPaused;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
+    /**
+     * Home was only paused since it was last shown: Android TV opens Wi-Fi and its other settings pages as a
+     * side panel over Home. Closing the panel then keeps Home as it was, a focused header button included.
+     */
+    private boolean onlyPaused;
     /** The tiles have been built at least once by this activity; see tilesOutdated(). */
     private boolean tilesLoaded;
     /** PackageManager's change counter when the tiles were last built. */
@@ -225,6 +240,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateWifiLabel();
+            sky.update();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -243,6 +259,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Config cfg = Config.load(this);
         COLUMNS = cfg.columns;
         reducedMotion = cfg.reducedMotion;
+        animations = cfg.animations;
+        advancedEffects = cfg.animations && cfg.advancedEffects;
+        rtlAppGrid = getResources().getBoolean(R.bool.rtl_app_grid);
+        rtlMenuBar = getResources().getBoolean(R.bool.rtl_menu_bar);
         navigationSounds = cfg.navigationSounds;
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
@@ -260,7 +280,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         folderGridHost = findViewById(R.id.folderGridHost);
         folderBackdrop = findViewById(R.id.folderBackdrop);
         folderMotion = new FolderTransition(root, folderBackdrop,
-                homeGridHost, reducedMotion, folderPanel, folderTitle, folderGridHost);
+                homeGridHost, reducedMotion, animations, folderPanel, folderTitle, folderGridHost);
         folderTitle.setSoundEffectsEnabled(navigationSounds);
         folderTitle.setTextColor(getResources().getColorStateList(R.color.app_action_text, getTheme()));
         folderPanel.setBackground(new GlassPanelDrawable(density, 36));
@@ -288,6 +308,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int screenW = dm.widthPixels, screenH = dm.heightPixels;
             wallpaperLoad = java.util.concurrent.CompletableFuture.supplyAsync(() -> decodeWallpaper(file, screenW, screenH));
         }
+        sky = findViewById(R.id.sky);
+        sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
         ambient = findViewById(R.id.ambient);
         heroName = findViewById(R.id.heroName);
@@ -320,14 +342,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 int position = parent.getChildAdapterPosition(view);
                 if (remainder == 0 || position < count - remainder || position < 0) return;
                 // Shift the final partial row as a unit, keeping real tile/focus bounds together.
-                out.left = Math.round((columns - remainder) * parent.getWidth() / (2f * columns));
+                // A right-to-left grid fills that row from the right, so it moves the other way.
+                int shift = Math.round((columns - remainder) * parent.getWidth() / (2f * columns));
+                out.left = rtlAppGrid ? -shift : shift;
                 out.right = -out.left;
             }
         });
         adapter = homeAdapter = new AppAdapter(this, this, COLUMNS, cfg);
         grid.setAdapter(adapter);
         layoutStore = new HomeLayoutStore(this);
-        moveIndicator = new MoveIndicator(this);
+        moveIndicator = new MoveIndicator(this, rtlAppGrid);
         moveIndicator.setVisibility(View.GONE);
         root.addView(moveIndicator, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -360,10 +384,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         btnSettings.setOnClickListener(v -> openQuickSettings());
         btnSettings.setOnLongClickListener(v -> {
-            if (!moduleCards) return false;   // off: a long press does nothing, as before the feature
-            showModuleCards();
+            showSettingsMenu();
             return true;
         });
+        if (advancedEffects) {
+            for (View button : new View[]{btnInputs, btnWifi, btnSettings}) {
+                button.setOnFocusChangeListener((view, focused) -> view.animate()
+                        .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
+                        .setDuration(160).start());
+            }
+        }
 
         // Header and grid directions share the activity key router. Do not send Down through
         // TextView/Android focus search to the RecyclerView container instead of an actual card.
@@ -394,6 +424,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void configureGrid(RecyclerView target, int columns) {
         target.setLayoutManager(new GridLayoutManager(this, columns) {
+            // Mirror only the app grids; the header and other locales keep their own layouts.
+            @Override protected boolean isLayoutRTL() {
+                return rtlAppGrid;
+            }
+
             @Override public boolean onRequestChildFocus(@NonNull RecyclerView parent,
                     @NonNull RecyclerView.State state, @NonNull View child, View focused) {
                 return (target == grid && gridTransition) || (target == homeGrid && !expanded)
@@ -491,6 +526,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        // Only paused, by a side panel such as Wi-Fi settings: a header button keeps its focus instead of
+        // handing it to a tile. After an app, or Home pressed, focus returns to the tile as before.
+        View focused = getCurrentFocus();
+        boolean keepHeader = onlyPaused && (focused == btnInputs || focused == btnWifi || focused == btnSettings);
+        onlyPaused = false;
         paused = false;
         tilesReady = false;
         promptsPaused = false;
@@ -518,12 +558,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateGreeting();
         updateWifiLabel();
         updateInputsButton();
+        sky.update();
         handler.postDelayed(minuteTick, MINUTE_MS);
 
         // Return to the app we left from, or the same slot if that app is gone. Always refocus: after
         // reload() the view that holds focus may no longer show the app it had.
-        int pos = adapter.positionOf(returnKey);
-        focusTile(pos >= 0 ? pos : returnSlot);
+        if (!keepHeader) {
+            int pos = adapter.positionOf(returnKey);
+            focusTile(pos >= 0 ? pos : returnSlot);
+        }
         // The card prompt waits for a laid out grid.
         grid.post(() -> {
             tilesReady = true;
@@ -605,6 +648,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (openPopup != null) openPopup.dismiss();
+        stopAmbientAnimation();
+        onlyPaused = true;
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        onlyPaused = false;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        // Columns and motion are read once, in onCreate; the settings screen says when one changed.
+        if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK) recreate();
     }
 
     @Override
@@ -707,7 +765,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!glassShown) {
             glass.setTranslationX(x);
             glass.setTranslationY(y);
-            glass.animate().alpha(1f).setDuration(reducedMotion ? 100 : 180).start();
+            glass.animate().alpha(1f).setDuration(motion(reducedMotion ? 100 : 180)).start();
             glassShown = true;
         } else {
             // Coloured light belongs to the selected tile, so it never slides across empty space.
@@ -738,13 +796,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 GridLayoutManager layout = (GridLayoutManager) grid.getLayoutManager();
                 int dy = distanceToFirstRow(layout, item);
                 if (Math.abs(dy) > 1) {
-                    if (reducedMotion) layout.scrollToPositionWithOffset(0, 0);
+                    if (reducedMotion || !animations) layout.scrollToPositionWithOffset(0, 0);
                     else grid.smoothScrollBy(0, dy);
                 }
             } else {
                 float pad = GlassView.HALO_INSET_DP * density;
                 Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-                grid.requestChildRectangleOnScreen(item, want, reducedMotion);
+                grid.requestChildRectangleOnScreen(item, want, reducedMotion || !animations);
             }
         }
     }
@@ -768,6 +826,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Scale the cached light with the icon's existing GPU animation; no bitmap rebuild per frame.
         glass.setScaleX(card.getScaleX() / AppAdapter.FOCUS_SCALE);
         glass.setScaleY(card.getScaleY() / AppAdapter.FOCUS_SCALE);
+        // Advanced effects lift the tile; the light rises with it.
+        glass.setTranslationY(glassTargetY + card.getTranslationY());
         if (movingKey != null) {
             int position = adapter.positionOf(movingKey);
             moveIndicator.follow(glassTargetX + glass.getLayoutParams().width / 2f,
@@ -789,24 +849,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean changed = !label.equals(heroLabel);
         heroLabel = label;
 
-        if (reducedMotion) {
+        if (reducedMotion || !animations) {
             // Snap the shelf instead of sliding and fading it: each of those frames repaints the
             // full-screen panel, and this switch exists for the GPUs that cannot afford it.
             heroName.animate().cancel();
+            stopAmbientAnimation();
             heroName.setText(label);
             heroName.setY(y);
             heroName.setTranslationX(0f);
             heroName.setAlpha(1f);
             setAmbient(color);
             if (!heroShown) {
-                ambient.setAlpha(0f);
-                ambient.animate().alpha(1f).setDuration(160).start();
+                ambient.animate().cancel();
+                ambient.setAlpha(animations ? 0f : 1f);
+                if (animations) ambient.animate().alpha(1f).setDuration(160).start();
                 heroShown = true;
             }
             return;
         }
 
         if (!heroShown) {
+            stopAmbientAnimation();
             heroName.setText(label);
             heroName.setY(y);
             heroName.setTranslationX(0f);
@@ -828,7 +891,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
                 }).start();
             }
-            fadeAmbientTo(color);
+            if (advancedEffects) blendAmbientTo(color);
+            else fadeAmbientTo(color);
         } else {
             heroName.setY(y);
         }
@@ -837,6 +901,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Cross-fades the glow to this colour; a newer target replaces a fade still on its way. */
     private void fadeAmbientTo(int color) {
         if (color == ambientTarget) return;
+        stopAmbientAnimation();
         ambientTarget = color;
         if (color == ambientColor) {
             // Still showing this colour: replacing the alpha animation drops the pending swap.
@@ -878,21 +943,56 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambientGlow.setTint(0xFF000000 | color);
     }
 
+    /**
+     * Advanced effects: the glow stays lit and its tint blends from the colour on screen to the next app's.
+     * Each frame only changes the tint of the same mask, so nothing is repainted or uploaded.
+     */
+    private void blendAmbientTo(int color) {
+        if (color == ambientTarget) return;
+        stopAmbientAnimation();
+        ambient.animate().cancel();
+        ambient.animate().alpha(1f).setDuration(180).start();
+        ambientTarget = color;
+        if (color == ambientColor) return;
+        // A quick Right-Left continues from the colour actually on screen.
+        ValueAnimator blend = ValueAnimator.ofObject(new ArgbEvaluator(), ambientColor, color);
+        blend.setDuration(360);
+        blend.addUpdateListener(animation -> {
+            setAmbient((int) animation.getAnimatedValue());
+            ambientTarget = color;
+        });
+        ambientAnimator = blend;
+        blend.start();
+    }
+
+    private void stopAmbientAnimation() {
+        if (ambientAnimator == null) return;
+        ambientAnimator.removeAllUpdateListeners();
+        ambientAnimator.cancel();
+        ambientAnimator = null;
+    }
+
     private void hideHero() {
         if (!heroShown) return;
         heroShown = false;
         // Cancel label/colour end actions before fading away so they cannot revive the shelf
         // halfway through expansion.
+        stopAmbientAnimation();
         heroName.animate().cancel();
         ambient.animate().cancel();
-        heroName.animate().alpha(0f).setDuration(reducedMotion ? 100 : 160).start();
-        ambient.animate().alpha(0f).setDuration(reducedMotion ? 140 : 300).start();
+        heroName.animate().alpha(0f).setDuration(motion(reducedMotion ? 100 : 160)).start();
+        ambient.animate().alpha(0f).setDuration(motion(reducedMotion ? 140 : 300)).start();
     }
 
     private void hideGlass() {
         if (!glassShown) return;
         glassShown = false;
-        glass.animate().alpha(0f).setDuration(160).start();
+        glass.animate().alpha(0f).setDuration(motion(160)).start();
+    }
+
+    /** A transition's length under launcher settings' Animations switch: off, it ends on the next frame. */
+    private long motion(long millis) {
+        return animations ? millis : 0;
     }
 
     // ---- navigation ------------------------------------------------------------------------------
@@ -900,14 +1000,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public boolean onTileVerticalKey(int position, int keyCode) {
         int columns = adapter.columns(), count = adapter.getItemCount();
-        AppOrder.Direction direction;
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_DPAD_LEFT: direction = AppOrder.Direction.LEFT; break;
-            case KeyEvent.KEYCODE_DPAD_RIGHT: direction = AppOrder.Direction.RIGHT; break;
-            case KeyEvent.KEYCODE_DPAD_UP: direction = AppOrder.Direction.UP; break;
-            case KeyEvent.KEYCODE_DPAD_DOWN: direction = AppOrder.Direction.DOWN; break;
-            default: return false;
-        }
+        AppOrder.Direction direction = GridNavigation.direction(keyCode, rtlAppGrid);
+        if (direction == null) return false;
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP && position < columns) {
             if (adapter.activeFolder() != null) {
                 if (folderTitle.getVisibility() != View.VISIBLE) return true;
@@ -993,7 +1087,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hideHero();
         topBar.animate().cancel();
         topBar.setVisibility(View.VISIBLE);
-        topBar.animate().alpha(value ? 0f : 1f).setDuration(160).withEndAction(() -> {
+        topBar.animate().alpha(value ? 0f : 1f).setDuration(motion(160)).withEndAction(() -> {
             if (transitionRequest == gridTransitionRequest && expanded) topBar.setVisibility(View.INVISIBLE);
         }).start();
         float target = value ? 0f : collapsedGridOffset();
@@ -1002,7 +1096,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int scroll = value ? 0 : distanceToFirstRow((GridLayoutManager) grid.getLayoutManager(), null);
         int[] unscrolled = {scroll};
         gridSlide = ValueAnimator.ofFloat(gridHost.getTranslationY(), target);
-        gridSlide.setDuration(320);
+        gridSlide.setDuration(motion(320));
         gridSlide.setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f));
         gridSlide.addUpdateListener(animation -> {
             if (transitionRequest != gridTransitionRequest || gridSlide != animation) return;
@@ -1280,6 +1374,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             focusRequest++;
             requestedFocusKey = null;
             View next = focused;
+            // Hebrew lays the buttons out right to left: Settings, network, Inputs from the left edge.
+            if (rtlMenuBar && (code == KeyEvent.KEYCODE_DPAD_LEFT || code == KeyEvent.KEYCODE_DPAD_RIGHT))
+                code = code == KeyEvent.KEYCODE_DPAD_LEFT ? KeyEvent.KEYCODE_DPAD_RIGHT : KeyEvent.KEYCODE_DPAD_LEFT;
             if (code == KeyEvent.KEYCODE_DPAD_LEFT) {
                 if (focused == btnSettings) next = btnWifi;
                 else if (focused == btnWifi && btnInputs.getVisibility() == View.VISIBLE) next = btnInputs;
@@ -1287,7 +1384,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (focused == btnInputs) next = btnWifi;
                 else if (focused == btnWifi) next = btnSettings;
             }
-            if (next.requestFocusFromTouch() && next != focused) playNavigationSound(code);
+            if (next.requestFocusFromTouch() && next != focused) playNavigationSound(event.getKeyCode());
         }
         return true;
     }
@@ -1389,7 +1486,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPivotX(right ? 0 : width);
         panel.setPivotY(height / 2f);
         panel.setScaleX(.94f); panel.setScaleY(.94f);
-        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180)
+        panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(motion(180))
                 .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
         move.requestFocusFromTouch();
     }
@@ -1729,14 +1826,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!savingOrderNow && event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) finishMove(false, true);
             return true;
         }
-        AppOrder.Direction direction;
-        switch (code) {
-            case KeyEvent.KEYCODE_DPAD_LEFT: direction = AppOrder.Direction.LEFT; break;
-            case KeyEvent.KEYCODE_DPAD_RIGHT: direction = AppOrder.Direction.RIGHT; break;
-            case KeyEvent.KEYCODE_DPAD_UP: direction = AppOrder.Direction.UP; break;
-            case KeyEvent.KEYCODE_DPAD_DOWN: direction = AppOrder.Direction.DOWN; break;
-            default: return super.dispatchKeyEvent(event);
-        }
+        AppOrder.Direction direction = GridNavigation.direction(code, rtlAppGrid);
+        if (direction == null) return super.dispatchKeyEvent(event);
         if (event.getAction() == KeyEvent.ACTION_DOWN && !savingOrderNow) {
             int from = adapter.positionOf(movingKey);
             int to = adapter.activeFolder() == null
@@ -1783,7 +1874,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     // so unchanged rows do not animate back to their old viewport coordinates.
                     child.setTranslationX(old.x - (moveScrollX - scrollX) - child.getLeft());
                     child.setTranslationY(old.y - (moveScrollY - scrollY) - child.getTop());
-                    child.animate().translationX(0).translationY(0).setDuration(140).start();
+                    child.animate().translationX(0).translationY(0).setDuration(motion(140)).start();
                 }
                 return true;
             }
@@ -1857,6 +1948,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
         resumeQuickSettings = false;
+        onlyPaused = false;
         if (quickSettings != null) quickSettings.closeWithoutFocus();
         dismissTileMenu(false);
         if (editDialog != null) editDialog.dismiss();
@@ -1979,7 +2071,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         requestedFocusKey = null;
         resumeQuickSettings = false;
         // The panel crossfades Home's shortcuts along with its dimming and glass controls.
-        QuickSettingsPanel panel = new QuickSettingsPanel(this, root, reducedMotion, navigationSounds,
+        QuickSettingsPanel panel = new QuickSettingsPanel(this, root, reducedMotion, animations, navigationSounds,
                 new QuickSettingsPanel.Listener() {
                     @Override public void onAction(int control) { openQuickControl(control); }
                     @Override public void onClosed(boolean restoreFocus) {
@@ -2002,13 +2094,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void openQuickControl(int control) {
-        Intent intent = QuickSettingsActions.intent(this, control)
+        // Launcher settings is ours: it stays in Home's task and reports a change back (onActivityResult).
+        boolean launcherSettings = control == R.id.quickLauncherSettings;
+        Intent intent = launcherSettings ? new Intent(this, LauncherSettingsActivity.class)
+                : QuickSettingsActions.intent(this, control)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         quickSettingsFocus = control;
         resumeQuickSettings = true;
         Runnable launch = () -> {
             try {
-                startActivity(intent);
+                if (launcherSettings) startActivityForResult(intent, LAUNCHER_SETTINGS_REQUEST);
+                else startActivity(intent);
             } catch (ActivityNotFoundException | SecurityException unavailable) {
                 resumeQuickSettings = false;
                 Toast.makeText(this, R.string.not_available, Toast.LENGTH_LONG).show();
@@ -2167,7 +2263,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max(width, panel.getMeasuredWidth()));
 
-        dropIn(popup, panel, anchor, Gravity.START);
+        // Inputs is the first button in reading order: the left end, or the right end in Hebrew.
+        dropIn(popup, panel, anchor, rtlMenuBar ? Gravity.END : Gravity.START);
         rows.getChildAt(0).requestFocus();
     }
 
@@ -2191,7 +2288,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setScaleY(0.92f);
         panel.setTranslationY(-8 * density);
         popup.showAsDropDown(anchor, 0, (int) (10 * density), gravity);
-        panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
+        panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(motion(220))
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
     }
 
@@ -2226,6 +2323,66 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         row.setOnClickListener(v -> {
             popup.dismiss();
             action.run();
+        });
+        rows.addView(row);
+    }
+
+    // ---- launcher settings and module cards -------------------------------------------------------
+
+    /** The Settings button sits at the right end, or the left end in Hebrew: its menus hang inwards. */
+    private int settingsMenuGravity() {
+        return rtlMenuBar ? Gravity.START : Gravity.END;
+    }
+
+    private void openLauncherSettings() {
+        try {
+            startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** Hold OK on Settings: the launcher's own settings, and Module cards when cards are on. */
+    private void showSettingsMenu() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (200 * density));
+        addSettingsMenuRow(rows, popup, R.drawable.ic_quick_launcher_settings, R.string.launcher_settings,
+                this::openLauncherSettings);
+        if (moduleCards) addSettingsMenuRow(rows, popup, R.drawable.ic_quick_apps, R.string.module_cards,
+                this::showModuleCards);
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
+        dropIn(popup, panel, anchor, settingsMenuGravity());
+        rows.getChildAt(0).requestFocus();
+    }
+
+    private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, int iconRes, int title, Runnable action) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        row.findViewById(R.id.status).setVisibility(View.GONE);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        row.setOnClickListener(v -> {
+            popup.dismiss();
+            action.run();
+        });
+        // The OK release that ends the long press opening this menu must not activate its first row.
+        final boolean[] pressed = {false};
+        row.setOnKeyListener((v, code, event) -> {
+            if (!isConfirm(code)) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (event.getRepeatCount() == 0) pressed[0] = true;
+                return true;
+            }
+            boolean activate = pressed[0] && !event.isCanceled();
+            pressed[0] = false;
+            if (activate) {
+                popup.dismiss();
+                action.run();
+            }
+            return true;
         });
         rows.addView(row);
     }
@@ -2365,7 +2522,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         anchor.getLocationInWindow(at);
         int room = root.getHeight() - (at[1] + anchor.getHeight()) - (int) (34 * density);
         popup.setHeight(Math.min(panel.getMeasuredHeight(), Math.max(room, (int) (120 * density))));
-        dropIn(popup, panel, anchor, Gravity.END);
+        dropIn(popup, panel, anchor, settingsMenuGravity());
         rows.getChildAt(0).requestFocus();
     }
 

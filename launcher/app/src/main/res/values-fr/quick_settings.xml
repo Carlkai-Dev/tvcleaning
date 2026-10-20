@@ -2,6 +2,7 @@
 <resources>
     <string name="quick_settings">Réglages rapides</string>
     <string name="quick_all_settings">Ouvrir tous les réglages</string>
+    <string name="quick_launcher_settings">Ouvrir les paramètres du lanceur</string>
     <string name="quick_close">Fermer les réglages rapides</string>
     <string name="quick_close_label">Fermer</string>
     <string name="quick_back">Retour pour fermer</string>

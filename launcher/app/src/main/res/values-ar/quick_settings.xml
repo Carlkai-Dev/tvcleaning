@@ -2,6 +2,7 @@
 <resources>
     <string name="quick_settings">الإعدادات السريعة</string>
     <string name="quick_all_settings">فتح كل الإعدادات</string>
+    <string name="quick_launcher_settings">فتح إعدادات المشغّل</string>
     <string name="quick_close">إغلاق الإعدادات السريعة</string>
     <string name="quick_close_label">إغلاق</string>
     <string name="quick_back">رجوع للإغلاق</string>

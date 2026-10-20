@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
@@ -100,6 +101,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     static final float FOCUS_SCALE = 1.10f;
+    /** Advanced effects (launcher settings): the focused tile lifts this far and its artwork zooms inside it. */
+    static final float LIFT_DP = 4f, ARTWORK_ZOOM = 1.035f;
     static final int FOLDER_COLUMNS = 4;
     /** Artwork proportions; the size calculation leaves room for focus zoom in every column count. */
     static final float DESIGN_W_DP = 180f, DESIGN_H_DP = 108f;
@@ -134,6 +137,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final boolean showHomeSettings;
+    /** Launcher settings: motion at all, and the lifted tile, artwork zoom and app-open transition on top. */
+    private final boolean animations, advancedEffects;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): no overshoot, shorter fades. */
     private final boolean reducedMotion;
     private final boolean navigationSounds;
@@ -176,6 +181,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         favourites = source.favourites;
         hidden = source.hidden;
         showHomeSettings = source.showHomeSettings;
+        animations = source.animations;
+        advancedEffects = source.advancedEffects;
         reducedMotion = source.reducedMotion;
         navigationSounds = source.navigationSounds;
         columns = FOLDER_COLUMNS;
@@ -216,6 +223,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.favourites = cfg.dockApps;
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
+        this.animations = cfg.animations;
+        this.advancedEffects = cfg.animations && cfg.advancedEffects;
         this.reducedMotion = cfg.reducedMotion;
         this.navigationSounds = cfg.navigationSounds;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
@@ -330,7 +339,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         nameLp.width = w;
         nameLp.topMargin = h + Math.round(6 * density);
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener, reducedMotion);
+        return new Holder(v, listener, animations, advancedEffects, reducedMotion);
     }
 
     @Override public void onViewAttachedToWindow(@NonNull Holder holder) {
@@ -388,8 +397,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.animate().cancel();
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.animate().cancel();
+        h.banner.animate().cancel();
         h.card.setScaleX(focused ? FOCUS_SCALE : 1f);
         h.card.setScaleY(focused ? FOCUS_SCALE : 1f);
+        h.card.setTranslationY(focused && advancedEffects ? -LIFT_DP * d : 0f);
+        h.card.setTranslationZ(focused ? (advancedEffects ? 8 : 4) * d : 0f);
+        h.banner.setScaleX(focused && advancedEffects ? ARTWORK_ZOOM : 1f);
+        h.banner.setScaleY(focused && advancedEffects ? ARTWORK_ZOOM : 1f);
         h.banner.setPadding(0, 0, 0, 0);
         h.banner.setScaleType(ImageView.ScaleType.CENTER_CROP);
         if (glyphTile) {
@@ -501,6 +515,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
             ctx.startActivity(i);
+            if (advancedEffects && ctx instanceof Activity)
+                ((Activity) ctx).overridePendingTransition(R.anim.app_open_enter, R.anim.app_open_exit);
         } catch (Exception ex) {
             Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();
         }
@@ -633,10 +649,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final ImageView icon;
         final TextView label;
         final TextView name;
-        final boolean reducedMotion;
+        final boolean animations, advancedEffects, reducedMotion;
         boolean suppressConfirmRelease;
 
-        Holder(View v, TileListener listener, boolean reducedMotion) {
+        Holder(View v, TileListener listener, boolean animations, boolean advancedEffects, boolean reducedMotion) {
             super(v);
             card = v.findViewById(R.id.card);
             // The launcher draws its own app-colour focus light; avoid a platform fill behind glass.
@@ -645,6 +661,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             icon = v.findViewById(R.id.icon);
             label = v.findViewById(R.id.label);
             name = v.findViewById(R.id.name);
+            this.animations = animations;
+            this.advancedEffects = advancedEffects;
             this.reducedMotion = reducedMotion;
 
             final float density = v.getResources().getDisplayMetrics().density;
@@ -691,27 +709,47 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             card.setOnFocusChangeListener((view, focused) -> {
                 boolean highlighted = focused || view.isActivated();
                 float s = highlighted ? FOCUS_SCALE : 1.0f;
+                float lift = highlighted && advancedEffects ? -LIFT_DP * density : 0f;
+                float depth = highlighted ? (advancedEffects ? 8 : 4) * density : 0f;
+                float zoomArt = highlighted && advancedEffects ? ARTWORK_ZOOM : 1f;
                 view.animate().cancel();
+                banner.animate().cancel();
                 name.animate().cancel();
-                ViewPropertyAnimator zoom = view.animate().scaleX(s).scaleY(s)
-                        .translationZ(highlighted ? 4 * density : 0f)
-                        .setUpdateListener(animation -> {
-                            if (listener != null && view.isFocused()) listener.onTileFocusFrame(view);
-                        })
-                        .withLayer();
-                if (reducedMotion) {
-                    // No overshoot: the extra frames redraw the banner and the dock band on a weak GPU.
-                    zoom.setDuration(focused ? 120 : 80)
-                            .setInterpolator(new DecelerateInterpolator())
-                            .start();
-                    name.animate().alpha(focused ? 1f : 0f).setDuration(100).start();
+                if (!animations) {
+                    // Animations off (launcher settings): the focused look without the motion.
+                    view.setScaleX(s);
+                    view.setScaleY(s);
+                    view.setTranslationY(lift);
+                    view.setTranslationZ(depth);
+                    banner.setScaleX(zoomArt);
+                    banner.setScaleY(zoomArt);
+                    name.setAlpha(focused ? 1f : 0f);
+                    name.setTranslationY(focused ? density * 4f : -density * 6f);
+                    if (listener != null && view.isFocused()) listener.onTileFocusFrame(view);
                 } else {
-                    zoom.setDuration(focused ? 260 : 180)
-                            .setInterpolator(new OvershootInterpolator(focused ? 1.6f : 0f))
-                            .start();
-                    name.animate().alpha(focused ? 1f : 0f)
-                            .translationY(focused ? density * 4f : -density * 6f)
-                            .setDuration(220).start();
+                    ViewPropertyAnimator zoom = view.animate().scaleX(s).scaleY(s)
+                            .translationY(lift).translationZ(depth)
+                            .setUpdateListener(animation -> {
+                                if (listener != null && view.isFocused()) listener.onTileFocusFrame(view);
+                            })
+                            .withLayer();
+                    if (reducedMotion) {
+                        // No overshoot: the extra frames redraw the banner and the dock band on a weak GPU.
+                        zoom.setDuration(focused ? 120 : 80)
+                                .setInterpolator(new DecelerateInterpolator())
+                                .start();
+                        name.animate().alpha(focused ? 1f : 0f).setDuration(100).start();
+                    } else {
+                        // Advanced effects settle with a softer overshoot: the lift already carries the motion.
+                        zoom.setDuration(advancedEffects ? (focused ? 220 : 170) : (focused ? 260 : 180))
+                                .setInterpolator(new OvershootInterpolator(focused ? (advancedEffects ? 0.7f : 1.6f) : 0f))
+                                .start();
+                        name.animate().alpha(focused ? 1f : 0f)
+                                .translationY(focused ? density * 4f : -density * 6f)
+                                .setDuration(220).start();
+                    }
+                    if (advancedEffects) banner.animate().scaleX(zoomArt).scaleY(zoomArt)
+                            .setDuration(reducedMotion ? 120 : 280).start();
                 }
                 int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {

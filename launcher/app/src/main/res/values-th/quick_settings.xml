@@ -2,6 +2,7 @@
 <resources>
     <string name="quick_settings">การตั้งค่าด่วน</string>
     <string name="quick_all_settings">เปิดการตั้งค่าทั้งหมด</string>
+    <string name="quick_launcher_settings">เปิดการตั้งค่าหน้าหลัก</string>
     <string name="quick_close">ปิดการตั้งค่าด่วน</string>
     <string name="quick_close_label">ปิด</string>
     <string name="quick_back">กดย้อนกลับเพื่อปิด</string>
