@@ -219,6 +219,7 @@ public class SettingsActivity extends Activity {
     }
 
     private void homePane() {
+        row(R.string.language_setting, R.string.language_sub, languageLabel(), this::chooseLanguage);
         row(R.string.columns, R.string.columns_sub, String.valueOf(cfg.columns), () -> chooseNumber(
                 getString(R.string.columns), Prefs.COLUMNS, 3, 8, cfg.columns));
         toggle(R.string.inputs_row_setting, R.string.inputs_row_sub, Prefs.INPUTS_ROW, cfg.showInputsRow);
@@ -459,6 +460,26 @@ public class SettingsActivity extends Activity {
         }
         chooseOne(getString(R.string.featured_interval_setting), labels, checked,
                 which -> Prefs.putInt(this, Prefs.FEATURED_INTERVAL, INTERVALS[which]));
+    }
+
+    private String languageLabel() {
+        String chosen = Lang.chosen(this);
+        for (int i = 0; i < Lang.TAGS.length; i++) if (Lang.TAGS[i].equals(chosen)) return Lang.NAMES[i];
+        return getString(R.string.language_auto);
+    }
+
+    private void chooseLanguage() {
+        String[] labels = new String[Lang.TAGS.length + 1];
+        labels[0] = getString(R.string.language_auto);
+        System.arraycopy(Lang.NAMES, 0, labels, 1, Lang.NAMES.length);
+        String chosen = Lang.chosen(this);
+        int checked = 0;
+        for (int i = 0; i < Lang.TAGS.length; i++) if (Lang.TAGS[i].equals(chosen)) checked = i + 1;
+        chooseOne(getString(R.string.language_setting), labels, checked, which -> {
+            if (which == 0) Prefs.remove(this, Prefs.LANGUAGE);
+            else Prefs.putString(this, Prefs.LANGUAGE, Lang.TAGS[which - 1]);
+            recreate();
+        });
     }
 
     private String modeLabel(boolean light) {

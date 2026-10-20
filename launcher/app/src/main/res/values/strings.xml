@@ -83,6 +83,9 @@
     <string name="weather_sub">Temperature and sky where the TV is, above the date</string>
     <string name="weather_unit_setting">Temperature unit</string>
     <string name="appearance_setting">Appearance</string>
+    <string name="language_setting">Language</string>
+    <string name="language_sub">The language of SBL, whatever the TV is set to</string>
+    <string name="language_auto">Automatic (TV language)</string>
     <string name="appearance_sub">Dark or light look for the whole launcher</string>
     <string name="appearance_dark">Dark</string>
     <string name="appearance_light">Light</string>

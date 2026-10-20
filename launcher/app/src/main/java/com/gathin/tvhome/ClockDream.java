@@ -38,6 +38,11 @@ public class ClockDream extends DreamService {
     };
 
     @Override
+    protected void attachBaseContext(android.content.Context base) {
+        super.attachBaseContext(Lang.wrap(base));
+    }
+
+    @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
         setInteractive(false);   // any key wakes the TV back to where it was

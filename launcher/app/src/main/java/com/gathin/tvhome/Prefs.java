@@ -31,6 +31,8 @@ final class Prefs {
     static final String THEME = "theme_name";
     /** "dark" or "light"; see {@link UiMode}. */
     static final String UI_MODE = "ui_mode";
+    /** A language tag from {@link Lang#TAGS}, or "auto" (the TV's language when translated, else English). */
+    static final String LANGUAGE = "language";
     private static final String VERSION = "version";
 
     private Prefs() {
@@ -109,7 +111,7 @@ final class Prefs {
     /** Back to config.xml and the theme: forgets every menu choice except the usage statistics. */
     static void resetAll(Context c) {
         remove(c, COLUMNS, ROWS_BELOW_DOCK, SORT_MODE, DOCK_APPS, HIDDEN_APPS, MANUAL_ORDER, INPUTS_ROW,
-                FEATURED, FEATURED_VIDEO, FEATURED_INTERVAL, WEATHER, WEATHER_UNIT, MODULE_CARDS, UI_MODE);
+                FEATURED, FEATURED_VIDEO, FEATURED_INTERVAL, WEATHER, WEATHER_UNIT, MODULE_CARDS, UI_MODE, LANGUAGE);
     }
 
     /** Every menu choice, for the backup. The change counter and the active theme's name are not part of it. */

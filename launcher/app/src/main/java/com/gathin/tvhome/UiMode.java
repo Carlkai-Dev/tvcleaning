@@ -18,11 +18,12 @@ final class UiMode {
         return LIGHT.equals(Prefs.getString(c, Prefs.UI_MODE, DARK));
     }
 
-    /** For attachBaseContext: the same context with the chosen look pinned. */
+    /** For attachBaseContext: the same context with the chosen language and look pinned. */
     static Context wrap(Context base) {
-        Configuration cfg = new Configuration(base.getResources().getConfiguration());
+        Context lang = Lang.wrap(base);
+        Configuration cfg = new Configuration(lang.getResources().getConfiguration());
         int night = light(base) ? Configuration.UI_MODE_NIGHT_NO : Configuration.UI_MODE_NIGHT_YES;
         cfg.uiMode = (cfg.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | night;
-        return base.createConfigurationContext(cfg);
+        return lang.createConfigurationContext(cfg);
     }
 }

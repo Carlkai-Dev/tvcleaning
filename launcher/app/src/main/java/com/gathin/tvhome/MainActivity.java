@@ -722,6 +722,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float y = heroY();
         boolean changed = !label.contentEquals(heroName.getText());
 
+        // A favourite that may have Watch Next items shows its name only after a short wait: when the items
+        // arrive the name never appears, instead of flashing up and being replaced.
+        final String pkg = adapter.pkgAt(position);
+        nameHeld = showFeatured && pkg != null && !pkg.isEmpty() && !pkg.equals(featuredPkg);
+        handler.removeCallbacks(releaseName);
+        if (nameHeld) handler.postDelayed(releaseName, NAME_HOLD_MS);
+
         if (!heroShown) {
             heroName.setText(label);
             heroName.setY(y);
@@ -753,9 +760,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         loadFeatured(adapter.pkgAt(position));
     }
 
-    /** The big app name is only shown while there is no hero over the same spot. */
+    /** The big app name is only shown while there is no hero over the same spot, and once the wait is over. */
     private float heroNameAlpha() {
-        return featuredVisible ? 0f : 1f;
+        return featuredVisible || nameHeld ? 0f : 1f;
+    }
+
+    private static final long NAME_HOLD_MS = 350;
+    /** True while the focused favourite's Watch Next items are still being looked for. */
+    private boolean nameHeld;
+    private final Runnable releaseName = this::releaseNameNow;
+
+    /** Ends the wait: the app name fades in unless a hero is showing. */
+    private void releaseNameNow() {
+        handler.removeCallbacks(releaseName);
+        if (!nameHeld) return;
+        nameHeld = false;
+        if (heroShown && !featuredVisible) heroName.animate().alpha(1f).setDuration(200).start();
     }
 
     /** Top of the focused dock app's name, above the dock band. */
@@ -815,7 +835,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         queryIo.execute(() -> {
             List<FeaturedLoader.Item> items = FeaturedLoader.load(getApplicationContext(), pkg);
             handler.post(() -> {
-                if (!pkg.equals(featuredPkg) || !heroShown || items.isEmpty()) return;
+                if (!pkg.equals(featuredPkg) || !heroShown) return;
+                if (items.isEmpty()) {
+                    releaseNameNow();   // nothing to show: the app name takes the spot at once
+                    return;
+                }
+                nameHeld = false;
+                handler.removeCallbacks(releaseName);
                 featuredItems = items;
                 featuredIndex = 0;
                 featuredAppLabel = appLabel;
@@ -850,7 +876,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             heroName.animate().cancel();
             heroName.setText(adapter.labelAt(lastDockFocused));
             heroName.setTranslationX(0f);
-            heroName.animate().alpha(1f).setDuration(200).start();
+            heroName.animate().alpha(heroNameAlpha()).setDuration(200).start();
             heroName.setY(heroY());
         }
     }
@@ -1120,6 +1146,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Hides the app name and the hero; {@code keepAmbient} leaves the coloured glow, as in the grid under the dock. */
     private void hideHero(boolean keepAmbient) {
+        nameHeld = false;
+        handler.removeCallbacks(releaseName);
         hideFeatured(true);
         if (!heroShown) return;
         heroShown = false;
