@@ -23,4 +23,7 @@
     <string name="tile_menu_app_info">Informació de l\'app</string>
     <string name="move_started">Movent %1$s — OK col·loca, Enrere cancel·la</string>
     <string name="move_not_saved">No s\'ha pogut desar l\'ordre</string>
+    <string name="reset_tile_order">Restableix l’ordre de les fitxes</string>
+    <string name="reset_tile_order_confirm">Voleu eliminar la disposició desada i recuperar l’ordre configurat? Es conservaran les altres dades i les opcions de les targetes.</string>
+    <string name="reset_tile_order_failed">No s’ha pogut restablir l’ordre de les fitxes</string>
 </resources>

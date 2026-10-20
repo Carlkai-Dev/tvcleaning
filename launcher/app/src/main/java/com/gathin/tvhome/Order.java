@@ -20,8 +20,8 @@ import java.util.Set;
  * {@code columns} tiles, kept as package names like config.xml's dock_apps) and the grid below it
  * (kept as component keys, {@link android.content.ComponentName#flattenToShortString()}), in display
  * order. It is the user's own data: a theme's config.json and {@code tools/theme.sh --reset} never
- * touch it. To go back to the default arrangement, remove the file and restart the launcher:
- * {@code tools/tv.py 'rm /data/data/com.gathin.tvhome/files/order.json'} then force-stop Home.
+ * touch it. To go back to the configured arrangement, hold OK on Settings and choose Reset tile
+ * order; the rest of the app's data stays in place.
  *
  * <p>The file format is strict (it must be exactly what {@link #encode} writes); anything else is
  * quarantined to {@code order.json.bad} and the launcher continues with the default order. The
