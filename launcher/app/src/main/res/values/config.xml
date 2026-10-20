@@ -102,6 +102,11 @@
     <!-- Installed launchable apps, including ordinary Android apps. Also settable in config.json. -->
     <bool name="app_library">false</bool>
 
+    <!-- Projector Mode: Projector pill on Home, Dashboard and Quick Settings rows. Off by default so
+         TVs are unchanged; a theme can set "projector_mode": true, and the on-TV Launcher settings
+         toggle wins over both. -->
+    <bool name="projector_mode">false</bool>
+
     <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own
          label, caption and glow colour, once you answer Show on the prompt. false: never look for cards or ask. -->
     <bool name="module_cards">true</bool>

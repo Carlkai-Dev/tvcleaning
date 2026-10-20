@@ -18,9 +18,13 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
+    private TextView projectorChoice;
+    private TextView projectorProfileChoice;
     private int columns;
     private boolean animations;
     private boolean advancedEffects;
+    private boolean projectorMode;
+    private String projectorProfile;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -31,6 +35,8 @@ public final class LauncherSettingsActivity extends Activity {
         columns = config.columns;
         animations = config.animations;
         advancedEffects = config.animations && config.advancedEffects;
+        projectorMode = config.projectorMode;
+        projectorProfile = config.projectorProfile;
 
         int[] ids = {R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7};
         for (int i = 0; i < ids.length; i++) {
@@ -76,11 +82,31 @@ public final class LauncherSettingsActivity extends Activity {
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
-            choices.edit().remove("columns").remove("animations").remove("advanced_effects").commit();
+            choices.edit().remove("columns").remove("animations").remove("advanced_effects")
+                    .remove("projector_mode").remove("projector_profile").commit();
             Config current = Config.load(this);
             columns = current.columns;
             animations = current.animations;
             advancedEffects = current.animations && current.advancedEffects;
+            projectorMode = current.projectorMode;
+            projectorProfile = current.projectorProfile;
+            setResult(RESULT_OK);
+            refresh();
+        });
+        projectorProfileChoice = findViewById(R.id.projectorProfileChoice);
+        projectorProfileChoice.setOnClickListener(v -> {
+            String[] cycle = {"auto", ProjectorProfile.GENERIC, ProjectorProfile.SKYWORTH_YYT_MODULE};
+            int next = 0;
+            for (int i = 0; i < cycle.length; i++) if (cycle[i].equals(projectorProfile)) next = (i + 1) % cycle.length;
+            projectorProfile = cycle[next];
+            choices.edit().putString("projector_profile", projectorProfile).apply();
+            setResult(RESULT_OK);
+            refresh();
+        });
+        projectorChoice = findViewById(R.id.projectorChoice);
+        projectorChoice.setOnClickListener(v -> {
+            projectorMode = !projectorMode;
+            choices.edit().putBoolean("projector_mode", projectorMode).apply();
             setResult(RESULT_OK);
             refresh();
         });
@@ -111,12 +137,16 @@ public final class LauncherSettingsActivity extends Activity {
                 getString(advancedEffects ? R.string.on : R.string.off)));
         advancedChoice.setEnabled(animations);
         advancedChoice.setAlpha(animations ? 1f : 0.5f);
+        projectorChoice.setText(getString(R.string.projector_mode_state,
+                getString(projectorMode ? R.string.on : R.string.off)));
+        projectorProfileChoice.setText(getString(R.string.projector_profile_state, projectorProfile));
         followThemeChoice.setSelected(!hasOnTvChoices());
     }
 
     private boolean hasOnTvChoices() {
         return choices.contains("columns") || choices.contains("animations")
-                || choices.contains("advanced_effects");
+                || choices.contains("advanced_effects") || choices.contains("projector_mode")
+                || choices.contains("projector_profile");
     }
 
     private void open(Intent intent) {
