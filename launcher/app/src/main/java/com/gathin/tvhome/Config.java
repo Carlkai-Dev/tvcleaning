@@ -64,6 +64,8 @@ final class Config {
     final boolean showHomeSettingsShortcut;
     /** One line under the clock: CPU, free memory, free storage. Off unless config or a theme turns it on. */
     final boolean showStats;
+    /** Watch Next and channel programs of the focused dock app above the dock (config.xml top_shelf). */
+    final boolean topShelf;
     /** App library pill after the last Home row (config.xml app_library). */
     final boolean appLibrary;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
@@ -85,7 +87,7 @@ final class Config {
                    String liveTvAction, String sourcePanelService, String sourcePanelAction, String inputAction,
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean dockTitle, boolean dockRow, boolean reorderButton, String vpnApp,
-                   boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
+                   boolean showHomeSettingsShortcut, boolean showStats, boolean topShelf, boolean appLibrary, int backgroundColor, int skyIntensity,
                    int[] settingsKeycodes, boolean settingsKeyPanel, File wallpaper, boolean overlayApplied,
                    Festival festival) {
         this.dockApps = Collections.unmodifiableList(dockApps);
@@ -110,6 +112,7 @@ final class Config {
         this.vpnApp = vpnApp;
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
         this.showStats = showStats;
+        this.topShelf = topShelf;
         this.appLibrary = appLibrary;
         this.backgroundColor = backgroundColor;
         this.skyIntensity = skyIntensity;
@@ -149,6 +152,7 @@ final class Config {
         String vpn = res.getString(R.string.vpn_app).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         boolean showStats = res.getBoolean(R.bool.show_stats);
+        boolean topShelf = res.getBoolean(R.bool.top_shelf);
         boolean library = res.getBoolean(R.bool.app_library);
         int background = 0xFF000000;
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
@@ -183,6 +187,7 @@ final class Config {
             vpn = string(json, "vpn_app", vpn);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             showStats = bool(json, "show_stats", showStats);
+            topShelf = bool(json, "top_shelf", topShelf);
             library = bool(json, "app_library", library);
             background = color(json, "background_color", background);
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
@@ -207,7 +212,7 @@ final class Config {
 
         return new Config(dock, fillDock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
-                shamsi, greetingName, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
+                shamsi, greetingName, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, topShelf, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaper, applied,
                 festival);
     }
