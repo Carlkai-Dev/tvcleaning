@@ -98,6 +98,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private AppAdapter adapter;
     private RecyclerView grid;
+    /** Key whose ACTION_UP belongs to a move-mode ACTION_DOWN already handled here. */
+    private int moveUpKeyCode = KeyEvent.KEYCODE_UNKNOWN;
     private FrameLayout root;
     private GlassView glass;
     private View ambient;
@@ -430,7 +432,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> showSettingsChoice());
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
@@ -748,7 +750,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (handleSettingsKey(event)) return true;
-        if (!reordering) return super.dispatchKeyEvent(event);
+        if (reordering) {
         boolean down = event.getAction() == KeyEvent.ACTION_DOWN;
         int code = event.getKeyCode();
         boolean ok = code == KeyEvent.KEYCODE_DPAD_CENTER || code == KeyEvent.KEYCODE_ENTER
@@ -780,9 +782,85 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return true;   // never opens the app while reordering
         }
         return super.dispatchKeyEvent(event);   // arrows navigate; OK on a top-bar pill works as usual
+        }   // end if (reordering)
+
+        // ---- long-press menu / MENU-key move (runs when upstream reorder mode is off).
+        // Carries the tile with the D-pad, also across dock and grid; OK saves, Back cancels.
+
+        if (adapter == null) return super.dispatchKeyEvent(event);
+        int keyCode = event.getKeyCode();
+        if (event.getAction() == KeyEvent.ACTION_UP && keyCode == moveUpKeyCode) {
+            moveUpKeyCode = KeyEvent.KEYCODE_UNKNOWN;
+            return true;
+        }
+        if (adapter.isMoving()) {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event);
+            int moving = adapter.movingPosition();
+            String key = adapter.keyAt(moving);
+            int target;
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    target = moving + (rtlAppGrid ? 1 : -1);
+                    break;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    target = moving + (rtlAppGrid ? -1 : 1);
+                    break;
+                case KeyEvent.KEYCODE_DPAD_UP:
+                    target = moving - COLUMNS;
+                    break;
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                    target = moving + COLUMNS;
+                    break;
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+                    moveUpKeyCode = keyCode;
+                    adapter.endMove(true);
+                    lastFocused = moving;
+                    lastFocusedKey = key;
+                    Toast.makeText(this, R.string.move_icon_saved, Toast.LENGTH_SHORT).show();
+                    grid.post(() -> focusTile(moving));
+                    return true;
+                case KeyEvent.KEYCODE_BACK:
+                case KeyEvent.KEYCODE_ESCAPE:
+                    moveUpKeyCode = keyCode;
+                    adapter.endMove(false);
+                    int restored = adapter.positionOf(key);
+                    if (restored >= 0) {
+                        lastFocused = restored;
+                        lastFocusedKey = key;
+                        grid.post(() -> focusTile(restored));
+                    }
+                    Toast.makeText(this, R.string.move_icon_cancelled, Toast.LENGTH_SHORT).show();
+                    return true;
+                default:
+                    return super.dispatchKeyEvent(event);
+            }
+            moveUpKeyCode = keyCode;
+            if (adapter.moveStep(target) || adapter.moveSwap(target)) {
+                int now = adapter.movingPosition();
+                lastFocused = now;
+                lastFocusedKey = adapter.keyAt(now);
+                grid.post(() -> focusTile(now));
+            }
+            return true;
+        }
+        if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_MENU) {
+            View focus = getCurrentFocus();
+            View item = focus == null ? null : grid.findContainingItemView(focus);
+            if (focus != null && focus.getId() == R.id.card && item != null) {
+                int pos = grid.getChildAdapterPosition(item);
+                if (pos != RecyclerView.NO_POSITION && adapter.startMove(pos)) {
+                    moveUpKeyCode = keyCode;
+                    Toast.makeText(this, getString(R.string.move_icon_hint, adapter.labelAt(pos)),
+                            Toast.LENGTH_LONG).show();
+                    return true;
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
     }
 
-    /** Adapter position of the focused tile, or -1 when focus is not on a tile. */
+        /** Adapter position of the focused tile, or -1 when focus is not on a tile. */
     private int focusedTilePosition() {
         View f = getCurrentFocus();
         if (f == null || f.getId() != R.id.card || !(f.getParent() instanceof View)) return -1;
@@ -908,7 +986,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 dimOthers();   // views that came into view or were rebound during the move
             }
         });
-    }
+    }   // end refocusAfterLayout
 
     @Override
     public void onBackPressed() {
@@ -1861,6 +1939,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- launcher settings and module cards -------------------------------------------------------
 
     /** Keep a normal Settings click for the TV; the launcher's choices live behind hold OK. */
+    @Override
+    public void openLauncherSettings() {
+        startActivityForResult(new Intent(this, LauncherSettingsActivity.class),
+                LAUNCHER_SETTINGS_REQUEST);
+    }
+
+    /** Short press on the Settings pill: pick the launcher's own settings or Android's. */
+    private void showSettingsChoice() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (200 * density));
+        addSettingsMenuRow(rows, popup, R.string.settings_launcher, this::openLauncherSettings);
+        addSettingsMenuRow(rows, popup, R.string.settings_android,
+                () -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
+        // Hebrew puts Settings at the left of the header: grow the menu inward from it.
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.START : Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
+
     private void showSettingsMenu() {
         View anchor = findViewById(R.id.btnSettings);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);

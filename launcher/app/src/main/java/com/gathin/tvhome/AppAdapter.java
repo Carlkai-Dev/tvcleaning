@@ -1,10 +1,12 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
@@ -16,6 +18,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -43,7 +46,7 @@ import java.util.Set;
 /**
  * App tiles. The first {@link MainActivity#COLUMNS} positions are the pinned dock (favourites, fixed order,
  * then empty slots up to a full row, see {@link DockSlots}), then the module cards the owner chose to show
- * (by label), the rest is alphabetical.
+ * and the rest of the apps, in the owner's saved order when there is one and alphabetical otherwise.
  */
 public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -56,6 +59,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         void onLibraryRequested();
         void onLibraryFocused();
         void onLibraryUp();
+        /** Open the launcher's own settings expecting a result, so Home rebuilds on return. */
+        void openLauncherSettings();
     }
 
     static final class Entry {
@@ -173,8 +178,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final int dockSize;
     /** config dock_row: false makes the dock apps the first tiles of one plain grid (names shown, no empty slots). */
     private final boolean dockRow;
-    /** Dock order (config.xml dock_apps, or a theme's config.json). */
-    private final List<String> favourites;
+    /** Dock order (config.xml dock_apps, or a theme's config.json, or the owner's saved order). */
+    private List<String> favourites;
+    /** The owner's saved grid order, as component keys; replaced when a move is saved. */
+    private List<String> appOrder;
     /** Grid apps fill the dock slots dock_apps leaves free (config.xml, fill_dock). */
     private final boolean fillDock;
     /** Dock apps found at the last reload, and the empty slots after them. */
@@ -190,12 +197,19 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): no overshoot, shorter fades. */
     private final boolean reducedMotion;
     private final List<Entry> items = new ArrayList<>();
+    /** Move mode: the tile being carried, the section it may move in, and the pre-move order. */
+    private int movingPosition = RecyclerView.NO_POSITION;
+    private int moveStart;
+    private int moveEnd = -1;
+    private boolean movingDock;
+    private List<Entry> moveSnapshot;
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
         this.favourites = cfg.dockApps;
+        this.appOrder = cfg.appOrder;
         this.fillDock = cfg.fillDock;
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.animations = cfg.animations;
@@ -216,6 +230,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
      * so focus follows it); hidden_apps wins over a card, and a card's package in dock_apps takes that slot.
      */
     void reload(List<Cards.Card> cards) {
+        movingPosition = RecyclerView.NO_POSITION;
+        moveSnapshot = null;
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = new ArrayList<>(pm.queryIntentActivities(probe, 0));
@@ -268,7 +284,15 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 if (fb < 0) return -1;
                 return Integer.compare(fa, fb);
             }
-            // Cards come right after the configured dock apps, before the alphabetical grid.
+            // The owner's saved order comes next; anything not in it keeps the old rule:
+            // cards before ordinary apps, then alphabetical.
+            int oa = appOrder.indexOf(a.component.flattenToShortString());
+            int ob = appOrder.indexOf(b.component.flattenToShortString());
+            if (oa >= 0 || ob >= 0) {
+                if (oa < 0) return 1;
+                if (ob < 0) return -1;
+                return Integer.compare(oa, ob);
+            }
             boolean ca = a.kind == Entry.CARD, cb = b.kind == Entry.CARD;
             if (ca != cb) return ca ? -1 : 1;
             return a.label.compareToIgnoreCase(b.label);
@@ -373,6 +397,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.card.setScaleY(focused && animations ? focusScale() : 1f);
         h.card.setTranslationY(focused && advancedEffects ? -4f * ctx.getResources().getDisplayMetrics().density : 0f);
         h.card.setTranslationZ(focused && advancedEffects ? 8f * ctx.getResources().getDisplayMetrics().density : 0f);
+        // The tile being carried sits above the rest and goes slightly translucent until it is dropped.
+        boolean carried = position == movingPosition;
+        h.card.setAlpha(carried ? 0.85f : 1f);
+        if (carried) h.card.setTranslationZ(14f * ctx.getResources().getDisplayMetrics().density);
         h.banner.setScaleX(focused && advancedEffects ? 1.035f : 1f);
         h.banner.setScaleY(focused && advancedEffects ? 1.035f : 1f);
         if (e.banner != null) {
@@ -388,16 +416,66 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.label.setText(e.label);
             h.label.setVisibility(View.VISIBLE);
         }
-        h.card.setOnClickListener(v -> launch(e));
+        h.card.setOnClickListener(v -> {
+            if (!isMoving()) launch(e);
+        });
         h.card.setOnLongClickListener(v -> {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            try {
-                ctx.startActivity(i);
-            } catch (ActivityNotFoundException ignored) {
+            if (isMoving()) return true;
+            if (e.kind == Entry.HOME_SETTINGS) {
+                openAppInfo(e);
+                return true;
             }
+            showTileMenu(h, e);
             return true;
         });
+    }
+
+    /** The app's own details page; used to be the whole long-press action. */
+    private void openAppInfo(Entry e) {
+        Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            ctx.startActivity(i);
+        } catch (ActivityNotFoundException ignored) {
+        }
+    }
+
+    /**
+     * Long-press menu for a tile: Move the icon, open the app's settings, the launcher's
+     * settings, or Android's settings.
+     */
+    private void showTileMenu(Holder h, Entry e) {
+        String[] labels = {
+                ctx.getString(R.string.move_icon),
+                ctx.getString(R.string.app_settings),
+                ctx.getString(R.string.launcher_settings),
+                ctx.getString(R.string.android_settings)
+        };
+        new AlertDialog.Builder(ctx)
+                .setTitle(e.label)
+                .setItems(labels, (dialog, which) -> {
+                    switch (which) {
+                        case 0: {
+                            int pos = h.getBindingAdapterPosition();
+                            if (pos != RecyclerView.NO_POSITION && startMove(pos)) {
+                                Toast.makeText(ctx,
+                                        ctx.getString(R.string.move_icon_hint, e.label),
+                                        Toast.LENGTH_LONG).show();
+                            }
+                            break;
+                        }
+                        case 1:
+                            openAppInfo(e);
+                            break;
+                        case 2:
+                            if (listener != null) listener.openLauncherSettings();
+                            break;
+                        default:
+                            ctx.startActivity(new Intent(Settings.ACTION_SETTINGS));
+                            break;
+                    }
+                })
+                .show();
     }
 
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
@@ -512,6 +590,119 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     String labelAt(int position) {
         return position >= 0 && position < items.size() ? items.get(position).label : "";
+    }
+
+    boolean isMoving() {
+        return movingPosition != RecyclerView.NO_POSITION;
+    }
+
+    int movingPosition() {
+        return movingPosition;
+    }
+
+    /**
+     * Picks up the tile at {@code position}. Dock tiles may only move inside the dock and grid
+     * tiles only inside the grid: dock membership stays a theme/config choice, not a drag result.
+     */
+    /** Bounds the carried tile to one section; shared by startMove and moveSwap. */
+    private void sectionBounds(boolean dock) {
+        if (dock) {
+            moveStart = 0;
+            moveEnd = docked - 1;
+        } else {
+            moveStart = docked + emptySlots;
+            moveEnd = items.size() - 1;
+            while (moveEnd >= moveStart
+                    && items.get(moveEnd).kind != Entry.APP && items.get(moveEnd).kind != Entry.CARD) {
+                moveEnd--;
+            }
+        }
+    }
+
+    boolean startMove(int position) {
+        if (reordering) return false;   // upstream's reorder mode owns moves while it is on
+        if (isMoving() || position < 0 || position >= items.size()) return false;
+        Entry e = items.get(position);
+        if (e.kind != Entry.APP && e.kind != Entry.CARD) return false;
+        movingDock = position < docked;
+        sectionBounds(movingDock);
+        if (moveEnd < moveStart) return false;
+        movingPosition = position;
+        moveSnapshot = new ArrayList<>(items);
+        notifyItemChanged(position);
+        return true;
+    }
+
+    /** Carries the picked-up tile to {@code target}, if that stays inside its section. */
+    boolean moveStep(int target) {
+        if (!isMoving() || target == movingPosition || target < moveStart || target > moveEnd) {
+            return false;
+        }
+        int from = movingPosition;
+        Entry e = items.remove(from);
+        items.add(target, e);
+        movingPosition = target;
+        notifyItemMoved(from, target);
+        return true;
+    }
+
+    /**
+     * Swaps the carried tile with the tile at {@code target} in the other section (dock
+     * <-> grid). Section sizes never change; only real app tiles are swappable.
+     */
+    boolean moveSwap(int target) {
+        if (!isMoving() || target < 0 || target >= items.size() || target == movingPosition) {
+            return false;
+        }
+        Entry t = items.get(target);
+        if (t.kind != Entry.APP && t.kind != Entry.CARD) return false;
+        if ((target < docked) == movingDock) return false; // same section: moveStep's job
+        int from = movingPosition;
+        Collections.swap(items, from, target);
+        movingPosition = target;
+        movingDock = target < docked;
+        sectionBounds(movingDock);
+        notifyItemChanged(from);
+        notifyItemChanged(target);
+        return true;
+    }
+
+    /** Drops the tile: saves the new order, or restores the pre-move order on cancel. */
+    void endMove(boolean save) {
+        if (!isMoving()) return;
+        int carried = movingPosition;
+        movingPosition = RecyclerView.NO_POSITION;
+        if (save) {
+            SharedPreferences prefs = ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
+            SharedPreferences.Editor ed = prefs.edit();
+            List<String> dockOrder = new ArrayList<>();
+            for (int i = 0; i < docked; i++) dockOrder.add(items.get(i).pkg);
+            ed.putString(Config.DOCK_ORDER_KEY, TextUtils.join("\n", dockOrder));
+            favourites = Collections.unmodifiableList(dockOrder);
+            List<String> order = new ArrayList<>();
+            for (int i = docked + emptySlots; i < items.size(); i++) {
+                Entry e = items.get(i);
+                if (e.kind == Entry.APP || e.kind == Entry.CARD) {
+                    order.add(e.component.flattenToShortString());
+                }
+            }
+            ed.putString(Config.APP_ORDER_KEY, TextUtils.join("\n", order));
+            ed.commit();
+            appOrder = Collections.unmodifiableList(order);
+            // Upstream's reorder file would shadow this order on reload (savedRanks sorts
+            // first), so drop it: whichever move ran last wins.
+            Order.file(ctx).delete();
+            setSavedOrder(Collections.emptyMap());
+            moveSnapshot = null;
+            notifyItemChanged(carried);
+        } else {
+            if (moveSnapshot != null) {
+                items.clear();
+                items.addAll(moveSnapshot);
+                moveSnapshot = null;
+            }
+            notifyDataSetChanged();
+        }
     }
 
     float focusScale() {
