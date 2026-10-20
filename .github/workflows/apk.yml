@@ -31,7 +31,25 @@ jobs:
         working-directory: launcher
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon testReleaseUnitTest assembleRelease
+          set +e
+          ./gradlew --no-daemon testReleaseUnitTest assembleRelease > build.log 2>&1
+          code=$?
+          set -e
+          tail -n 5 build.log
+          if [ "$code" -ne 0 ]; then
+            # Put the failure into an annotation, which can be read without opening the job log.
+            python3 - <<'PY'
+          import re
+          lines = open("build.log", errors="replace").read().splitlines()
+          keep = []
+          for i, line in enumerate(lines):
+              if re.search(r"error:|FAILED|What went wrong|Execution failed|Exception|warning: \[", line):
+                  keep.extend(lines[i:i + 4])
+          text = "\n".join(dict.fromkeys(keep))[:3500] or "\n".join(lines[-40:])
+          print("::error title=Gradle build failed::" + text.replace("%", "%25").replace("\r", "").replace("\n", "%0A"))
+          PY
+            exit "$code"
+          fi
       - name: Lint
         working-directory: launcher
         continue-on-error: true
