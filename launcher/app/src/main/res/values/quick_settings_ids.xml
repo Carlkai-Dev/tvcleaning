@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="quickPanel" type="id" />
+    <item name="quickBluetooth" type="id" />
+    <item name="quickScreensaver" type="id" />
+    <item name="quickPicture" type="id" />
+    <item name="quickSound" type="id" />
+    <item name="quickAllSettings" type="id" />
+    <item name="quickAllSettingsLabel" type="id" />
+    <item name="quickClose" type="id" />
+    <item name="quickCloseLabel" type="id" />
+    <item name="quickAudioOutput" type="id" />
+    <item name="quickApps" type="id" />
+</resources>

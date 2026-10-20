@@ -33,6 +33,7 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `shamsi_date` | bool | Show the Solar Hijri date above the Gregorian one |
 | `module_cards` | bool | Look for module cards and ask about them (`true`); `false` turns the feature off |
 | `reduced_motion` | bool | Calmer motion for weak GPUs: stiff highlight spring, no tile overshoot, short fades, no entrance replay |
+| `navigation_sounds` | bool | Navigation and button sounds for Home tiles, folders, header buttons and quick settings; defaults to `false`. Set `true` to enable; follows the TV's system sound setting |
 | `vpn_app` | string | App the network pill opens when a VPN is configured; also shows a red "VPN off" badge while no VPN is up |
 | `show_home_settings_shortcut` | bool | The "Default home" tile, where the TV has a home picker |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |

@@ -201,11 +201,16 @@
                     android:text="@string/wifi"
                     android:drawableStart="@drawable/ic_wifi" />
 
-                <TextView
+                <ImageButton
                     android:id="@+id/btnSettings"
                     style="@style/TopButton"
-                    android:text="@string/settings"
-                    android:drawableStart="@drawable/ic_settings" />
+                    android:layout_width="42dp"
+                    android:padding="10dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:contentDescription="@string/quick_settings"
+                    android:tint="@drawable/pill_text"
+                    android:src="@drawable/ic_settings" />
             </LinearLayout>
         </RelativeLayout>
 

@@ -134,6 +134,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final boolean showHomeSettings;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): no overshoot, shorter fades. */
     private final boolean reducedMotion;
+    private final boolean navigationSounds;
     private final List<Entry> items = new ArrayList<>();
     private final HomeLayoutStore layoutStore;
     private HomeLayout layout = new HomeLayout();
@@ -192,6 +193,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
         this.reducedMotion = cfg.reducedMotion;
+        this.navigationSounds = cfg.navigationSounds;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -294,6 +296,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
         int w = tileWidthPx(inner, columns, density), h = tileHeightPx(w);
         View card = v.findViewById(R.id.card);
+        card.setSoundEffectsEnabled(navigationSounds);
         ViewGroup.LayoutParams cardLp = card.getLayoutParams();
         cardLp.width = w;
         cardLp.height = h;

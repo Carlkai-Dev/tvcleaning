@@ -45,12 +45,12 @@ public final class SettingsLaunchSmoke extends Instrumentation {
             click(R.id.btnWifi);
             expectSettings(Settings.ACTION_WIFI_SETTINGS);
             click(R.id.btnSettings);
-            expectSettings(Settings.ACTION_SETTINGS);
+            expectQuickSettings();
             for (int key : new int[]{KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER}) {
                 press(R.id.btnWifi, key);
                 expectSettings(Settings.ACTION_WIFI_SETTINGS);
                 press(R.id.btnSettings, key);
-                expectSettings(Settings.ACTION_SETTINGS);
+                expectQuickSettings();
             }
 
             // An absent configured VPN must retain the direct Wi-Fi fallback.
@@ -116,6 +116,16 @@ public final class SettingsLaunchSmoke extends Instrumentation {
 
     private void expectOneLaunch() {
         check(launches == 1 && launched != null, "One activation dispatches exactly one launch");
+    }
+
+    private void expectQuickSettings() throws Exception {
+        check(launches == 0 && launched == null, "Gear opens local controls without an external launch");
+        Field field = MainActivity.class.getDeclaredField("quickSettings");
+        field.setAccessible(true);
+        QuickSettingsPanel panel = (QuickSettingsPanel) field.get(activity);
+        check(panel != null && panel.isShowing(), "Gear shows quick settings");
+        runOnMainSync(panel::dismiss);
+        waitForIdleSync();
     }
 
     private void expectSettings(String action) {

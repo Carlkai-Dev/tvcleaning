@@ -43,6 +43,7 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.SoundEffectConstants;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -71,6 +72,8 @@ import java.util.Set;
  */
 public class MainActivity extends Activity implements AppAdapter.TileListener {
 
+    static final String ACTION_QUICK_SETTINGS = "com.gathin.tvhome.action.QUICK_SETTINGS";
+
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
     static int COLUMNS = 4;
     private static final long MINUTE_MS = 60_000L;
@@ -94,6 +97,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView greeting;
     private View btnInputs, btnSettings;
     private TextView btnWifi;
+    private QuickSettingsPanel quickSettings;
+    private boolean resumeQuickSettings;
+    private int quickSettingsFocus = R.id.quickAllSettings;
+    private boolean quickSettingsAwaitingLayout;
     private TextView shamsiDate;
     private boolean shamsi;
     private String vpnApp;
@@ -135,6 +142,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean moduleCards;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     private boolean reducedMotion;
+    private boolean navigationSounds;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
     private Set<String> hiddenApps = Collections.emptySet();
     private List<Cards.Card> cards = Collections.emptyList();
@@ -223,10 +231,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
+        resumeQuickSettings = savedInstanceState != null
+                ? savedInstanceState.getBoolean("quick_settings_open", false)
+                : ACTION_QUICK_SETTINGS.equals(getIntent().getAction());
+        if (savedInstanceState != null)
+            quickSettingsFocus = savedInstanceState.getInt("quick_settings_focus", R.id.quickAllSettings);
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
         COLUMNS = cfg.columns;
         reducedMotion = cfg.reducedMotion;
+        navigationSounds = cfg.navigationSounds;
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
         inputAction = cfg.inputAction;
@@ -240,14 +254,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         atmosphere = findViewById(R.id.atmosphere);
         folderPanel = findViewById(R.id.folderPanel);
         folderTitle = findViewById(R.id.folderTitle);
+        folderTitle.setSoundEffectsEnabled(navigationSounds);
         folderBackdrop = findViewById(R.id.folderBackdrop);
         folderTitle.setTextColor(getResources().getColorStateList(R.color.app_action_text, getTheme()));
         folderPanel.setBackground(new GlassPanelDrawable(density, 36));
         folderTitle.setOnClickListener(v -> renameFolder(adapter.activeFolder()));
         folderTitle.setOnKeyListener((v, code, event) -> {
             if (code == KeyEvent.KEYCODE_DPAD_DOWN) {
-                if (event.getAction() == KeyEvent.ACTION_DOWN)
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
                     focusTile(Math.min(lastFocused, adapter.columns() - 1));
+                    if (adapter.getItemCount() > 0) playNavigationSound(code);
+                }
                 return true;
             }
             return code == KeyEvent.KEYCODE_DPAD_UP || code == KeyEvent.KEYCODE_DPAD_LEFT
@@ -331,13 +348,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         btnInputs = findViewById(R.id.btnInputs);
         btnSettings = findViewById(R.id.btnSettings);
+        btnInputs.setSoundEffectsEnabled(navigationSounds);
+        btnWifi.setSoundEffectsEnabled(navigationSounds);
+        btnSettings.setSoundEffectsEnabled(navigationSounds);
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
             openSettings(Settings.ACTION_WIFI_SETTINGS);
             return true;
         });
-        btnSettings.setOnClickListener(v -> openSettings(Settings.ACTION_SETTINGS));
+        btnSettings.setOnClickListener(v -> openQuickSettings());
         btnSettings.setOnLongClickListener(v -> {
             if (!moduleCards) return false;   // off: a long press does nothing, as before the feature
             showModuleCards();
@@ -478,7 +498,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The card prompt waits for a laid out grid.
         grid.post(() -> {
             tilesReady = true;
-            showCardPrompt();
+            if (resumeQuickSettings && !paused) showQuickSettings();
+            else showCardPrompt();
         });
     }
 
@@ -531,6 +552,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (editDialog != null) editDialog.dismiss();
         if (movingKey != null && !savingOrderNow) finishMove(false, false);
         handler.removeCallbacks(minuteTick);
+        if (quickSettings != null) {
+            resumeQuickSettings = true;
+            quickSettingsFocus = quickSettings.selectedControl();
+            quickSettings.closeWithoutFocus();
+        }
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (openPopup != null) openPopup.dismiss();
@@ -556,8 +582,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle state) {
+        state.putBoolean("quick_settings_open", resumeQuickSettings || quickSettings != null);
+        state.putInt("quick_settings_focus", quickSettings != null
+                ? quickSettings.selectedControl() : quickSettingsFocus);
+        super.onSaveInstanceState(state);
+    }
+
+    @Override
     public void onBackPressed() {
-        if (tileMenu != null) dismissTileMenu(true);
+        if (quickSettings != null) quickSettings.dismiss();
+        else if (tileMenu != null) dismissTileMenu(true);
         else if (movingKey != null && !savingOrderNow) finishMove(false, true);
         else if (!savingOrderNow && adapter.activeFolder() != null) closeFolder();
         else if (!savingOrderNow && expanded) returnHome();
@@ -822,20 +857,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (folderTitle.getVisibility() != View.VISIBLE) return true;
                 focusRequest++;
                 requestedFocusKey = null;
-                folderTitle.requestFocusFromTouch();
+                if (folderTitle.requestFocusFromTouch()) playNavigationSound(keyCode);
                 return true;
             }
-            if (expanded) { setExpanded(false); focusTile(position); return true; }
+            if (expanded) {
+                setExpanded(false);
+                focusTile(position);
+                playNavigationSound(keyCode);
+                return true;
+            }
             focusRequest++;
             requestedFocusKey = null;
-            (btnInputs.getVisibility() == View.VISIBLE ? btnInputs : btnWifi).requestFocusFromTouch();
+            if ((btnInputs.getVisibility() == View.VISIBLE ? btnInputs : btnWifi).requestFocusFromTouch())
+                playNavigationSound(keyCode);
             return true;
         }
         int target = AppOrder.target(position, count, columns, direction);
         if (target != position && adapter.activeFolder() == null && !expanded && target >= columns)
             setExpanded(true);
         focusTile(target);
+        if (target != position) playNavigationSound(keyCode);
         return true;
+    }
+
+    private void playNavigationSound(int keyCode) {
+        if (!navigationSounds) return;
+        // Our D-pad handlers consume the event before Android's focus search can play its sound.
+        // Use the View API so navigation still respects the TV's system sound setting.
+        int effect;
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT: effect = SoundEffectConstants.NAVIGATION_LEFT; break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT: effect = SoundEffectConstants.NAVIGATION_RIGHT; break;
+            case KeyEvent.KEYCODE_DPAD_UP: effect = SoundEffectConstants.NAVIGATION_UP; break;
+            case KeyEvent.KEYCODE_DPAD_DOWN: effect = SoundEffectConstants.NAVIGATION_DOWN; break;
+            default: return;
+        }
+        root.playSoundEffect(effect);
     }
 
     private void updateGridPadding() {
@@ -849,8 +906,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int inner = grid.getWidth() - grid.getPaddingLeft() - grid.getPaddingRight();
         int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(
                 AppAdapter.tileWidthPx(inner, COLUMNS, density)), density);
+        // Leave just 12dp of the next row's artwork below any fully visible rows. Its top
+        // starts after the dock decoration's inset and the item's own 8dp top padding.
+        int nextRowSpace = dockDecoration.rowInset() + dp(8 + 12);
         return Math.max(0, grid.getHeight() - grid.getPaddingTop()
-                - itemH * (1 + rowsBelowDock) - dp(48));
+                - itemH * (1 + rowsBelowDock) - nextRowSpace);
     }
 
     private void cancelGridTransition() {
@@ -1056,6 +1116,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int code = event.getKeyCode();
         if (code == KeyEvent.KEYCODE_DPAD_DOWN) {
             focusTile(Math.min(lastFocused, COLUMNS - 1));
+            if (adapter.getItemCount() > 0) playNavigationSound(code);
         } else {
             // Explicit header navigation also cancels any deferred tile restoration from resume.
             focusRequest++;
@@ -1068,7 +1129,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (focused == btnInputs) next = btnWifi;
                 else if (focused == btnWifi) next = btnSettings;
             }
-            next.requestFocusFromTouch();
+            if (next.requestFocusFromTouch() && next != focused) playNavigationSound(code);
         }
         return true;
     }
@@ -1398,7 +1459,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        if (quickSettings != null)
+            return quickSettings.dispatchKeyEvent(event) || super.dispatchKeyEvent(event);
         int code = event.getKeyCode();
+        if (code == KeyEvent.KEYCODE_SETTINGS) {
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) openQuickSettings();
+            return true;
+        }
         if (android.util.Log.isLoggable("TvHomeMotion", android.util.Log.DEBUG)
                 && event.getAction() == KeyEvent.ACTION_DOWN)
             android.util.Log.d("TvHomeMotion", "key=" + code + " expanded=" + expanded
@@ -1459,6 +1526,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (to != from) {
                 animateMove(from, to);
                 focusKey(movingKey, to);
+                playNavigationSound(code);
             }
         }
         return true;
@@ -1555,6 +1623,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        setIntent(intent);
+        if (ACTION_QUICK_SETTINGS.equals(intent.getAction())) {
+            if (paused) {
+                quickSettingsFocus = R.id.quickAllSettings;
+                resumeQuickSettings = true;
+            } else if (quickSettings != null) quickSettings.dismiss();
+            else openQuickSettings();
+            return;
+        }
+        resumeQuickSettings = false;
+        if (quickSettings != null) quickSettings.closeWithoutFocus();
         dismissTileMenu(false);
         if (editDialog != null) editDialog.dismiss();
         if (movingKey != null && !savingOrderNow) finishMove(false, false);
@@ -1647,6 +1726,73 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Settings shares one task across its panels. NEW_TASK alone can bring its previous
         // submenu back to the front instead of opening the screen the user requested.
         open(systemIntent(this, action).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+    }
+
+    private void openQuickSettings() {
+        quickSettingsFocus = R.id.quickAllSettings;
+        showQuickSettings();
+    }
+
+    private void showQuickSettings() {
+        if (paused || isFinishing() || quickSettings != null) return;
+        if (root.getWidth() == 0 || !root.isLaidOut()) {
+            resumeQuickSettings = true;
+            if (!quickSettingsAwaitingLayout) {
+                quickSettingsAwaitingLayout = true;
+                root.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override public void onGlobalLayout() {
+                        if (root.getWidth() == 0) return;
+                        root.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        quickSettingsAwaitingLayout = false;
+                        if (resumeQuickSettings && !paused) handler.post(MainActivity.this::showQuickSettings);
+                    }
+                });
+            }
+            return;
+        }
+        cancelGridTransition();
+        focusRequest++;
+        requestedFocusKey = null;
+        resumeQuickSettings = false;
+        // The panel crossfades Home's shortcuts along with its dimming and glass controls.
+        QuickSettingsPanel panel = new QuickSettingsPanel(this, root, reducedMotion, navigationSounds,
+                new QuickSettingsPanel.Listener() {
+                    @Override public void onAction(int control) { openQuickControl(control); }
+                    @Override public void onClosed(boolean restoreFocus) {
+                        quickSettings = null;
+                        if (restoreFocus && !paused) {
+                            resumeQuickSettings = false;
+                            quickSettingsFocus = R.id.quickAllSettings;
+                            int request = ++focusRequest;
+                            requestedFocusKey = null;
+                            btnSettings.requestFocusFromTouch();
+                            btnSettings.postOnAnimation(() -> {
+                                if (!paused && request == focusRequest && quickSettings == null)
+                                    btnSettings.requestFocusFromTouch();
+                            });
+                        }
+                    }
+                });
+        quickSettings = panel;
+        panel.open(quickSettingsFocus);
+    }
+
+    private void openQuickControl(int control) {
+        Intent intent = QuickSettingsActions.intent(this, control)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        quickSettingsFocus = control;
+        resumeQuickSettings = true;
+        Runnable launch = () -> {
+            try {
+                startActivity(intent);
+            } catch (ActivityNotFoundException | SecurityException unavailable) {
+                resumeQuickSettings = false;
+                Toast.makeText(this, R.string.not_available, Toast.LENGTH_LONG).show();
+                handler.post(this::showQuickSettings);
+            }
+        };
+        if (quickSettings != null) quickSettings.closeForAction(launch);
+        else launch.run();
     }
 
     /**
@@ -1879,7 +2025,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void showCardPrompt() {
         if (!moduleCards || !tilesReady || promptsPaused || cardPrompt != null || !hasWindowFocus() || isFinishing()) return;
         // Not over the tile menu, a folder dialog or a move in progress; the prompt follows once they close.
-        if (paused || tileMenu != null || editDialog != null || movingKey != null || savingOrderNow) return;
+        if (paused || quickSettings != null || tileMenu != null || editDialog != null || movingKey != null || savingOrderNow) return;
         if (cards.isEmpty() || !CardFeature.working()) return;
         CardFeature.run(() -> {
             showCardPromptNow();

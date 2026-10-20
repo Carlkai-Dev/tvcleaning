@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_settings">الإعدادات السريعة</string>
+    <string name="quick_all_settings">فتح كل الإعدادات</string>
+    <string name="quick_close">إغلاق الإعدادات السريعة</string>
+    <string name="quick_close_label">إغلاق</string>
+    <string name="quick_back">رجوع للإغلاق</string>
+    <string name="quick_screensaver">شاشة التوقف</string>
+    <string name="quick_start_now">ابدأ الآن</string>
+    <string name="quick_bluetooth">بلوتوث</string>
+    <string name="quick_accessories">أجهزة التحكم والملحقات</string>
+    <string name="quick_on">مفعّل</string>
+    <string name="quick_off">متوقف</string>
+    <string name="quick_picture">الصورة</string>
+    <string name="quick_audio_output">إخراج الصوت</string>
+    <string name="quick_apps">التطبيقات</string>
+    <string name="quick_sound">الصوت</string>
+</resources>

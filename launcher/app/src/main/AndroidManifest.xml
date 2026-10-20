@@ -25,6 +25,12 @@
         </intent>
         <!-- China-market MIUI TV firmware: the Settings and Wi-Fi pills fall back to Xiaomi's settings app. -->
         <package android:name="com.xiaomi.mitv.settings" />
+        <package android:name="com.android.tv.settings" />
+        <intent><action android:name="com.google.android.pano.action.SLEEP" /></intent>
+        <intent><action android:name="android.settings.BLUETOOTH_SETTINGS" /></intent>
+        <intent><action android:name="android.settings.DISPLAY_SETTINGS" /></intent>
+        <intent><action android:name="android.settings.SOUND_SETTINGS" /></intent>
+        <intent><action android:name="android.settings.MANAGE_APPLICATIONS_SETTINGS" /></intent>
     </queries>
 
     <application

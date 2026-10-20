@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_settings">Configuració ràpida</string>
+    <string name="quick_all_settings">Obre tots els ajustos</string>
+    <string name="quick_close">Tanca la configuració ràpida</string>
+    <string name="quick_close_label">Tanca</string>
+    <string name="quick_back">Enrere per tancar</string>
+    <string name="quick_screensaver">Estalvi de pantalla</string>
+    <string name="quick_start_now">Inicia ara</string>
+    <string name="quick_bluetooth">Bluetooth</string>
+    <string name="quick_accessories">Comandaments i accessoris</string>
+    <string name="quick_on">Activat</string>
+    <string name="quick_off">Desactivat</string>
+    <string name="quick_picture">Imatge</string>
+    <string name="quick_audio_output">Sortida d\'àudio</string>
+    <string name="quick_apps">Aplicacions</string>
+    <string name="quick_sound">So</string>
+</resources>

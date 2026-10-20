@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_settings">การตั้งค่าด่วน</string>
+    <string name="quick_all_settings">เปิดการตั้งค่าทั้งหมด</string>
+    <string name="quick_close">ปิดการตั้งค่าด่วน</string>
+    <string name="quick_close_label">ปิด</string>
+    <string name="quick_back">กดย้อนกลับเพื่อปิด</string>
+    <string name="quick_screensaver">โปรแกรมรักษาหน้าจอ</string>
+    <string name="quick_start_now">เริ่มตอนนี้</string>
+    <string name="quick_bluetooth">บลูทูธ</string>
+    <string name="quick_accessories">รีโมตและอุปกรณ์เสริม</string>
+    <string name="quick_on">เปิด</string>
+    <string name="quick_off">ปิด</string>
+    <string name="quick_picture">ภาพ</string>
+    <string name="quick_audio_output">เอาต์พุตเสียง</string>
+    <string name="quick_apps">แอป</string>
+    <string name="quick_sound">เสียง</string>
+</resources>

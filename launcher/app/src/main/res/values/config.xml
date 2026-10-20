@@ -74,4 +74,8 @@
          tiles that zoom without overshoot, shorter fades and no tile entrance when Home comes back. Set it
          here or with "reduced_motion": true in a theme's config.json; false keeps the normal motion. -->
     <bool name="reduced_motion">false</bool>
+
+    <!-- Navigation and button sounds for Home tiles, folders, header buttons and quick settings.
+         Off for now; set true here or use "navigation_sounds": true in a theme's config.json. -->
+    <bool name="navigation_sounds">false</bool>
 </resources>

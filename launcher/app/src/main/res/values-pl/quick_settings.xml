@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_settings">Szybkie ustawienia</string>
+    <string name="quick_all_settings">Otwórz wszystkie ustawienia</string>
+    <string name="quick_close">Zamknij szybkie ustawienia</string>
+    <string name="quick_close_label">Zamknij</string>
+    <string name="quick_back">Wstecz, aby zamknąć</string>
+    <string name="quick_screensaver">Wygaszacz ekranu</string>
+    <string name="quick_start_now">Uruchom teraz</string>
+    <string name="quick_bluetooth">Bluetooth</string>
+    <string name="quick_accessories">Piloty i akcesoria</string>
+    <string name="quick_on">Włączone</string>
+    <string name="quick_off">Wyłączone</string>
+    <string name="quick_picture">Obraz</string>
+    <string name="quick_audio_output">Wyjście audio</string>
+    <string name="quick_apps">Aplikacje</string>
+    <string name="quick_sound">Dźwięk</string>
+</resources>

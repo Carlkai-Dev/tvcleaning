@@ -226,6 +226,22 @@ the install script finds `~/Android/Sdk` and the `java` on your PATH.
 - **Navigation** is deliberate: Up and Down move one row, the top buttons never fall through to tiles and Down from them returns to the dock tile you came from, Back closes a folder or the expanded grid, Home returns to the first dock tile, the last focused app is remembered, and installing or removing an app refreshes the tiles while Home is open.
 - **Artwork**: app banners load at xhdpi or better, so low-density TV UIs do not downsample them before the focus zoom.
 
+**Quick settings:** the gear icon opens a right-side group of frosted glass controls. The three
+paired rows contain Bluetooth / Audio Output, Picture / Sound, and Screensaver / Apps. Each tile
+has a filled white icon circle with a blue glyph. Focus adds a blue rim and a soft edge glow,
+while keeping the glass material visible. Bluetooth opens the TV's accessories page; Picture and Sound
+open their respective TV settings. Audio output opens the TV's output page where available, with
+sound settings as a fallback. Apps opens the system Apps section. Screen saver starts the configured
+screen saver where the TV exposes that action. The header has a Back-to-close hint and an **Open All Settings** gear.
+The gear starts focused when the panel opens, so a second OK opens the full TV settings. Its small
+label appears below the icon only while focused, without shifting the tiles when it disappears.
+The Close icon shows its own caption in the same way. Opening and closing coordinate the glass
+controls, backdrop dimming, and Home shortcuts in one transition; reduced motion uses a short fade.
+
+Inputs and Wi-Fi remain on Home, and module cards remain available by holding OK on the gear.
+Back closes the controls and restores the gear's focus; returning from a TV settings page
+reopens the controls at the button that launched it, keeping Home's selected app and layout.
+
 **Development checks:** run `./gradlew :app:testDebugUnitTest :app:assembleRelease :app:lintRelease`
 from `launcher/`. The `LauncherSmoke` instrumentation runner checks native D-pad navigation,
 long-press actions, move cancellation, folder persistence and layout, including a 36-app library.
@@ -238,6 +254,12 @@ transitions, folder navigation, Home/resume), `TopBarSmoke` (Down from each top 
 column), `TransitionSmoke` (expansion/collapse frames without relayout or reverse jumps) and `MenuSmoke`
 (menu blur, edge placement, remote focus, move cancellation). All of them use synthetic inventory and
 must only run on an emulator.
+
+`QuickSettingsSmoke` uses the existing app inventory without modifying it and can also run on a
+physical TV. It checks the icon entry, control geometry and accessibility, D-pad routes, Back, and
+return focus using monitored external launches. Install the matching **debug app and test APK**
+(the optimized release APK removes resource classes used by instrumentation). Build its test APK with
+`-PlauncherTestRunner=com.gathin.tvhome.QuickSettingsSmoke`.
 
 ## Restoring your TV
 

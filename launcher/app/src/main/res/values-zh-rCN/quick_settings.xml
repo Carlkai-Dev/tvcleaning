@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_settings">快捷设置</string>
+    <string name="quick_all_settings">打开所有设置</string>
+    <string name="quick_close">关闭快捷设置</string>
+    <string name="quick_close_label">关闭</string>
+    <string name="quick_back">按返回键关闭</string>
+    <string name="quick_screensaver">屏幕保护</string>
+    <string name="quick_start_now">立即启动</string>
+    <string name="quick_bluetooth">蓝牙</string>
+    <string name="quick_accessories">遥控器和配件</string>
+    <string name="quick_on">开启</string>
+    <string name="quick_off">关闭</string>
+    <string name="quick_picture">画面</string>
+    <string name="quick_audio_output">音频输出</string>
+    <string name="quick_apps">应用</string>
+    <string name="quick_sound">声音</string>
+</resources>

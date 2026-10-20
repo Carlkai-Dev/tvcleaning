@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_settings">Hızlı ayarlar</string>
+    <string name="quick_all_settings">Tüm Ayarları Aç</string>
+    <string name="quick_close">Hızlı ayarları kapat</string>
+    <string name="quick_close_label">Kapat</string>
+    <string name="quick_back">Kapatmak için Geri</string>
+    <string name="quick_screensaver">Ekran koruyucu</string>
+    <string name="quick_start_now">Şimdi başlat</string>
+    <string name="quick_bluetooth">Bluetooth</string>
+    <string name="quick_accessories">Kumandalar ve aksesuarlar</string>
+    <string name="quick_on">Açık</string>
+    <string name="quick_off">Kapalı</string>
+    <string name="quick_picture">Görüntü</string>
+    <string name="quick_audio_output">Ses çıkışı</string>
+    <string name="quick_apps">Uygulamalar</string>
+    <string name="quick_sound">Ses</string>
+</resources>
