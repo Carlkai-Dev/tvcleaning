@@ -39,7 +39,7 @@ public final class LauncherSettingsActivity extends Activity {
             columnChoices[i].setOnClickListener(v -> {
                 if (columns == value) return;
                 columns = value;
-                choices.edit().putInt("columns", value).apply();
+                choices.edit().putInt("columns", value).commit();
                 setResult(RESULT_OK);
                 refresh();
             });
@@ -56,7 +56,7 @@ public final class LauncherSettingsActivity extends Activity {
             animations = !animations;
             if (!animations) advancedEffects = false;
             choices.edit().putBoolean("animations", animations)
-                    .putBoolean("advanced_effects", advancedEffects).apply();
+                    .putBoolean("advanced_effects", advancedEffects).commit();
             setResult(RESULT_OK);
             refresh();
         });
@@ -96,7 +96,7 @@ public final class LauncherSettingsActivity extends Activity {
 
     private void setAdvanced(boolean enabled) {
         advancedEffects = enabled;
-        choices.edit().putBoolean("advanced_effects", enabled).apply();
+        choices.edit().putBoolean("advanced_effects", enabled).commit();
         setResult(RESULT_OK);
         refresh();
     }
