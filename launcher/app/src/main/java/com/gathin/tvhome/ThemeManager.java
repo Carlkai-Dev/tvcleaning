@@ -47,6 +47,8 @@ final class ThemeManager {
     /** Bundled theme wallpapers ship as WebP (small); the on-device file keeps the
      * historical wallpaper.jpg name so tools/theme.sh pushes keep working. */
     private static final String BUNDLED_WALLPAPER_ASSET = "wallpaper.webp";
+    /** A theme.sh-pushed overlay is backed up here before a bundled theme overwrites it. */
+    private static final String CUSTOM_BACKUP_DIR = "custom_backup";
     private static final String WALLPAPER_CUSTOM_NAME_KEY = "wallpaper_custom_name";
 
     private ThemeManager() { }
@@ -72,6 +74,9 @@ final class ThemeManager {
     static boolean applyTheme(Context ctx, String theme) {
         File dir = Config.dir(ctx);
         if (dir == null || (!dir.exists() && !dir.mkdirs())) return false;
+        // A pushed (theme.sh) overlay would be lost by the overwrite below: keep a copy
+        // so the picker's Custom entry can bring it back.
+        if (CUSTOM.equals(currentTheme(ctx)) && !backupCustomTheme(ctx)) return false;
         try {
             File config = new File(dir, Config.FILE_NAME);
             File wallpaper = new File(dir, Config.WALLPAPER_NAME);
@@ -269,6 +274,64 @@ final class ThemeManager {
 
     private static SharedPreferences preferences(Context ctx) {
         return ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE);
+    }
+
+    /** Copies the current pushed overlay aside; true when there was nothing to save or it worked. */
+    static boolean backupCustomTheme(Context ctx) {
+        File dir = Config.dir(ctx);
+        if (dir == null) return false;
+        File config = new File(dir, Config.FILE_NAME);
+        if (!config.isFile()) return true;
+        File backup = new File(dir, CUSTOM_BACKUP_DIR);
+        if (!backup.exists() && !backup.mkdirs()) return false;
+        try (InputStream in = new FileInputStream(config)) {
+            if (!copyStream(in, new File(backup, Config.FILE_NAME))) return false;
+        } catch (Exception ignored) {
+            return false;
+        }
+        File wallpaper = new File(dir, Config.WALLPAPER_NAME);
+        try (InputStream in = new FileInputStream(wallpaper)) {
+            if (!copyStream(in, new File(backup, Config.WALLPAPER_NAME))) return false;
+        } catch (Exception ignored) {
+            deleteIfPresent(new File(backup, Config.WALLPAPER_NAME));
+        }
+        return true;
+    }
+
+    /** Whether a pushed overlay was backed up and can be restored from the picker. */
+    static boolean hasCustomBackup(Context ctx) {
+        File dir = Config.dir(ctx);
+        return dir != null && new File(new File(dir, CUSTOM_BACKUP_DIR), Config.FILE_NAME).isFile();
+    }
+
+    /** Restores the backed-up pushed overlay; a no-op when it is already the current theme. */
+    static boolean restoreCustomTheme(Context ctx) {
+        File dir = Config.dir(ctx);
+        if (dir == null || (!dir.exists() && !dir.mkdirs())) return false;
+        if (CUSTOM.equals(currentTheme(ctx))) return true;
+        File backup = new File(dir, CUSTOM_BACKUP_DIR);
+        try (InputStream in = new FileInputStream(new File(backup, Config.FILE_NAME))) {
+            if (!copyStream(in, new File(dir, Config.FILE_NAME))) return false;
+        } catch (Exception ignored) {
+            return false;
+        }
+        File backupWallpaper = new File(backup, Config.WALLPAPER_NAME);
+        if (backupWallpaper.isFile()) {
+            try (InputStream in = new FileInputStream(backupWallpaper)) {
+                if (!copyStream(in, new File(dir, Config.WALLPAPER_NAME))) return false;
+            } catch (Exception ignored) {
+                return false;
+            }
+        } else if (!deleteIfPresent(new File(dir, Config.WALLPAPER_NAME))) {
+            return false;
+        }
+        try {
+            writeText(new File(dir, Config.THEME_REVISION_NAME),
+                    UUID.randomUUID().toString().replace("-", ""));
+        } catch (Exception ignored) {
+            return false;
+        }
+        return true;
     }
 
     private static boolean assetExists(Context ctx, String path) {

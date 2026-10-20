@@ -83,6 +83,8 @@ import java.util.Set;
 public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
+    /** Set while LauncherSettingsActivity is open: Home leaves no result, so onResume rebuilds. */
+    private boolean settingsOpen;
     /** Sent by QuickSettingsActivity: open Launcher settings from here so Home rebuilds when they close. */
     static final String ACTION_LAUNCHER_SETTINGS = "com.gathin.tvhome.action.LAUNCHER_SETTINGS";
     /** Tiles per row and dock slots (res/values/config.xml, columns). Set in onCreate. */
@@ -499,6 +501,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean openLauncherSettingsIfAsked(Intent intent) {
         if (intent == null || !ACTION_LAUNCHER_SETTINGS.equals(intent.getAction())) return false;
         setIntent(new Intent(Intent.ACTION_MAIN));
+        settingsOpen = true;
         startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
         return true;
     }
@@ -568,6 +571,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        // Back from Launcher settings via the Home key: no onActivityResult, so rebuild here.
+        if (settingsOpen) {
+            recreate();
+            return;
+        }
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
             recreate();
@@ -598,7 +606,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK) recreate();
+        if (requestCode == LAUNCHER_SETTINGS_REQUEST) {
+            settingsOpen = false;
+            if (resultCode == RESULT_OK) recreate();
+        }
     }
 
     /** Rebuilds the tiles (and the module cards), then puts focus back where it was. */
@@ -1941,6 +1952,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Keep a normal Settings click for the TV; the launcher's choices live behind hold OK. */
     @Override
     public void openLauncherSettings() {
+        settingsOpen = true;
         startActivityForResult(new Intent(this, LauncherSettingsActivity.class),
                 LAUNCHER_SETTINGS_REQUEST);
     }

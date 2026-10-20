@@ -145,18 +145,31 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     private void showThemePicker() {
-        String[] ids = {ThemeManager.BUILTIN, ThemeManager.AURORA,
-                ThemeManager.DUSSEHRA, ThemeManager.SIX_COLUMNS};
-        String[] labels = {getString(R.string.theme_builtin), getString(R.string.theme_aurora),
-                getString(R.string.theme_dussehra), getString(R.string.theme_six_columns)};
         String current = ThemeManager.currentTheme(this);
+        // A pushed (theme.sh) overlay survives as a restorable Custom entry: it is backed up
+        // before a bundled theme overwrites it, so picking Aurora never loses it for good.
+        boolean showCustom = ThemeManager.CUSTOM.equals(current) || ThemeManager.hasCustomBackup(this);
+        String[] ids = showCustom
+                ? new String[]{ThemeManager.BUILTIN, ThemeManager.AURORA,
+                        ThemeManager.DUSSEHRA, ThemeManager.SIX_COLUMNS, ThemeManager.CUSTOM}
+                : new String[]{ThemeManager.BUILTIN, ThemeManager.AURORA,
+                        ThemeManager.DUSSEHRA, ThemeManager.SIX_COLUMNS};
+        String[] labels = showCustom
+                ? new String[]{getString(R.string.theme_builtin), getString(R.string.theme_aurora),
+                        getString(R.string.theme_dussehra), getString(R.string.theme_six_columns),
+                        getString(R.string.theme_custom)}
+                : new String[]{getString(R.string.theme_builtin), getString(R.string.theme_aurora),
+                        getString(R.string.theme_dussehra), getString(R.string.theme_six_columns)};
         int checked = -1;
         for (int i = 0; i < ids.length; i++) if (ids[i].equals(current)) checked = i;
         new AlertDialog.Builder(this)
                 .setTitle(R.string.theme_label)
                 .setSingleChoiceItems(labels, checked, (dialog, which) -> {
                     dialog.dismiss();
-                    if (ThemeManager.applyTheme(this, ids[which])) {
+                    boolean ok = ThemeManager.CUSTOM.equals(ids[which])
+                            ? ThemeManager.restoreCustomTheme(this)
+                            : ThemeManager.applyTheme(this, ids[which]);
+                    if (ok) {
                         setResult(RESULT_OK);
                         loadState();
                         Toast.makeText(this, R.string.theme_applied, Toast.LENGTH_SHORT).show();
