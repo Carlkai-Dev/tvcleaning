@@ -69,6 +69,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -119,6 +120,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String greetingName = "";
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
+    /** The wallpaper on screen, if any: one view and one bitmap, swapped when the schedule changes the picture. */
+    private ImageView wallView;
+    private Bitmap wallBitmap;
+    /** What the wallpaper view shows now ("" for none), so the minute tick only decodes when it changes. */
+    private String shownWall;
+    private File defaultWallpaper;
+    private File wallDir;
+    private List<WallpaperSchedule.Rule> wallSchedule = Collections.emptyList();
     private String vpnApp;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
@@ -231,6 +240,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateGreeting();
             updateWifiLabel();
             sky.update();
+            updateWallpaper();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -259,7 +269,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         root = findViewById(R.id.root);
         root.setBackgroundColor(cfg.backgroundColor);
-        if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
+        defaultWallpaper = cfg.wallpaper;
+        wallDir = cfg.themeDir;
+        wallSchedule = cfg.wallpaperSchedule;
+        updateWallpaper();
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
@@ -370,7 +383,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int inner = (r - l) - grid.getPaddingLeft() - grid.getPaddingRight();
             int tileW = AppAdapter.tileWidthPx(inner, h, COLUMNS, rowsBelowDock, cfg.dockTitle, cfg.dockRow, density);
             int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), density);
-            int dockRow = itemH + (int) (AppAdapter.DOCK_EXTRA_DP * density);   // item height plus DockDecoration offsets
+            // dock_scale: the dock row is as tall as its smaller tiles, the rows under it keep the grid size.
+            int dockTileW = cfg.dockRow && cfg.dockScale < 100 ? Math.round(tileW * cfg.dockScale / 100f) : tileW;
+            int dockItemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(dockTileW), density);
+            int dockRow = dockItemH + (int) (AppAdapter.DOCK_EXTRA_DP * density);   // item height plus DockDecoration offsets
             int gridRows = itemH * rowsBelowDock;
             // Keep the hero below the header when the library is enabled on a short screen,
             // even when the theme requests an extra visible row below the dock.
@@ -507,6 +523,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * A picture over 4K is refused rather than decoded (#166); the plain colour stays.
      */
     private void showWallpaper(File file) {
+        if (file == null) {
+            clearWallpaper();
+            return;
+        }
         try {
             android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
             android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
@@ -528,13 +548,49 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
             android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
             if (bmp == null) return;
-            android.widget.ImageView wall = new android.widget.ImageView(this);
-            wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
-            wall.setImageBitmap(bmp);
-            root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            if (wallView == null) {
+                wallView = new ImageView(this);
+                wallView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                root.addView(wallView, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
+            wallView.setImageBitmap(bmp);
+            // Only this picture is referenced from here on; the one it replaces is left to the garbage collector
+            // (a recycle() while a frame may still draw it can crash on some GPUs).
+            wallBitmap = bmp;
         } catch (Exception | OutOfMemoryError e) {
-            // A bad or huge picture must never take the home screen down; the plain colour stays.
+            // A bad or huge picture must never take the home screen down; the previous picture or the plain colour stays.
         }
+    }
+
+    private void clearWallpaper() {
+        if (wallView != null) {
+            root.removeView(wallView);
+            wallView.setImageDrawable(null);
+            wallView = null;
+        }
+        wallBitmap = null;
+    }
+
+    /**
+     * The wallpaper for now: the picture a theme's wallpaper_schedule names for this day and time, else the
+     * plain wallpaper.jpg, else none. Runs at start and on the minute tick, and only decodes when the answer
+     * changed (or the file was replaced by a new push).
+     */
+    private void updateWallpaper() {
+        File want = defaultWallpaper;
+        if (!wallSchedule.isEmpty() && wallDir != null) {
+            LocalDateTime now = LocalDateTime.now();
+            String name = WallpaperSchedule.pick(wallSchedule, now.getDayOfWeek().getValue(),
+                    now.getHour() * 60 + now.getMinute());
+            if (name != null) {
+                File scheduled = new File(wallDir, name);
+                if (scheduled.isFile() && scheduled.length() > 0) want = scheduled;
+            }
+        }
+        String key = want == null ? "" : want.getPath() + "@" + want.lastModified() + "@" + want.length();
+        if (key.equals(shownWall)) return;
+        shownWall = key;
+        showWallpaper(want);
     }
 
     /**
@@ -582,6 +638,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateInputsButton();
         if (showStats) startStats();
         sky.update();
+        updateWallpaper();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
             diya.start();
@@ -945,7 +1002,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float scale = adapter.focusScale();
         float w = card.getWidth() * scale + 2 * pad;
         float h = card.getHeight() * scale + 2 * pad;
-        float x = r.exactCenterX() - w / 2f;
+        // dock_scale slides the dock tiles sideways with translationX, which the layout rect above does not include.
+        float x = r.exactCenterX() + card.getTranslationX() - w / 2f;
         float y = r.exactCenterY() - h / 2f - (advancedEffects ? 4f * density : 0f);
 
         ViewGroup.LayoutParams lp = glass.getLayoutParams();

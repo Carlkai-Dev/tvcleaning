@@ -1,0 +1,24 @@
+{
+  "dock_apps": [
+    "com.nst.iptvsmarterstvbox",
+    "com.google.android.youtube.tv",
+    "com.amazon.amazonvideo.livingroom",
+    "com.apple.atve.androidtv.appletv"
+  ],
+  "fill_dock": false,
+  "hidden_apps": ["com.tcl.tv"],
+  "live_tv_package": "com.tcl.tv",
+  "source_panel_service": "com.tcl.sourcemananger/com.tcl.insrc.ShowWindowService",
+  "source_panel_action": "com.tcl.insrc.SHOW_WINDOW",
+  "columns": 4,
+  "rows_below_dock": 0,
+  "dock_title": false,
+  "dock_scale": 60,
+  "advanced_effects": true,
+  "sky_intensity": 50,
+  "wallpaper_schedule": [
+    {"file": "wallpaper_nhl.jpg", "days": ["sat"], "from": "18:00", "to": "04:00"},
+    {"file": "wallpaper_nfl.jpg", "days": ["sun"], "from": "18:00", "to": "04:00"},
+    {"file": "wallpaper_psg.jpg", "days": ["tue", "wed"], "from": "18:00", "to": "04:00"}
+  ]
+}

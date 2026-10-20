@@ -14,3 +14,6 @@ backup/
 *.aab
 launcher/hs_err_pid*.log
 launcher/replay_pid*.log
+
+# Sports wallpapers for a personal theme stay on your computer and on the TV, not in the repository.
+themes/*/wallpaper_*.jpg

@@ -165,6 +165,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Context ctx;
     private final int rowsBelowDock;
     private final boolean dockTitle;
+    /** Dock tiles as a percentage of the grid tiles (theme key dock_scale); 100 keeps the dock as big as the grid. */
+    private final int dockScale;
     /** The owner's saved order (reorder button, Order): key -> rank. Empty when there is none or it no longer applies. */
     private Map<String, Integer> savedRanks = Collections.emptyMap();
     /** Reorder mode: no empty dock slots, so every position holds a tile that can move. */
@@ -206,6 +208,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.rowsBelowDock = cfg.rowsBelowDock;
         this.dockTitle = cfg.dockTitle;
         this.dockRow = cfg.dockRow;
+        this.dockScale = cfg.dockScale;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -344,7 +347,40 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             v.setPadding(v.getPaddingLeft(), pad, v.getPaddingRight(), pad);
         }
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener, animations, advancedEffects, reducedMotion);
+        Holder holder = new Holder(v, listener, animations, advancedEffects, reducedMotion);
+        holder.baseW = w;
+        holder.baseH = h;
+        holder.cellW = dockSize > 0 ? inner / dockSize : w;
+        return holder;
+    }
+
+    /**
+     * dock_scale: the dock tiles are drawn smaller than the grid tiles and pulled together around the middle of
+     * the row (the cells stay as wide as the grid's, so the shrunk tiles are moved, not re-laid out). A recycled
+     * holder that moves from the dock to the grid gets its full size and position back here.
+     */
+    private void applyTileSize(Holder h, int position) {
+        int w = h.baseW, ht = h.baseH;
+        float shift = 0f;
+        if (dockRow && position < dockSize && dockScale < 100 && h.baseW > 0) {
+            float density = ctx.getResources().getDisplayMetrics().density;
+            w = Math.round(h.baseW * dockScale / 100f);
+            ht = tileHeightPx(w);
+            float gap = Math.max(12f * density, 0.15f * w);
+            shift = (position - (dockSize - 1) / 2f) * (w + gap - h.cellW);
+        }
+        if (w <= 0) return;
+        ViewGroup.LayoutParams lp = h.card.getLayoutParams();
+        if (lp.width != w || lp.height != ht) {
+            lp.width = w;
+            lp.height = ht;
+            h.card.setLayoutParams(lp);
+            ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) h.name.getLayoutParams();
+            nameLp.width = w;
+            nameLp.topMargin = ht + Math.round((dockRow ? 7 : 4) * ctx.getResources().getDisplayMetrics().density);
+            h.name.setLayoutParams(nameLp);
+        }
+        h.card.setTranslationX(shift);
     }
 
     @Override
@@ -352,6 +388,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (isLibraryAt(position)) return;
         Holder h = (Holder) holder;
         Entry e = items.get(position);
+        applyTileSize(h, position);
         if (e.kind == Entry.EMPTY) {
             // A free dock slot keeps its place in the row and the band, but shows nothing and takes no focus.
             h.card.setVisibility(View.INVISIBLE);
@@ -582,6 +619,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final boolean animations;
         final boolean advancedEffects;
         final boolean reducedMotion;
+        /** Grid tile size this holder was created with (px); the dock may show it smaller, see dock_scale. */
+        int baseW, baseH;
+        /** Width of one grid cell (px), to spread the shrunk dock tiles around the middle. */
+        int cellW;
 
         Holder(View v, TileListener listener, boolean animations, boolean advancedEffects,
                boolean reducedMotion) {

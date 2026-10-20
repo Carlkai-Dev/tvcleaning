@@ -46,7 +46,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             if (pos < 0 || pos >= dockSize) continue;
             View card = child.findViewById(R.id.card);
             if (card == null) continue;
-            float l = child.getLeft() + card.getLeft();
+            float l = child.getLeft() + card.getLeft() + card.getTranslationX();   // dock_scale moves the tiles sideways
             float t = child.getTop() + card.getTop() + child.getTranslationY();
             float r = l + card.getWidth();
             float b = t + card.getHeight();

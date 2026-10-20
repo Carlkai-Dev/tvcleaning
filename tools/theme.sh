@@ -30,7 +30,7 @@ tv() { "$PY" -I tv.py "$@"; }
 RESTART="a=\$(settings get secure enabled_accessibility_services); am force-stop $PKG; am start -n $PKG/.MainActivity >/dev/null; case \"\$a\" in *$PKG*) sleep 1; settings put secure enabled_accessibility_services ''; settings put secure enabled_accessibility_services \"\$a\"; settings put secure accessibility_enabled 1 ;; esac"
 
 if [ "${1:-}" = --reset ]; then
-  tv "mkdir -p $DIR; rm -f $DIR/config.json $DIR/wallpaper.jpg; printf '%s' '$REVISION' > $DIR/theme_revision; $RESTART; echo reset" | tail -n 1
+  tv "mkdir -p $DIR; rm -f $DIR/config.json $DIR/wallpaper.jpg $DIR/wallpaper_*.jpg; printf '%s' '$REVISION' > $DIR/theme_revision; $RESTART; echo reset" | tail -n 1
   exit 0
 fi
 THEME="${THEME_ARG:?usage: theme.sh <theme folder> | --reset}"
@@ -45,6 +45,13 @@ if [ -f "$THEME/wallpaper.jpg" ]; then
 else
   tv "rm -f $DIR/wallpaper.jpg" >/dev/null
 fi
+# Pictures a theme's wallpaper_schedule names (wallpaper_nhl.jpg ...): the old ones go first so a picture
+# dropped from the folder is dropped from the TV too.
+tv "rm -f $DIR/wallpaper_*.jpg" >/dev/null
+for f in "$THEME"/wallpaper_*.jpg; do
+  [ -f "$f" ] || continue
+  "$PY" -I b64push.py "$f" "$DIR/$(basename "$f")"
+done
 tv "printf '%s' '$REVISION' > $DIR/theme_revision" >/dev/null
 tv "$RESTART; echo applied" | tail -n 1
 echo "Theme $(basename "$THEME") is on the TV. Undo with: tools/theme.sh --reset"

@@ -18,6 +18,7 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour |
 | `dussehra/` | Festive skin for Dussehra (ends 21 Oct 2026): a marigold toran, a faint gold rangoli, a diya for Wi-Fi, a bell for Inputs, a marigold for Settings and a petal shower |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock |
+| `tcl-55ep661/` | A TCL 55EP661 (BeyondTV, Android 9): four streaming apps in a smaller dock, no app names, the time-of-day sky, and wallpapers that change by weekday evening (see Scheduled wallpapers) |
 
 ## Keys
 
@@ -35,6 +36,8 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `columns` | 1 to 8 | Tiles per row; tiles shrink to fit from 5 up |
 | `rows_below_dock` | 0 to 3 | Grid rows left visible under the dock; tiles shrink if the dock, its title and that many rows would not fit the screen height |
 | `dock_title` | bool | The focused dock app's name in large type above the dock (`true`); `false` keeps only the glow |
+| `dock_scale` | 40 to 100 | Size of the dock tiles as a percentage of the grid tiles, 100 by default. Smaller tiles are pulled together around the middle of the row, with the band shrinking to fit |
+| `wallpaper_schedule` | list | Pictures that replace the plain wallpaper at set days and times, see Scheduled wallpapers |
 | `dock_row` | bool | The dock as its own row with a band (`true`); `false` makes the dock apps the first tiles of one plain grid |
 | `reorder_button` | bool | A reorder button in the top bar (`false` by default); reordering is always in the Settings button's long-press menu |
 | `app_library` | bool | An App library pill after the last Home row: every installed app, add one to Home or take it off (`false` by default). The choices stay on the TV when a theme is pushed or reset; see [docs/app-library.md](../docs/app-library.md) |
@@ -63,6 +66,32 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 under about 300 KB: the text, the hero name and the dock band are designed for black, and a 1 GB TV
 decodes the picture into memory on every Home start. Pictures larger than the screen are scaled down to
 it; a picture that is still over 4K (about 8.4 million pixels) after it is sampled down to the screen is not shown at all, and the plain colour stays.
+
+## Scheduled wallpapers
+
+`wallpaper_schedule` swaps the picture behind the launcher by weekday and hour, for example a hockey picture on
+Saturday evening. Each entry names a JPEG that sits next to `config.json`, the days it applies to and a time
+window. The first entry that matches wins; when none does, `wallpaper.jpg` stays (or the plain colour, if the theme
+has no wallpaper).
+
+```json
+{
+  "wallpaper_schedule": [
+    {"file": "wallpaper_nhl.jpg", "days": ["sat"], "from": "18:00", "to": "04:00"},
+    {"file": "wallpaper_psg.jpg", "days": ["tue", "wed"], "from": "18:00", "to": "04:00"}
+  ]
+}
+```
+
+- `days` are English three-letter names, `mon` to `sun`.
+- `from` and `to` are 24 h times. A window that ends before it starts runs over midnight and belongs to the day it
+  started on: `sat 18:00 to 04:00` covers Saturday evening and the small hours of Sunday. Equal times mean the whole day.
+- A file name is a plain `name.jpg` (letters, digits, `.`, `_`, `-`); nothing that points into another folder is accepted.
+  One bad entry is skipped without affecting the others, and at most 16 are read.
+- The same size advice as for `wallpaper.jpg` applies: dark, 1920x1080, about 300 KB.
+- `tools/theme.sh` pushes every `wallpaper_*.jpg` in the folder. The launcher checks the clock once a minute, so a
+  picture changes within a minute of the window starting; it keeps only one picture in memory.
+- It uses the TV's own clock and time zone. If the time on the TV is wrong, so is the schedule.
 
 ## Reduced motion
 

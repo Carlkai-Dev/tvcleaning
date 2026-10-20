@@ -80,6 +80,12 @@ final class Config {
     final boolean overlayApplied;
     /** Festive skin from a theme (festival, festival_until, greeting, accent_color); {@link Festival#NONE} if none. */
     final Festival festival;
+    /** Size of the dock tiles as a percentage of the grid tiles (theme key dock_scale, 40 to 100); 100 keeps them equal. */
+    final int dockScale;
+    /** Folder the theme tools push into (also holds the scheduled wallpapers); null when external storage is unavailable. */
+    final File themeDir;
+    /** Wallpaper rules (theme key wallpaper_schedule); empty when the theme has none. */
+    final List<WallpaperSchedule.Rule> wallpaperSchedule;
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, String liveTvPackage,
                    String liveTvAction, String sourcePanelService, String sourcePanelAction, String inputAction,
@@ -87,7 +93,10 @@ final class Config {
                    boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean dockTitle, boolean dockRow, boolean reorderButton, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
                    int[] settingsKeycodes, boolean settingsKeyPanel, File wallpaper, boolean overlayApplied,
-                   Festival festival) {
+                   Festival festival, int dockScale, File themeDir, List<WallpaperSchedule.Rule> wallpaperSchedule) {
+        this.dockScale = dockScale;
+        this.themeDir = themeDir;
+        this.wallpaperSchedule = Collections.unmodifiableList(wallpaperSchedule);
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.fillDock = fillDock;
         this.hiddenApps = Collections.unmodifiableList(hiddenApps);
@@ -155,6 +164,8 @@ final class Config {
         int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
         boolean applied = false;
+        int dockScale = 100;
+        List<WallpaperSchedule.Rule> schedule = new ArrayList<>();
 
         File dir = dir(ctx);
         File file = dir != null ? new File(dir, FILE_NAME) : null;
@@ -188,6 +199,8 @@ final class Config {
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
             settingsKeycodes = intArray(json, "settings_key_keycodes", settingsKeycodes);
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
+            dockScale = integer(json, "dock_scale", dockScale, 40, 100);
+            schedule = scheduleList(json, "wallpaper_schedule");
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -209,7 +222,27 @@ final class Config {
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, greetingName, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaper, applied,
-                festival);
+                festival, dockScale, dir, schedule);
+    }
+
+    /**
+     * "wallpaper_schedule": a list of {"file": "x.jpg", "days": ["sat"], "from": "18:00", "to": "04:00"}.
+     * An entry that is malformed is skipped on its own; at most 16 are read.
+     */
+    private static List<WallpaperSchedule.Rule> scheduleList(JSONObject o, String key) {
+        List<WallpaperSchedule.Rule> out = new ArrayList<>();
+        Object v = o.opt(key);
+        if (!(v instanceof JSONArray)) return out;
+        JSONArray a = (JSONArray) v;
+        for (int i = 0; i < a.length() && out.size() < 16; i++) {
+            Object item = a.opt(i);
+            if (!(item instanceof JSONObject)) continue;
+            JSONObject r = (JSONObject) item;
+            WallpaperSchedule.Rule rule = WallpaperSchedule.rule(string(r, "file", null),
+                    stringList(r, "days", null), string(r, "from", null), string(r, "to", null));
+            if (rule != null) out.add(rule);
+        }
+        return out;
     }
 
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
