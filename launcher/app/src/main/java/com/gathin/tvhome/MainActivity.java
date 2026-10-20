@@ -524,7 +524,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private void showWallpaper(File file) {
         if (file == null) {
-            clearWallpaper();
+            removeWallpaperView();
             return;
         }
         try {
@@ -562,7 +562,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    private void clearWallpaper() {
+    private void removeWallpaperView() {
         if (wallView != null) {
             root.removeView(wallView);
             wallView.setImageDrawable(null);
