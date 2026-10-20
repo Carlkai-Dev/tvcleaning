@@ -1742,14 +1742,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     }
                 }
                 // Inputs hidden in the TV's Settings > Inputs stay out of the menu too.
-                if (!info.isPassthroughInput() || info.isHidden(this)) continue;
+                // A CEC device (a console, "Playback_1") comes and goes as a child of its HDMI port: list the port only.
+                if (!info.isPassthroughInput() || info.isHidden(this) || info.getParentId() != null) continue;
                 CharSequence l = info.loadLabel(this);
                 String label = l == null ? info.getId() : l.toString();
                 boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
                 if (hdmi && !label.toUpperCase(Locale.ROOT).contains("HDMI")) label = "HDMI " + label;
                 // The name given in Settings > Inputs (e.g. "MacBook Pro") goes first, the port after it.
-                CharSequence custom = info.loadCustomLabel(this);
-                if (custom != null && custom.length() > 0 && !custom.toString().equals(label)) {
+                // Philips stores unnamed ports as the text "null" and appends the CEC device type ("&GAME_CONSOLE").
+                CharSequence c = info.loadCustomLabel(this);
+                String custom = c == null ? "" : c.toString().replaceFirst("&[A-Z_]+$", "").trim();
+                if (!custom.isEmpty() && !custom.equals("null") && !custom.equals(label)) {
                     label = custom + " \u00B7 " + label;
                 }
                 final String id = info.getId();
