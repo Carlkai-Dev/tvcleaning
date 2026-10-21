@@ -20,6 +20,7 @@ public final class LauncherSettingsActivity extends Activity {
     private final TextView[] columnChoices = new TextView[4];
     private final TextView[] rowChoices = new TextView[4];
     private TextView wallpaperChoice;
+    private TextView dockChoice;
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
@@ -71,6 +72,8 @@ public final class LauncherSettingsActivity extends Activity {
         }
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
         wallpaperChoice.setOnClickListener(v -> showWallpaperPicker());
+        dockChoice = findViewById(R.id.dockChoice);
+        dockChoice.setOnClickListener(v -> showDockPicker());
         animationsChoice = findViewById(R.id.animationsChoice);
         animationsChoice.setOnClickListener(v -> {
             animations = !animations;
@@ -97,7 +100,8 @@ public final class LauncherSettingsActivity extends Activity {
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
-                    .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY).commit();
+                    .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
+                    .remove(Config.DOCK_STYLE_KEY).commit();
             Config current = Config.load(this);
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
@@ -158,6 +162,43 @@ public final class LauncherSettingsActivity extends Activity {
                 .show();
     }
 
+    /** The dock band's look: solid, translucent, clear or frosted glass; the theme's own look by default. */
+    private void showDockPicker() {
+        String current = choices.getString(Config.DOCK_STYLE_KEY, null);
+        String[] labels = new String[Config.DOCK_STYLES.length];
+        int checked = -1;
+        for (int i = 0; i < labels.length; i++) {
+            labels[i] = getString(dockStyleName(Config.DOCK_STYLES[i]));
+            if (Config.DOCK_STYLES[i].equals(current)) checked = i;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dock_style_label)
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    dialog.dismiss();
+                    choices.edit().putString(Config.DOCK_STYLE_KEY, Config.DOCK_STYLES[which]).apply();
+                    setResult(RESULT_OK);
+                    refresh();
+                })
+                .setNeutralButton(R.string.wallpaper_theme_default, (dialog, which) -> {
+                    choices.edit().remove(Config.DOCK_STYLE_KEY).apply();
+                    setResult(RESULT_OK);
+                    refresh();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private static int dockStyleName(String style) {
+        switch (style) {
+            case Config.DOCK_SOLID:
+                return R.string.dock_solid;
+            case Config.DOCK_GLASS:
+                return R.string.dock_glass_style;
+            default:
+                return R.string.dock_translucent;
+        }
+    }
+
     private static int indexOf(List<File> images, String name) {
         if (name == null) return -1;
         for (int i = 0; i < images.size(); i++) {
@@ -191,13 +232,16 @@ public final class LauncherSettingsActivity extends Activity {
                 "none".equals(wallpaperCurrent) ? getString(R.string.wallpaper_none)
                         : wallpaperCurrent != null ? wallpaperCurrent
                         : getString(R.string.wallpaper_theme_default)));
+        String dockCurrent = choices.getString(Config.DOCK_STYLE_KEY, null);
+        dockChoice.setText(getString(R.string.dock_style_state, dockCurrent != null
+                ? getString(dockStyleName(dockCurrent)) : getString(R.string.wallpaper_theme_default)));
         followThemeChoice.setSelected(!hasOnTvChoices());
     }
 
     private boolean hasOnTvChoices() {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
-                || choices.contains(Config.WALLPAPER_CHOICE_KEY);
+                || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_STYLE_KEY);
     }
 
     private void open(Intent intent) {

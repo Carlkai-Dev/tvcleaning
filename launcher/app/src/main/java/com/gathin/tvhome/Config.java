@@ -317,6 +317,15 @@ final class Config {
         int rotationMinutes = json == null ? 0 : integer(json, "wallpaper_rotation_minutes", 0, 0, 1440);
         int wallpaperDim = json == null ? 0 : integer(json, "wallpaper_dim", 0, 0, 90);
         int dockOpacity = json == null ? 100 : integer(json, "dock_opacity", 100, 30, 100);
+        // The dock's look chosen on the TV (Launcher settings) wins over dock_opacity and dock_glass.
+        String dockStyle = choices.getString(DOCK_STYLE_KEY, null);
+        if (dockStyle != null) {
+            int chosen = dockStyleOpacity(dockStyle);
+            if (chosen > 0) {
+                dockOpacity = chosen;
+                dockGlass = DOCK_GLASS.equals(dockStyle);
+            }
+        }
         String wallpaperOrder = json == null ? WallpaperRotation.ORDER_SHUFFLE
                 : string(json, "wallpaper_order", WallpaperRotation.ORDER_SHUFFLE);
         // An unknown order must not silently change how an existing collection rotates.
@@ -390,6 +399,24 @@ final class Config {
         return races;
     }
 
+    static final String DOCK_STYLE_KEY = "dock_style";
+    static final String DOCK_SOLID = "solid", DOCK_TRANSLUCENT = "translucent", DOCK_GLASS = "glass";
+    /** On-TV dock looks, in the order Launcher settings lists them. */
+    static final String[] DOCK_STYLES = {DOCK_SOLID, DOCK_TRANSLUCENT, DOCK_GLASS};
+
+    /** The band's opacity for an on-TV dock look; the glass draws its own light tint over a full band. 0: unknown. */
+    static int dockStyleOpacity(String style) {
+        switch (style) {
+            case DOCK_SOLID:
+            case DOCK_GLASS:
+                return 100;
+            case DOCK_TRANSLUCENT:
+                return 60;
+            default:
+                return 0;
+        }
+    }
+
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
         File revision = dir == null ? null : new File(dir, THEME_REVISION_NAME);
         String token = revisionToken(revision);
@@ -400,11 +427,12 @@ final class Config {
             // explicit theme push or reset by the updated tools.
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
-                    .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY);
+                    .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
+                    .remove(DOCK_STYLE_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
-                    .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
+                    .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY).remove(DOCK_STYLE_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
     }

@@ -37,6 +37,11 @@
     <string name="wallpaper_none">None</string>
     <string name="wallpaper_applied">Wallpaper changed</string>
     <string name="wallpaper_theme_default">Theme default</string>
+    <string name="dock_style_label">Dock</string>
+    <string name="dock_style_state">Dock: %1$s</string>
+    <string name="dock_solid">Solid</string>
+    <string name="dock_translucent">Translucent</string>
+    <string name="dock_glass_style">Glass</string>
     <string name="animations_state">Animations: %1$s</string>
     <string name="advanced_effects">Advanced effects</string>
     <string name="advanced_effects_state">Advanced effects: %1$s</string>

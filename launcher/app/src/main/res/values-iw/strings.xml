@@ -94,6 +94,11 @@
     <string name="wallpaper_none">ללא</string>
     <string name="wallpaper_applied">הטפט שונה</string>
     <string name="wallpaper_theme_default">ברירת המחדל של ערכת הנושא</string>
+    <string name="dock_style_label">מעגן</string>
+    <string name="dock_style_state">מעגן: %1$s</string>
+    <string name="dock_solid">אטום</string>
+    <string name="dock_translucent">שקוף למחצה</string>
+    <string name="dock_glass_style">זכוכית</string>
 
     <!-- Race-weekend panel (RaceWeekend). -->
     <string name="race_kicker">סבב %1$d · %2$s · %3$s</string>
