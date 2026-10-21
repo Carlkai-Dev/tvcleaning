@@ -1,0 +1,15 @@
+{
+  "greeting": "Welcome to Lumen & Oak",
+  "accent_color": "#C8A26B",
+  "locked": true,
+  "dock_apps": ["com.google.android.youtube.tv", "com.netflix.ninja", "com.amazon.amazonvideo.livingroom", "com.spotify.tv.android"],
+  "columns": 4,
+  "rows_below_dock": 0,
+  "background_color": "#0E0B09",
+  "wallpaper": true,
+  "wallpaper_rotation_minutes": 2,
+  "wallpaper_order": "sequential",
+  "wallpaper_dim": 10,
+  "ambient_glow": false,
+  "reduced_motion": true
+}

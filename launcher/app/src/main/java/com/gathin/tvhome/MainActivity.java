@@ -159,6 +159,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
+    /** A theme's greeting and accent_color without a festival: a plain brand look; "" and 0 for none. */
+    private String brandGreeting = "";
+    private int brandAccent;
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
     private String vpnApp;
@@ -331,7 +334,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
-        if (festive) glass.setAccent(festival.accentColor());
+        brandGreeting = cfg.greeting;
+        brandAccent = cfg.accentColor;
+        if (fixedAccent() != 0) glass.setAccent(fixedAccent());
         ambient = findViewById(R.id.ambient);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
@@ -512,7 +517,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> openNetworkPill());
-        btnWifi.setOnLongClickListener(v -> {
+        if (!cfg.locked) btnWifi.setOnLongClickListener(v -> {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
@@ -520,7 +525,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
-        if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
+        if (!cfg.showNetworkPill || cfg.locked) btnWifi.setVisibility(View.GONE);
+        // locked: a public screen keeps only Inputs in the top bar, and no long-press menus.
+        if (cfg.locked) btnSettings.setVisibility(View.GONE);
         btnLibraryTop = findViewById(R.id.btnLibraryTop);
         btnLibraryTop.setOnClickListener(v -> {
             onLibraryRequested();
@@ -534,7 +541,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else makeIconOnly(btnWifi);
             makeIconOnly((TextView) btnSettings);
         }
-        btnSettings.setOnLongClickListener(v -> {
+        if (!cfg.locked) btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;
         });
@@ -551,8 +558,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return true;
             }
             int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
-            int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
-            int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
+            int lastButton = lastTopButton().getId();
+            int leftButton = rtlMenuBar ? lastButton : firstButton;
+            int rightButton = rtlMenuBar ? firstButton : lastButton;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
@@ -1061,7 +1069,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         drop();
         reordering = false;
         adapter.setReordering(false);
-        glass.setAccent(festive ? festival.accentColor() : 0);
+        glass.setAccent(fixedAccent());
         btnReorder.setActivated(false);
         List<String> keys = adapter.movableKeys();
         List<String> before = orderAtStart;
@@ -1202,8 +1210,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glassTargetX = x;
         glassTargetY = y;
         // Cinematic shelf: the highlight glows in the dock app's colour, plain white in the grid.
-        int accent = cinematic && !festive && position < COLUMNS ? adapter.ambientColorAt(position) : 0;
-        if (cinematic && !festive && accent != glassAccent) {
+        boolean ownColour = cinematic && fixedAccent() == 0;
+        int accent = ownColour && position < COLUMNS ? adapter.ambientColorAt(position) : 0;
+        if (ownColour && accent != glassAccent) {
             glassAccent = accent;
             glass.setAccent(accent);
         }
@@ -1795,11 +1804,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hideHero();
     }
 
-    /** The first top-bar button after Inputs that is shown: the network pill, Reorder, then Settings (always there). */
+    /**
+     * The first top-bar button after Inputs that is shown: the network pill, Reorder, then Settings, which is
+     * always there unless the screen is locked; then Inputs is all that is left.
+     */
     private View firstTopButton() {
         if (btnWifi.getVisibility() == View.VISIBLE) return btnWifi;
         if (btnReorder.getVisibility() == View.VISIBLE) return btnReorder;
-        return findViewById(R.id.btnSettings);
+        View settings = findViewById(R.id.btnSettings);
+        return settings.getVisibility() == View.VISIBLE ? settings : btnInputs;
+    }
+
+    /** The focus glow colour that stays put: the festival's while it shows, else a theme's accent_color; 0 for white. */
+    private int fixedAccent() {
+        return festive ? festival.accentColor() : brandAccent;
+    }
+
+    /** The last top-bar button that is shown: Settings, or with the screen locked the last pill before it. */
+    private View lastTopButton() {
+        View settings = findViewById(R.id.btnSettings);
+        if (settings.getVisibility() == View.VISIBLE) return settings;
+        if (btnLibraryTop.getVisibility() == View.VISIBLE) return btnLibraryTop;
+        return firstTopButton();
     }
 
     @Override public void onLibraryUp() {
@@ -1924,6 +1950,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!festiveGreeting.isEmpty()) {
             greeting.setText(festiveGreeting);
             greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
+        } else if (!festive && !brandGreeting.isEmpty()) {
+            greeting.setText(brandGreeting);
+            greeting.setTextColor(brandAccent != 0 ? liftTowardsWhite(brandAccent, 0.25f) : greetingColor);
         } else {
             greeting.setText(greetingName.isEmpty() ? getString(res)
                     : getString(R.string.greeting_with_name, getString(res), greetingName));

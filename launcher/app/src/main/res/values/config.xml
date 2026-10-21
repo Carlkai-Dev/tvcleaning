@@ -196,4 +196,10 @@
          Live TV window does not keep the screen on (CVTE): there the system screensaver would start in the
          middle of a programme. Can also be set with "home_idle_clock_minutes": 10 in a theme's config.json. -->
     <integer name="home_idle_clock_minutes">0</integer>
+
+    <!-- Home for a public screen (a showroom, a lobby, a meeting room): no Settings or network pill, and no
+         long-press menus, so visitors cannot reach app info, Wi-Fi settings, reordering or launcher settings.
+         The remote's own Settings button still opens the TV's Settings. Can also be set with "locked": true in
+         a theme's config.json; resetting the theme undoes it. -->
+    <bool name="locked">false</bool>
 </resources>

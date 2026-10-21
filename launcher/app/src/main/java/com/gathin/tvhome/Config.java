@@ -128,6 +128,15 @@ final class Config {
     final boolean ambientGlow;
     /** Minutes Home may sit untouched before the clock screensaver (config.xml, home_idle_clock_minutes); 0 is off. */
     final int homeIdleClockMinutes;
+    /**
+     * Home for a public screen (locked): no Settings or network pill, and no long-press menus that lead to
+     * app info, Wi-Fi settings, reordering or launcher settings. The remote's own Settings button still works.
+     */
+    final boolean locked;
+    /** Text that replaces the time-of-day greeting without a festival (a theme's greeting); "" for none. */
+    final String greeting;
+    /** Focus glow colour without a festival (a theme's accent_color), as 0xAARRGGBB; 0 for none. */
+    final int accentColor;
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, String liveTvPackage,
                    String liveTvAction, Map<String, String> launchActions, Map<String, String> appLabels,
@@ -138,7 +147,8 @@ final class Config {
                    int[] settingsKeycodes, boolean settingsKeyPanel, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
                    int wallpaperRotationMinutes, int wallpaperDim, String wallpaperOrder, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys,
-                   List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, int homeIdleClockMinutes) {
+                   List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, int homeIdleClockMinutes,
+                   boolean locked, String greeting, int accentColor) {
         this.inputKeycodes = inputKeycodes;
         this.appKeys = Collections.unmodifiableList(appKeys);
         this.dockApps = Collections.unmodifiableList(dockApps);
@@ -189,6 +199,9 @@ final class Config {
         this.cinematicHome = cinematicHome;
         this.ambientGlow = ambientGlow;
         this.homeIdleClockMinutes = homeIdleClockMinutes;
+        this.locked = locked;
+        this.greeting = greeting;
+        this.accentColor = accentColor;
     }
 
     /** The folder the theme tools push into; null when external storage is unavailable. */
@@ -239,6 +252,7 @@ final class Config {
         boolean cinematic = res.getBoolean(R.bool.cinematic_home);
         boolean ambientGlow = res.getBoolean(R.bool.ambient_glow);
         int idleClockMinutes = res.getInteger(R.integer.home_idle_clock_minutes);
+        boolean locked = res.getBoolean(R.bool.locked);
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -288,6 +302,7 @@ final class Config {
             cinematic = bool(json, "cinematic_home", cinematic);
             ambientGlow = bool(json, "ambient_glow", ambientGlow);
             idleClockMinutes = integer(json, "home_idle_clock_minutes", idleClockMinutes, 0, 1440);
+            locked = bool(json, "locked", locked);
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -338,6 +353,17 @@ final class Config {
         // A festive skin comes only from a theme; config.xml has no festival.
         Festival festival = json == null ? Festival.NONE : Festival.parse(string(json, "festival", ""),
                 string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
+        // A locked screen has nothing a visitor can change Home with: no reorder button, no app library, and no
+        // module card prompts.
+        if (locked) {
+            reorderButton = false;
+            library = false;
+            moduleCards = false;
+        }
+        // Without a festival the same two keys give a plain brand look: the greeting and the focus glow only.
+        boolean brand = json != null && festival == Festival.NONE;
+        String greeting = brand ? Cards.cleanLabel(string(json, "greeting", ""), "") : "";
+        int accentColor = brand ? Festival.parseColor(string(json, "accent_color", "")) : 0;
 
         return new Config(dock, fillDock, hidden, liveTv, liveTvAction, packageMap(launchActions), packageMap(appLabels),
                 packageMap(appBanners), panelService,
@@ -347,7 +373,7 @@ final class Config {
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, wallpaperOrder, applied,
                 festival, inputKeycodes, appKeys, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow,
-                Math.max(0, idleClockMinutes));
+                Math.max(0, idleClockMinutes), locked, greeting, accentColor);
     }
 
     /**

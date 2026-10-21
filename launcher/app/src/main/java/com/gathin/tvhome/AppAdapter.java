@@ -198,6 +198,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Map<String, String> launchActions;
     /** Tile names and bundled banners that replace the app's own (config.xml, app_labels and app_banners). */
     private final Map<String, String> appLabels, appBanners;
+    /** A public screen (config.xml, locked): holding OK on a tile does not open the app's info page. */
+    private final boolean locked;
     private final List<Entry> items = new ArrayList<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
@@ -220,6 +222,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.launchActions = cfg.launchActions;
         this.appLabels = cfg.appLabels;
         this.appBanners = cfg.appBanners;
+        this.locked = cfg.locked;
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -436,7 +439,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.label.setVisibility(View.VISIBLE);
         }
         h.card.setOnClickListener(v -> launch(e));
-        h.card.setOnLongClickListener(v -> {
+        h.card.setOnLongClickListener(locked ? null : v -> {
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {

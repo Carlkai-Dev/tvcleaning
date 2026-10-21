@@ -17,6 +17,8 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 | `default/` | The built-in look written out as JSON, as a starting point for your own | <img src="default/screenshot.jpg" width="320" alt="default theme"> |
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour | <img src="aurora/screenshot.jpg" width="320" alt="aurora theme"> |
 | `dussehra/` | Festive skin for Dussehra (ends 21 Oct 2026): a marigold toran, a faint gold rangoli, a diya for Wi-Fi, a bell for Inputs, a marigold for Settings and a petal shower | <img src="dussehra/screenshot.jpg" width="320" alt="dussehra theme"> |
+| `lumen-oak-showroom/` | Sample for a shop or showroom, for a made-up company: "Welcome to Lumen & Oak" in its gold, a walnut, linen and brass slideshow every 2 minutes (drawn from code by `tools/lumen_oak_wallpapers.py`), and `locked` so visitors only get the apps and Inputs | <img src="lumen-oak-showroom/screenshot.jpg" width="320" alt="lumen-oak-showroom theme"> |
+| `lumen-oak-meeting-room/` | Sample for a meeting room: the company's name in the greeting, one dark wallpaper, `locked`, and the clock screensaver after 15 idle minutes | <img src="lumen-oak-meeting-room/screenshot.jpg" width="320" alt="lumen-oak-meeting-room theme"> |
 | `scenes/` | 14 dark illustrated landscapes in `wallpapers/`, a new one every hour; drawn from code by `tools/scenes_wallpapers.py` | <img src="scenes/screenshot.jpg" width="320" alt="scenes theme"> |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock | <img src="six-columns/screenshot.jpg" width="320" alt="six-columns theme"> |
 
@@ -59,6 +61,7 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `animations` | bool | Basic focus, glass, title and tile entrance motion; true by default |
 | `advanced_effects` | bool | Optional lifted tile, icon zoom, smooth ambient colour and app opening effects; false by default |
 | `show_home_settings_shortcut` | bool | Keep the optional Default-home tile visible when the TV has a home picker; false by default |
+| `locked` | bool | Home for a public screen (a showroom, a lobby, a meeting room): no Settings or network pill, no reorder button, app library or module card prompts, and holding OK does nothing, so visitors cannot reach app info, Wi-Fi settings or launcher settings. The remote's own Settings button still opens the TV's Settings; `tools/theme.sh --reset` undoes it. See [Workplaces and showrooms](#workplaces-and-showrooms) |
 | `show_stats` | bool | One line under the clock with CPU, free memory and free storage. Off unless set |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `sky_intensity` | 0 to 100 | Time-of-day backdrop: a dark gradient that follows the clock, 0 hides it (default) |
@@ -68,8 +71,8 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `wallpaper_dim` | 0 to 90 | Black overlay over wallpaper images, in percent; 0 by default and no shade view at all |
 | `festival` | string | Turns on a festive skin: the network pill becomes a diya whose flame follows the connection, Inputs a temple bell, Settings a marigold, and the first Home of the day gets a petal shower. `dussehra` and `diwali` have built-in greetings |
 | `festival_until` | `YYYY-MM-DD` | Last day the festive skin shows; it switches itself off after that. A malformed date turns it off |
-| `greeting` | string | Replaces the time-of-day greeting while the festive skin is on |
-| `accent_color` | `#RRGGBB` | Colour of the focus glow while the festive skin is on; diya gold if not set |
+| `greeting` | string | Replaces the time-of-day greeting: the festival's while the festive skin is on, or on its own for a brand or a workplace (`"Welcome to Lumen & Oak"`) |
+| `accent_color` | `#RRGGBB` | Colour of the focus glow and the greeting: the festival's (diya gold if not set), or on its own a brand colour. Without a festival nothing else changes: no festive icons or petals |
 | `settings_key_keycodes` | list of keycodes | Remote buttons that open Settings, for `HomeKeyService` (TCL Google TV gear: `[83]`) |
 | `settings_key_panel` | bool | Those buttons open a small quick settings panel (TV settings, Display, Network, Apps, Launcher settings) instead of the TV's Settings |
 | `input_key_keycodes` | list of keycodes | More remote buttons that open the input switcher, for `InputKeyService` (`KEYCODE_TV` and `KEYCODE_TV_INPUT` always do) |
@@ -139,6 +142,33 @@ the plain background; the default is off (the reference launcher looks exactly a
 ```json
 { "sky_intensity": 60 }
 ```
+
+## Workplaces and showrooms
+
+A TV in a shop, an office lobby or a meeting room needs a different Home from a living room: the
+company's welcome instead of GOOD MORNING, one brand colour, a short dock, and nothing a visitor can
+change. All of it is theme keys, so it needs no rebuild:
+
+```json
+{
+  "greeting": "Welcome to Lumen & Oak",
+  "accent_color": "#C8A26B",
+  "locked": true,
+  "icon_only_buttons": true,
+  "dock_apps": ["com.google.android.youtube.tv"],
+  "wallpaper": true,
+  "wallpaper_rotation_minutes": 2,
+  "home_idle_clock_minutes": 0
+}
+```
+
+- `locked` hides the Settings and network pills and the long-press menus. Inputs stays, for a laptop on HDMI.
+- With the screen locked, change the theme from a computer: `tools/theme.sh` to push a new one,
+  `tools/theme.sh --reset` to go back to the built-in look.
+- `wallpapers/` with `wallpaper_rotation_minutes` turns Home into a slideshow of products or rooms.
+- If the network pill stays (no `locked`), `icon_only_buttons` keeps the Wi-Fi name off the screen.
+- Use your own company's name, colours and pictures only. The `lumen-oak-*` themes are a made-up company to
+  copy from.
 
 ## Adding a theme
 
