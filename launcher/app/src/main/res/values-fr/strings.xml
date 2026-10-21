@@ -83,4 +83,8 @@
         <item quantity="other">%1$d applications</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="quick_title">Réglages rapides</string>
+    <string name="quick_sound">Son</string>
+    <string name="quick_game_mode">Mode jeu</string>
+    <string name="quick_accessibility">Accessibilité</string>
 </resources>

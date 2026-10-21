@@ -60,4 +60,8 @@
         <item quantity="other">%1$d Apps</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="quick_title">Schnelleinstellungen</string>
+    <string name="quick_sound">Ton</string>
+    <string name="quick_game_mode">Spielmodus</string>
+    <string name="quick_accessibility">Bedienungshilfen</string>
 </resources>

@@ -58,4 +58,8 @@
         <item quantity="other">%1$d 个应用</item>
     </plurals>
     <string name="greeting_with_name">%1$s，%2$s</string>
+    <string name="quick_title">快捷设置</string>
+    <string name="quick_sound">声音</string>
+    <string name="quick_game_mode">游戏模式</string>
+    <string name="quick_accessibility">无障碍</string>
 </resources>

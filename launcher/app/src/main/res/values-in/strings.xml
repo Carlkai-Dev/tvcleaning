@@ -45,6 +45,10 @@
     <string name="quick_network">Jaringan</string>
     <string name="quick_apps">Aplikasi</string>
     <string name="quick_apps_hint">Aktifkan kembali</string>
+    <string name="quick_title">Setelan cepat</string>
+    <string name="quick_sound">Suara</string>
+    <string name="quick_game_mode">Mode game</string>
+    <string name="quick_accessibility">Aksesibilitas</string>
     <string name="on">Aktif</string>
     <string name="off">Mati</string>
     <string name="enable">Aktifkan</string>
