@@ -95,9 +95,9 @@ companion after `validate` reports them present.
 `validate` returns `{ready, missing_assets, revision}`. A stale revision returns `revision_conflict`.
 `activate` rechecks the revision, fsyncs the session and asset metadata, merges the patch and
 collections into a copy of the active state, and replaces a single `active.json` under one mutation
-lock with an atomic move plus a directory fsync. Only after that replacement does the launcher send
-`com.gathin.tvhome.COMPANION_UPDATED`, which makes Home rebuild from the new state. Repeating activation
-of the same session returns the original `{revision, operation_id}`.
+lock with an atomic move plus a directory fsync. Only after that replacement does the launcher tell
+Home to rebuild from the new state. Repeating activation of the same session returns the original
+`{revision, operation_id}`.
 
 Patch semantics are `{set: {...}, remove: [...]}` with no overlapping key. Unknown keys, credentials
 and unsupported features are rejected. Set with an allowlisted value; remove restores absence (the

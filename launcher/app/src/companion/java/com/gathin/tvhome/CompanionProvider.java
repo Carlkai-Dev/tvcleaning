@@ -3,7 +3,6 @@ package com.gathin.tvhome;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -120,8 +119,7 @@ public final class CompanionProvider extends ContentProvider {
                     break;
                 case "activate":
                     data = store.activate(request);
-                    getContext().sendBroadcast(new Intent(CompanionBridge.ACTION_UPDATED)
-                            .setPackage(getContext().getPackageName()));
+                    CompanionBridge.activated();
                     break;
                 case "result":
                     data = store.result(request.getString("operation_id"));

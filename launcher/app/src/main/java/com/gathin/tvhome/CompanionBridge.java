@@ -15,10 +15,25 @@ import java.util.List;
  * theme's own value and nothing is read from the companion directory.
  */
 final class CompanionBridge {
-    static final String ACTION_UPDATED = "com.gathin.tvhome.COMPANION_UPDATED";
     private static CompanionStore instance;
+    private static volatile Runnable rebuild;
 
     private CompanionBridge() {}
+
+    /**
+     * Registers Home's rebuild hook while it is started, or clears it with null. The provider runs in
+     * this process, so an in-process hook is enough; a broadcast receiver would be exported to other
+     * apps on API levels before 33, where RECEIVER_NOT_EXPORTED does not exist.
+     */
+    static void listen(Runnable hook) {
+        rebuild = hook;
+    }
+
+    /** Called by the provider after an activation has committed, from its binder thread. */
+    static void activated() {
+        Runnable hook = rebuild;
+        if (hook != null) hook.run();
+    }
 
     static synchronized CompanionStore store(Context context) throws Exception {
         Context app = context.getApplicationContext();
