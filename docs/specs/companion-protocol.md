@@ -13,8 +13,9 @@ The provider is compiled and merged into the manifest only when the build proper
 ```bash
 cd launcher
 ./gradlew assembleRelease -PcompanionBridge=true
-# optional: exclude theme schedules from an otherwise writable bridge build
+# optional: exclude an optional feature from an otherwise writable bridge build
 ./gradlew assembleRelease -PcompanionBridge=true -PcompanionSchedules=false
+./gradlew assembleRelease -PcompanionBridge=true -PcompanionCredentials=false
 ```
 
 The default build (`./gradlew assembleRelease`, `build-and-install.sh`, and every release artifact built
@@ -54,10 +55,11 @@ network listener, no cloud service, no exported file provider and no generic pat
 
 The four listed features are mandatory for any personalization. They are advertised only when actually
 implemented. `theme_schedules_v1` and `private_credentials_v1` are optional. A bridge build advertises
-`theme_schedules_v1` unless it was built with `-PcompanionSchedules=false`; that build also rejects a
-`theme_schedule` patch with `unsupported_feature`. A companion that sees no provider, a protocol other
-than `1`, malformed limits or a missing mandatory feature must stay read-only; it must not fall back to
-writing `config.json`.
+`theme_schedules_v1` unless it was built with `-PcompanionSchedules=false`, and
+`private_credentials_v1` unless it was built with `-PcompanionCredentials=false`. A build without a
+feature rejects its methods or patches with `unsupported_feature`. A companion that sees no provider,
+a protocol other than `1`, malformed limits or a missing mandatory feature must stay read-only; it
+must not fall back to writing `config.json`.
 
 ## `state`
 
@@ -129,6 +131,51 @@ Stable error codes: `unsupported_protocol`, `unsupported_feature`, `invalid_requ
 Restoration is another reviewed stage/activate transaction with a fresh `expected_revision`. It never
 resets all settings and never overwrites a later manual change.
 
+## Private provider credentials (`private_credentials_v1`)
+
+Provider credentials never enter `settings`, `overrides`, `config.json`, a theme file, `ThemeProvider`,
+logcat, an export or a status reply. They live in the launcher's private files directory, sealed with
+an app-scoped Android Keystore AES-256-GCM key; uninstalling the launcher removes both the key and the
+ciphertext. A lost or invalidated key reports `state: "unavailable"` and `configured: false`; there is
+no plaintext fallback.
+
+Only the approved provider ID `unsplash` is accepted in this version. A credential is a flat JSON
+object of at most 16 scalar fields (`[a-z][a-z0-9_]{0,63}` keys, ≤2048-character strings) and at most
+4 KiB canonical JSON. Nested objects, arrays, unknown providers and empty credentials are rejected.
+No method ever returns a credential value.
+
+```json
+credentials_set
+{"protocol_version":1,"request_id":"...","provider":"unsplash",
+ "credential":{"access_key":"...","collections":"..."}}
+```
+
+`credentials_set` sets or rotates. The new value is sealed, opened again to prove it is readable, then
+atomically moved over the previous file; an interrupted or failed update leaves the previous credential
+usable. Rotation invalidates the old value. `credentials_status` takes an optional `provider` and
+returns safe state:
+
+```json
+{"provider":"unsplash","configured":true,"enabled":true,"state":"ok",
+ "last_success":1790000000000,
+ "last_failure":{"at":1789990000000,"code":"rate_limited"},
+ "attribution":{"asset":"photo_1","at":1790000000000}}
+```
+
+`state` is one of `idle`, `ok`, `offline`, `rate_limited`, `invalid_media`, `auth_error`,
+`unavailable`. A configured provider is **not** used until a separate `credentials_enable` call sets
+`{"provider":"unsplash","enabled":true}`; enabling without a usable credential fails. `false` stops
+retrieval without deleting the credential. `credentials_revoke` takes `{"provider":"unsplash"}` and
+removes the secret, enabled flag, health, attribution and pending retrieval state in one action, so
+the launcher returns to local-only wallpapers. `state.providers` lists the same safe status for every
+approved provider when the capability is advertised.
+
+Retrieval code checks `configured` and `enabled` first, so no request is made for a disabled or
+unconfigured source. Failures are recorded and Home keeps the last verified local asset (or the
+previous provider asset); it never spins or retries in a loop. Only a fully decoded, size-checked image
+may be recorded as `recordSuccess`, which is also where attribution is set. Revocation never deletes
+local wallpapers or the current static theme.
+
 ## Theme schedules (`theme_schedules_v1`)
 
 A schedule is stored in the companion override record, separate from the theme's `config.json`, and
@@ -194,6 +241,8 @@ schedule change alone never creates one.
   readback gating and the durable on-TV disable switch.
 - `ThemeScheduleTest` covers polar fallback, DST gap/repeat, midnight, coincident rules, explicit
   timezone changes, manual override expiry, schema rejection and restart-safe evaluation.
+- `CredentialStoreTest` covers encrypted-at-rest storage, rotation, interrupted update, unreadable
+  ciphertext, revocation, rejected providers/values and safe status/attribution without secrets.
 - `CompanionProtocolTest` covers base64url parsing, the 256 KiB cap, version/method rejection, the reply
   shape, canonical revisions and a malformed request touching no file.
 - `tests/test_launcher_protocol.py` checks the supported/legacy/newer/incomplete capability fixtures and

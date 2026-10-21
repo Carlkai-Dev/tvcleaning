@@ -337,7 +337,10 @@ TV's own clock: the theme, colours and wallpaper collection you chose for the ev
 sunset switch themselves, with no network, computer or companion process involved. With the switch off,
 the saved theme stays as it is and wallpaper rotation keeps its interval. Launcher settings shows the
 state and the next transition, and turning evaluation off keeps the saved schedule. Build with
-`-PcompanionSchedules=false` to omit that capability. See
+`-PcompanionSchedules=false` to omit that capability. Provider credentials are stored encrypted with
+an app-scoped Android Keystore key: the companion can set, rotate, enable or revoke them, but no reply
+ever returns the secret, and local wallpapers keep working when no provider is configured. Build with
+`-PcompanionCredentials=false` to omit that capability. See
 [`docs/specs/companion-protocol.md`](docs/specs/companion-protocol.md) for the envelope, capability
 list, patch rules, revision rules, crash boundaries and retention limits. Rebuild without the flag to
 return to the standard launcher.

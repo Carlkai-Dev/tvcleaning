@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class CompanionProvider extends ContentProvider {
     private static CompanionStore instance;
+    private static ProviderCredentials providerCredentials;
     private static final ThreadPoolExecutor uploads = new ThreadPoolExecutor(
             2, 2, 30, TimeUnit.SECONDS, new ArrayBlockingQueue<>(4));
     private static final ScheduledExecutorService timeouts = Executors.newSingleThreadScheduledExecutor();
@@ -88,6 +89,20 @@ public final class CompanionProvider extends ContentProvider {
         return BuildConfig.COMPANION_SCHEDULES;
     }
 
+    /** Provider credentials are advertised only by a bridge build that kept them enabled. */
+    private static boolean credentials() {
+        return BuildConfig.COMPANION_CREDENTIALS;
+    }
+
+    static synchronized ProviderCredentials credentials(Context context) {
+        if (providerCredentials == null) {
+            Context app = context.getApplicationContext();
+            providerCredentials = new ProviderCredentials(
+                    new File(app.getFilesDir(), "providers"), new KeystoreVault());
+        }
+        return providerCredentials;
+    }
+
     @Override
     public boolean onCreate() {
         return true;
@@ -111,10 +126,33 @@ public final class CompanionProvider extends ContentProvider {
             CompanionStore store = store(getContext());
             switch (method) {
                 case "capabilities":
-                    data = CompanionStore.capabilities(BuildConfig.VERSION_NAME, schedules());
+                    data = CompanionStore.capabilities(BuildConfig.VERSION_NAME,
+                            schedules(), credentials());
                     break;
                 case "state":
                     data = store.state(schedules());
+                    if (credentials()) {
+                        data.put("providers", credentials(getContext()).status(null));
+                    }
+                    break;
+                case "credentials_status":
+                    requireCredentials();
+                    data = credentials(getContext()).status(
+                            request.has("provider") ? request.getString("provider") : null);
+                    break;
+                case "credentials_set":
+                    requireCredentials();
+                    data = credentials(getContext()).set(request.getString("provider"),
+                            request.getJSONObject("credential"));
+                    break;
+                case "credentials_enable":
+                    requireCredentials();
+                    data = credentials(getContext()).enable(request.getString("provider"),
+                            request.getBoolean("enabled"));
+                    break;
+                case "credentials_revoke":
+                    requireCredentials();
+                    data = credentials(getContext()).revoke(request.getString("provider"));
                     break;
                 case "stage":
                     data = store.stage(request, schedules());
@@ -192,6 +230,11 @@ public final class CompanionProvider extends ContentProvider {
         } catch (Exception failure) {
             throw new FileNotFoundException("Companion asset transfer unavailable");
         }
+    }
+
+    /** A build without the feature rejects the methods instead of silently accepting a secret. */
+    private static void requireCredentials() throws CompanionProtocol.Failure {
+        if (!credentials()) throw new CompanionProtocol.Failure("unsupported_feature");
     }
 
     private static JSONObject denied(String arg) {

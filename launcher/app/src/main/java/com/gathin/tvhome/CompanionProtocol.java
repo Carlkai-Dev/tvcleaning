@@ -91,8 +91,9 @@ final class CompanionProtocol {
         if (!integer(request.opt("protocol_version"), VERSION, VERSION)) {
             throw new Failure("unsupported_protocol");
         }
-        if (!Arrays.asList("capabilities", "state", "stage", "validate",
-                "activate", "result", "discard").contains(method)) {
+        if (!Arrays.asList("capabilities", "state", "stage", "validate", "activate",
+                "result", "discard", "credentials_status", "credentials_set",
+                "credentials_enable", "credentials_revoke").contains(method)) {
             throw new Failure("invalid_request");
         }
         return request;

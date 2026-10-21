@@ -115,6 +115,10 @@ public class CompanionStoreTest {
                 .toString().contains("theme_schedules_v1"));
         assertTrue(CompanionStore.capabilities("2.5", true).getJSONArray("features")
                 .toString().contains("theme_schedules_v1"));
+        assertTrue(CompanionStore.capabilities("2.5", false, true).getJSONArray("features")
+                .toString().contains("private_credentials_v1"));
+        assertFalse(CompanionStore.capabilities("2.5", false, true).getJSONArray("features")
+                .toString().contains("theme_schedules_v1"));
     }
 
     @Test

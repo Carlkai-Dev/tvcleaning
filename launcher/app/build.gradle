@@ -11,6 +11,10 @@ def companionBridge = providers.gradleProperty('companionBridge')
 // stay read/write only: -PcompanionSchedules=false drops the capability and the evaluator wiring.
 def companionSchedules = companionBridge && providers.gradleProperty('companionSchedules')
         .map { it != 'false' }.getOrElse(true)
+// Provider credentials are a separate optional feature: -PcompanionCredentials=false keeps the
+// bridge writable while advertising no credential methods at all.
+def companionCredentials = companionBridge && providers.gradleProperty('companionCredentials')
+        .map { it != 'false' }.getOrElse(true)
 def generatedCompanionManifest = layout.buildDirectory.file('generated/companion/AndroidManifest.xml')
 
 android {
@@ -26,6 +30,7 @@ android {
         versionName '2.5'
         buildConfigField 'boolean', 'COMPANION_BRIDGE', "${companionBridge}"
         buildConfigField 'boolean', 'COMPANION_SCHEDULES', "${companionSchedules}"
+        buildConfigField 'boolean', 'COMPANION_CREDENTIALS', "${companionCredentials}"
     }
 
     buildFeatures {

@@ -212,15 +212,20 @@ final class CompanionStore {
     }
 
     static JSONObject capabilities(String launcherVersion) {
-        return capabilities(launcherVersion, false);
+        return capabilities(launcherVersion, false, false);
     }
 
     static JSONObject capabilities(String launcherVersion, boolean schedules) {
+        return capabilities(launcherVersion, schedules, false);
+    }
+
+    static JSONObject capabilities(String launcherVersion, boolean schedules, boolean credentials) {
         try {
             JSONArray features = new JSONArray(Arrays.asList(
                     "collections_v1", "atomic_activation_v1",
                     "revision_checks_v1", "readback_v1"));
             if (schedules) features.put("theme_schedules_v1");
+            if (credentials) features.put("private_credentials_v1");
             return new JSONObject()
                     .put("protocol_version", CompanionProtocol.VERSION)
                     .put("launcher_version", launcherVersion)

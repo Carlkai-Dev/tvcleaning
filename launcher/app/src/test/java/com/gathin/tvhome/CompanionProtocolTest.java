@@ -52,6 +52,17 @@ public class CompanionProtocolTest {
         assertFailure("invalid_request", "destroy", new JSONObject().put("protocol_version", 1).put("request_id", ID));
     }
 
+    @Test
+    public void credentialMethodsAreKnownButStillRequireVersionOne() throws Exception {
+        JSONObject valid = new JSONObject().put("protocol_version", 1).put("request_id", ID);
+        for (String method : Arrays.asList("credentials_status", "credentials_set",
+                "credentials_enable", "credentials_revoke")) {
+            CompanionProtocol.request(method, valid);
+            assertFailure("unsupported_protocol", method,
+                    new JSONObject().put("protocol_version", 2).put("request_id", ID));
+        }
+    }
+
     private static void assertFailure(String code, String method, JSONObject request) throws Exception {
         try {
             CompanionProtocol.request(method, request);
