@@ -18,8 +18,8 @@
     <string name="ethernet">Ethernet</string>
     <string name="offline">Offline</string>
     <string name="not_available">Not available on this TV</string>
-    <string name="bt_screen_row">TV Bluetooth screen</string>
-    <string name="bt_radio_busy">Radio busy — close this and try again</string>
+    <string name="bt_screen_row">TV Bluetooth</string>
+    <string name="bt_radio_busy">Bluetooth busy — try again</string>
     <string name="bt_failed">Pairing failed</string>
     <string name="bt_pairing">Pairing…</string>
     <string name="bt_paired">Paired</string>
