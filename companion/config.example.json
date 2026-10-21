@@ -1,0 +1,41 @@
+{
+  "ca_pem": "",
+  "immich": {
+    "url": "https://photos.home.example",
+    "api_key": "PASTE-IMMICH-API-KEY",
+    "recent_days": 90,
+    "max_photos": 500,
+    "exclude_albums": ["Screenshots"],
+    "exclude_tags": ["Private"],
+    "shuffle": true,
+    "interval_seconds": 20,
+    "crop": false,
+    "show_clock": true,
+    "details": true,
+    "motion": true,
+    "pair_portraits": true
+  },
+  "homepage": {
+    "url": "https://home.home.example",
+    "text_zoom": 100,
+    "keep_awake": false
+  },
+  "sonarr": {
+    "url": "https://sonarr.home.example",
+    "api_key": "PASTE-SONARR-API-KEY",
+    "quality_profile": "",
+    "root_folder": "",
+    "monitor": "all"
+  },
+  "radarr": {
+    "url": "https://radarr.home.example",
+    "api_key": "PASTE-RADARR-API-KEY",
+    "quality_profile": "",
+    "root_folder": ""
+  },
+  "qbittorrent": {
+    "url": "https://qbit.home.example",
+    "username": "admin",
+    "password": "PASTE-WEBUI-PASSWORD"
+  }
+}
