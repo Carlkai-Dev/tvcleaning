@@ -11,7 +11,8 @@ import java.util.Random;
 
 /**
  * The clock screensaver's scene (layout dream_clock): the thin clock and date on black over a slow ambient
- * glow. Every minute the clock drifts to a new spot and the glow shifts colour, so nothing burns in.
+ * glow, with the weather card beside them when config.xml turns weather_card on (WeatherCard). Every minute
+ * the clock drifts to a new spot and the glow shifts colour, so nothing burns in.
  * Shared by ClockDream (the system screensaver) and ClockActivity (Home left idle).
  */
 final class ClockScene {
@@ -24,6 +25,7 @@ final class ClockScene {
     private final Random random = new Random();
     private final View content;
     private final GradientDrawable glow;
+    private final WeatherCard weather;
     private int colorIndex;
     private int glowColor;
 
@@ -32,6 +34,7 @@ final class ClockScene {
         public void run() {
             moveClock();
             shiftGlow();
+            weather.refresh();
             handler.postDelayed(this, MOVE_MS);
         }
     };
@@ -47,6 +50,7 @@ final class ClockScene {
                 glow.setGradientRadius((r - l) * 0.55f));
         colorIndex = random.nextInt(PALETTE.length);
         setGlow(PALETTE[colorIndex]);
+        weather = new WeatherCard(root, this::moveClock);
     }
 
     void start() {
@@ -57,10 +61,12 @@ final class ClockScene {
         });
         handler.removeCallbacks(tick);
         handler.postDelayed(tick, MOVE_MS);
+        weather.refresh();
     }
 
     void stop() {
         handler.removeCallbacks(tick);
+        weather.stop();
     }
 
     private void moveClock() {

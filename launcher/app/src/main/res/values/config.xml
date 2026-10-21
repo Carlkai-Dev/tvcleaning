@@ -196,4 +196,11 @@
          Live TV window does not keep the screen on (CVTE): there the system screensaver would start in the
          middle of a programme. Can also be set with "home_idle_clock_minutes": 10 in a theme's config.json. -->
     <integer name="home_idle_clock_minutes">0</integer>
+
+    <!-- Weather card on the clock screensaver: today and the next six days from Open-Meteo (open-meteo.com:
+         free, no account, key or cookies), for the latitude and longitude above. Only those go out, rounded to
+         0.1 degree (about 10 km), once an hour while the screensaver runs. false (the default): the launcher
+         never connects to anything, latitude or not. weather_place is the name on the card; empty hides it. -->
+    <bool name="weather_card">false</bool>
+    <string name="weather_place" translatable="false"></string>
 </resources>
