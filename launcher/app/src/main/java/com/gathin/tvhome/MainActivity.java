@@ -2547,6 +2547,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setOutsideTouchable(true);
         popup.setAnimationStyle(0);
         popup.setElevation(0f);
+        panel.setFocusableInTouchMode(true);
+        panel.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE)
+                    && event.getAction() == KeyEvent.ACTION_UP) {
+                popup.dismiss();
+                return true;
+            }
+            return false;
+        });
         popup.setOnDismissListener(() -> {
             if (openPopup == popup) openPopup = null;
         });
@@ -2596,6 +2605,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             action.run();
         });
+        row.setOnKeyListener((v, keyCode, event) -> {
+            if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
+                if (event.getAction() == KeyEvent.ACTION_UP) {
+                    popup.dismiss();
+                }
+                return true;
+            }
+            return false;
+        });
         rows.addView(row);
     }
 
@@ -2633,6 +2651,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The OK-up after opening the menu must not activate its first row.
         final boolean[] pressed = {false};
         row.setOnKeyListener((v, code, event) -> {
+            if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_ESCAPE) {
+                if (event.getAction() == KeyEvent.ACTION_UP) {
+                    popup.dismiss();
+                }
+                return true;
+            }
             if (code != KeyEvent.KEYCODE_DPAD_CENTER && code != KeyEvent.KEYCODE_ENTER) return false;
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
                 if (event.getRepeatCount() == 0) pressed[0] = true;
@@ -2771,6 +2795,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 updateCardStates(rows);
                 return null;
             }, null));
+            row.setOnKeyListener((v, keyCode, event) -> {
+                if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
+                    if (event.getAction() == KeyEvent.ACTION_UP) {
+                        popup.dismiss();
+                    }
+                    return true;
+                }
+                return false;
+            });
             rows.addView(row);
         }
         updateCardStates(rows);

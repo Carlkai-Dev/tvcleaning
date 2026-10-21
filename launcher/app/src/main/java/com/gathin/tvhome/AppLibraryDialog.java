@@ -129,6 +129,15 @@ final class AppLibraryDialog {
         popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         popup.setOutsideTouchable(true);
         popup.setAnimationStyle(0);
+        panel.setFocusableInTouchMode(true);
+        panel.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE)
+                    && event.getAction() == KeyEvent.ACTION_UP) {
+                close();
+                return true;
+            }
+            return false;
+        });
         popup.setOnDismissListener(() -> { dismissActions(); stopHighlight(); dismissed.run(); });
     }
 
@@ -361,6 +370,15 @@ final class AppLibraryDialog {
         menu.setOutsideTouchable(true);
         menu.setAnimationStyle(0);
         menu.setElevation(0f);
+        menuPanel.setFocusableInTouchMode(true);
+        menuPanel.setOnKeyListener((v, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE)
+                    && event.getAction() == KeyEvent.ACTION_UP) {
+                dismissActions();
+                return true;
+            }
+            return false;
+        });
         menu.setOnDismissListener(() -> {
             if (actionPopup == menu) actionPopup = null;
             restoreCardFocus();
@@ -414,6 +432,12 @@ final class AppLibraryDialog {
         row.setOnClickListener(v -> action.run());
         rows.addView(row);
         row.setOnKeyListener((v, key, event) -> {
+            if (key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_ESCAPE) {
+                if (event.getAction() == KeyEvent.ACTION_UP) {
+                    dismissActions();
+                }
+                return true;
+            }
             int index = rows.indexOfChild(v);
             return event.getAction() == KeyEvent.ACTION_DOWN && (key == KeyEvent.KEYCODE_DPAD_LEFT
                     || key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_UP && index == 0
@@ -507,6 +531,12 @@ final class AppLibraryDialog {
                 }
             });
             holder.itemView.setOnKeyListener((v, key, event) -> {
+                if (key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_ESCAPE) {
+                    if (event.getAction() == KeyEvent.ACTION_UP) {
+                        close();
+                    }
+                    return true;
+                }
                 int index = holder.getBindingAdapterPosition();
                 return event.getAction() == KeyEvent.ACTION_DOWN && (key == KeyEvent.KEYCODE_DPAD_UP
                         || key == KeyEvent.KEYCODE_DPAD_DOWN
