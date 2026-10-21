@@ -21,7 +21,7 @@ import java.util.Map;
 
 /**
  * High-performance remote key and window manager for Fire TV:
- * Intercepts KEYCODE_HOME and window state changes with an instant zero-latency visual shield
+ * Intercepts KEYCODE_HOME and window state changes with a lightweight, non-blocking visual shield
  * and resilient retry loop to completely eliminate any flash of the Amazon stock launcher.
  */
 public class HomeKeyService extends AccessibilityService {
@@ -39,17 +39,24 @@ public class HomeKeyService extends AccessibilityService {
 
     private long lastLaunchTime = 0;
 
-    // Zero-latency fullscreen overlay shield
+    // Transient fullscreen overlay shield (strictly non-blocking & non-touchable)
     private WindowManager windowManager;
     private FrameLayout shieldView;
     private boolean shieldVisible = false;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private int retryCount = 0;
 
+    // Hard safety watchdog: shield CANNOT remain visible longer than 500ms under any circumstances
+    private final Runnable shieldTimeoutRunnable = this::hideShield;
+
     private final Runnable retryRunnable = new Runnable() {
         @Override
         public void run() {
-            if (retryCount < 70) { // Retries every 100ms for up to 7.0 seconds
+            if (MainActivity.isForeground) {
+                hideShield();
+                return;
+            }
+            if (retryCount < 50) { // Retries every 100ms for up to 5.0 seconds
                 retryCount++;
                 launchMainActivity();
                 handler.postDelayed(this, 100);
@@ -66,9 +73,10 @@ public class HomeKeyService extends AccessibilityService {
         }
     }
 
-    private void onMainActivityResumed() {
+    public void onMainActivityResumed() {
         handler.post(() -> {
             handler.removeCallbacks(retryRunnable);
+            handler.removeCallbacks(shieldTimeoutRunnable);
             hideShield();
         });
     }
@@ -92,8 +100,11 @@ public class HomeKeyService extends AccessibilityService {
     }
 
     private void showShield() {
+        // If CleanYourTV is already on screen, NEVER show a shield overlay!
+        if (MainActivity.isForeground) return;
+
         handler.post(() -> {
-            if (shieldVisible) return;
+            if (MainActivity.isForeground || shieldVisible) return;
             try {
                 if (windowManager == null) {
                     windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
@@ -101,6 +112,7 @@ public class HomeKeyService extends AccessibilityService {
                 if (shieldView == null) {
                     shieldView = new FrameLayout(this);
                 }
+
                 // Apply active wallpaper or theme gradient
                 try {
                     Bitmap bmp = BackdropThemeManager.getInstance(this).getBackdropBitmap(1920, 1080, Color.BLACK);
@@ -109,20 +121,26 @@ public class HomeKeyService extends AccessibilityService {
                     shieldView.setBackgroundColor(0xFF0F050A);
                 }
 
+                // Crucial: FLAG_NOT_TOUCHABLE ensures the remote and TV can NEVER be frozen or blocked!
                 WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                         WindowManager.LayoutParams.MATCH_PARENT,
                         WindowManager.LayoutParams.MATCH_PARENT,
                         WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                                | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                                 | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                                 | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                        PixelFormat.OPAQUE);
+                        PixelFormat.TRANSLUCENT);
                 params.gravity = Gravity.CENTER;
 
                 if (!shieldView.isAttachedToWindow()) {
                     windowManager.addView(shieldView, params);
                 }
                 shieldVisible = true;
+
+                // Arm the 500ms safety auto-dismiss watchdog
+                handler.removeCallbacks(shieldTimeoutRunnable);
+                handler.postDelayed(shieldTimeoutRunnable, 500);
             } catch (Exception e) {
                 Log.w(TAG, "showShield failed", e);
             }
@@ -131,6 +149,7 @@ public class HomeKeyService extends AccessibilityService {
 
     private void hideShield() {
         handler.post(() -> {
+            handler.removeCallbacks(shieldTimeoutRunnable);
             if (!shieldVisible) return;
             try {
                 if (windowManager != null && shieldView != null && shieldView.isAttachedToWindow()) {
@@ -165,6 +184,11 @@ public class HomeKeyService extends AccessibilityService {
     }
 
     private void launchCleanYourTV() {
+        if (MainActivity.isForeground) {
+            launchMainActivity();
+            return;
+        }
+
         long now = System.currentTimeMillis();
         if (now - lastLaunchTime > 150) {
             lastLaunchTime = now;
@@ -214,6 +238,8 @@ public class HomeKeyService extends AccessibilityService {
                 String pkg = pkgSeq.toString();
                 if (pkg.equals(AMAZON_LAUNCHER) || pkg.equals(AMAZON_HOMESTARTER)) {
                     launchCleanYourTV();
+                } else if (pkg.equals(getPackageName())) {
+                    onMainActivityResumed();
                 }
             }
         }
