@@ -1,0 +1,10 @@
+{
+  "background_color": "#070A14",
+  "wallpaper": true,
+  "dock_apps": [
+    "com.google.android.youtube.tv",
+    "com.netflix.ninja",
+    "org.jellyfin.androidtv",
+    "com.stremio.one"
+  ]
+}

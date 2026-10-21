@@ -141,6 +141,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean heroShown;
     private boolean animations;
     private boolean advancedEffects;
+    private SolatManager solatManager;
     private TextView greeting;
     private View clockBlock;
     private View btnInputs;
@@ -294,6 +295,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateWifiLabel();
             sky.update();
             wallpaperPlayer.update();
+            if (solatManager != null) solatManager.update();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -546,7 +548,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                // Back to the dock tile Up came from, not wherever the focus finder lands.
+                View sc = findViewById(R.id.solatCard);
+                if (sc != null && sc.getVisibility() == View.VISIBLE) {
+                    sc.requestFocus();
+                    return true;
+                }
                 focusTile(lastFocused % COLUMNS);
                 return true;
             }
@@ -561,6 +567,34 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
+
+        View solatCard = findViewById(R.id.solatCard);
+        if (solatCard != null) {
+            solatManager = new SolatManager(this, solatCard);
+            solatManager.update();
+            solatCard.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    focusTile(lastFocused % COLUMNS);
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    btnSettings.requestFocus();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                        || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                    v.performClick();
+                    return true;
+                }
+                return false;
+            });
+            if (advancedEffects) {
+                solatCard.setOnFocusChangeListener((view, focused) -> view.animate()
+                        .scaleX(focused ? 1.02f : 1f).scaleY(focused ? 1.02f : 1f)
+                        .setDuration(160).start());
+            }
+        }
         if (advancedEffects) {
             for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
@@ -670,6 +704,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             pillsShown = true;
         }
         if (showStats) startStats();
+        if (solatManager != null) solatManager.update();
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
@@ -1772,7 +1807,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+            if (position < COLUMNS) {
+                View sc = findViewById(R.id.solatCard);
+                if (sc != null && sc.getVisibility() == View.VISIBLE) {
+                    sc.requestFocus();
+                    return true;
+                }
+                return false;          // dock row: let focus move to the top bar
+            }
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;

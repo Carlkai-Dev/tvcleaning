@@ -1,0 +1,58 @@
+# SHARP 4TC55FJ1X (reported as 4K Sharp Google TV; device expo, manufacturer MTC), Asia/Malaysia
+# Android TV 14 (SDK 34), firmware UKNV.260716.001, MediaTek MSD9602PA platform, 2 GB RAM
+# Stock launcher: com.google.android.apps.tv.launcherx
+# Live TV app: com.mediatek.wwtv.tvcenter; HDMI/tuner inputs: com.mediatek.tvinput
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/sharp-4tc55fj1x/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/sharp-4tc55fj1x/debloat.txt
+# Everything is DISABLED for user 0, never uninstalled. Comment out any line you want to keep.
+#
+# Applied and verified: screenshots after each batch, Live TV, HDMI 1, Play Store and streaming.
+# Package names checked with dumpsys package before disabling.
+#
+# Kept on purpose: Google Play Store + Play Services, Gboard, Google TTS, Dolby audio,
+# com.mediatek.tvinput / com.mediatek.tv.service / com.mediatek.wwtv.tvcenter (Live TV and HDMI),
+# com.mediatek.wwtv.setupwizard (channel scan), com.mediatek.wwtv.mediaplayer (USB media),
+# com.airoha.btd, com.mediatek.autopair, com.mediatek.android.tv.mtc.globalkeyoverlay,
+# com.google.android.tv.remote.service (phone remote, kept by choice),
+# all com.mediatek.* and com.android.tv.settings.* overlays, com.mstar.android.tv.disclaimercustomization.
+#
+# Kept streaming/gaming apps by user choice:
+# com.netflix.ninja, com.google.android.youtube.tv, org.jellyfin.androidtv, com.stremio.one, com.valvesoftware.steamlink.
+
+# --- Manufacturer telemetry, recommendation rows and retail demo ---
+tv.anoki.acr.anokiacroptin
+fusion.android.tv.demo                                   # retail demo mode
+com.mediatek.android.leanbacklauncher.partnercustomizer  # partner rows for stock launcher
+
+# --- Manufacturer factory / test only stubs ---
+com.mediatek.mtc.factory                                 # factory test
+mediatek.factorymenu.ui                                  # factory menu UI
+com.mtc.emanual.overlay.ok                               # overlay for emanual (emanual is disabled)
+
+# --- Google telemetry, partner setup and ambient screensaver ---
+com.google.android.feedback
+com.google.android.partnersetup                           # Play partner customizations
+com.android.tv.feedbackconsent                            # feedback consent dialog
+com.google.android.syncadapters.calendar                  # calendar sync
+com.google.android.apps.tv.dreamx                         # ambient screensaver
+
+# --- Voice assistant, Chromecast, Miracast (disabled by choice) ---
+com.google.android.katniss                                # Google Assistant / voice search
+com.google.android.tv.assistant                           # Google TV Assistant
+com.google.android.apps.mediashell                        # Chromecast built-in
+com.mediatek.androidbox                                   # Miracast screen mirroring
+
+# --- Unused preloaded and streaming apps (disabled by choice) ---
+com.tcl.browser                                           # preloaded browser
+com.google.android.play.games                             # Google Play Games
+com.google.android.youtube.tvmusic                        # YouTube Music
+in.startv.hotstar.dplus.tv                                # Disney+ Hotstar
+com.wbd.stream                                            # Max / HBO
+com.microsoft.xboxone.smartglass                          # Xbox
+
+# --- Google TV stock launcher and setup wizard (for CleanYourTV home replacement) ---
+# Note on Wi-Fi ownership: before disabling setupwraith, forget and reconnect Wi-Fi in
+# Settings > Network & Internet so cname becomes android.uid.system:1000; tools/disable.sh guards this.
+com.google.android.apps.tv.launcherx                      # stock Google TV launcher
+com.google.android.tungsten.setupwraith                   # setup wizard; its RecoveryActivity claims Home priority 1

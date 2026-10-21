@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/glass_panel"
+    android:paddingStart="26dp"
+    android:paddingEnd="26dp"
+    android:paddingTop="22dp"
+    android:paddingBottom="20dp"
+    android:elevation="12dp">
+
+    <TextView
+        android:id="@+id/dialogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Pilih Kawasan Waktu Solat"
+        android:textColor="#FFFFFFFF"
+        android:textSize="22sp"
+        android:fontFamily="@font/outfit_medium"
+        android:letterSpacing="-0.01" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Pilih zon JAKIM atau masukkan kod manual (contoh: WLY01)"
+        android:textColor="#99FFFFFF"
+        android:textSize="13sp"
+        android:fontFamily="@font/outfit" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="280dp"
+        android:layout_marginTop="14dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/zoneList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="vertical" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        android:gravity="end">
+
+        <TextView
+            android:id="@+id/btnCustomZone"
+            style="@style/TopButton"
+            android:text="Kod Manual..."
+            android:focusable="true"
+            android:layout_marginEnd="10dp" />
+
+        <TextView
+            android:id="@+id/btnCloseDialog"
+            style="@style/TopButton"
+            android:text="Tutup"
+            android:focusable="true" />
+    </LinearLayout>
+</LinearLayout>
