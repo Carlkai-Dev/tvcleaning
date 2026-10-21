@@ -83,6 +83,11 @@ public final class CompanionProvider extends ContentProvider {
         return instance;
     }
 
+    /** Theme schedules are advertised only by a bridge build that kept them enabled. */
+    private static boolean schedules() {
+        return BuildConfig.COMPANION_SCHEDULES;
+    }
+
     @Override
     public boolean onCreate() {
         return true;
@@ -106,13 +111,13 @@ public final class CompanionProvider extends ContentProvider {
             CompanionStore store = store(getContext());
             switch (method) {
                 case "capabilities":
-                    data = CompanionStore.capabilities(BuildConfig.VERSION_NAME);
+                    data = CompanionStore.capabilities(BuildConfig.VERSION_NAME, schedules());
                     break;
                 case "state":
-                    data = store.state();
+                    data = store.state(schedules());
                     break;
                 case "stage":
-                    data = store.stage(request);
+                    data = store.stage(request, schedules());
                     break;
                 case "validate":
                     data = store.validate(request.getString("session_id"));

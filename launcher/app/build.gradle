@@ -7,6 +7,10 @@ plugins {
 // -byte the same feature set as before this change.
 def companionBridge = providers.gradleProperty('companionBridge')
         .map { it == 'true' }.getOrElse(false)
+// Theme schedules ship with the companion bridge, but can be excluded from a bridge build that must
+// stay read/write only: -PcompanionSchedules=false drops the capability and the evaluator wiring.
+def companionSchedules = companionBridge && providers.gradleProperty('companionSchedules')
+        .map { it != 'false' }.getOrElse(true)
 def generatedCompanionManifest = layout.buildDirectory.file('generated/companion/AndroidManifest.xml')
 
 android {
@@ -21,6 +25,7 @@ android {
         versionCode 6
         versionName '2.5'
         buildConfigField 'boolean', 'COMPANION_BRIDGE', "${companionBridge}"
+        buildConfigField 'boolean', 'COMPANION_SCHEDULES', "${companionSchedules}"
     }
 
     buildFeatures {

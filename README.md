@@ -332,7 +332,12 @@ The opt-in build publishes `content://com.gathin.tvhome.companion/v1` with `capa
 transactional `stage`/`validate`/`activate`/`result`/`discard`, and bounded asset streaming (protocol
 version 1, no network). Ordinary apps are rejected; only the ADB shell UID and the launcher itself may
 call it. A staged collection is invisible until an explicit `activate` commits it atomically; Home then
-rebuilds from the new state. See
+rebuilds from the new state. A bridge build also evaluates saved `theme_schedules_v1` schedules on the
+TV's own clock: the theme, colours and wallpaper collection you chose for the evening, the morning or
+sunset switch themselves, with no network, computer or companion process involved. With the switch off,
+the saved theme stays as it is and wallpaper rotation keeps its interval. Launcher settings shows the
+state and the next transition, and turning evaluation off keeps the saved schedule. Build with
+`-PcompanionSchedules=false` to omit that capability. See
 [`docs/specs/companion-protocol.md`](docs/specs/companion-protocol.md) for the envelope, capability
 list, patch rules, revision rules, crash boundaries and retention limits. Rebuild without the flag to
 return to the standard launcher.

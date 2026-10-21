@@ -110,12 +110,112 @@ public class CompanionStoreTest {
     }
 
     @Test
+    public void themeSchedulesAreAdvertisedOnlyWhenThisBuildEnablesThem() throws Exception {
+        assertFalse(CompanionStore.capabilities("2.5").getJSONArray("features")
+                .toString().contains("theme_schedules_v1"));
+        assertTrue(CompanionStore.capabilities("2.5", true).getJSONArray("features")
+                .toString().contains("theme_schedules_v1"));
+    }
+
+    @Test
+    public void scheduleReadbackStaysOffUntilExplicitlyEnabled() throws Exception {
+        File root = Files.createTempDirectory("companion-schedule").toFile();
+        JSONObject stored = new JSONObject().put("theme_schedule", schedule())
+                .put("theme_schedule_enabled", false);
+        writeActive(root, stored);
+        JSONObject disabled = store(root, legacy("a.jpg", null)).state().getJSONObject("schedule");
+        assertFalse(disabled.getBoolean("enabled"));
+
+        stored.put("theme_schedule_enabled", true);
+        writeActive(root, stored);
+        JSONObject enabled = store(root, legacy("a.jpg", null)).state().getJSONObject("schedule");
+        assertTrue(enabled.getBoolean("enabled"));
+        assertFalse(store(root, legacy("a.jpg", null)).state(false)
+                .getJSONObject("schedule").getBoolean("enabled"));
+        assertEquals("UTC", enabled.getString("timezone"));
+        assertEquals("evening", enabled.getJSONObject("last_evaluated").getString("rule_id"));
+        assertTrue(enabled.getJSONArray("upcoming").length() > 0);
+        assertEquals("evening", enabled.getJSONArray("upcoming").getJSONObject(0).getString("rule_id"));
+    }
+
+    @Test
+    public void invalidScheduleReadbackIsMarkedAndNeverAffectsSettings() throws Exception {
+        File root = Files.createTempDirectory("companion-schedule").toFile();
+        writeActive(root, new JSONObject().put("theme_schedule_enabled", true)
+                .put("theme_schedule", new JSONObject().put("version", 1).put("timezone", "Not/AZone")));
+        JSONObject state = store(root, legacy("a.jpg", null)).state();
+        assertFalse(state.getJSONObject("schedule").getBoolean("enabled"));
+        assertTrue(state.getJSONObject("schedule").getBoolean("invalid"));
+        assertEquals("a.jpg", state.getJSONObject("settings").getString("wallpaper"));
+    }
+
+    @Test
+    public void schedulePatchIsRejectedUnlessTheFeatureIsAdvertised() throws Exception {
+        JSONObject patch = new JSONObject().put("set", new JSONObject().put("theme_schedule", schedule()));
+        expectFailure(() -> CompanionStore.patch(patch, false), "invalid_request");
+        CompanionStore.patch(patch, true);
+    }
+
+    @Test
+    public void invalidSchedulePatchIsRejectedWithoutSavingAnything() throws Exception {
+        JSONObject patch = new JSONObject().put("set", new JSONObject().put("theme_schedule",
+                new JSONObject().put("version", 1).put("timezone", "UTC")));
+        expectFailure(() -> CompanionStore.patch(patch, true), "invalid_request");
+    }
+
+    @Test
+    public void onTvDisableKeepsTheSavedScheduleForALaterReEnable() throws Exception {
+        File root = Files.createTempDirectory("companion-schedule").toFile();
+        CompanionStore store = store(root, legacy("a.jpg", null));
+        writeActive(root, new JSONObject().put("theme_schedule", schedule())
+                .put("theme_schedule_enabled", true));
+        assertTrue(store.state().getJSONObject("schedule").getBoolean("enabled"));
+
+        store.setScheduleEnabled(false);
+        assertFalse(store.state().getJSONObject("schedule").getBoolean("enabled"));
+        assertTrue(store.overrides().has("theme_schedule"));
+
+        // Survives a fresh store instance: the override is durable, not process state.
+        CompanionStore reopened = store(root, legacy("a.jpg", null));
+        assertFalse(reopened.state().getJSONObject("schedule").getBoolean("enabled"));
+        reopened.setScheduleEnabled(true);
+        assertTrue(reopened.state().getJSONObject("schedule").getBoolean("enabled"));
+    }
+
+    @Test
     public void stateDoesNotExposeSourcePathsInAnErrorOrARevision() throws Exception {
         File root = Files.createTempDirectory("companion-read").toFile();
         JSONObject state = store(root, legacy("a.jpg", null)).state();
         assertFalse(state.toString().contains(root.getAbsolutePath()));
         assertTrue(state.getString("revision").matches("[a-f0-9]{64}"));
     }
+
+    private static JSONObject schedule() throws Exception {
+        return new JSONObject().put("version", 1).put("timezone", "UTC")
+                .put("location", new JSONObject().put("latitude", 0).put("longitude", 0))
+                .put("default_theme", new JSONObject().put("background_color", "#000000"))
+                .put("rules", new JSONArray().put(new JSONObject().put("id", "evening")
+                        .put("priority", 10)
+                        .put("trigger", new JSONObject().put("type", "fixed").put("time", "18:30"))
+                        .put("theme", new JSONObject().put("accent_color", "#ffffff"))));
+    }
+
+    private static void writeActive(File root, JSONObject settings) throws Exception {
+        Files.write(new File(root, "active.json").toPath(), new JSONObject()
+                .put("settings", settings).put("collections", new JSONArray())
+                .put("operations", new JSONObject()).toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void expectFailure(Throwing action, String code) throws Exception {
+        try {
+            action.run();
+            org.junit.Assert.fail("expected " + code);
+        } catch (CompanionProtocol.Failure failure) {
+            assertEquals(code, failure.code);
+        }
+    }
+
+    private interface Throwing { void run() throws Exception; }
 
     private static String repeat(char value, int count) {
         StringBuilder text = new StringBuilder();

@@ -1,10 +1,12 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
+import android.util.Log;
 
 import org.json.JSONObject;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -15,6 +17,9 @@ import java.util.List;
  * theme's own value and nothing is read from the companion directory.
  */
 final class CompanionBridge {
+    private static final String TAG = "ThemeSchedule";
+    /** Last rule logged, so a minute tick does not repeat the same line. */
+    private static String loggedRule = "";
     private static CompanionStore instance;
     private static volatile Runnable rebuild;
 
@@ -50,15 +55,15 @@ final class CompanionBridge {
         return instance;
     }
 
-    /** Applies only companion overrides; the theme file is not rewritten. */
+    /** Applies companion overrides and, when enabled, the current scheduled theme. */
     static JSONObject overlay(Context context, JSONObject theme) {
         if (!BuildConfig.COMPANION_BRIDGE) return theme;
         try {
             JSONObject result = theme == null ? new JSONObject() : CompanionStore.copy(theme);
-            JSONObject overrides = store(context).overrides();
-            for (Iterator<String> it = overrides.keys(); it.hasNext(); ) {
+            JSONObject settings = effective(context);
+            for (Iterator<String> it = settings.keys(); it.hasNext(); ) {
                 String key = it.next();
-                result.put(key, overrides.get(key));
+                result.put(key, settings.get(key));
             }
             return result;
         } catch (Exception failure) {
@@ -70,8 +75,7 @@ final class CompanionBridge {
     static List<File> selectedAssets(Context context) {
         if (!BuildConfig.COMPANION_BRIDGE) return Collections.emptyList();
         try {
-            JSONObject overrides = store(context).overrides();
-            String selected = overrides.optString("active_collection", "");
+            String selected = effective(context).optString("active_collection", "");
             if (!CompanionProtocol.hex(selected, 32)) return Collections.emptyList();
             return store(context).selectedAssets(selected);
         } catch (Exception failure) {
@@ -79,8 +83,96 @@ final class CompanionBridge {
         }
     }
 
+    /**
+     * Overrides after the schedule is applied. When the schedule is disabled, invalid or absent this
+     * is exactly {@link CompanionStore#overrides()}, so turning it off restores the previous values.
+     */
+    static JSONObject effective(Context context) throws Exception {
+        JSONObject settings = store(context).overrides();
+        if (schedules()) applySchedule(settings, Instant.now());
+        return settings;
+    }
+
+    private static void applySchedule(JSONObject settings, Instant now) {
+        if (!settings.optBoolean("theme_schedule_enabled", false)) return;
+        JSONObject raw = settings.optJSONObject("theme_schedule");
+        if (raw == null) return;
+        try {
+            ThemeSchedule.Schedule schedule = ThemeSchedule.validate(raw);
+            ThemeSchedule.ManualOverride manual = ThemeSchedule.manualOverride(
+                    settings.optJSONObject("theme_manual_override"));
+            ThemeSchedule.Effective effective = ThemeSchedule.effective(schedule, now, manual);
+            for (Iterator<String> it = effective.theme.keys(); it.hasNext(); ) {
+                String key = it.next();
+                settings.put(key, effective.theme.get(key));
+            }
+            // The rule and boundary, never the theme or the saved config.
+            String rule = effective.ruleId + "@" + (effective.transitionAt == null
+                    ? "default" : effective.transitionAt.toEpochMilli());
+            if (!rule.equals(loggedRule)) {
+                loggedRule = rule;
+                Log.i(TAG, "applied rule=" + effective.ruleId + " manual=" + effective.manual
+                        + " fallback=" + effective.fallback
+                        + " transition=" + (effective.transitionAt == null
+                        ? "default" : effective.transitionAt));
+            }
+        } catch (Exception invalid) {
+            // A corrupt schedule must never stop Home from loading; keep the static theme.
+            Log.w(TAG, "ignored invalid or disabled schedule");
+        }
+    }
+
     /** True when this build carries the provider; used by the settings UI and diagnostics. */
     static boolean enabled() {
         return BuildConfig.COMPANION_BRIDGE;
+    }
+
+    /** True when this bridge build also evaluates theme schedules. */
+    static boolean schedules() {
+        return BuildConfig.COMPANION_BRIDGE && BuildConfig.COMPANION_SCHEDULES;
+    }
+
+    /** The schedule readback used by state and by the TV settings row, or null when none is saved. */
+    static JSONObject schedule(Context context) {
+        if (!schedules()) return null;
+        try {
+            CompanionStore source = store(context);
+            JSONObject overrides = source.overrides();
+            if (overrides.optJSONObject("theme_schedule") == null) return null;
+            return CompanionStore.scheduleInfo(overrides, Instant.now());
+        } catch (Exception failure) {
+            return null;
+        }
+    }
+
+    /** The on-TV switch writes one override; the saved schedule stays for a later re-enable. */
+    static boolean setScheduleEnabled(Context context, boolean enabled) {
+        if (!schedules()) return false;
+        try {
+            store(context).setScheduleEnabled(enabled);
+            return true;
+        } catch (Exception failure) {
+            return false;
+        }
+    }
+
+    /**
+     * A cheap value that changes only when the schedule changes what Home draws. The minute tick and
+     * clock/timezone broadcasts compare it, so missed transitions are reconciled once, never replayed.
+     */
+    static String effectiveThemeFingerprint(Context context) {
+        if (!schedules()) return "";
+        try {
+            JSONObject settings = effective(context);
+            JSONObject theme = new JSONObject();
+            for (String key : new String[]{"wallpaper", "wallpaper_dim", "background_color",
+                    "accent_color", "active_collection"}) {
+                if (settings.has(key)) theme.put(key, settings.get(key));
+            }
+            return CompanionProtocol.sha256(CompanionProtocol.canonical(theme)
+                    .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (Exception failure) {
+            return "";
+        }
     }
 }

@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -185,6 +186,11 @@ final class CompanionStore {
     }
 
     synchronized JSONObject state() throws Exception {
+        return state(true);
+    }
+
+    /** The provider passes its build's schedules flag, so a build without the feature cannot report it. */
+    synchronized JSONObject state(boolean schedules) throws Exception {
         JSONObject active = active();
         JSONObject legacy = source.read();
         JSONObject overrides = active.optJSONObject("settings") == null
@@ -201,17 +207,24 @@ final class CompanionStore {
                 .put("overrides", safe(overrides))
                 .put("collections", collections(active))
                 .put("active_collection", effective.opt("active_collection"))
-                .put("operation", operation(active));
+                .put("operation", operation(active))
+                .put("schedule", scheduleInfo(schedules ? overrides : new JSONObject(), Instant.now()));
     }
 
     static JSONObject capabilities(String launcherVersion) {
+        return capabilities(launcherVersion, false);
+    }
+
+    static JSONObject capabilities(String launcherVersion, boolean schedules) {
         try {
+            JSONArray features = new JSONArray(Arrays.asList(
+                    "collections_v1", "atomic_activation_v1",
+                    "revision_checks_v1", "readback_v1"));
+            if (schedules) features.put("theme_schedules_v1");
             return new JSONObject()
                     .put("protocol_version", CompanionProtocol.VERSION)
                     .put("launcher_version", launcherVersion)
-                    .put("features", new JSONArray(Arrays.asList(
-                            "collections_v1", "atomic_activation_v1",
-                            "revision_checks_v1", "readback_v1")))
+                    .put("features", features)
                     .put("limits", new JSONObject()
                             .put("asset_bytes", ASSET_BYTES)
                             .put("collection_bytes", COLLECTION_BYTES)
@@ -221,6 +234,52 @@ final class CompanionStore {
         }
     }
 
+    /**
+     * Readback for the schedules feature. The effective rule is the last evaluated transition; the
+     * upcoming list lets the companion show the next change without guessing. Invalid or disabled
+     * schedules report enabled=false and never affect Config.
+     */
+    static JSONObject scheduleInfo(JSONObject settings, Instant now) {
+        JSONObject result = new JSONObject();
+        try {
+            result.put("enabled", false);
+            JSONObject raw = settings.optJSONObject("theme_schedule");
+            if (raw == null || !settings.optBoolean("theme_schedule_enabled", false)) return result;
+            ThemeSchedule.Schedule schedule = ThemeSchedule.validate(raw);
+            ThemeSchedule.Effective effective = ThemeSchedule.effective(schedule, now);
+            JSONObject current = new JSONObject().put("rule_id", effective.ruleId)
+                    .put("manual", effective.manual).put("fallback", effective.fallback)
+                    .put("theme", effective.theme);
+            if (effective.transitionAt != null) {
+                current.put("transition_at", effective.transitionAt.toEpochMilli());
+            }
+            JSONArray upcoming = new JSONArray();
+            for (ThemeSchedule.Transition transition : ThemeSchedule.upcoming(schedule, now, 8)) {
+                upcoming.put(new JSONObject().put("at", transition.instant.toEpochMilli())
+                        .put("rule_id", transition.ruleId)
+                        .put("theme", transition.theme)
+                        .put("fallback", transition.fallback));
+            }
+            result.put("enabled", true).put("timezone", schedule.zone.getId())
+                    .put("last_evaluated", current).put("upcoming", upcoming);
+        } catch (Exception invalid) {
+            try {
+                result.put("enabled", false).put("invalid", true);
+            } catch (JSONException impossible) {
+                // keep the minimal object
+            }
+        }
+        return result;
+    }
+
+    /** The on-TV disable switch writes one override; it does not delete the saved schedule. */
+    synchronized JSONObject setScheduleEnabled(boolean enabled) throws Exception {
+        JSONObject active = active();
+        active.getJSONObject("settings").put("theme_schedule_enabled", enabled);
+        atomic(new File(root, "active.json"), active);
+        return new JSONObject().put("enabled", enabled);
+    }
+
     // ---------------------------------------------------------------- staging and activation
 
     static void require(boolean valid, String code) throws CompanionProtocol.Failure {
@@ -228,6 +287,10 @@ final class CompanionStore {
     }
 
     static void patch(JSONObject patch) throws Exception {
+        patch(patch, false);
+    }
+
+    static void patch(JSONObject patch, boolean schedules) throws Exception {
         for (Iterator<String> it = patch.keys(); it.hasNext(); ) {
             require(Arrays.asList("set", "remove").contains(it.next()), "invalid_request");
         }
@@ -267,8 +330,15 @@ final class CompanionStore {
                     valid = value instanceof String && CompanionProtocol.hex((String) value, 32);
                     break;
                 case "theme_schedule":
-                    // Advertised only by the schedules issue; until then a schedule is not accepted.
-                    valid = false;
+                    // Accepted only when theme_schedules_v1 is advertised by this build.
+                    valid = schedules && value instanceof JSONObject;
+                    if (valid) {
+                        try {
+                            ThemeSchedule.validate((JSONObject) value);
+                        } catch (IllegalArgumentException invalid) {
+                            valid = false;
+                        }
+                    }
                     break;
                 default:
                     valid = value instanceof String && ((String) value).matches("#[a-fA-F0-9]{6}");
@@ -344,6 +414,10 @@ final class CompanionStore {
     }
 
     synchronized JSONObject stage(JSONObject request) throws Exception {
+        return stage(request, false);
+    }
+
+    synchronized JSONObject stage(JSONObject request, boolean schedules) throws Exception {
         String id = request.getString("request_id");
         File file = sessionFile(id);
         if (file.exists()) {
@@ -354,7 +428,7 @@ final class CompanionStore {
             return new JSONObject().put("session_id", id);
         }
         require(request.getString("expected_revision").equals(state().getString("revision")), "revision_conflict");
-        patch(request.getJSONObject("patch"));
+        patch(request.getJSONObject("patch"), schedules);
         JSONArray collections = request.getJSONArray("collections");
         manifest(collections, root.getUsableSpace());
         JSONObject session = new JSONObject()

@@ -13,6 +13,8 @@ The provider is compiled and merged into the manifest only when the build proper
 ```bash
 cd launcher
 ./gradlew assembleRelease -PcompanionBridge=true
+# optional: exclude theme schedules from an otherwise writable bridge build
+./gradlew assembleRelease -PcompanionBridge=true -PcompanionSchedules=false
 ```
 
 The default build (`./gradlew assembleRelease`, `build-and-install.sh`, and every release artifact built
@@ -51,10 +53,11 @@ network listener, no cloud service, no exported file provider and no generic pat
 ```
 
 The four listed features are mandatory for any personalization. They are advertised only when actually
-implemented. `theme_schedules_v1` and `private_credentials_v1` are optional and are absent until their
-own opt-in issues land and are enabled. A companion that sees no provider, a protocol other than `1`,
-malformed limits or a missing mandatory feature must stay read-only; it must not fall back to writing
-`config.json`.
+implemented. `theme_schedules_v1` and `private_credentials_v1` are optional. A bridge build advertises
+`theme_schedules_v1` unless it was built with `-PcompanionSchedules=false`; that build also rejects a
+`theme_schedule` patch with `unsupported_feature`. A companion that sees no provider, a protocol other
+than `1`, malformed limits or a missing mandatory feature must stay read-only; it must not fall back to
+writing `config.json`.
 
 ## `state`
 
@@ -72,6 +75,9 @@ malformed limits or a missing mandatory feature must stay read-only; it must not
 - `active_collection` is the effective selected ID, or `null` when none is set.
 - `operation` carries the last committed operation identity (`request_id`, `session_id`, `revision`)
   so a disconnected client can reconcile readback. It is empty before the first activation.
+- `schedule` is the TV-side schedule readback (see below). It is `{"enabled": false}` when no schedule
+  is saved, it was turned off on the TV, or it failed validation (`invalid: true`). A schedule the
+  companion wrote is not evaluated until the TV owner enables it.
 
 No secret appears in capabilities, state, errors, logcat or exports.
 
@@ -123,12 +129,71 @@ Stable error codes: `unsupported_protocol`, `unsupported_feature`, `invalid_requ
 Restoration is another reviewed stage/activate transaction with a fresh `expected_revision`. It never
 resets all settings and never overwrites a later manual change.
 
+## Theme schedules (`theme_schedules_v1`)
+
+A schedule is stored in the companion override record, separate from the theme's `config.json`, and
+evaluated on the TV with the TV clock and timezone. It needs no network, companion process or pairing.
+Turning the schedule off leaves the saved theme and the wallpaper rotation interval untouched.
+The schema is version 1:
+
+```json
+{
+  "version": 1,
+  "timezone": "Asia/Kolkata",
+  "location": {"latitude": 12.9, "longitude": 77.6},
+  "default_theme": {"background_color": "#000000"},
+  "rules": [
+    {"id": "evening", "priority": 10,
+     "trigger": {"type": "fixed", "time": "18:30"},
+     "theme": {"accent_color": "#ffffff"}},
+    {"id": "sunset", "priority": 20,
+     "trigger": {"type": "solar", "event": "sunset", "fallback_time": "19:00"},
+     "theme": {"wallpaper": false}}
+  ]
+}
+```
+
+Rules are applied by priority (higher first) at coincident boundaries, then by rule ID; only the
+winning rule's fully merged theme is applied, never a half-merged state. Rule themes may set
+`background_color`, `accent_color`, `wallpaper`, `wallpaper_dim` and `active_collection`; rotation
+settings are excluded. Unknown keys, duplicate rule IDs, duplicate fixed minutes, duplicate priorities,
+an invalid timezone or an out-of-range location reject the whole patch before anything is saved.
+
+Fixed times use the saved timezone. A time in a DST gap moves to the first valid local time; a
+repeated time fires once, at the earlier offset. Solar sunrise/sunset use a local NOAA approximation
+and a missing polar event uses the rule's required `fallback_time`, marked `fallback: true`. A manual
+clock or timezone change reconciles to the theme for *now*; missed transitions are never replayed.
+Restarting Home or the TV does the same: it applies at most the current state, not a backlog.
+
+`state.schedule` reports:
+
+```json
+{"enabled": true, "timezone": "Asia/Kolkata",
+ "last_evaluated": {"rule_id": "evening", "manual": false, "fallback": false,
+                    "transition_at": 1790000000000, "theme": {"accent_color": "#ffffff"}},
+ "upcoming": [{"at": 1790000000000, "rule_id": "evening", "theme": {...}, "fallback": false}]}
+```
+
+The TV settings screen shows whether the schedule is on and the next transition, and offers one
+**Turn off** action. Turning it off stops evaluation and restores the previous static theme values;
+the saved schedule remains so it can be turned on again. Deleting the `theme_schedule` override is the
+reset path and leaves no schedule behind.
+
+A manual override is an internal `theme_manual_override` record (`theme` plus `started_at` epoch
+milliseconds) and is never writable through the companion patch. It layers on the current rule and
+expires at the first later transition; with no later rule it lasts until cleared. A new manual
+override replaces the previous one explicitly; nothing silently overwrites a later manual edit, and a
+schedule change alone never creates one.
+
 ## Verification
 
 - `launcher/app/src/test/java/com/gathin/tvhome/CompanionAccessTest.java` covers shell UID accepted,
   an ordinary app rejected and the launcher's own UID accepted.
 - `CompanionStoreTest` covers safe settings, unknown/credential exclusion, revision changes for
-  unknown settings, opaque collection exposure, malformed record skipping and capability limits.
+  unknown settings, opaque collection exposure, malformed record skipping, capability limits, schedule
+  readback gating and the durable on-TV disable switch.
+- `ThemeScheduleTest` covers polar fallback, DST gap/repeat, midnight, coincident rules, explicit
+  timezone changes, manual override expiry, schema rejection and restart-safe evaluation.
 - `CompanionProtocolTest` covers base64url parsing, the 256 KiB cap, version/method rejection, the reply
   shape, canonical revisions and a malformed request touching no file.
 - `tests/test_launcher_protocol.py` checks the supported/legacy/newer/incomplete capability fixtures and
