@@ -82,7 +82,7 @@
     <string name="uninstall_app">הסרת התקנה</string>
     <string name="app_hidden">%1$s הוסתרה</string>
     <string name="cant_uninstall">לא ניתן להסיר את %1$s</string>
-    <string name="hidden_apps">אפליקציות מוסתרות</string>
+    <string name="hidden_apps">אפליקציות מוסתרות</string> <string name="hidden_apps_hint">בחר אפליקציה כדי לבטל את הסתרתה. היא תחזור למסך הבית.</string>
     <string name="hidden_apps_none">אין אפליקציות מוסתרות</string>
     <string name="library_save_failed">לא ניתן לשמור את קיצור הדרך</string>
     <string name="library_recent">חדשה · הוספה למסך הבית</string>
