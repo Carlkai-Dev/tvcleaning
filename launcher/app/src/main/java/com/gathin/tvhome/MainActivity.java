@@ -1346,9 +1346,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             rows.addView(section);
 
             String curGrad = btm.getGradientPreset();
-            addGradientRow(rows, popup, btm, "Midnight Ruby (Default / Screenshot 1)", BackdropThemeManager.GRAD_RUBY, curGrad);
+            addGradientRow(rows, popup, btm, "Aurora Sapphire (Cinematic Blue - Default)", BackdropThemeManager.GRAD_SAPPHIRE, curGrad);
             addGradientRow(rows, popup, btm, "Dynamic App Bloom (Auto-match)", BackdropThemeManager.GRAD_DYNAMIC, curGrad);
-            addGradientRow(rows, popup, btm, "Aurora Sapphire (Cosmic Blue)", BackdropThemeManager.GRAD_SAPPHIRE, curGrad);
+            addGradientRow(rows, popup, btm, "Midnight Ruby", BackdropThemeManager.GRAD_RUBY, curGrad);
             addGradientRow(rows, popup, btm, "Cyber Emerald (Dark Green)", BackdropThemeManager.GRAD_EMERALD, curGrad);
             addGradientRow(rows, popup, btm, "Royal Amethyst (Imperial Purple)", BackdropThemeManager.GRAD_AMETHYST, curGrad);
             addGradientRow(rows, popup, btm, "Sunset Ember (Warm Orange)", BackdropThemeManager.GRAD_AMBER, curGrad);

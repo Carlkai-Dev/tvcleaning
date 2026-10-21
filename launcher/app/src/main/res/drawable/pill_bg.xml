@@ -2,22 +2,23 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#F5FFFFFF" />
+            <solid android:color="#FFF8FAFC" />
+            <stroke android:width="2dp" android:color="#FF38BDF8" />
             <corners android:radius="21dp" />
         </shape>
     </item>
     <!-- Reorder button while reorder mode is on (focus is on the tiles then). -->
     <item android:state_activated="true">
         <shape android:shape="rectangle">
-            <solid android:color="#596EC1FF" />
-            <stroke android:width="1.5dp" android:color="#FF6EC1FF" />
+            <solid android:color="#590284C7" />
+            <stroke android:width="1.5dp" android:color="#FF38BDF8" />
             <corners android:radius="21dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <gradient android:angle="270" android:startColor="#2EFFFFFF" android:endColor="#14FFFFFF" />
-            <stroke android:width="1dp" android:color="#38FFFFFF" />
+            <gradient android:angle="270" android:startColor="#290E2442" android:endColor="#1F09182E" />
+            <stroke android:width="1dp" android:color="#3338BDF8" />
             <corners android:radius="21dp" />
         </shape>
     </item>

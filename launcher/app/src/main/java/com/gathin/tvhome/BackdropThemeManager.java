@@ -70,7 +70,7 @@ public class BackdropThemeManager {
     }
 
     public String getGradientPreset() {
-        return prefs.getString(KEY_GRADIENT, GRAD_RUBY);
+        return prefs.getString(KEY_GRADIENT, GRAD_SAPPHIRE);
     }
 
     public void setGradientPreset(String preset) {
@@ -135,8 +135,31 @@ public class BackdropThemeManager {
             bgColor = 0xFF070507;
             primaryColor = 0xFFD32F2F;
         } else if (GRAD_SAPPHIRE.equals(preset)) {
-            bgColor = 0xFF05070E;
-            primaryColor = 0xFF1976D2;
+            // Aurora Sapphire Design: Deep Midnight Navy (#07111F) + Sapphire Nebula + Celestial Cyan
+            canvas.drawColor(0xFF07111F);
+
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            // Core Sapphire Blue Nebula centered at (0.32w, 0.38h)
+            paint.setShader(new RadialGradient(w * 0.32f, h * 0.38f, w * 0.70f,
+                    new int[]{0x991E4E8C, 0x4D123158, 0x1A091C33, 0x00000000},
+                    new float[]{0f, 0.40f, 0.75f, 1f},
+                    Shader.TileMode.CLAMP));
+            canvas.drawRect(0, 0, w, h, paint);
+
+            // Restrained Celestial Cyan ambient shimmer at top-right (0.80w, 0.22h)
+            paint.setShader(new RadialGradient(w * 0.80f, h * 0.22f, w * 0.42f,
+                    new int[]{0x3338BDF8, 0x140284C7, 0x00000000},
+                    new float[]{0f, 0.50f, 1f},
+                    Shader.TileMode.CLAMP));
+            canvas.drawRect(0, 0, w, h, paint);
+
+            // Subtle dark vignette to preserve contrast for cards and header
+            paint.setShader(new RadialGradient(w * 0.5f, h * 0.5f, w * 0.75f,
+                    new int[]{0x00000000, 0x66030914},
+                    new float[]{0.55f, 1.0f},
+                    Shader.TileMode.CLAMP));
+            canvas.drawRect(0, 0, w, h, paint);
+            return;
         } else if (GRAD_EMERALD.equals(preset)) {
             bgColor = 0xFF040907;
             primaryColor = 0xFF00897B;
