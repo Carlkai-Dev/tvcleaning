@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The image (URL and width) an ImageView is waiting for, so a late answer for a recycled view is dropped. -->
+    <item name="image_url" type="id" />
+</resources>

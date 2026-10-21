@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A poster's frame: a white ring while its card has focus. Inset so the ring sits outside the artwork. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape>
+            <solid android:color="@color/surface" />
+            <stroke android:width="3dp" android:color="#FFFFFFFF" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    <item>
+        <shape><solid android:color="@color/surface" /><corners android:radius="12dp" /></shape>
+    </item>
+</selector>

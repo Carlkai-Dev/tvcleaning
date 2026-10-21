@@ -67,6 +67,9 @@ public class SettingsActivity extends Activity {
 
         immich();
         homepage();
+        arr(R.string.radarr, "radarr", Arr.Kind.MOVIE);
+        arr(R.string.sonarr, "sonarr", Arr.Kind.SERIES);
+        qbittorrent();
 
         heading(R.string.s_certificates, 22);
         note(getString(Config.load(this).caPem.isEmpty() ? R.string.s_ca_none : R.string.s_ca_set));
@@ -118,6 +121,37 @@ public class SettingsActivity extends Activity {
         text(hp, "url", R.string.s_url, InputType.TYPE_TEXT_VARIATION_URI);
         number(hp, "text_zoom", R.string.s_text_zoom);
         toggle(hp, "keep_awake", R.string.s_keep_awake, false);
+    }
+
+    private void qbittorrent() {
+        JSONObject qb = section("qbittorrent");
+        heading(R.string.qbittorrent, 22);
+        text(qb, "url", R.string.s_url, InputType.TYPE_TEXT_VARIATION_URI);
+        text(qb, "username", R.string.s_username, InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        text(qb, "password", R.string.s_password, InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        note(getString(R.string.s_qbit_note));
+        test(() -> {
+            Config.QBittorrent c = new Config.QBittorrent(qb);
+            need(c.configured(), R.string.s_fill_in_url);
+            return getString(R.string.s_connected_to, new Qbit(c, tls()).version());
+        });
+    }
+
+    private void arr(int title, String name, Arr.Kind kind) {
+        JSONObject s = section(name);
+        heading(title, 22);
+        text(s, "url", R.string.s_url, InputType.TYPE_TEXT_VARIATION_URI);
+        text(s, "api_key", R.string.s_api_key, InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        test(() -> getString(R.string.s_connected_to, arr(kind, s).version()));
+        pickOne(s, "quality_profile", R.string.s_quality_profile,
+                () -> names(arr(kind, s).qualityProfiles(), "name"));
+        pickOne(s, "root_folder", R.string.s_root_folder,
+                () -> names(arr(kind, s).rootFolders(), "path"));
+        if (kind == Arr.Kind.SERIES) {
+            String[] labels = new String[Arr.SERIES_MONITOR.length];
+            for (int i = 0; i < labels.length; i++) labels[i] = DetailActivity.monitorLabel(this, Arr.SERIES_MONITOR[i]);
+            choice(s, "monitor", R.string.s_monitor, Arr.SERIES_MONITOR, labels);
+        }
     }
 
     @Override
@@ -280,6 +314,12 @@ public class SettingsActivity extends Activity {
         Config.Immich c = new Config.Immich(section);
         need(c.configured(), R.string.s_fill_in);
         return new Immich(c, tls());
+    }
+
+    private Arr arr(Arr.Kind kind, JSONObject section) throws java.io.IOException {
+        Config.Arr c = new Config.Arr(section);
+        need(c.configured(), R.string.s_fill_in);
+        return new Arr(kind, c, tls());
     }
 
     /** Stops a Test or a picker before it sends a request to an empty address, with words instead of "no protocol". */

@@ -37,6 +37,9 @@ final class Config {
     final String caPem;
     final Immich immich;
     final Homepage homepage;
+    final Arr sonarr;
+    final Arr radarr;
+    final QBittorrent qbittorrent;
 
     static final class Immich {
         final String url;
@@ -99,10 +102,51 @@ final class Config {
         boolean configured() { return !url.isEmpty(); }
     }
 
+    /** Sonarr or Radarr: the same API shape (v3) for both. */
+    static final class Arr {
+        final String url;
+        final String apiKey;
+        /** Quality profile name to add with; empty takes the first profile the server lists. */
+        final String qualityProfile;
+        /** Root folder path to add into; empty takes the first root folder the server lists. */
+        final String rootFolder;
+        /** Sonarr only: which episodes a new show monitors (Arr.SERIES_MONITOR); "all" unless set. */
+        final String monitor;
+
+        Arr(JSONObject o) {
+            url = baseUrl(o.optString("url"));
+            apiKey = o.optString("api_key").trim();
+            qualityProfile = o.optString("quality_profile").trim();
+            rootFolder = o.optString("root_folder").trim();
+            String m = o.optString("monitor").trim();
+            monitor = java.util.Arrays.asList(io.github.epochcoder.homelab.Arr.SERIES_MONITOR).contains(m) ? m : "all";
+        }
+
+        boolean configured() { return !url.isEmpty() && !apiKey.isEmpty(); }
+    }
+
+    /** qBittorrent's WebUI. No user means qBittorrent lets this address in without a login (whitelisted subnet). */
+    static final class QBittorrent {
+        final String url;
+        final String username;
+        final String password;
+
+        QBittorrent(JSONObject o) {
+            url = baseUrl(o.optString("url"));
+            username = o.optString("username").trim();
+            password = o.optString("password");
+        }
+
+        boolean configured() { return !url.isEmpty(); }
+    }
+
     private Config(JSONObject o, String caFile) {
         caPem = (o.optString("ca_pem").trim() + "\n" + caFile.trim()).trim();
         immich = new Immich(section(o, "immich"));
         homepage = new Homepage(section(o, "homepage"));
+        sonarr = new Arr(section(o, "sonarr"));
+        radarr = new Arr(section(o, "radarr"));
+        qbittorrent = new QBittorrent(section(o, "qbittorrent"));
     }
 
     /** The config in {@code json}, or an empty one (nothing configured) when it does not parse. */

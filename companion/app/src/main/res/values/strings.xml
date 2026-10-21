@@ -2,6 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Homelab</string>
     <string name="dashboard_name">Homelab</string>
+    <string name="media_name">Media</string>
     <string name="dream_name">Immich photos</string>
     <string name="settings_name">Homelab Settings</string>
 
@@ -14,6 +15,76 @@
     <string name="settings">Settings</string>
     <string name="cancel">Cancel</string>
 
+    <!-- Media -->
+    <string name="tab_search">Search</string>
+    <string name="tab_downloads">Downloads</string>
+    <string name="tab_upcoming">Coming up</string>
+    <string name="search_hint">Search films and shows</string>
+    <string name="voice_search">Search by voice</string>
+    <string name="search_prompt">Type a film or show; results appear as you type. OK on a poster to add it.</string>
+    <string name="searching">Searching…</string>
+    <string name="no_results">Nothing found for “%1$s”</string>
+    <string name="kind_movie">FILM</string>
+    <string name="kind_series">SHOW</string>
+    <string name="owned_badge">✓</string>
+
+    <string name="add_search">Add and search</string>
+    <string name="search_again">Search again</string>
+    <string name="adding">Adding…</string>
+    <string name="added_searching">Added. %1$s is searching for it now.</string>
+    <string name="search_started">%1$s is searching for it again.</string>
+    <string name="quality_button">Quality: %1$s</string>
+    <string name="monitor_button">Episodes: %1$s</string>
+    <string name="not_in_library">Not in your library</string>
+    <string name="library_downloaded">In your library · Downloaded</string>
+    <string name="library_missing">In your library · Not downloaded yet</string>
+    <string name="library_in">In your library</string>
+    <!-- Quantity follows the total, the second number. -->
+    <plurals name="library_episodes">
+        <item quantity="one">In your library · %1$d of %2$d episode</item>
+        <item quantity="other">In your library · %1$d of %2$d episodes</item>
+    </plurals>
+    <string name="status_announced">Announced</string>
+    <string name="status_in_cinemas">In cinemas</string>
+    <string name="status_upcoming">Upcoming</string>
+    <string name="status_ended">Ended</string>
+    <string name="status_continuing">Continuing</string>
+    <string name="m_all">All episodes</string>
+    <string name="m_future">Future episodes</string>
+    <string name="m_missing">Missing episodes</string>
+    <string name="m_first_season">First season</string>
+    <string name="m_latest_season">Latest season</string>
+    <string name="m_pilot">Pilot episode</string>
+    <string name="m_none">None, just add it</string>
+
+    <string name="dl_speeds">↓ %1$s   ↑ %2$s</string>
+    <string name="dl_none">Nothing downloading</string>
+    <plurals name="dl_active">
+        <item quantity="one">%1$d downloading</item>
+        <item quantity="other">%1$d downloading</item>
+    </plurals>
+    <string name="dl_finished">Finished</string>
+    <string name="dl_stop">Stop</string>
+    <string name="dl_start">Start</string>
+    <string name="dl_not_configured">Set up qBittorrent, Sonarr or Radarr in Settings to see downloads.</string>
+
+    <string name="up_today">Today</string>
+    <string name="up_tomorrow">Tomorrow</string>
+    <plurals name="up_none">
+        <item quantity="one">Nothing coming up in the next %1$d day.</item>
+        <item quantity="other">Nothing coming up in the next %1$d days.</item>
+    </plurals>
+    <string name="up_all_there">Nothing missing</string>
+    <string name="up_free">%1$s free of %2$s</string>
+    <plurals name="up_missing_episodes">
+        <item quantity="one">%1$d episode missing</item>
+        <item quantity="other">%1$d episodes missing</item>
+    </plurals>
+    <plurals name="up_missing_movies">
+        <item quantity="one">%1$d film missing</item>
+        <item quantity="other">%1$d films missing</item>
+    </plurals>
+
     <!-- Dashboard -->
     <string name="dash_loading">Loading Homepage…</string>
     <string name="dash_error_title">Homepage did not load</string>
@@ -23,15 +94,19 @@
     <string name="dash_retry">Try again</string>
     <string name="dash_hint">▲ ▼ scroll    ·    MENU reloads</string>
 
+    <string name="radarr">Radarr</string>
+    <string name="sonarr">Sonarr</string>
     <string name="s_tip">Changes are saved when you leave this screen. For long API keys, type with your phone: the Google TV app\'s keyboard works here.</string>
     <string name="s_url">Address</string>
     <string name="s_api_key">API key</string>
     <string name="s_test">Test</string>
     <string name="s_fill_in">Fill in the address and the API key first</string>
+    <string name="s_fill_in_url">Fill in the address first</string>
     <plurals name="s_connected_albums">
         <item quantity="one">Connected: %1$d album</item>
         <item quantity="other">Connected: %1$d albums</item>
     </plurals>
+    <string name="s_connected_to">Connected to %1$s</string>
     <string name="s_recent_days">Days of photos (90)</string>
     <string name="s_max_photos">Most photos (500)</string>
     <string name="s_interval">Seconds per photo (20)</string>
@@ -45,12 +120,19 @@
     <string name="s_exclude_tags">Hide tags</string>
     <string name="s_preview">Preview the screensaver</string>
     <string name="s_text_zoom">Text size, percent (100)</string>
+    <string name="s_quality_profile">Quality profile</string>
+    <string name="s_root_folder">Root folder</string>
     <string name="s_none">None</string>
     <string name="s_server_default">Server default (first listed)</string>
     <string name="s_certificates">Certificates</string>
     <!-- The double hyphen below is a push-config.sh option, not a dash. -->
     <string name="s_ca_none" tools:ignore="TypographyDashes">No extra CA certificate. Only needed when Caddy uses tls internal: add its root with companion/push-config.sh --ca.</string>
     <string name="s_ca_set">An extra CA certificate is set (from companion/push-config.sh) and trusted alongside the system ones.</string>
+    <string name="qbittorrent">qBittorrent</string>
+    <string name="s_username">User</string>
+    <string name="s_password">Password</string>
+    <string name="s_qbit_note">Leave the user empty if qBittorrent lets your network in without a login (Bypass authentication for clients in whitelisted IP subnets).</string>
+    <string name="s_monitor">Episodes to monitor</string>
     <string name="s_keep_awake">Keep the screen on</string>
     <string name="s_save">Save and close</string>
     <string name="s_saved">Saved</string>

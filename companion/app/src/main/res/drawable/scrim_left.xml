@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The detail screen: dark on the left where the text is, fading to show the backdrop on the right. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="0"
+        android:startColor="#F20E1116"
+        android:centerColor="#B30E1116"
+        android:endColor="#400E1116" />
+</shape>

@@ -83,4 +83,24 @@ public class ConfigTest {
         assertFalse(off.pairPortraits);
     }
 
+    @Test
+    public void sonarrRadarrAndQbittorrent() {
+        Config c = Config.parse("{"
+                + "\"sonarr\":{\"url\":\"https://sonarr.lan\",\"api_key\":\"s\",\"root_folder\":\"/tv\",\"monitor\":\"future\"},"
+                + "\"radarr\":{\"url\":\"https://radarr.lan\",\"api_key\":\"r\",\"quality_profile\":\"HD-1080p\"},"
+                + "\"qbittorrent\":{\"url\":\"https://qbit.lan/\",\"username\":\" admin \",\"password\":\" p \"}}");
+        assertTrue(c.sonarr.configured());
+        assertEquals("/tv", c.sonarr.rootFolder);
+        assertEquals("future", c.sonarr.monitor);
+        assertEquals("HD-1080p", c.radarr.qualityProfile);
+        assertEquals("all", c.radarr.monitor);
+        assertTrue(c.qbittorrent.configured());
+        assertEquals("https://qbit.lan", c.qbittorrent.url);
+        assertEquals("admin", c.qbittorrent.username);
+        assertEquals("passwords are kept exactly", " p ", c.qbittorrent.password);
+        assertEquals("unknown monitor values fall back", "all",
+                Config.parse("{\"sonarr\":{\"monitor\":\"everything\"}}").sonarr.monitor);
+        assertFalse(Config.parse("{\"sonarr\":{\"url\":\"https://s\"}}").sonarr.configured());
+        assertFalse(Config.parse("{}").qbittorrent.configured());
+    }
 }

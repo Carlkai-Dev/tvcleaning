@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A search result card, poster and padding: five fit a 1080p TV's width inside its margins. -->
+    <dimen name="poster_card_width">168dp</dimen>
+</resources>
