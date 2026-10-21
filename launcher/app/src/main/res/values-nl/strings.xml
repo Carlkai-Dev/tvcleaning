@@ -105,7 +105,4 @@
     <string name="dock_remove">Uit dock halen</string>
     <string name="tile_move">Verplaatsen</string>
     <string name="tile_app_info">App-info</string>
-    <string name="dock_pinned">%1$s staat in het dock. %2$s is naar de apps eronder gegaan.</string>
-    <string name="dock_removed">%1$s is naar de apps eronder gegaan. %2$s neemt de plek in het dock in.</string>
-    <string name="tile_move_hint">Pijlen verplaatsen, OK zet neer. Terug om te stoppen.</string>
 </resources>

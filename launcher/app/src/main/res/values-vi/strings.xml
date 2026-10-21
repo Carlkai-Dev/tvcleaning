@@ -72,7 +72,4 @@
     <string name="dock_remove">Gỡ khỏi dock</string>
     <string name="tile_move">Di chuyển</string>
     <string name="tile_app_info">Thông tin ứng dụng</string>
-    <string name="dock_pinned">%1$s đã ở trong dock. %2$s đã chuyển xuống phần ứng dụng.</string>
-    <string name="dock_removed">%1$s đã chuyển xuống phần ứng dụng. %2$s thay chỗ trong dock.</string>
-    <string name="tile_move_hint">Phím mũi tên để di chuyển, OK để đặt. Quay lại để kết thúc.</string>
 </resources>

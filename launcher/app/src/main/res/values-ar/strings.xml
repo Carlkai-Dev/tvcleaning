@@ -91,7 +91,4 @@
     <string name="dock_remove">إزالة من شريط التطبيقات</string>
     <string name="tile_move">نقل</string>
     <string name="tile_app_info">معلومات التطبيق</string>
-    <string name="dock_pinned">أصبح %1$s في شريط التطبيقات. انتقل %2$s إلى التطبيقات أدناه.</string>
-    <string name="dock_removed">انتقل %1$s إلى التطبيقات أدناه. يأخذ %2$s مكانه في شريط التطبيقات.</string>
-    <string name="tile_move_hint">الأسهم تنقله، وموافق يضعه. رجوع للإنهاء.</string>
 </resources>

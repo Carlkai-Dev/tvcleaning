@@ -64,7 +64,4 @@
     <string name="dock_remove">Aus dem Dock entfernen</string>
     <string name="tile_move">Verschieben</string>
     <string name="tile_app_info">App-Info</string>
-    <string name="dock_pinned">%1$s ist jetzt im Dock. %2$s ist nach unten zu den Apps gewandert.</string>
-    <string name="dock_removed">%1$s ist nach unten zu den Apps gewandert. %2$s nimmt den Platz im Dock ein.</string>
-    <string name="tile_move_hint">Pfeile verschieben, OK legt ab. Zurück zum Beenden.</string>
 </resources>

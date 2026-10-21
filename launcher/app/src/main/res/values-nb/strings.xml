@@ -104,7 +104,4 @@
     <string name="dock_remove">Fjern fra favorittraden</string>
     <string name="tile_move">Flytt</string>
     <string name="tile_app_info">Appinfo</string>
-    <string name="dock_pinned">%1$s er i favorittraden. %2$s flyttet ned til appene.</string>
-    <string name="dock_removed">%1$s flyttet ned til appene. %2$s tar plassen i favorittraden.</string>
-    <string name="tile_move_hint">Pilene flytter den, OK setter den ned. Tilbake for å avslutte.</string>
 </resources>

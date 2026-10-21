@@ -83,9 +83,6 @@
     <string name="dock_remove">Remove from dock</string>
     <string name="tile_move">Move</string>
     <string name="tile_app_info">App info</string>
-    <string name="dock_pinned">%1$s is in the dock. %2$s moved down to the apps.</string>
-    <string name="dock_removed">%1$s moved down to the apps. %2$s takes its place in the dock.</string>
-    <string name="tile_move_hint">Arrows move it, OK places it. Back to finish.</string>
     <string name="app_library">App library</string>
     <string name="library_empty">No launchable apps found</string>
     <string name="library_on_home">On Home</string>

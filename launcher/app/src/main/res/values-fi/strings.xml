@@ -92,7 +92,4 @@
     <string name="dock_remove">Poista telakasta</string>
     <string name="tile_move">Siirrä</string>
     <string name="tile_app_info">Sovelluksen tiedot</string>
-    <string name="dock_pinned">%1$s on telakassa. %2$s siirtyi alas sovelluksiin.</string>
-    <string name="dock_removed">%1$s siirtyi alas sovelluksiin. %2$s ottaa sen paikan telakassa.</string>
-    <string name="tile_move_hint">Nuolet siirtävät, OK asettaa paikalleen. Takaisin lopettaa.</string>
 </resources>

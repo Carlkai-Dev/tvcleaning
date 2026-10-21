@@ -86,7 +86,4 @@
     <string name="dock_remove">從 Dock 移除</string>
     <string name="tile_move">移動</string>
     <string name="tile_app_info">應用程式資訊</string>
-    <string name="dock_pinned">%1$s 已在 Dock 中。%2$s 已移到下方的應用程式。</string>
-    <string name="dock_removed">%1$s 已移到下方的應用程式。%2$s 取代它在 Dock 中的位置。</string>
-    <string name="tile_move_hint">方向鍵移動，確定鍵放下，返回鍵結束。</string>
 </resources>

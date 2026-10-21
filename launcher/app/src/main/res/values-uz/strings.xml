@@ -104,7 +104,4 @@
     <string name="dock_remove">Dockdan olib tashlash</string>
     <string name="tile_move">Koʻchirish</string>
     <string name="tile_app_info">Ilova haqida</string>
-    <string name="dock_pinned">%1$s dockda. %2$s pastga, ilovalar qatoriga tushdi.</string>
-    <string name="dock_removed">%1$s pastga, ilovalar qatoriga tushdi. Dockdagi oʻrnini %2$s egalladi.</string>
-    <string name="tile_move_hint">Strelkalar koʻchiradi, OK joylaydi. Tugatish uchun Orqaga.</string>
 </resources>

@@ -1066,12 +1066,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             endReorder();
             return;
         }
-        String label = adapter.labelAt(from), displaced = adapter.labelAt(to);
         keepScroll(() -> adapter.move(from, to));
         endReorder();
         int now = adapter.positionOf(key);
-        refocusAfterLayout(now >= 0 ? now : to);
-        Toast.makeText(this, getString(R.string.dock_pinned, label, displaced), Toast.LENGTH_LONG).show();
+        refocusAfterLayout(now >= 0 ? now : to);   // focus follows the app into the dock
     }
 
     private void removeFromDock(String key) {
@@ -1082,11 +1080,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             endReorder();
             return;
         }
-        String label = adapter.labelAt(from), incoming = adapter.labelAt(to);
         keepScroll(() -> adapter.move(from, to));
         endReorder();
         refocusAfterLayout(from);   // stay on the dock place, now holding the app that moved up
-        Toast.makeText(this, getString(R.string.dock_removed, label, incoming), Toast.LENGTH_LONG).show();
     }
 
     /** Move: reorder mode with this tile already picked up. */
@@ -1099,7 +1095,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         focusTile(pos);
         pickUp(pos);
-        Toast.makeText(this, R.string.tile_move_hint, Toast.LENGTH_LONG).show();
+        Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
     }
 
     /** Puts the app at pos into dock place slot, and the app that was there where the chosen one was; then saves. */

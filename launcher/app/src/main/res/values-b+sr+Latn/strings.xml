@@ -69,7 +69,4 @@
     <string name="dock_remove">Ukloni sa doka</string>
     <string name="tile_move">Pomeri</string>
     <string name="tile_app_info">Informacije o aplikaciji</string>
-    <string name="dock_pinned">%1$s je na doku. %2$s je premeštena među aplikacije ispod.</string>
-    <string name="dock_removed">%1$s je premeštena među aplikacije ispod. %2$s zauzima njeno mesto na doku.</string>
-    <string name="tile_move_hint">Strelice je pomeraju, OK je postavlja. Nazad za kraj.</string>
 </resources>

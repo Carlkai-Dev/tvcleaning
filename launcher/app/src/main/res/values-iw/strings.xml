@@ -75,9 +75,6 @@
     <string name="dock_remove">הסרה משורת המועדפים</string>
     <string name="tile_move">הזזה</string>
     <string name="tile_app_info">פרטי האפליקציה</string>
-    <string name="dock_pinned">%1$s בשורת המועדפים. %2$s עבר לאפליקציות שמתחת.</string>
-    <string name="dock_removed">%1$s עבר לאפליקציות שמתחת. %2$s נכנס במקומו לשורת המועדפים.</string>
-    <string name="tile_move_hint">החצים מזיזים, אישור מניח. חזרה לסיום.</string>
     <string name="app_library">ספריית אפליקציות</string>
     <string name="library_empty">לא נמצאו אפליקציות שניתן לפתוח</string>
     <string name="library_on_home">במסך הבית</string>
