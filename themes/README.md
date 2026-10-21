@@ -44,6 +44,8 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `show_network_pill` | bool | The Wi-Fi/Ethernet pill in the top bar (`true` by default); `false` hides it |
 | `icon_only_buttons` | bool | Wi-Fi and Settings as round icon buttons; Inputs keeps its label (`false` by default) |
 | `wifi_label_width` | 0 to 300 | With `icon_only_buttons`, keep the network name on the Wi-Fi pill up to this width in dp, cut with an ellipsis; 0 leaves only the icon |
+| `inputs_button`, `wifi_button`, `settings_button` | string | How each top-bar pill shows: `both` (icon and label), `icon` (a round icon-only button) or `text` (the label alone). Unset, a pill follows `icon_only_buttons` and is otherwise `both` |
+| `inputs_button_width`, `wifi_button_width`, `settings_button_width` | number | The pill label's maximum width in dp (0 to 600); a longer label ends in an ellipsis. 0 keeps the default: the network name stops at about 110dp (or `wifi_label_width` with `icon_only_buttons`), Inputs and Settings are not capped |
 | `library_button` | bool | The app library as a round button in the top bar, beside Settings; needs `app_library`. Closing the library returns to it |
 | `always_show_names` | bool | Names under every tile, dimmed until focused, the dock included (its band grows to hold them); `false` by default shows only the focused tile's name |
 | `wallpaper_true_color` | bool | Decode wallpapers in 32-bit colour (8 MB at 1080p) instead of RGB_565 (4 MB), which bands dark gradients such as a night sky; for TVs with 2 GB or more (`false` by default) |

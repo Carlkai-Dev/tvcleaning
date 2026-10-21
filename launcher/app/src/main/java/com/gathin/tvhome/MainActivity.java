@@ -149,6 +149,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int wifiIcon;
     /** The pills have been filled in once; later resumes refresh them after the first frame. */
     private boolean pillsShown;
+    /** config.xml wifi_button: whether the network pill shows its icon, its label or both. */
+    private TopButtonStyle wifiStyle;
     private TextView shamsiDate;
     private TextView stats;
     private List<RaceWeekend.Race> raceCalendar;
@@ -510,6 +512,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
+        wifiStyle = cfg.wifiButton;
+        cfg.inputsButton.apply((TextView) btnInputs, density);
+        wifiStyle.apply(btnWifi, density);
+        cfg.settingsButton.apply((TextView) btnSettings, density);
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
@@ -527,13 +533,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             libraryFromTopBar = true;   // closing it goes back to this button, not to the pill after the last row
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
-        iconOnlyButtons = cfg.iconOnlyButtons;
-        wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
-        if (iconOnlyButtons) {
-            if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
-            else makeIconOnly(btnWifi);
-            makeIconOnly((TextView) btnSettings);
-        }
         btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;
@@ -568,7 +567,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         .setDuration(160).start());
             }
         }
-        if (festive) applyFestiveSkin((TextView) btnInputs, (TextView) btnSettings);
+        if (festive) applyFestiveSkin((TextView) btnInputs, (TextView) btnSettings, cfg);
 
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
@@ -2051,7 +2050,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         // With a VPN app configured, a VPN that is down matters too: show a red "VPN off" capsule then.
         boolean vpnDown = !vpn && online && !vpnApp.isEmpty();
-        if (vpn || vpnDown) {
+        if (!wifiStyle.showsText()) {
+            // Icon only (wifi_button "icon"): the name and VPN state are still read out.
+            String badge = vpn || vpnDown ? " " + getString(vpn ? R.string.vpn : R.string.vpn_off) : "";
+            btnWifi.setContentDescription(text + badge);
+        } else if (vpn || vpnDown) {
             // Network name, then the green lock-and-VPN (or red "VPN off") capsule drawn in place of the word.
             String badge = getString(vpn ? R.string.vpn : R.string.vpn_off);
             VpnBadge span = new VpnBadge(vpn ? getDrawable(R.drawable.ic_lock) : null, density);
@@ -2072,15 +2075,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } else if (!TextUtils.equals(btnWifi.getText(), text)) {
             btnWifi.setText(text);
         }
-        if (wifiIconOnly) {
-            btnWifi.setContentDescription(btnWifi.getText());
-            btnWifi.setText(null);
-        }
         if (festive && diya != null) {
             if (online && flame == 0) flame = 3;   // online some other way (cellular, USB tethering)
             diya.setSteady(steady);
             diya.setFlame(flame);
-        } else {
+        } else if (wifiStyle.showsIcon()) {
             if (icon != wifiIcon) {
                 wifiIcon = icon;
                 btnWifi.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0);
@@ -2088,25 +2087,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    /** config.xml icon_only_buttons. */
-    private boolean iconOnlyButtons;
-    /** icon_only_buttons without wifi_label_width: the Wi-Fi pill shows no network name. */
-    private boolean wifiIconOnly;
     /** The app library button in the top bar (library_button). */
     private View btnLibraryTop;
     /** The open library came from that button: closing it returns there instead of scrolling to the grid's end. */
     private boolean libraryFromTopBar;
-
-    /** Turns a labelled top pill into the round TopButtonIcon shape: no text, the icon centred by even padding. */
-    private void makeIconOnly(TextView pill) {
-        pill.setContentDescription(pill.getText());
-        pill.setText(null);
-        pill.setMaxWidth(Integer.MAX_VALUE);
-        int pad = Math.round(10 * density);
-        pill.setPaddingRelative(pad, 0, pad, 0);
-        pill.setCompoundDrawablePadding(0);
-        pill.getLayoutParams().width = Math.round(42 * density);
-    }
 
     // ---- festive skin ------------------------------------------------------------------------------
 
@@ -2114,16 +2098,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Swaps the pill icons for the festival's: a bell for Inputs that swings when focused, a diya for the
      * network whose flame follows the connection, and a marigold for Settings that turns when focused.
      */
-    private void applyFestiveSkin(TextView inputs, TextView settings) {
+    private void applyFestiveSkin(TextView inputs, TextView settings, Config cfg) {
         bell = new BellDrawable(density);
         marigold = new MarigoldDrawable(density);
         diya = new DiyaDrawable(density);
         bell.setReducedMotion(reducedMotion);
         marigold.setReducedMotion(reducedMotion);
         diya.setReducedMotion(reducedMotion);
-        setFestiveIcon(inputs, bell);
-        setFestiveIcon(btnWifi, diya);
-        setFestiveIcon(settings, marigold);
+        // A pill set to show its label alone (inputs_button and so on: "text") stays without an icon.
+        if (cfg.inputsButton.showsIcon()) setFestiveIcon(inputs, bell);
+        if (wifiStyle.showsIcon()) setFestiveIcon(btnWifi, diya);
+        if (cfg.settingsButton.showsIcon()) setFestiveIcon(settings, marigold);
         addFocusAction(inputs, bell::ring);
         addFocusAction(settings, marigold::turn);
     }

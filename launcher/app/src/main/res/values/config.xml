@@ -122,6 +122,19 @@
     <!-- With icon_only_buttons: keep the network name on the Wi-Fi pill up to this width in dp, cut with an ellipsis.
          0 leaves the Wi-Fi pill as an icon. -->
     <integer name="wifi_label_width">0</integer>
+    <!-- Each top-bar pill on its own: both (icon and label), icon (a round icon-only button, like the reorder button;
+         the label is still read out by TalkBack) or text (the label alone). Left empty, a pill follows
+         icon_only_buttons above (Wi-Fi and Settings as icons, Inputs with its label) and is otherwise both.
+         The _width keys cap the label's width in dp, and a longer label ends in an ellipsis; 0 keeps the default
+         (the network name stops at about 110dp, or at wifi_label_width with icon_only_buttons; Inputs and Settings
+         are not capped). Up to 600. All six can also be set in a theme's config.json, e.g. "settings_button": "icon",
+         "wifi_button_width": 200. -->
+    <string name="inputs_button" translatable="false"></string>
+    <integer name="inputs_button_width">0</integer>
+    <string name="wifi_button" translatable="false"></string>
+    <integer name="wifi_button_width">0</integer>
+    <string name="settings_button" translatable="false"></string>
+    <integer name="settings_button_width">0</integer>
 
     <!-- The Wi-Fi/Ethernet pill in the top bar. false hides it (on Android 14 with Location off it can
          only say "Wi-Fi", not the network name). Can also be set with "show_network_pill" in a theme. -->
