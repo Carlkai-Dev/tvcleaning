@@ -94,9 +94,6 @@
     <string name="dock_remove">Убрать из дока</string>
     <string name="tile_move">Переместить</string>
     <string name="tile_app_info">О приложении</string>
-    <string name="dock_pinned">%1$s теперь в доке. %2$s перемещено вниз, к приложениям.</string>
-    <string name="dock_removed">%1$s перемещено вниз, к приложениям. Его место в доке занимает %2$s.</string>
-    <string name="tile_move_hint">Стрелки перемещают, OK ставит на место. Назад — завершить.</string>
     <string name="app_order_label">Порядок приложений под доком</string>
     <string name="app_order_state">Порядок приложений: %1$s</string>
     <string name="app_order_custom">Свой (ваша расстановка)</string>

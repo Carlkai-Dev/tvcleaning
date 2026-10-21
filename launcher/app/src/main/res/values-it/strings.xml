@@ -98,9 +98,6 @@
     <string name="dock_remove">Rimuovi dal dock</string>
     <string name="tile_move">Sposta</string>
     <string name="tile_app_info">Informazioni app</string>
-    <string name="dock_pinned">%1$s è nel dock. %2$s è scesa tra le app.</string>
-    <string name="dock_removed">%1$s è scesa tra le app. %2$s prende il suo posto nel dock.</string>
-    <string name="tile_move_hint">Le frecce la spostano, OK la posa. Indietro per finire.</string>
     <string name="app_order_label">Ordine delle app sotto il dock</string>
     <string name="app_order_state">Ordine delle app: %1$s</string>
     <string name="app_order_custom">Personalizzato (la tua disposizione)</string>

@@ -107,9 +107,6 @@
     <string name="dock_remove">Remover da dock</string>
     <string name="tile_move">Mover</string>
     <string name="tile_app_info">Informações da app</string>
-    <string name="dock_pinned">%1$s está na dock. %2$s desceu para as apps.</string>
-    <string name="dock_removed">%1$s desceu para as apps. %2$s ocupa o lugar dela na dock.</string>
-    <string name="tile_move_hint">As setas movem, OK pousa. Voltar para terminar.</string>
     <string name="app_order_label">Ordem das apps abaixo da dock</string>
     <string name="app_order_state">Ordem das apps: %1$s</string>
     <string name="app_order_custom">Personalizada (a sua organização)</string>

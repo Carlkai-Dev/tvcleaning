@@ -89,9 +89,6 @@
     <string name="dock_remove">Usuń z docka</string>
     <string name="tile_move">Przenieś</string>
     <string name="tile_app_info">Informacje o aplikacji</string>
-    <string name="dock_pinned">%1$s jest w docku. %2$s przeniesiono niżej, do aplikacji.</string>
-    <string name="dock_removed">%1$s przeniesiono niżej, do aplikacji. Jej miejsce w docku zajmuje %2$s.</string>
-    <string name="tile_move_hint">Strzałki przesuwają, OK odkłada. Wstecz, aby zakończyć.</string>
     <string name="app_order_label">Kolejność aplikacji pod dockiem</string>
     <string name="app_order_state">Kolejność aplikacji: %1$s</string>
     <string name="app_order_custom">Własna (twój układ)</string>
