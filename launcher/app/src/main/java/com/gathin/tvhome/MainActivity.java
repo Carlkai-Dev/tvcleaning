@@ -88,12 +88,22 @@ import java.util.Set;
  * tvOS style home: black, a pinned dock row, an app grid, and one glass highlight that springs between tiles.
  */
 public class MainActivity extends Activity implements AppAdapter.TileListener {
+    public static volatile MainActivity instance = null;
     public static volatile boolean isForeground = false;
     public static volatile long lastActiveTime = 0;
     public static volatile android.graphics.Bitmap sLastSnapshot = null;
 
     public static boolean wasRecentlyForeground() {
-        return isForeground || (System.currentTimeMillis() - lastActiveTime < 8000);
+        return isForeground || (System.currentTimeMillis() - lastActiveTime < 2500);
+    }
+
+    public void resetToTop() {
+        if (grid != null) {
+            grid.scrollToPosition(0);
+        }
+        lastFocused = 0;
+        lastFocusedKey = adapter != null && adapter.getItemCount() > 0 ? adapter.keyAt(0) : null;
+        focusTile(0);
     }
 
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
@@ -267,6 +277,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onCreate(Bundle savedInstanceState) {
         overridePendingTransition(0, 0);
         super.onCreate(savedInstanceState);
+        instance = this;
         mainTaskId = getTaskId();
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
@@ -558,6 +569,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         overridePendingTransition(0, 0);
         super.onResume();
+        instance = this;
         isForeground = true;
         lastActiveTime = System.currentTimeMillis();
         mainTaskId = getTaskId();
@@ -750,6 +762,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (instance == this) instance = null;
         wallpaperPlayer.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);

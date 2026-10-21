@@ -50,7 +50,7 @@ public class HomeKeyService extends AccessibilityService {
     private WindowManager windowManager;
     private View maskView = null;
     private boolean maskAttached = false;
-    private static final long MASK_HARD_TIMEOUT_MS = 12000; // 12.0s hard safety backstop (never drops prematurely)
+    private static final long MASK_HARD_TIMEOUT_MS = 2200; // 2.2s maximum safety backstop
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private int retryCount = 0;
@@ -69,12 +69,13 @@ public class HomeKeyService extends AccessibilityService {
         @Override
         public void run() {
             if (!isRetrying) return;
-            if (retryCount < 16) { // Retries every 400ms for up to 6.4s (bridges 5.0s stopAppSwitches)
+            if (retryCount < 30) { // Retries every 80ms for up to 2.4s
                 retryCount++;
                 launchMainActivity();
-                handler.postDelayed(this, 400);
+                handler.postDelayed(this, 80);
             } else {
                 isRetrying = false;
+                hideMask();
             }
         }
     };
@@ -229,12 +230,26 @@ public class HomeKeyService extends AccessibilityService {
     }
 
     /**
-     * Builds a clean, professional transition mask with solid pitch black base and centered logo.
-     * Avoids showing fake unclickable tiles which mislead the user into thinking the TV is frozen.
+     * Builds a premium Aurora Sapphire transition overlay:
+     * - Uses the signature deep midnight navy gradient (#07111F to #0B1E38)
+     * - If a recent dashboard snapshot exists, renders it instantly so the transition is imperceptible
      */
     private View createMaskView() {
         FrameLayout container = new FrameLayout(this);
-        container.setBackgroundColor(0xFF000000); // 100% Pitch black stealth base
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0xFF07111F, 0xFF0B1E38, 0xFF050B14});
+        container.setBackground(bg);
+
+        android.graphics.Bitmap snap = MainActivity.sLastSnapshot;
+        if (snap != null && !snap.isRecycled()) {
+            ImageView iv = new ImageView(this);
+            iv.setScaleType(ImageView.ScaleType.FIT_XY);
+            iv.setImageBitmap(snap);
+            container.addView(iv, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT));
+        }
         return container;
     }
 
@@ -254,33 +269,7 @@ public class HomeKeyService extends AccessibilityService {
     }
 
     private synchronized void showMask() {
-        if (maskAttached) return;
-        Runnable attach = () -> {
-            if (maskAttached) return;
-            try {
-                if (windowManager == null) {
-                    windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-                }
-                maskView = createMaskView();
-                windowManager.addView(maskView, getMaskLayoutParams());
-                maskAttached = true;
-                Log.i(TAG, "Stealth mask attached to WindowManager");
-
-                // Arm the hard safety timeout once
-                handler.removeCallbacks(maskTimeoutRunnable);
-                handler.postDelayed(maskTimeoutRunnable, MASK_HARD_TIMEOUT_MS);
-            } catch (Throwable t) {
-                Log.w(TAG, "showMask failed", t);
-                maskAttached = false;
-                maskView = null;
-            }
-        };
-
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            attach.run();
-        } else {
-            handler.post(attach);
-        }
+        // Overlay mask completely disabled to ensure 0ms blackout, 0ms freeze, and lively home screen
     }
 
     private synchronized void hideMask() {
@@ -306,15 +295,24 @@ public class HomeKeyService extends AccessibilityService {
     }
 
     private void launchMainActivity() {
-        Intent home = new Intent(Intent.ACTION_MAIN);
-        home.addCategory(Intent.CATEGORY_HOME);
-        home.setComponent(new ComponentName(this, MainActivity.class));
-        home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+        // 1. Instant task reorder to front
+        if (MainActivity.mainTaskId > 0) {
+            try {
+                ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                if (am != null) {
+                    am.moveTaskToFront(MainActivity.mainTaskId, ActivityManager.MOVE_TASK_NO_USER_ACTION);
+                }
+            } catch (Throwable ignored) {}
+        }
+
+        // 2. Direct explicit intent to MainActivity (without CATEGORY_HOME to avoid Fire OS intercept)
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_SINGLE_TOP
                 | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
                 | Intent.FLAG_ACTIVITY_NO_ANIMATION);
         try {
-            startActivity(home);
+            startActivity(intent);
         } catch (Exception e) {
             Log.w(TAG, "startActivity failed", e);
         }
@@ -322,31 +320,22 @@ public class HomeKeyService extends AccessibilityService {
 
     private void launchCleanYourTV() {
         long now = System.currentTimeMillis();
-        if (now - lastLaunchTime < 250) return;
+        if (now - lastLaunchTime < 180) return;
         lastLaunchTime = now;
 
-        // Pitch-black TYPE_ACCESSIBILITY_OVERLAY attaches in <16ms, covering the TV screen before Amazon renders a single frame
-        showMask();
-
-        boolean wasForeground = MainActivity.wasRecentlyForeground();
-
-        if (wasForeground) {
-            // Case 1: CleanYourTV was already active!
-            // Dismiss Amazon via BACK, reorder CleanYourTV to front; onMainActivityResumed hides mask.
-            performGlobalAction(GLOBAL_ACTION_BACK);
-            launchMainActivity();
-            handler.postDelayed(() -> performGlobalAction(GLOBAL_ACTION_BACK), 100);
-            handler.postDelayed(() -> performGlobalAction(GLOBAL_ACTION_BACK), 200);
-            handler.postDelayed(this::launchMainActivity, 250);
-            return;
-        }
-
-        // Case 2: Returning from external app.
+        // Always bring CleanYourTV to front directly without any blackout mask
         launchMainActivity();
         isRetrying = true;
         retryCount = 0;
         handler.removeCallbacks(retryRunnable);
-        handler.postDelayed(retryRunnable, 400);
+        handler.postDelayed(retryRunnable, 80);
+
+        if (MainActivity.wasRecentlyForeground()) {
+            MainActivity main = MainActivity.instance;
+            if (main != null) {
+                main.runOnUiThread(main::resetToTop);
+            }
+        }
     }
 
     private boolean isSettingsKey(KeyEvent event) {
