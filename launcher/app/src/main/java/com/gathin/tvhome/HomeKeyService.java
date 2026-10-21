@@ -319,8 +319,8 @@ public class HomeKeyService extends AccessibilityService {
             return;
         }
 
-        // Case 2: Returning from external app. Show pure pitch-black stealth shield (no logo).
-        showMask();
+        // Case 2: Returning from external app.
+        // Direct launch, zero mask, zero logo, immediate lively dashboard!
         launchMainActivity();
         isRetrying = true;
         retryCount = 0;

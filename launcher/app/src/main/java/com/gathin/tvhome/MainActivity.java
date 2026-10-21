@@ -93,7 +93,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public static volatile android.graphics.Bitmap sLastSnapshot = null;
 
     public static boolean wasRecentlyForeground() {
-        return isForeground || (System.currentTimeMillis() - lastActiveTime < 1500);
+        return isForeground || (System.currentTimeMillis() - lastActiveTime < 8000);
     }
 
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
@@ -264,6 +264,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        overridePendingTransition(0, 0);
         super.onCreate(savedInstanceState);
         mainTaskId = getTaskId();
         setContentView(R.layout.activity_main);
@@ -536,6 +537,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     protected void onNewIntent(Intent intent) {
+        overridePendingTransition(0, 0);
         super.onNewIntent(intent);
         isForeground = true;
         HomeKeyService.notifyCleanYourTVResumed();
@@ -559,6 +561,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     protected void onResume() {
+        overridePendingTransition(0, 0);
         super.onResume();
         isForeground = true;
         lastActiveTime = System.currentTimeMillis();
