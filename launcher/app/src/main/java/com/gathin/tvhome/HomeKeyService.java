@@ -5,9 +5,7 @@ import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -29,7 +27,8 @@ import java.util.Map;
  * Ultra-fast zero-latency Home button interception and window manager for Fire TV:
  * - Uses continuous real-time system logcat streaming to detect Amazon Home launch at 0ms.
  * - Instantly displays a pitch-black stealth overlay mask BEFORE Amazon renders a single frame.
- * - Sustains a takeover loop through Fire OS's 5.0-second stopAppSwitches lock.
+ * - If CleanYourTV was recently active, triggers GLOBAL_ACTION_BACK to dismiss Amazon in ~100ms.
+ * - Sustains a takeover loop through Fire OS's 5.0-second stopAppSwitches lock without premature mask drops.
  * - Seamlessly reveals CleanYourTV the moment it resumes.
  */
 public class HomeKeyService extends AccessibilityService {
@@ -50,7 +49,7 @@ public class HomeKeyService extends AccessibilityService {
     private WindowManager windowManager;
     private View maskView = null;
     private boolean maskAttached = false;
-    private static final long MASK_HARD_TIMEOUT_MS = 6500; // 6.5s hard safety backstop
+    private static final long MASK_HARD_TIMEOUT_MS = 12000; // 12.0s hard safety backstop (never drops prematurely)
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private int retryCount = 0;
@@ -61,7 +60,7 @@ public class HomeKeyService extends AccessibilityService {
     private volatile boolean logcatRunning = false;
 
     private final Runnable maskTimeoutRunnable = () -> {
-        Log.w(TAG, "Mask hard-timeout reached; removing mask");
+        Log.w(TAG, "Mask hard-timeout reached; safety removing mask");
         hideMask();
     };
 
@@ -69,13 +68,12 @@ public class HomeKeyService extends AccessibilityService {
         @Override
         public void run() {
             if (!isRetrying) return;
-            if (retryCount < 55) { // Retries every 100ms for up to 5.5s (outlasts 5.0s stopAppSwitches)
+            if (retryCount < 16) { // Retries every 400ms for up to 6.4s (bridges 5.0s stopAppSwitches)
                 retryCount++;
-                performTakeover();
-                handler.postDelayed(this, 100);
+                launchMainActivity();
+                handler.postDelayed(this, 400);
             } else {
                 isRetrying = false;
-                hideMask();
             }
         }
     };
@@ -179,14 +177,12 @@ public class HomeKeyService extends AccessibilityService {
                 Process process = null;
                 BufferedReader reader = null;
                 try {
-                    // Stream only recent and new ActivityManager events from system and main buffers
                     process = Runtime.getRuntime().exec(new String[]{
                             "logcat", "-v", "brief", "-b", "system", "-b", "main", "-T", "1", "-s", "ActivityManager:I"
                     });
                     reader = new BufferedReader(new InputStreamReader(process.getInputStream()), 1024);
                     String line;
                     while (logcatRunning && (line = reader.readLine()) != null) {
-                        // Look for START of Amazon launcher
                         if (line.contains("cmp=com.amazon.tv.launcher") || line.contains("cmp=com.amazon.firehomestarter")) {
                             if (line.contains("START") || line.contains("category.HOME") || line.contains("HomeActivity")) {
                                 Log.i(TAG, ">>> [0ms Trigger] Detected Amazon Launcher start in logcat: " + line);
@@ -213,26 +209,21 @@ public class HomeKeyService extends AccessibilityService {
         logcatThread.start();
     }
 
+    /**
+     * Builds a clean, professional transition mask with solid pitch black base and centered logo.
+     * Avoids showing fake unclickable tiles which mislead the user into thinking the TV is frozen.
+     */
     private View createMaskView() {
         FrameLayout container = new FrameLayout(this);
         container.setBackgroundColor(0xFF000000); // 100% Pitch black stealth base
 
-        Bitmap snapshot = MainActivity.sLastSnapshot;
-        if (snapshot != null && !snapshot.isRecycled()) {
-            ImageView img = new ImageView(this);
-            img.setImageBitmap(snapshot);
-            img.setScaleType(ImageView.ScaleType.FIT_XY);
-            container.addView(img, new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-        } else {
-            // Elegant centered CleanYourTV banner
-            ImageView logo = new ImageView(this);
-            logo.setImageResource(R.drawable.banner);
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
-            lp.gravity = Gravity.CENTER;
-            container.addView(logo, lp);
-        }
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.banner);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.CENTER;
+        container.addView(logo, lp);
+
         return container;
     }
 
@@ -332,35 +323,30 @@ public class HomeKeyService extends AccessibilityService {
         }
     }
 
-    private void performTakeover() {
-        // 1. Move task to front
-        try {
-            int taskId = MainActivity.mainTaskId;
-            if (taskId > 0) {
-                ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-                if (am != null) {
-                    am.moveTaskToFront(taskId, ActivityManager.MOVE_TASK_NO_USER_ACTION);
-                }
-            }
-        } catch (Throwable ignored) {}
-
-        // 2. Direct startActivity
-        launchMainActivity();
-    }
-
     private void launchCleanYourTV() {
         long now = System.currentTimeMillis();
-        if (now - lastLaunchTime < 100) return;
+        if (now - lastLaunchTime < 250) return;
         lastLaunchTime = now;
 
+        boolean wasForeground = MainActivity.wasRecentlyForeground();
         showMask();
-        performTakeover();
 
-        if (!isRetrying) {
+        if (wasForeground) {
+            // Case 1: CleanYourTV was already active! GLOBAL_ACTION_BACK pops Amazon Launcher in ~80ms.
+            performGlobalAction(GLOBAL_ACTION_BACK);
+            launchMainActivity();
+            handler.postDelayed(() -> {
+                if (!MainActivity.isForeground) {
+                    launchMainActivity();
+                }
+            }, 350);
+        } else {
+            // Case 2: Returning from external app. Bridge 5.0s stopAppSwitches gently.
+            launchMainActivity();
             isRetrying = true;
             retryCount = 0;
             handler.removeCallbacks(retryRunnable);
-            handler.postDelayed(retryRunnable, 100);
+            handler.postDelayed(retryRunnable, 400);
         }
     }
 

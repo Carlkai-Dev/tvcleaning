@@ -89,7 +89,12 @@ import java.util.Set;
  */
 public class MainActivity extends Activity implements AppAdapter.TileListener {
     public static volatile boolean isForeground = false;
+    public static volatile long lastActiveTime = 0;
     public static volatile android.graphics.Bitmap sLastSnapshot = null;
+
+    public static boolean wasRecentlyForeground() {
+        return isForeground || (System.currentTimeMillis() - lastActiveTime < 1500);
+    }
 
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
     /** Sent by QuickSettingsActivity: open Launcher settings from here so Home rebuilds when they close. */
@@ -539,7 +544,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.scrollToPosition(0);
         lastFocused = 0;
         lastFocusedKey = adapter.getItemCount() > 0 ? adapter.keyAt(0) : null;
-        rebuildOnResume = true;
+        focusTile(0);
     }
 
     @Override
@@ -556,6 +561,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         isForeground = true;
+        lastActiveTime = System.currentTimeMillis();
         mainTaskId = getTaskId();
         HomeKeyService.notifyCleanYourTVResumed();
         try {
@@ -571,9 +577,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
         promptsPaused = false;
-        if (rebuildOnResume || adapter.getItemCount() == 0) {
+        if (adapter.getItemCount() == 0) {
             tilesReady = false;
             reloadApps(true);
+        } else if (rebuildOnResume) {
+            reloadApps(false);
         }
         rebuildOnResume = false;
         updateGreeting();
@@ -612,7 +620,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         final String returnKey = lastFocusedKey;
         final int returnSlot = lastFocused;
         final boolean restoreFocus = appLibrary == null && (animate || grid.hasFocus());
-        if (restoreFocus) {
+        if (restoreFocus && animate) {
             glassShown = false;
             glass.setAlpha(0f);
             heroShown = false;
@@ -676,6 +684,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         isForeground = false;
+        lastActiveTime = System.currentTimeMillis();
         try {
             android.view.View decor = getWindow() != null ? getWindow().getDecorView() : null;
             if (decor != null && decor.getWidth() > 0 && decor.getHeight() > 0) {
