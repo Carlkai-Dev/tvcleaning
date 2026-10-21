@@ -102,6 +102,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private static final long TIME_VALID_AFTER_MS = 1_735_689_600_000L;
     private String liveTvPkg;
+    /** Set when live_tv_package names an activity ("package/.Activity") instead of a package. */
+    private ComponentName liveTvComponent;
     private String liveTvAction;
     private String inputAction;
     private String sourcePanelService;
@@ -299,6 +301,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
         liveTvPkg = cfg.liveTvPackage;
+        // Some tuner screens are neither a leanback entry nor reachable by an action alone (CVTE's
+        // TvSettingActivity shares MAIN with two other activities in its package): name the activity then.
+        liveTvComponent = ActivitySpec.component(liveTvPkg);
+        if (liveTvComponent != null) liveTvPkg = liveTvComponent.getPackageName();
         liveTvAction = cfg.liveTvAction;
         inputAction = cfg.inputAction;
         sourcePanelService = cfg.sourcePanelService;
@@ -2038,9 +2044,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
     }
 
-    /** The Live TV app's launch intent: its leanback entry point, or the configured action if it has none. */
+    /** The Live TV app's launch intent: its named activity, its leanback entry point, or the configured action if it has none. */
     private Intent liveTvIntent() {
         if (liveTvPkg.isEmpty()) return null;
+        if (liveTvComponent != null) {
+            Intent byComponent = new Intent(Intent.ACTION_MAIN).setComponent(liveTvComponent);
+            return getPackageManager().resolveActivity(byComponent, 0) != null ? byComponent : null;
+        }
         Intent i = getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg);
         if (i != null || liveTvAction.isEmpty()) return i;
         Intent byAction = new Intent(liveTvAction).setPackage(liveTvPkg);

@@ -26,6 +26,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.dynamicanimation.animation.FloatPropertyCompat;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
@@ -426,7 +427,7 @@ final class AppLibraryDialog {
         view.setText(value);
         view.setTextSize(size);
         view.setTextColor(color);
-        view.setTypeface(activity.getResources().getFont(R.font.outfit_medium));
+        view.setTypeface(ResourcesCompat.getFont(activity, R.font.outfit_medium));
         view.setLetterSpacing(0.01f);
         view.setIncludeFontPadding(false);
         return view;

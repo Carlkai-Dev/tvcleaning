@@ -25,7 +25,10 @@
         <item>com.mitv.gallery</item>
     </string-array>
 
-    <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
+    <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit.
+         An activity can be named instead, "package/.Activity", for tuner screens that have no leanback entry
+         and share MAIN with other activities of their package (CVTE: com.cvte.tv.androidsetting/.TvSettingActivity);
+         it is then started directly and live_tv_action is not used. -->
     <string name="live_tv_package" translatable="false">com.mediatek.wwtv.tvcenter</string>
 
     <!-- Some TVs give their Live TV app no leanback entry point at all, so `live_tv_package` above
@@ -35,7 +38,12 @@
 
     <!-- Tiles that open a screen of the app instead of its start screen: "package=action", sent to that package.
          A tile whose action no longer resolves opens the app normally. MagentaTV's program guide:
-         com.telekom.onetv.tv.pl=com.telekom.onetv.tv.pl.action.PROGRAM_GUIDE. -->
+         com.telekom.onetv.tv.pl=com.telekom.onetv.tv.pl.action.PROGRAM_GUIDE.
+         The value can also name an activity, "package=package/.Activity", which is started with MAIN: for a
+         screen no action reaches, such as CVTE's tuner,
+         com.cvte.tv.androidsetting=com.cvte.tv.androidsetting/.TvSettingActivity. A package with such an entry
+         gets a tile even if it is not a leanback app (a dock app for it, with app_labels and app_banners,
+         makes a "TV" tile). -->
     <string-array name="launch_actions">
     </string-array>
 

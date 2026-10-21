@@ -233,7 +233,12 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         Set<String> tvPackages = new HashSet<>();
         for (ResolveInfo ri : found) if (ri.activityInfo != null) tvPackages.add(ri.activityInfo.packageName);
         leanbackPackages = tvPackages;
-        Set<String> added = LibraryApps.load(ctx);
+        Set<String> added = new HashSet<>(LibraryApps.load(ctx));
+        // A launch action naming an activity is a deliberate tile (CVTE's tuner lives in a non-TV settings
+        // app), so show its package as if it had been added from the library.
+        for (Map.Entry<String, String> a : launchActions.entrySet()) {
+            if (ActivitySpec.split(a.getValue()) != null) added.add(a.getKey());
+        }
         Set<String> removed = LibraryApps.loadRemoved(ctx);
         if (!added.isEmpty()) {
             Set<String> seen = new HashSet<>(tvPackages);
@@ -448,7 +453,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         // already running resumes instead of restarting; only phone apps added from the library use plain MAIN.
         if (leanbackPackages.contains(e.pkg)) i.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         String action = launchActions.get(e.pkg);
-        if (action != null) {
+        if (ActivitySpec.split(action) != null) {
+            // "package=package/.Activity": a screen that shares MAIN with others in its package, such as
+            // CVTE's TvSettingActivity (the tuner) inside the settings app.
+            ComponentName c = ActivitySpec.component(action);
+            Intent byComponent = new Intent(Intent.ACTION_MAIN).setComponent(c)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            if (c != null && ctx.getPackageManager().resolveActivity(byComponent, 0) != null) i = byComponent;
+        } else if (action != null) {
             Intent byAction = new Intent(action).setPackage(e.pkg)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
             if (ctx.getPackageManager().resolveActivity(byAction, 0) != null) i = byAction;
