@@ -212,7 +212,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:layout_marginBottom="2dp"
+            android:layout_marginBottom="12dp"
             android:orientation="vertical"
             android:clipChildren="false"
             android:clipToPadding="false">
@@ -272,8 +272,8 @@
                 android:id="@+id/heroSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:textColor="#94A3B8"
+                android:layout_marginTop="2dp"
+                android:textColor="#CBD5E1"
                 android:textSize="13sp"
                 android:fontFamily="@font/outfit"
                 android:text="Cinema &amp; Series" />

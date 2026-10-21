@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 /**
  * Enhanced tvOS / Google TV style dock decoration:
  * - Draws the translucent sapphire frosted glass band behind the pinned dock row.
- * - Draws clean section headers: "★ FAVORITES" above the dock, and "✦ ALL APPLICATIONS" above the grid.
+ * - Draws clean section header: "✦ ALL APPLICATIONS" above the installed apps grid.
  */
 public class DockDecoration extends RecyclerView.ItemDecoration {
 
@@ -20,7 +20,6 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final float density;
     private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint allAppsPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
 
@@ -33,10 +32,6 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         edge.setStrokeWidth(1.2f * density);
         edge.setColor(0x2E38BDF8); // Subtle Cyan-Sapphire luminous rim
 
-        titlePaint.setColor(0xCC38BDF8); // Electric Cyan
-        titlePaint.setTextSize(11f * density);
-        titlePaint.setLetterSpacing(0.14f);
-
         allAppsPaint.setColor(0x9994A3B8); // Slate
         allAppsPaint.setTextSize(11f * density);
         allAppsPaint.setLetterSpacing(0.14f);
@@ -47,10 +42,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
                                @NonNull RecyclerView.State state) {
         int pos = parent.getChildAdapterPosition(view);
         if (pos >= 0 && pos < dockSize) {
-            outRect.top = (int) (20 * density);  // room for "★ FAVORITES" title
+            outRect.top = (int) (6 * density);
             outRect.bottom = (int) (12 * density);
         } else if (pos >= dockSize && pos < dockSize + dockSize) {
-            outRect.top = (int) (24 * density);  // room for "✦ ALL APPLICATIONS" title
+            outRect.top = (int) (30 * density);  // generous room for "✦ ALL APPLICATIONS"
             outRect.bottom = (int) (6 * density);
         }
     }
@@ -84,20 +79,16 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             c.drawRoundRect(rect, radius, radius, edge);
         }
 
-        // Draw Section Titles
+        // Draw "✦ ALL APPLICATIONS" section title above the first installed app row
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
             int pos = parent.getChildAdapterPosition(child);
-            if (pos == 0) {
+            if (pos == dockSize) {
                 View card = child.findViewById(R.id.card);
                 float textX = child.getLeft() + (card != null ? card.getLeft() : 0);
-                float textY = child.getTop() + child.getTranslationY() - (6 * density);
-                c.drawText("★ FAVORITES", textX, textY, titlePaint);
-            } else if (pos == dockSize) {
-                View card = child.findViewById(R.id.card);
-                float textX = child.getLeft() + (card != null ? card.getLeft() : 0);
-                float textY = child.getTop() + child.getTranslationY() - (8 * density);
+                float textY = child.getTop() + child.getTranslationY() - (10 * density);
                 c.drawText("✦ ALL APPLICATIONS", textX, textY, allAppsPaint);
+                break;
             }
         }
     }

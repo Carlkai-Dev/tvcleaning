@@ -70,7 +70,12 @@ public class BackdropThemeManager {
     }
 
     public String getGradientPreset() {
-        return prefs.getString(KEY_GRADIENT, GRAD_SAPPHIRE);
+        String preset = prefs.getString(KEY_GRADIENT, GRAD_SAPPHIRE);
+        if (GRAD_RUBY.equals(preset)) {
+            prefs.edit().putString(KEY_GRADIENT, GRAD_SAPPHIRE).apply();
+            return GRAD_SAPPHIRE;
+        }
+        return preset;
     }
 
     public void setGradientPreset(String preset) {
