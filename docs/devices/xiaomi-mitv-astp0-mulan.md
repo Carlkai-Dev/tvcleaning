@@ -1,5 +1,8 @@
 # Xiaomi MiTV-ASTP0 (mulan): Home after standby wake
 
+Follow-up: [native inputs, short MENU and Home chooser recovery](xiaomi-mitv-astp0-controls.md)
+records the later stock-Home update and the additional control fixes.
+
 小米 MiTV-ASTP0（mulan），Android 9，固件 24.7.4.3982。遥控器关机后再开机
 实际进入的是待机唤醒，系统会绕过默认桌面启动小米原桌面。本记录对应已在这台电视
 实测的兼容方案：使用兼容包名、停用原桌面，并处理小米的待机唤醒广播。日常使用
