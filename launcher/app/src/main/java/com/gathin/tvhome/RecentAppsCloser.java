@@ -13,6 +13,8 @@ import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.hardware.HardwareBuffer;
+import android.media.tv.TvInputInfo;
+import android.media.tv.TvInputManager;
 import android.os.Build;
 import android.net.Uri;
 import android.os.Handler;
@@ -38,6 +40,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -68,10 +71,12 @@ final class RecentAppsCloser {
     /** A details page shows in about half a second; past this the app is skipped (or the run stopped). */
     private static final long STEP_TIMEOUT_MS = 2000;
     private static final long POLL_MS = 80;
-    /** Never stopped: the TV picture and inputs, Settings itself, the store, Play services and this launcher. */
-    private static final Set<String> KEEP = new HashSet<>(Arrays.asList(
-            SETTINGS, "com.tcl.tv", "com.tcl.suspension", "com.tcl.tvinput", "com.android.vending",
-            "com.google.android.gms", "com.google.android.tvrecommendations"));
+    /**
+     * Never stopped on any TV: Settings itself, the store and Play services. The Live TV app and the TV inputs'
+     * providers are added from the TV itself (keep), whatever the firmware names them.
+     */
+    private static final Set<String> ALWAYS_KEEP = new HashSet<>(Arrays.asList(
+            SETTINGS, "com.android.vending", "com.google.android.gms"));
 
     private static boolean running;
 
@@ -254,14 +259,43 @@ final class RecentAppsCloser {
                 if (e.getEventType() == UsageEvents.Event.ACTIVITY_RESUMED) order.add(0, e.getPackageName());
             }
         }
+        Set<String> keep = keep(service.getPackageName(), Config.load(service).liveTvPackage, tvInputPackages());
         PackageManager pm = service.getPackageManager();
-        for (String pkg : order) {
-            if (KEEP.contains(pkg) || pkg.equals(service.getPackageName())) continue;
+        for (String pkg : closable(order, keep)) {
             if (pm.getLeanbackLaunchIntentForPackage(pkg) == null && pm.getLaunchIntentForPackage(pkg) == null) continue;
             if (isStopped(pm, pkg)) continue;   // already force-stopped and not opened since: nothing to close
             seen.add(pkg);
         }
         return new ArrayList<>(seen);
+    }
+
+    /** What is never stopped: ALWAYS_KEEP, this launcher, the configured Live TV app and every TV input's provider. */
+    static Set<String> keep(String self, String liveTvPackage, Collection<String> inputProviders) {
+        Set<String> keep = new HashSet<>(ALWAYS_KEEP);
+        keep.add(self);
+        if (liveTvPackage != null && !liveTvPackage.isEmpty()) keep.add(liveTvPackage);
+        keep.addAll(inputProviders);
+        return keep;
+    }
+
+    /** The apps brought to the front lately, latest first and once each, less the ones kept. */
+    static List<String> closable(List<String> resumedLatestFirst, Set<String> keep) {
+        LinkedHashSet<String> apps = new LinkedHashSet<>();
+        for (String pkg : resumedLatestFirst) if (!keep.contains(pkg)) apps.add(pkg);
+        return new ArrayList<>(apps);
+    }
+
+    /** The packages that provide the TV's inputs (tuner, HDMI and the rest), as the TV lists them. */
+    private Set<String> tvInputPackages() {
+        Set<String> packages = new HashSet<>();
+        try {
+            TvInputManager tim = service.getSystemService(TvInputManager.class);
+            if (tim == null) return packages;
+            for (TvInputInfo input : tim.getTvInputList()) packages.add(input.getServiceInfo().packageName);
+        } catch (RuntimeException ignored) {
+            // No TV input framework: nothing more to keep.
+        }
+        return packages;
     }
 
     // ---- cover -----------------------------------------------------------------------------------

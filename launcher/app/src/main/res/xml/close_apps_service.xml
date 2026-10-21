@@ -7,4 +7,4 @@
     android:canRequestFilterKeyEvents="true"
     android:canRetrieveWindowContent="true"
     android:canTakeScreenshot="true"
-    android:description="@string/close_apps_service_description" />
+    android:description="@string/quick_free_memory" />
