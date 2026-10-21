@@ -12,6 +12,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.ResolveInfo;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -61,6 +63,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.TextClock;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -300,13 +303,56 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     };
 
+    private Locale targetAppLocale;
+
+    static Locale parseLocale(String code) {
+        if (code == null || code.trim().isEmpty()) return Locale.getDefault();
+        if (code.contains("-")) {
+            String[] p = code.split("-", 2);
+            return new Locale(p[0], p[1]);
+        }
+        if (code.contains("_")) {
+            String[] p = code.split("_", 2);
+            return new Locale(p[0], p[1]);
+        }
+        return new Locale(code);
+    }
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        Config cfg = Config.load(newBase);
+        if (cfg.locale != null && !cfg.locale.isEmpty()) {
+            Locale target = parseLocale(cfg.locale);
+            Locale.setDefault(target);
+            Configuration config = new Configuration(newBase.getResources().getConfiguration());
+            config.setLocale(target);
+            super.attachBaseContext(newBase.createConfigurationContext(config));
+            return;
+        }
+        super.attachBaseContext(newBase);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Config cfg = Config.load(this);
+        if (cfg.locale != null && !cfg.locale.isEmpty()) {
+            targetAppLocale = parseLocale(cfg.locale);
+            Locale.setDefault(targetAppLocale);
+            Resources res = getResources();
+            Configuration config = res.getConfiguration();
+            config.setLocale(targetAppLocale);
+            res.updateConfiguration(config, res.getDisplayMetrics());
+        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
+        TextClock dateClock = findViewById(R.id.date);
+        if (dateClock != null && targetAppLocale != null) {
+            dateClock.setTextLocale(targetAppLocale);
+            dateClock.setFormat12Hour(getString(R.string.date_format_home));
+            dateClock.setFormat24Hour(getString(R.string.date_format_home));
+        }
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
-        Config cfg = Config.load(this);
         settingsKeycodes = cfg.settingsKeycodes;
         settingsKeyPanel = cfg.settingsKeyPanel;
         COLUMNS = cfg.columns;
@@ -545,6 +591,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // jump to a tile far below when there is nothing in that direction.
         boolean rtlMenuBar = getResources().getBoolean(R.bool.rtl_menu_bar);
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
+            if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
+                if (event.getAction() == KeyEvent.ACTION_UP) {
+                    focusTile(lastFocused % COLUMNS);
+                }
+                return true;
+            }
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
@@ -573,6 +625,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             solatManager = new SolatManager(this, solatCard);
             solatManager.update();
             solatCard.setOnKeyListener((v, keyCode, event) -> {
+                if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
+                    if (event.getAction() == KeyEvent.ACTION_UP) {
+                        focusTile(lastFocused % COLUMNS);
+                    }
+                    return true;
+                }
                 if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
                 if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                     focusTile(lastFocused % COLUMNS);
@@ -925,7 +983,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (handleSettingsKey(event)) return true;
-        if (!reordering) return super.dispatchKeyEvent(event);
+        if (!reordering) {
+            if (dockEditing) return dispatchDockEdit(event);
+            int code = event.getKeyCode();
+            if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_ESCAPE) {
+                if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+                    handleBackPress();
+                }
+                return true;
+            }
+            return super.dispatchKeyEvent(event);
+        }
         if (dockEditing) return dispatchDockEdit(event);
         boolean down = event.getAction() == KeyEvent.ACTION_DOWN;
         int code = event.getKeyCode();
@@ -1172,9 +1240,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
     }
 
+    private void handleBackPress() {
+        if (openPopup != null && openPopup.isShowing()) {
+            openPopup.dismiss();
+            openPopup = null;
+            return;
+        }
+        if (appLibrary != null) {
+            appLibrary.close();
+            appLibrary = null;
+            return;
+        }
+        if (reordering) {
+            endReorder();
+            return;
+        }
+        View f = getCurrentFocus();
+        int pos = focusedTilePosition();
+        boolean onFirstTile = (f != null && f.getId() == R.id.card && pos == 0);
+        if (!onFirstTile) {
+            grid.scrollToPosition(0);
+            lastFocused = 0;
+            lastFocusedKey = adapter.getItemCount() > 0 ? adapter.keyAt(0) : null;
+            grid.post(() -> focusTile(0));
+        }
+    }
+
     @Override
     public void onBackPressed() {
-        // Home screen: Back goes nowhere.
+        handleBackPress();
     }
 
     // ---- glass highlight -------------------------------------------------------------------------
@@ -1970,6 +2064,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             greeting.setText(greetingName.isEmpty() ? getString(res)
                     : getString(R.string.greeting_with_name, getString(res), greetingName));
             greeting.setTextColor(greetingColor);
+        }
+        TextClock dateClock = findViewById(R.id.date);
+        if (dateClock != null && targetAppLocale != null) {
+            dateClock.setTextLocale(targetAppLocale);
+            dateClock.setFormat12Hour(getString(R.string.date_format_home));
+            dateClock.setFormat24Hour(getString(R.string.date_format_home));
         }
         if (shamsi) shamsiDate.setText(Shamsi.today());
     }

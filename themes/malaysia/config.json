@@ -1,6 +1,7 @@
 {
   "background_color": "#070A14",
   "wallpaper": true,
+  "locale": "ms-MY",
   "dock_apps": [
     "com.google.android.youtube.tv",
     "com.netflix.ninja",

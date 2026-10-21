@@ -339,6 +339,15 @@ public final class SolatManager {
             showCustomZonePrompt();
         });
 
+        dialog.setOnKeyListener((d, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE)
+                    && event.getAction() == KeyEvent.ACTION_UP) {
+                dialog.dismiss();
+                return true;
+            }
+            return false;
+        });
+
         dialog.show();
         rv.requestFocus();
     }
@@ -369,6 +378,14 @@ public final class SolatManager {
         builder.setNegativeButton("Batal", (d, which) -> d.cancel());
 
         AlertDialog alert = builder.create();
+        alert.setOnKeyListener((d, keyCode, event) -> {
+            if ((keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE)
+                    && event.getAction() == KeyEvent.ACTION_UP) {
+                alert.dismiss();
+                return true;
+            }
+            return false;
+        });
         alert.show();
     }
 
