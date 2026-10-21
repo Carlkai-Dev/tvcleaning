@@ -15,6 +15,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -131,6 +132,24 @@ public class HomeKeyService extends AccessibilityService {
 
         // 2. Start zero-latency logcat monitor daemon
         startLogcatMonitor();
+
+        // 3. Check active window; if Amazon launcher is running, immediately take over
+        try {
+            AccessibilityNodeInfo root = getRootInActiveWindow();
+            if (root != null) {
+                CharSequence pkg = root.getPackageName();
+                if (pkg != null) {
+                    String pkgStr = pkg.toString();
+                    if (AMAZON_LAUNCHER.equals(pkgStr) || AMAZON_HOMESTARTER.equals(pkgStr)) {
+                        Log.i(TAG, "onServiceConnected: Detected " + pkgStr + " in active window, immediately triggering launchCleanYourTV()");
+                        launchCleanYourTV();
+                    }
+                }
+                try { root.recycle(); } catch (Throwable ignored) {}
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "onServiceConnected getRootInActiveWindow check failed", t);
+        }
     }
 
     /**
@@ -178,7 +197,7 @@ public class HomeKeyService extends AccessibilityService {
                 BufferedReader reader = null;
                 try {
                     process = Runtime.getRuntime().exec(new String[]{
-                            "logcat", "-v", "brief", "-b", "system", "-b", "main", "-T", "1", "-s", "ActivityManager:I"
+                            "logcat", "-v", "brief", "-b", "system", "-b", "main", "-T", "30", "-s", "ActivityManager:I"
                     });
                     reader = new BufferedReader(new InputStreamReader(process.getInputStream()), 1024);
                     String line;
@@ -306,11 +325,14 @@ public class HomeKeyService extends AccessibilityService {
         if (now - lastLaunchTime < 250) return;
         lastLaunchTime = now;
 
+        // Pitch-black TYPE_ACCESSIBILITY_OVERLAY attaches in <16ms, covering the TV screen before Amazon renders a single frame
+        showMask();
+
         boolean wasForeground = MainActivity.wasRecentlyForeground();
 
         if (wasForeground) {
             // Case 1: CleanYourTV was already active!
-            // NO MASK, NO LOGO. Keep home screen immediately lively, responsive and interactive!
+            // Dismiss Amazon via BACK, reorder CleanYourTV to front; onMainActivityResumed hides mask.
             performGlobalAction(GLOBAL_ACTION_BACK);
             launchMainActivity();
             handler.postDelayed(() -> performGlobalAction(GLOBAL_ACTION_BACK), 100);
@@ -320,7 +342,6 @@ public class HomeKeyService extends AccessibilityService {
         }
 
         // Case 2: Returning from external app.
-        // Direct launch, zero mask, zero logo, immediate lively dashboard!
         launchMainActivity();
         isRetrying = true;
         retryCount = 0;
