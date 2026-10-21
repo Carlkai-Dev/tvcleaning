@@ -27,6 +27,7 @@ public class HomeKeyService extends AccessibilityService {
     private boolean settingsPanel;
     /** app_keys, the same map InputKeyService reads, for setups that run only this service. */
     private Map<Integer, String> appKeys = Collections.emptyMap();
+    private Map<Integer, String> appScancodes = Collections.emptyMap();
 
     @Override
     protected void onServiceConnected() {
@@ -39,6 +40,7 @@ public class HomeKeyService extends AccessibilityService {
         settingsKeycodes = config.settingsKeycodes;
         settingsPanel = config.settingsKeyPanel;
         appKeys = RemoteKeys.parseAppKeys(config.appKeys);
+        appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -51,6 +53,12 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
         if (tvButton != null && tvButton.hasOverride() && tvButton.onKeyEvent(event)) return true;
+        // A scancode entry is more specific than any keycode, so it goes first.
+        String scanApp = appScancodes.get(event.getScanCode());
+        if (scanApp != null) {
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) RemoteKeys.launch(this, scanApp);
+            return true;
+        }
         // The stock launcher handled the remote's Settings button; with it disabled the button does nothing.
         if (isSettingsKey(event)) {
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
