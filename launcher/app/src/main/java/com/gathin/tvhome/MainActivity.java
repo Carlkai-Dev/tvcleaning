@@ -89,6 +89,7 @@ import java.util.Set;
  */
 public class MainActivity extends Activity implements AppAdapter.TileListener {
     public static volatile boolean isForeground = false;
+    public static volatile android.graphics.Bitmap sLastSnapshot = null;
 
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
     /** Sent by QuickSettingsActivity: open Launcher settings from here so Home rebuilds when they close. */
@@ -675,6 +676,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         isForeground = false;
+        try {
+            android.view.View decor = getWindow() != null ? getWindow().getDecorView() : null;
+            if (decor != null && decor.getWidth() > 0 && decor.getHeight() > 0) {
+                android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(decor.getWidth(), decor.getHeight(), android.graphics.Bitmap.Config.RGB_565);
+                android.graphics.Canvas canvas = new android.graphics.Canvas(bmp);
+                decor.draw(canvas);
+                sLastSnapshot = bmp;
+            }
+        } catch (Throwable ignored) {}
         // aurora inactive
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
@@ -703,6 +713,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             HomeKeyService.notifyCleanYourTVResumed();
+            try {
+                android.view.View decor = getWindow() != null ? getWindow().getDecorView() : null;
+                if (decor != null) {
+                    decor.post(() -> {
+                        try {
+                            if (decor.getWidth() > 0 && decor.getHeight() > 0) {
+                                android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(decor.getWidth(), decor.getHeight(), android.graphics.Bitmap.Config.RGB_565);
+                                android.graphics.Canvas canvas = new android.graphics.Canvas(bmp);
+                                decor.draw(canvas);
+                                sLastSnapshot = bmp;
+                            }
+                        } catch (Throwable ignored) {}
+                    });
+                }
+            } catch (Throwable ignored) {}
         try {
             String accServices = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
             if (accServices == null || !accServices.contains("HomeKeyService")) {
