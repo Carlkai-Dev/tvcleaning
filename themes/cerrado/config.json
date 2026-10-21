@@ -1,0 +1,9 @@
+{
+  "background_color": "#12130B",
+  "accent_color": "#F2C230",
+  "text_color": "#F4EEDB",
+  "surface_color": "#1F2114",
+  "glow_color": "app",
+  "sky_intensity": 35,
+  "show_stats": true
+}

@@ -18,6 +18,11 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour |
 | `dussehra/` | Festive skin for Dussehra (ends 21 Oct 2026): a marigold toran, a faint gold rangoli, a diya for Wi-Fi, a bell for Inputs, a marigold for Settings and a petal shower |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock |
+| `minerio/` | Palette, no wallpaper: iron-oxide brown with a rust accent and bone-white type; the glow still follows each app |
+| `pampulha/` | Palette, no wallpaper: cobalt and sky blue after Portinari's tiles, a fixed blue glow, six columns in one plain grid |
+| `neon/` | Palette, no wallpaper: near-black with teal type and a red neon accent and glow, cinematic top shelf |
+| `cerrado/` | Palette, no wallpaper: dry olive with an ipê-yellow accent, a 35% time-of-day sky and the stats line |
+| `grafite/` | Palette, no wallpaper: neutral graphite, no glow and the plain white highlight, seven columns and three rows so the app art is the only colour |
 
 ## Keys
 
@@ -58,7 +63,10 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `festival` | string | Turns on a festive skin: the network pill becomes a diya whose flame follows the connection, Inputs a temple bell, Settings a marigold, and the first Home of the day gets a petal shower. `dussehra` and `diwali` have built-in greetings |
 | `festival_until` | `YYYY-MM-DD` | Last day the festive skin shows; it switches itself off after that. A malformed date turns it off |
 | `greeting` | string | Replaces the time-of-day greeting while the festive skin is on |
-| `accent_color` | `#RRGGBB` | Colour of the focus glow while the festive skin is on; diya gold if not set |
+| `accent_color` | `#RRGGBB` | Colour of the focus highlight and the greeting. In a theme with `festival` it is the festival's accent (diya gold if not set) and goes with the festival; otherwise white if not set |
+| `text_color` | `#RRGGBB` | Clock, date, stats line, the app name above the dock and the cinematic shelf's "Last opened" line and dots; each keeps its own transparency. White if not set |
+| `surface_color` | `#RRGGBB` | The dock band behind the first row (needs `dock_row`); the cinematic shelf keeps its band translucent. Dark grey if not set |
+| `glow_color` | `"app"`, `"off"` or `#RRGGBB` | The ambient glow behind the shelf: the colour sampled from the focused app's artwork (`"app"`, the default), one colour for every app, or none |
 | `settings_key_keycodes` | list of keycodes | Remote buttons that open Settings, for `HomeKeyService` (TCL Google TV gear: `[83]`) |
 | `settings_key_panel` | bool | Those buttons open a small quick settings panel (TV settings, Display, Network, Apps, Launcher settings) instead of the TV's Settings |
 | `input_key_keycodes` | list of keycodes | More remote buttons that open the input switcher, for `InputKeyService` (`KEYCODE_TV` and `KEYCODE_TV_INPUT` always do) |
@@ -95,6 +103,27 @@ The original system idle screensaver is left unchanged.
 On the TV, Launcher settings has a Wallpaper row: pick one picture from the collection (or the theme's
 `wallpaper.jpg`), or None. A pick shows that one picture and stops the rotation until you choose Theme
 default, press Follow theme, or push a theme again.
+
+## Palettes
+
+Four keys give a theme its own colours without a wallpaper: `accent_color`, `text_color`, `surface_color`
+and `glow_color`. They change only which colours are painted, so a palette theme costs no memory at all,
+where a 1920×1080 wallpaper is about 8 MB once decoded. Every key is optional; a theme without them looks
+exactly like the reference launcher, and a malformed one is ignored on its own.
+
+```json
+{
+  "background_color": "#1A0E0A",
+  "accent_color": "#D9622B",
+  "text_color": "#F3E6D8",
+  "surface_color": "#2A1711",
+  "glow_color": "app"
+}
+```
+
+Keep the background dark and the text light: the tiles, the glass highlight and the pills are designed for
+black. `minerio`, `pampulha`, `neon`, `cerrado` and `grafite` are five palettes to start from; each keeps
+its text above 15:1 contrast against its background.
 
 ## Reduced motion
 

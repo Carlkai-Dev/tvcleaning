@@ -1,0 +1,9 @@
+{
+  "background_color": "#121212",
+  "text_color": "#F2F2F2",
+  "surface_color": "#1E1E1E",
+  "glow_color": "off",
+  "columns": 7,
+  "dock_title": false,
+  "rows_below_dock": 3
+}

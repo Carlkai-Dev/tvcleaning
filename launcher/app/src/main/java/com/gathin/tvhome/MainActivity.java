@@ -171,6 +171,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Festive skin from the theme (see Festival); applied while it is active today. */
     private Festival festival = Festival.NONE;
     private boolean festive;
+    private Palette palette = Palette.NONE;
+    /** The highlight's colour when nothing else tints it: the festival's, the theme's accent_color, or 0 for white. */
+    private int restingAccent;
     private DiyaDrawable diya;
     private BellDrawable bell;
     private MarigoldDrawable marigold;
@@ -284,6 +287,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dockRow = cfg.dockRow;
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
+        palette = cfg.palette;
+        restingAccent = festive ? festival.accentColor() : palette.accent;
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
         inputAction = cfg.inputAction;
@@ -296,8 +301,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
-        if (festive) glass.setAccent(festival.accentColor());
+        glass.setAccent(restingAccent);
         ambient = findViewById(R.id.ambient);
+        if (palette.glowOff()) ambient.setVisibility(View.GONE);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
         ambient.forceHasOverlappingRendering(false);
@@ -315,7 +321,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // still follows the dock.
         if (!cfg.dockTitle) hero.setVisibility(View.GONE);
         greeting = findViewById(R.id.greeting);
-        greetingColor = greeting.getCurrentTextColor();
+        greetingColor = palette.accent != 0 ? liftTowardsWhite(palette.accent, 0.25f)
+                : palette.textWithAlphaOf(greeting.getCurrentTextColor());
+        applyTextColor(R.id.clock, R.id.ampm, R.id.date, R.id.shamsiDate, R.id.stats, R.id.heroName, R.id.heroMeta);
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
@@ -393,7 +401,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public void onChildViewDetachedFromWindow(@NonNull View v) {
             }
         });
-        if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic));
+        if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, palette.surface));
         if (animations) {
             int enterAnim = reducedMotion ? R.anim.tile_enter_reduced : R.anim.tile_enter;
             float enterDelay = reducedMotion ? 0f : 0.06f;
@@ -941,7 +949,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         drop();
         reordering = false;
         adapter.setReordering(false);
-        glass.setAccent(festive ? festival.accentColor() : 0);
+        glass.setAccent(restingAccent);
+        // The cinematic shelf compares against this before tinting the highlight again; it is now the resting colour.
+        glassAccent = restingAccent;
         btnReorder.setActivated(false);
         List<String> keys = adapter.movableKeys();
         List<String> before = orderAtStart;
@@ -1075,8 +1085,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glassCardW = card.getWidth();
         glassTargetX = x;
         glassTargetY = y;
-        // Cinematic shelf: the highlight glows in the dock app's colour, plain white in the grid.
-        int accent = cinematic && !festive && position < COLUMNS ? adapter.ambientColorAt(position) : 0;
+        // Cinematic shelf: the highlight glows in the dock app's colour, the resting accent (white by default) in the grid.
+        int dockGlow = cinematic && !festive && position < COLUMNS ? glowAt(position) : 0;
+        int accent = dockGlow != 0 ? dockGlow : restingAccent;
         if (cinematic && !festive && accent != glassAccent) {
             glassAccent = accent;
             glass.setAccent(accent);
@@ -1141,7 +1152,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void showHero(int position, float dockTopInRoot) {
         String label = adapter.labelAt(position);
-        int color = adapter.ambientColorAt(position);
+        int color = glowAt(position);
         float y = dockTopInRoot - 14 * density - 26 * density - hero.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
         if (cinematic) showHeroArt(position);
@@ -1288,7 +1299,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String text = getString(R.string.last_opened, rel);
         SpannableString line = new SpannableString(text);
         int at = text.indexOf(rel);
-        if (at >= 0) line.setSpan(new ForegroundColorSpan(0xFFFFFFFF), at, at + rel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        if (at >= 0) line.setSpan(new ForegroundColorSpan(palette.textWithAlphaOf(0xFFFFFFFF)), at, at + rel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         heroMeta.setText(line);
         heroMeta.setVisibility(View.VISIBLE);
     }
@@ -1312,7 +1323,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (int i = 0; i < count; i++) {
             View dot = heroDots.getChildAt(rtlAppGrid ? count - 1 - i : i);
             boolean on = i == position;
-            ((GradientDrawable) dot.getBackground()).setColor(on ? 0xFFFFFFFF : 0x4DFFFFFF);
+            ((GradientDrawable) dot.getBackground()).setColor(palette.textWithAlphaOf(on ? 0xFFFFFFFF : 0x4DFFFFFF));
             ViewGroup.LayoutParams lp = dot.getLayoutParams();
             int w = (int) ((on ? 20 : 6) * density);
             if (lp.width != w) {
@@ -1391,7 +1402,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * show (every tile has its name underneath).
      */
     private void showGlowOnly(int position) {
-        int color = adapter.ambientColorAt(position);
+        int color = glowAt(position);
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -1951,6 +1962,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.addView(shower, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         shower.play(60, 2200, () -> root.removeView(shower));
+    }
+
+    /** The ambient glow for a tile: its artwork's colour, or the theme's glow_color. 0 when the glow is off. */
+    private int glowAt(int position) {
+        return palette.glowFor(adapter.ambientColorAt(position));
+    }
+
+    /** A theme's text_color on the clock, date and shelf, each keeping the alpha its layout gives it. */
+    private void applyTextColor(int... ids) {
+        if (palette.text == 0) return;
+        for (int id : ids) {
+            TextView view = findViewById(id);
+            if (view != null) view.setTextColor(palette.textWithAlphaOf(view.getCurrentTextColor()));
+        }
     }
 
     private static int liftTowardsWhite(int argb, float amount) {

@@ -18,11 +18,15 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rect = new RectF();
 
-    /** @param translucent the cinematic shelf's band: the artwork and the glow show through it. */
-    DockDecoration(int dockSize, float density, boolean translucent) {
+    /**
+     * @param translucent the cinematic shelf's band: the artwork and the glow show through it.
+     * @param surface a theme's surface_color as 0xAARRGGBB, or 0 for the default dark band.
+     */
+    DockDecoration(int dockSize, float density, boolean translucent, int surface) {
         this.dockSize = dockSize;
         this.density = density;
-        band.setColor(translucent ? 0x8C121014 : 0xFF141416);
+        int rgb = surface != 0 ? surface & 0xFFFFFF : (translucent ? 0x121014 : 0x141416);
+        band.setColor((translucent ? 0x8C000000 : 0xFF000000) | rgb);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
         edge.setColor(translucent ? 0x26FFFFFF : 0x1FFFFFFF);
