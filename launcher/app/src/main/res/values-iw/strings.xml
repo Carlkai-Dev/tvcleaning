@@ -90,6 +90,10 @@
     <string name="greeting_with_name">%1$s, %2$s</string>
     <string name="app_lock">נעילת אפליקציות</string>
     <string name="app_lock_change_pin">שינוי קוד PIN</string>
+    <string name="app_lock_grace">לבקש שוב קוד PIN</string>
+    <string name="app_lock_grace_always">בכל פעם</string>
+    <string name="app_lock_grace_min">אחרי %1$d דק׳</string>
+    <string name="app_lock_grace_hours">אחרי %1$d שע׳</string>
     <string name="app_lock_locked">דורש קוד PIN</string>
     <string name="app_lock_open">נפתחת בחופשיות</string>
     <string name="app_lock_enter">הזן קוד PIN</string>

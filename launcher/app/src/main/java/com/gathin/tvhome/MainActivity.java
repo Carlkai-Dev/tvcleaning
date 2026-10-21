@@ -2148,6 +2148,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             AppLock.choosePin(this, this::showAppLockList);
         });
+        View graceRow = addAppLockRow(rows, getString(R.string.app_lock_grace), graceLabel(AppLock.grace(prefs)));
+        final TextView graceStatus = graceRow.findViewById(R.id.status);
+        graceRow.setOnClickListener(v -> {
+            long g = AppLock.nextGrace(AppLock.grace(prefs));
+            AppLock.setGrace(prefs, g);
+            graceStatus.setText(graceLabel(g));
+        });
 
         PackageManager pm = getPackageManager();
         List<ResolveInfo> found = pm.queryIntentActivities(
@@ -2175,6 +2182,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         fitBelow(popup, panel, anchor);
         dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END);
         rows.getChildAt(0).requestFocus();
+    }
+
+    private String graceLabel(long ms) {
+        if (ms == 0) return getString(R.string.app_lock_grace_always);
+        long min = ms / 60_000;
+        return min < 60 ? getString(R.string.app_lock_grace_min, (int) min) : getString(R.string.app_lock_grace_hours, (int) (min / 60));
     }
 
     private View addAppLockRow(LinearLayout rows, String title, String status) {

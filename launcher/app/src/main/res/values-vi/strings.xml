@@ -70,6 +70,10 @@
     <string name="dock_edit_pick_app">Giờ chọn ứng dụng để đặt vào đó rồi nhấn OK. Nhấn Quay lại để chọn vị trí khác.</string>
     <string name="app_lock">Khoá ứng dụng</string>
     <string name="app_lock_change_pin">Đổi mã PIN</string>
+    <string name="app_lock_grace">Hỏi lại mã PIN</string>
+    <string name="app_lock_grace_always">Mỗi lần mở</string>
+    <string name="app_lock_grace_min">Sau %1$d phút</string>
+    <string name="app_lock_grace_hours">Sau %1$d giờ</string>
     <string name="app_lock_locked">Cần mã PIN</string>
     <string name="app_lock_open">Mở tự do</string>
     <string name="app_lock_enter">Nhập mã PIN</string>

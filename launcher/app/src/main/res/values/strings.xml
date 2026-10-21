@@ -92,6 +92,10 @@
     <string name="greeting_with_name">%1$s, %2$s</string>
     <string name="app_lock">App lock</string>
     <string name="app_lock_change_pin">Change PIN</string>
+    <string name="app_lock_grace">Ask for PIN again</string>
+    <string name="app_lock_grace_always">Every time</string>
+    <string name="app_lock_grace_min">After %1$d min</string>
+    <string name="app_lock_grace_hours">After %1$d h</string>
     <string name="app_lock_locked">Needs PIN</string>
     <string name="app_lock_open">Opens freely</string>
     <string name="app_lock_enter">Enter PIN</string>

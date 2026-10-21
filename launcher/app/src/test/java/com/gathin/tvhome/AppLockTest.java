@@ -43,4 +43,27 @@ public class AppLockTest {
         assertFalse(AppLock.valid("12a4"));
         assertFalse(AppLock.valid("١٢٣٤"));
     }
+
+    @Test
+    public void graceCyclesThroughTheListAndBack() {
+        long g = 0;
+        for (int i = 1; i < AppLock.GRACE_MS.length; i++) {
+            g = AppLock.nextGrace(g);
+            assertEquals(AppLock.GRACE_MS[i], g);
+        }
+        assertEquals(24 * 3_600_000L, g);
+        assertEquals(0, AppLock.nextGrace(g));
+        assertEquals(0, AppLock.nextGrace(12345));
+    }
+
+    @Test
+    public void graceWindow() {
+        long five = 5 * 60_000L;
+        assertTrue(AppLock.inGrace(1000, 1000, five));
+        assertTrue(AppLock.inGrace(1000, 1000 + five - 1, five));
+        assertFalse(AppLock.inGrace(1000, 1000 + five, five));
+        assertFalse(AppLock.inGrace(1000, 2000, 0));        // every time
+        assertFalse(AppLock.inGrace(0, 2000, five));        // no PIN typed yet
+        assertFalse(AppLock.inGrace(5000, 2000, five));     // clock went back
+    }
 }

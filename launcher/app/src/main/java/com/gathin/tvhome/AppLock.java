@@ -30,8 +30,14 @@ final class AppLock {
     static final int MAX_TRIES = 5;
     static final long WAIT_MS = 30_000;
 
+    static final String PREF_GRACE = "grace";
+    /** How long a PIN typed to open an app keeps every locked app open; 0 asks every time. */
+    static final long[] GRACE_MS = {0, 5 * 60_000L, 15 * 60_000L, 30 * 60_000L, 3_600_000L, 4 * 3_600_000L, 24 * 3_600_000L};
+
     private static int fails;
     private static long waitUntil;
+    /** elapsedRealtime of the last PIN typed to open an app, 0 for none. Memory only: a restart locks again. */
+    private static long unlockedAt;
 
     private AppLock() {
     }
@@ -61,13 +67,40 @@ final class AppLock {
         p.edit().putStringSet(PREF_APPS, apps).apply();
     }
 
-    /** Runs open now, or after the PIN when pkg is locked. */
+    /** Runs open now, or after the PIN when pkg is locked and the last PIN's grace is over. */
     static void guard(Activity a, String pkg, Runnable open) {
-        if (!locked(prefs(a), pkg)) {
+        SharedPreferences p = prefs(a);
+        if (!locked(p, pkg) || inGrace(unlockedAt, SystemClock.elapsedRealtime(), grace(p))) {
             open.run();
             return;
         }
-        verify(a, a.getString(R.string.app_lock_enter_for, label(a, pkg)), open);
+        verify(a, a.getString(R.string.app_lock_enter_for, label(a, pkg)), () -> {
+            unlockedAt = SystemClock.elapsedRealtime();
+            open.run();
+        });
+    }
+
+    /** The chosen grace, one of {@link #GRACE_MS}; anything else asks every time. */
+    static long grace(SharedPreferences p) {
+        long g = p.getLong(PREF_GRACE, 0);
+        for (long x : GRACE_MS) if (x == g) return g;
+        return 0;
+    }
+
+    /** The next grace in the list, after the longest back to every time. */
+    static long nextGrace(long current) {
+        for (int i = 0; i < GRACE_MS.length - 1; i++) if (GRACE_MS[i] == current) return GRACE_MS[i + 1];
+        return GRACE_MS[0];
+    }
+
+    static void setGrace(SharedPreferences p, long grace) {
+        p.edit().putLong(PREF_GRACE, grace).apply();
+        unlockedAt = 0;
+    }
+
+    /** A PIN typed at {@code at} still counts at {@code now}. */
+    static boolean inGrace(long at, long now, long grace) {
+        return at > 0 && grace > 0 && now >= at && now - at < grace;
     }
 
     /** Asks for the PIN; then runs only after the right one. Too many wrong ones in a row wait WAIT_MS. */
@@ -110,6 +143,7 @@ final class AppLock {
                 return;
             }
             prefs(a).edit().putString(PREF_PIN, store(pin, new SecureRandom())).apply();
+            unlockedAt = 0;
             pad.dismiss();
             Toast.makeText(a, R.string.app_lock_saved, Toast.LENGTH_SHORT).show();
             then.run();
