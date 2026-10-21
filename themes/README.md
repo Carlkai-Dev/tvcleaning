@@ -125,6 +125,8 @@ Keep the background dark and the text light: the tiles, the glass highlight and 
 black. `minerio`, `pampulha`, `neon`, `cerrado` and `grafite` are five palettes to start from; each keeps
 its text above 15:1 contrast against its background.
 
+![The five palette themes on a TCL UnionTV with Android 9](../docs/theme-palettes.jpg)
+
 ## Reduced motion
 
 `"reduced_motion": true` keeps the look but calms the movement: the highlight spring is stiff instead
