@@ -32,6 +32,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.Uri;
+import android.net.wifi.ScanResult;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -61,6 +62,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -527,13 +529,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             libraryFromTopBar = true;   // closing it goes back to this button, not to the pill after the last row
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
+        View btnScreensaver = findViewById(R.id.btnScreensaverTop);
+        btnScreensaver.setVisibility(getResources().getBoolean(R.bool.screensaver_button) ? View.VISIBLE : View.GONE);
+        // SystemUI's Somnambulator starts whichever screensaver is chosen in Settings, as "Start now" there does.
+        btnScreensaver.setOnClickListener(v -> open(new Intent(Intent.ACTION_MAIN).setClassName(
+                "com.android.systemui", "com.android.systemui.Somnambulator")));
+        networkTray = getResources().getBoolean(R.bool.network_tray);
         iconOnlyButtons = cfg.iconOnlyButtons;
         wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
         if (iconOnlyButtons) {
             if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
             else makeIconOnly(btnWifi);
             makeIconOnly((TextView) btnSettings);
+            inputsIconOnly = getResources().getBoolean(R.bool.inputs_icon_only);
+            if (inputsIconOnly) makeIconOnly((TextView) btnInputs);
         }
+        btnMenu = findViewById(R.id.btnMenu);
+        topMenu = getResources().getBoolean(R.bool.top_menu);
+        if (topMenu) setUpTopMenu();
         btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;
@@ -544,15 +557,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean rtlMenuBar = getResources().getBoolean(R.bool.rtl_menu_bar);
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_BACK && barOpen && topMenu) {
+                setBarOpen(false, true);
+                return true;
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (topMenu) setBarOpen(false, false);
                 // Back to the dock tile Up came from, not wherever the focus finder lands.
                 focusTile(lastFocused % COLUMNS);
                 return true;
             }
-            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
-            int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
-            int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
+            int firstButton = topMenu ? R.id.btnMenu
+                    : btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
+            int lastButton = barOpen ? R.id.btnSettings : R.id.btnMenu;
+            int leftButton = rtlMenuBar ? lastButton : firstButton;
+            int rightButton = rtlMenuBar ? firstButton : lastButton;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
@@ -561,8 +581,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
+        btnScreensaver.setOnKeyListener(pillKeys);
+        btnMenu.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings}) {
+            for (View button : new View[]{btnMenu, btnInputs, btnWifi, btnReorder, btnLibraryTop, btnScreensaver,
+                    btnSettings}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(160).start());
@@ -613,6 +636,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onNewIntent(intent);
         if (openLauncherSettingsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
+        // Home pressed on Home: close an open tray (inputs, network, settings menu) and fold the top menu too.
+        if (openPopup != null) openPopup.dismiss();
+        if (topMenu) setBarOpen(false, false);
         grid.scrollToPosition(0);
         lastFocused = 0;
         lastFocusedKey = adapter.getItemCount() > 0 ? adapter.keyAt(0) : null;
@@ -804,6 +830,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onStop() {
         super.onStop();
+        // top_menu: the bar stays out under the quick settings panel (translucent, Home only pauses) as it does
+        // under the inputs menu; once something covers Home it folds back, with focus on the menu button.
+        if (topMenu && barOpen) setBarOpen(false, findViewById(R.id.topButtons).hasFocus());
         started = false;
         unregisterReceiver(packageReceiver);
         unregisterReceiver(timeReceiver);
@@ -867,12 +896,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (int code : settingsKeycodes) {
             if (event.getKeyCode() != code) continue;
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-                open(settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
-                        : systemIntent(Settings.ACTION_SETTINGS));
+                open(settingsKeyPanel ? quickSettingsIntent() : systemIntent(Settings.ACTION_SETTINGS));
             }
             return true;
         }
         return false;
+    }
+
+    /** The quick settings panel; with top_menu it is told to hang under the bar beside the date. */
+    private Intent quickSettingsIntent() {
+        Intent i = new Intent(this, QuickSettingsActivity.class);
+        if (topMenu) {
+            View bar = findViewById(R.id.topButtons);
+            int[] at = new int[2];
+            bar.getLocationOnScreen(at);
+            i.putExtra(QuickSettingsActivity.EXTRA_LEFT, at[0]);
+            i.putExtra(QuickSettingsActivity.EXTRA_TOP, at[1] + bar.getHeight() + Math.round(10 * density));
+        }
+        return i;
     }
 
     // ---- reorder ---------------------------------------------------------------------------------
@@ -1795,10 +1836,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hideHero();
     }
 
-    /** The first top-bar button after Inputs that is shown: the network pill, Reorder, then Settings (always there). */
+    /**
+     * The first top-bar button after Inputs that is shown: the network pill, Reorder, the app library, the
+     * screensaver, then Settings (always there). The menu button while top_menu has the bar folded.
+     */
     private View firstTopButton() {
-        if (btnWifi.getVisibility() == View.VISIBLE) return btnWifi;
-        if (btnReorder.getVisibility() == View.VISIBLE) return btnReorder;
+        if (!barOpen) return btnMenu;
+        for (int id : new int[]{R.id.btnWifi, R.id.btnReorder, R.id.btnLibraryTop, R.id.btnScreensaverTop}) {
+            if (findViewById(id).getVisibility() == View.VISIBLE) return findViewById(id);
+        }
         return findViewById(R.id.btnSettings);
     }
 
@@ -2092,10 +2138,72 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean iconOnlyButtons;
     /** icon_only_buttons without wifi_label_width: the Wi-Fi pill shows no network name. */
     private boolean wifiIconOnly;
+    /** config.xml inputs_icon_only (with icon_only_buttons): Inputs is a round icon, its menu hangs from the bar's end. */
+    private boolean inputsIconOnly;
+    /** config.xml top_menu: one menu button beside the date opens and closes the bar's other buttons. */
+    private boolean topMenu;
+    /** With top_menu: whether the bar's buttons are out. Without it they always are. */
+    private boolean barOpen = true;
+    private TextView btnMenu;
+    /** With top_menu: the bar's buttons the config shows, besides Inputs (which comes and goes with the TV's inputs). */
+    private final List<View> barButtons = new ArrayList<>();
+    /** Whether the TV has inputs to show (updateInputsButton); with top_menu Inputs also needs the bar open. */
+    private boolean inputsAvailable;
+    /** config.xml network_tray: the network pill drops a tray of networks instead of opening Wi-Fi settings. */
+    private boolean networkTray;
     /** The app library button in the top bar (library_button). */
     private View btnLibraryTop;
     /** The open library came from that button: closing it returns there instead of scrolling to the grid's end. */
     private boolean libraryFromTopBar;
+
+    /**
+     * top_menu: the button bar moves from the right edge to just after the date (before it in the Hebrew layout,
+     * where the date is on the right), and only the menu button shows until it is pressed. The date block stops
+     * stretching so the bar can follow it.
+     */
+    private void setUpTopMenu() {
+        boolean rtl = getResources().getBoolean(R.bool.rtl_menu_bar);
+        View left = findViewById(R.id.leftBlock);
+        RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) left.getLayoutParams();
+        lp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+        for (int rule : new int[]{RelativeLayout.START_OF, RelativeLayout.LEFT_OF,
+                RelativeLayout.END_OF, RelativeLayout.RIGHT_OF}) lp.removeRule(rule);
+        left.setLayoutParams(lp);
+        View dateColumn = (View) findViewById(R.id.date).getParent();
+        LinearLayout.LayoutParams dp = (LinearLayout.LayoutParams) dateColumn.getLayoutParams();
+        dp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+        dp.weight = 0;
+        dateColumn.setLayoutParams(dp);
+        ViewGroup bar = findViewById(R.id.topButtons);
+        RelativeLayout.LayoutParams bp = (RelativeLayout.LayoutParams) bar.getLayoutParams();
+        for (int rule : new int[]{RelativeLayout.ALIGN_PARENT_START, RelativeLayout.ALIGN_PARENT_LEFT,
+                RelativeLayout.ALIGN_PARENT_END, RelativeLayout.ALIGN_PARENT_RIGHT}) bp.removeRule(rule);
+        bp.addRule(rtl ? RelativeLayout.START_OF : RelativeLayout.END_OF, R.id.leftBlock);
+        if (rtl) bp.setMarginEnd(Math.round(14 * density));
+        else bp.setMarginStart(Math.round(14 * density));
+        bar.setLayoutParams(bp);
+        // Up to seven round buttons open in this row: closer together than the right-edge bar's pills.
+        for (int i = 0; i < bar.getChildCount(); i++) {
+            View button = bar.getChildAt(i);
+            ((ViewGroup.MarginLayoutParams) button.getLayoutParams()).setMarginStart(i == 0 ? 0 : Math.round(8 * density));
+            if (button != btnMenu && button != btnInputs && button.getVisibility() == View.VISIBLE) barButtons.add(button);
+        }
+        btnMenu.setVisibility(View.VISIBLE);
+        btnMenu.setOnClickListener(v -> setBarOpen(!barOpen, true));
+        setBarOpen(false, false);
+    }
+
+    /** top_menu: shows or hides the bar's buttons beside the menu button, which turns into a close button. */
+    private void setBarOpen(boolean open, boolean moveFocus) {
+        barOpen = open;
+        btnInputs.setVisibility(open && inputsAvailable ? View.VISIBLE : View.GONE);
+        for (View button : barButtons) button.setVisibility(open ? View.VISIBLE : View.GONE);
+        btnMenu.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                open ? R.drawable.ic_menu_close : R.drawable.ic_menu_more, 0, 0, 0);
+        if (!moveFocus) return;
+        if (open && btnInputs.getVisibility() == View.VISIBLE) btnInputs.requestFocus();
+        else firstTopButton().requestFocus();
+    }
 
     /** Turns a labelled top pill into the round TopButtonIcon shape: no text, the icon centred by even padding. */
     private void makeIconOnly(TextView pill) {
@@ -2161,6 +2269,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** The network pill opens the VPN app when one is configured and installed, otherwise Wi-Fi settings. */
     private void openNetworkPill() {
+        if (networkTray && vpnApp.isEmpty()) {
+            showNetworkTray();
+            return;
+        }
         Intent i = vpnApp.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(vpnApp);
         if (i == null && !vpnApp.isEmpty()) i = getPackageManager().getLaunchIntentForPackage(vpnApp);
         open(i != null ? i : systemIntent(Settings.ACTION_WIFI_SETTINGS));
@@ -2194,7 +2306,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             }
         }
-        btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
+        inputsAvailable = any;
+        btnInputs.setVisibility(any && barOpen ? View.VISIBLE : View.GONE);
     }
 
     /** The Live TV app's launch intent: its leanback entry point, or the configured action if it has none. */
@@ -2259,7 +2372,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             openSourcePanel();
             return;
         }
-        View anchor = findViewById(R.id.btnInputs);
+        // A round Inputs icon is too narrow to hang a menu from (it ran off the right edge of the screen): the
+        // menu hangs from the button bar instead, from its end at the right edge or its start beside the date.
+        View anchor = findViewById(inputsIconOnly || topMenu ? R.id.topButtons : R.id.btnInputs);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
 
@@ -2394,9 +2509,95 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
 
-        int alignment = getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.END : Gravity.START;
-        dropIn(popup, panel, anchor, alignment);
+        dropIn(popup, panel, anchor, trayAlignment(anchor));
         rows.getChildAt(0).requestFocus();
+    }
+
+    /** Which edge of its anchor a tray hangs from: the bar's end at the right edge, its start beside the date. */
+    private int trayAlignment(View anchor) {
+        if (topMenu) return Gravity.START;
+        return anchor.getId() == R.id.topButtons || getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.END : Gravity.START;
+    }
+
+    /**
+     * network_tray: the network pill drops a tray like Inputs: the network the TV is on, the strongest others
+     * nearby, and a row for the full Wi-Fi settings. Android lets no launcher join a network itself, so picking
+     * another network opens the Wi-Fi settings, where it is one more press. The list is what the TV last scanned
+     * on its own: asking for a fresh scan would need CHANGE_WIFI_STATE, a permission the launcher does without.
+     */
+    private void showNetworkTray() {
+        View anchor = findViewById(inputsIconOnly || topMenu || wifiIconOnly ? R.id.topButtons : R.id.btnWifi);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        int width = (int) (240 * density);
+        final PopupWindow popup = glassPopup(panel, width);
+        Runnable wifiSettings = () -> open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
+
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkCapabilities caps = cm != null ? cm.getNetworkCapabilities(cm.getActiveNetwork()) : null;
+        WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        String current = null;
+        if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+            addTrayRow(rows, popup, R.drawable.ic_ethernet, getString(R.string.ethernet), R.string.connected, true,
+                    wifiSettings);
+        } else if (wm != null && wm.isWifiEnabled()) {
+            WifiInfo info = wm.getConnectionInfo();
+            String ssid = info != null ? info.getSSID() : null;
+            if (ssid != null && ssid.length() > 1 && !"<unknown ssid>".equals(ssid)) {
+                current = ssid.startsWith("\"") && ssid.endsWith("\"") ? ssid.substring(1, ssid.length() - 1) : ssid;
+                addTrayRow(rows, popup, R.drawable.ic_wifi, current, R.string.connected, true, wifiSettings);
+            }
+        }
+        if (wm != null && !wm.isWifiEnabled()) {
+            addTrayRow(rows, popup, R.drawable.ic_wifi, getString(R.string.wifi), R.string.off, false, wifiSettings);
+        } else if (wm != null) {
+            // Strongest first, one row per name, hidden networks left out.
+            Map<String, Integer> best = new java.util.LinkedHashMap<>();
+            List<ScanResult> scans;
+            try {
+                scans = new ArrayList<>(wm.getScanResults());
+            } catch (SecurityException e) {
+                scans = new ArrayList<>();   // no location permission: the tray keeps the current network
+            }
+            scans.sort((a, b) -> Integer.compare(b.level, a.level));
+            for (ScanResult r : scans) {
+                String name = r.SSID;
+                if (name == null || name.isEmpty() || name.equals(current) || best.containsKey(name)) continue;
+                best.put(name, r.level);
+                if (best.size() == 4) break;
+            }
+            if (!best.isEmpty()) addSeparator(rows);
+            for (Map.Entry<String, Integer> e : best.entrySet()) {
+                int level = WifiManager.calculateSignalLevel(e.getValue(), 3);
+                int strength = level >= 2 ? R.string.signal_strong : level == 1 ? R.string.signal_good : R.string.signal_weak;
+                addTrayRow(rows, popup, R.drawable.ic_wifi, e.getKey(), strength, false, wifiSettings);
+            }
+        }
+        if (rows.getChildCount() > 0) addSeparator(rows);
+        addTrayRow(rows, popup, R.drawable.ic_settings, getString(R.string.wifi_all_settings), 0, false, wifiSettings);
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
+        dropIn(popup, panel, anchor, trayAlignment(anchor));
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /** A row in the network tray: icon, name, an optional status on the right (with the green dot if connected). */
+    private void addTrayRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, int state,
+                            boolean connected, Runnable action) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        TextView status = row.findViewById(R.id.status);
+        if (state == 0) status.setVisibility(View.GONE);
+        else status.setText(state);
+        row.findViewById(R.id.dot).setVisibility(connected ? View.VISIBLE : View.GONE);
+        row.setOnClickListener(v -> {
+            popup.dismiss();
+            action.run();
+        });
+        rows.addView(row);
     }
 
     private PopupWindow glassPopup(View panel, int width) {

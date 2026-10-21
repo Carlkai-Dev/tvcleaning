@@ -305,6 +305,15 @@
                 android:clipToPadding="false"
                 android:orientation="horizontal">
 
+                <!-- top_menu only: one button that opens and closes the others; gone otherwise. -->
+                <TextView
+                    android:id="@+id/btnMenu"
+                    style="@style/TopButtonIcon"
+                    android:visibility="gone"
+                    android:contentDescription="@string/top_menu"
+                    android:drawableStart="@drawable/ic_menu_more"
+                    android:nextFocusDown="@+id/grid" />
+
                 <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
@@ -335,6 +344,15 @@
                     android:visibility="gone"
                     android:contentDescription="@string/app_library"
                     android:drawableStart="@drawable/ic_apps"
+                    android:nextFocusDown="@+id/grid" />
+
+                <!-- screensaver_button: starts the screensaver chosen in Settings. -->
+                <TextView
+                    android:id="@+id/btnScreensaverTop"
+                    style="@style/TopButtonIcon"
+                    android:visibility="gone"
+                    android:contentDescription="@string/screensaver"
+                    android:drawableStart="@drawable/ic_screensaver"
                     android:nextFocusDown="@+id/grid" />
 
                 <TextView

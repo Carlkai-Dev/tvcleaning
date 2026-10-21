@@ -107,4 +107,12 @@
     <!-- Cinematic top shelf (cinematic_home): the line under the focused dock app's name; %1$s is when it was
          last opened, e.g. "5 minutes ago" or "yesterday, 9:40 pm". -->
     <string name="last_opened">Last opened %1$s</string>
+    <!-- top_menu: talkback name of the round button that opens the top bar. -->
+    <string name="top_menu">Menu</string>
+    <string name="screensaver">Screensaver</string>
+    <!-- network_tray: the Wi-Fi tray under the network pill. -->
+    <string name="wifi_all_settings">All Wi-Fi settings</string>
+    <string name="signal_strong">Strong</string>
+    <string name="signal_good">Good</string>
+    <string name="signal_weak">Weak</string>
 </resources>
