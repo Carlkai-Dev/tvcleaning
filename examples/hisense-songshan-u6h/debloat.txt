@@ -1,0 +1,65 @@
+# Hisense U6H class (device songshan, MediaTek), Android model SmartTV 4K FFM, Android TV 11
+# (SDK 30), firmware RTT2.220118.001, security patch 2025-06-01. Ethernet ADB on port 5555
+# (ro.adb.secure=1; accept "Allow USB debugging?" on the TV on first connect).
+#
+# Applied and package state verified on this set 2026-10-21 (not yet lived with for several days).
+# Reboot-checked the same day: Home still com.gathin.tvhome, packages in this list stay disabled.
+# Chromecast and GMS packages were left enabled for Google Home power-on and app launch.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/hisense-songshan-u6h/debloat.txt
+#          tools\disable.ps1 -TvHost <tv ip> examples\hisense-songshan-u6h\debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/hisense-songshan-u6h/debloat.txt
+#          tools\restore.ps1 -TvHost <tv ip> examples\hisense-songshan-u6h\debloat.txt
+# To put the stock Google TV Home back, also pass the stock launcher as the second argument:
+#   tools/restore.sh examples/hisense-songshan-u6h/debloat.txt com.google.android.apps.tv.launcherx
+#   tools\restore.ps1 -TvHost <tv ip> examples\hisense-songshan-u6h\debloat.txt com.google.android.apps.tv.launcherx
+# That re-enables packages in this file only; com.google.android.apps.tv.launcherx and
+# com.google.android.tungsten.setupwraith were disabled separately for CleanYourTV and are not
+# listed below (re-enable them yourself if you want the stock launcher and setup wizard back).
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Google Home: owner uses Google Home to power on the TV and open apps. Do NOT disable Cast/GMS:
+# com.google.android.apps.mediashell, com.google.android.tv.assistant, com.google.android.katniss,
+# com.google.android.gms, com.google.android.gsf, com.android.vending, com.google.android.tv.remote.service,
+# or any other Chromecast / GMS package.
+#
+# CleanYourTV launcher: com.gathin.tvhome is Home on the tested set.
+# Live TV and HDMI: com.mediatek.wwtv.tvcenter (not disabled; all com.mediatek.* stay enabled).
+# Stock launcher (disabled separately on the tested set): com.google.android.apps.tv.launcherx.
+#
+# Do NOT disable: com.hisense.tv.smartsense, com.vt.tv.smartsense.ui, com.vt.tv.aiot (boot/recovery risk),
+# com.mediatek.* except where listed below and confirmed safe (never com.mediatek.wwtv.tvcenter),
+# com.hisense.tv.hitvinput, com.vt.tv.input, com.hisense.uifac, com.hisense.tv.customerlauncher,
+# com.hisense.tv.smartservice, com.vt.tv.videocolor, com.vt.tv.aipq, com.dolby.*, com.vt.eula.
+# com.mediatek.partner.airplay was skipped by disable.ps1 (TV_INPUT_HARDWARE); do not add it here.
+# Streaming kept: com.netflix.ninja, com.hulu.livingroomplus, com.disney.disneyplus, com.plexapp.android
+# (and other streamers not listed below).
+
+# Group 1: telemetry, VIDAA, partner tracking
+com.hisense.evservice                            # ACR / enhanced viewing telemetry
+net.vidaatv.hisense.android.tv                   # Hisense Channels / VIDAA preload
+com.vidaa.oemtabcontentprovider
+com.hisense.fte                                  # first-time experience
+com.google.android.partnersetup
+android.autoinstalls.config.google.gtvpai
+com.google.android.feedback
+fusion.android.tv.demo
+com.mstar.android.tv.disclaimercustomization
+
+# Group 2: unused on a TV, calendar sync
+com.android.printspooler
+com.google.android.syncadapters.calendar
+
+# Group 3: alternate cast/share, voice, updates (Google Home keeps Chromecast/Assistant via mediashell/katniss)
+com.hisense.alexa
+com.mediatek.AirplayAPK
+com.vt.miracast
+com.vt.tv.homekitproxy
+com.hisense.tv.dlna
+com.hisense.tv.protector                         # "Device Assistant" cleaner
+com.hisense.tv.ota
+com.hisense.remoteupgrade
+com.vt.tv.usbota
+
+# Group 4: optional browser (already disabled on the tested set; listed so restore can re-enable)
+com.hisense.hibrowser
