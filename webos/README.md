@@ -25,7 +25,7 @@ Run this on your computer. It logs in to the TV and runs the installer there (re
 with your TV's IP):
 
 ```sh
-ssh root@192.168.1.50 'curl -fsSL https://raw.githubusercontent.com/__REPO__/main/webos/install.sh | sh'
+ssh root@192.168.1.50 'curl -fsSL https://raw.githubusercontent.com/lasharor/cleanyourtv-WebOS/main/webos/install.sh | sh'
 ```
 
 Already in an SSH session on the TV? Run just the `curl ... | sh` part.
@@ -38,7 +38,7 @@ Options go after `sh -s --`:
 | `--no-start` | Install, but only take effect at the next reboot. |
 
 ```sh
-ssh root@192.168.1.50 'curl -fsSL https://raw.githubusercontent.com/__REPO__/main/webos/install.sh | sh -s -- --no-debloat'
+ssh root@192.168.1.50 'curl -fsSL https://raw.githubusercontent.com/lasharor/cleanyourtv-WebOS/main/webos/install.sh | sh -s -- --no-debloat'
 ```
 
 The screen blinks once while the system app manager (`sam`) restarts, then the new Home appears. The

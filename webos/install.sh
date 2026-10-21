@@ -1,14 +1,14 @@
 #!/bin/sh
 # CleanYourTV for LG webOS: installer. Run ON the TV, as root (see webos/README.md).
 #
-#   curl -fsSL https://raw.githubusercontent.com/__REPO__/main/webos/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/lasharor/cleanyourtv-WebOS/main/webos/install.sh | sh
 #   curl -fsSL .../install.sh | sh -s -- --no-debloat     # launcher only, leave LG's services alone
 #   curl -fsSL .../install.sh | sh -s -- --no-start       # install, but only take effect on the next reboot
 #
 # Environment: CYTV_REPO=owner/name  CYTV_REF=branch  CYTV_SRC=/path/to/webos (use a local copy instead of downloading)
 
 main() {
-  REPO="${CYTV_REPO:-__REPO__}"
+  REPO="${CYTV_REPO:-lasharor/cleanyourtv-WebOS}"
   REF="${CYTV_REF:-main}"
   D=/media/developer/cleanyourtv
   INITD=/var/lib/webosbrew/init.d
