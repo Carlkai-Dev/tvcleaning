@@ -7,3 +7,5 @@ Hebrew stats use explicit RTL paragraph direction and LTR embeddings/directional
 The stats right inset matches the numeric clock. The Hebrew greeting tracks the numeric clock width and position; the single-line AM/PM label sits on the left without artificial letter spacing. Other languages retain their layout.
 
 JVM tests cover unit formatting, zero/missing values, ratio direction and unchanged English. On-device bounds checks confirmed greeting centering and matching stats/clock right edges in both 12- and 24-hour formats. Original display preferences were restored after testing. Device-identifying records remain private.
+
+Older kernels without MemAvailable estimate available RAM from MemFree + Buffers + Cached, summing KiB before conversion and capping at MemTotal. Incomplete or invalid counters leave memory hidden. This remains available/total RAM (not used/total as proposed separately in #510). All current stats_memory translations use the same string placeholder.

@@ -1737,20 +1737,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private long[] memoryCapacityMb() {
-        long available = -1, total = -1;
-        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/meminfo"))) {
-            String line;
-            while ((line = r.readLine()) != null) {
-                if (line.startsWith("MemAvailable:") || line.startsWith("MemTotal:")) {
-                    String[] parts = line.trim().split("\\s+");
-                    if (parts.length < 2) continue;
-                    long mb = Long.parseLong(parts[1]) / 1024;
-                    if (line.startsWith("MemAvailable:")) available = mb;
-                    else total = mb;
-                }
-            }
-        } catch (IOException | NumberFormatException ignored) { }
-        return new long[]{available, total};
+        try (java.io.FileReader reader = new java.io.FileReader("/proc/meminfo")) {
+            return MemoryCapacity.readMb(reader);
+        } catch (IOException ignored) { return new long[]{-1, -1}; }
     }
 
     private static String readFirstLine(String path) {
