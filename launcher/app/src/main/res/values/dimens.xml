@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- One row is tall enough for the focused type, so the list never moves when focus changes.
+         40dp keeps six rows to about 45% of a 1080p screen: the wallpaper stays the picture and
+         the list stays a caption under it. -->
+    <dimen name="list_row_height">40dp</dimen>
+    <dimen name="list_name_size">22sp</dimen>
+</resources>
