@@ -216,14 +216,6 @@ public class HomeKeyService extends AccessibilityService {
     private View createMaskView() {
         FrameLayout container = new FrameLayout(this);
         container.setBackgroundColor(0xFF000000); // 100% Pitch black stealth base
-
-        ImageView logo = new ImageView(this);
-        logo.setImageResource(R.drawable.banner);
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
-        lp.gravity = Gravity.CENTER;
-        container.addView(logo, lp);
-
         return container;
     }
 
@@ -281,24 +273,10 @@ public class HomeKeyService extends AccessibilityService {
             maskView = null;
 
             try {
-                viewToRemove.animate()
-                        .alpha(0.0f)
-                        .setDuration(120)
-                        .withEndAction(() -> {
-                            try {
-                                if (viewToRemove.isAttachedToWindow() && windowManager != null) {
-                                    windowManager.removeView(viewToRemove);
-                                }
-                            } catch (Throwable ignored) {}
-                        })
-                        .start();
-            } catch (Throwable t) {
-                try {
-                    if (viewToRemove.isAttachedToWindow() && windowManager != null) {
-                        windowManager.removeView(viewToRemove);
-                    }
-                } catch (Throwable ignored) {}
-            }
+                if (viewToRemove.isAttachedToWindow() && windowManager != null) {
+                    windowManager.removeView(viewToRemove);
+                }
+            } catch (Throwable ignored) {}
         };
 
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -329,25 +307,25 @@ public class HomeKeyService extends AccessibilityService {
         lastLaunchTime = now;
 
         boolean wasForeground = MainActivity.wasRecentlyForeground();
-        showMask();
 
         if (wasForeground) {
-            // Case 1: CleanYourTV was already active! GLOBAL_ACTION_BACK pops Amazon Launcher in ~80ms.
+            // Case 1: CleanYourTV was already active!
+            // NO MASK, NO LOGO. Keep home screen immediately lively, responsive and interactive!
             performGlobalAction(GLOBAL_ACTION_BACK);
             launchMainActivity();
-            handler.postDelayed(() -> {
-                if (!MainActivity.isForeground) {
-                    launchMainActivity();
-                }
-            }, 350);
-        } else {
-            // Case 2: Returning from external app. Bridge 5.0s stopAppSwitches gently.
-            launchMainActivity();
-            isRetrying = true;
-            retryCount = 0;
-            handler.removeCallbacks(retryRunnable);
-            handler.postDelayed(retryRunnable, 400);
+            handler.postDelayed(() -> performGlobalAction(GLOBAL_ACTION_BACK), 100);
+            handler.postDelayed(() -> performGlobalAction(GLOBAL_ACTION_BACK), 200);
+            handler.postDelayed(this::launchMainActivity, 250);
+            return;
         }
+
+        // Case 2: Returning from external app. Show pure pitch-black stealth shield (no logo).
+        showMask();
+        launchMainActivity();
+        isRetrying = true;
+        retryCount = 0;
+        handler.removeCallbacks(retryRunnable);
+        handler.postDelayed(retryRunnable, 400);
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -363,7 +341,7 @@ public class HomeKeyService extends AccessibilityService {
         int action = event.getAction();
 
         if (keyCode == KeyEvent.KEYCODE_HOME || keyCode == KeyEvent.KEYCODE_ALL_APPS) {
-            if (action == KeyEvent.ACTION_UP && !event.isCanceled()) {
+            if (action == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
                 launchCleanYourTV();
             }
             return true;
