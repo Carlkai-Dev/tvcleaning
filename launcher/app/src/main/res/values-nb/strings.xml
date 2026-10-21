@@ -100,4 +100,11 @@
     <string name="race_live">%1$s · direkte</string>
     <string name="race_finished">Målgang</string>
     <string name="last_opened">Sist åpnet %1$s</string>
+    <string name="dock_pin">Fest til favorittraden</string>
+    <string name="dock_remove">Fjern fra favorittraden</string>
+    <string name="tile_move">Flytt</string>
+    <string name="tile_app_info">Appinfo</string>
+    <string name="dock_pinned">%1$s er i favorittraden. %2$s flyttet ned til appene.</string>
+    <string name="dock_removed">%1$s flyttet ned til appene. %2$s tar plassen i favorittraden.</string>
+    <string name="tile_move_hint">Pilene flytter den, OK setter den ned. Tilbake for å avslutte.</string>
 </resources>

@@ -90,4 +90,11 @@
         <item quantity="other">%1$d приложения</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="dock_pin">Закрепить в доке</string>
+    <string name="dock_remove">Убрать из дока</string>
+    <string name="tile_move">Переместить</string>
+    <string name="tile_app_info">О приложении</string>
+    <string name="dock_pinned">%1$s теперь в доке. %2$s перемещено вниз, к приложениям.</string>
+    <string name="dock_removed">%1$s перемещено вниз, к приложениям. Его место в доке занимает %2$s.</string>
+    <string name="tile_move_hint">Стрелки перемещают, OK ставит на место. Назад — завершить.</string>
 </resources>

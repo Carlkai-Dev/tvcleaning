@@ -56,4 +56,11 @@
         <item quantity="other">%1$d aplicacions</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="dock_pin">Fixa al dock</string>
+    <string name="dock_remove">Treu del dock</string>
+    <string name="tile_move">Mou</string>
+    <string name="tile_app_info">Informació de l\'aplicació</string>
+    <string name="dock_pinned">%1$s és al dock. %2$s ha baixat a les aplicacions.</string>
+    <string name="dock_removed">%1$s ha baixat a les aplicacions. %2$s ocupa el seu lloc al dock.</string>
+    <string name="tile_move_hint">Les fletxes la mouen, D\'acord la deixa. Enrere per acabar.</string>
 </resources>

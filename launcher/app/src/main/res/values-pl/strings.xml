@@ -85,4 +85,11 @@
         <item quantity="other">%1$d aplikacji</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="dock_pin">Przypnij do docka</string>
+    <string name="dock_remove">Usuń z docka</string>
+    <string name="tile_move">Przenieś</string>
+    <string name="tile_app_info">Informacje o aplikacji</string>
+    <string name="dock_pinned">%1$s jest w docku. %2$s przeniesiono niżej, do aplikacji.</string>
+    <string name="dock_removed">%1$s przeniesiono niżej, do aplikacji. Jej miejsce w docku zajmuje %2$s.</string>
+    <string name="tile_move_hint">Strzałki przesuwają, OK odkłada. Wstecz, aby zakończyć.</string>
 </resources>
