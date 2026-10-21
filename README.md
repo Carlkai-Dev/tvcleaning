@@ -328,12 +328,14 @@ cd launcher
 ./gradlew assembleRelease -PcompanionBridge=true   # only this build carries the provider
 ```
 
-The opt-in build publishes `content://com.gathin.tvhome.companion/v1` with `capabilities` and `state`
-(protocol version 1, safe readback, no network). Ordinary apps are rejected; only the ADB shell UID and
-the launcher itself may call it. Staging and activation are deliberately **not** part of this build yet.
-See [`docs/specs/companion-protocol.md`](docs/specs/companion-protocol.md) for the envelope, the
-capability list, the revision rules and the opt-in guarantees. Rebuild without the flag to return to
-the standard launcher.
+The opt-in build publishes `content://com.gathin.tvhome.companion/v1` with `capabilities`, `state`,
+transactional `stage`/`validate`/`activate`/`result`/`discard`, and bounded asset streaming (protocol
+version 1, no network). Ordinary apps are rejected; only the ADB shell UID and the launcher itself may
+call it. A staged collection is invisible until an explicit `activate` commits it atomically; Home then
+rebuilds from the new state. See
+[`docs/specs/companion-protocol.md`](docs/specs/companion-protocol.md) for the envelope, capability
+list, patch rules, revision rules, crash boundaries and retention limits. Rebuild without the flag to
+return to the standard launcher.
 
 ## The launcher
 

@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
@@ -90,7 +91,8 @@ final class CompanionProtocol {
         if (!integer(request.opt("protocol_version"), VERSION, VERSION)) {
             throw new Failure("unsupported_protocol");
         }
-        if (!"capabilities".equals(method) && !"state".equals(method)) {
+        if (!Arrays.asList("capabilities", "state", "stage", "validate",
+                "activate", "result", "discard").contains(method)) {
             throw new Failure("invalid_request");
         }
         return request;

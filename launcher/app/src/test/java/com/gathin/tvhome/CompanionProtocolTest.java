@@ -49,7 +49,7 @@ public class CompanionProtocolTest {
         assertFailure("invalid_request", "state", new JSONObject().put("protocol_version", 1).put("request_id", "nope"));
         assertFailure("invalid_request", "state", new JSONObject().put("protocol_version", 1));
         assertFailure("unsupported_protocol", "state", new JSONObject().put("protocol_version", 2).put("request_id", ID));
-        assertFailure("invalid_request", "stage", new JSONObject().put("protocol_version", 1).put("request_id", ID));
+        assertFailure("invalid_request", "destroy", new JSONObject().put("protocol_version", 1).put("request_id", ID));
     }
 
     private static void assertFailure(String code, String method, JSONObject request) throws Exception {

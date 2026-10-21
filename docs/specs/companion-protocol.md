@@ -1,8 +1,8 @@
 # Companion protocol v1 — read and discovery
 
-Status: opt-in, read-only half. Write paths (staging, activation, discard) are tracked separately and
-are not implemented here. The companion must require capabilities rather than inferring support from
-`versionName`.
+Status: opt-in protocol v1, including transactional staging and activation. Both the provider and
+every write path are compiled only with `-PcompanionBridge=true`. The companion must require
+capabilities rather than inferring support from `versionName`.
 
 Companion contract: <https://github.com/gethari/clean-your-tv-companion/blob/main/docs/LAUNCHER_PROTOCOL.md>
 
@@ -75,6 +75,54 @@ malformed limits or a missing mandatory feature must stay read-only; it must not
 
 No secret appears in capabilities, state, errors, logcat or exports.
 
+## Staging, asset streaming, activation, result and discard
+
+`stage` takes `{protocol_version, request_id, expected_revision, patch, collections}`. The session ID is
+the `request_id`. An identical retry returns the same session; the same ID with a different payload
+returns `request_conflict`. Stage checks the revision, patch shape, unique opaque IDs, safe hashes, MIME
+types (JPEG/PNG/WebP), individual and aggregate limits, free space and rollback margin **before** it
+writes a session. Staging never changes the active collection or the displayed wallpaper.
+
+Assets are written to the fixed path
+`content://com.gathin.tvhome.companion/v1/sessions/<session-id>/assets/<sha256>` with
+`content write --uri`. The provider returns a reliable pipe, not a private-file descriptor. It rejects
+traversal, symlinks, duplicate concurrent writers and unlisted hashes; it validates declared length,
+SHA-256, decoded format, dimensions and MIME type, fsyncs the temporary file and only then moves it into
+the immutable asset store. Truncated, oversized, wrong-length, wrong-hash and undecodable streams are
+discarded; EOF alone is never treated as success. Already verified hashes can be skipped by the
+companion after `validate` reports them present.
+
+`validate` returns `{ready, missing_assets, revision}`. A stale revision returns `revision_conflict`.
+`activate` rechecks the revision, fsyncs the session and asset metadata, merges the patch and
+collections into a copy of the active state, and replaces a single `active.json` under one mutation
+lock with an atomic move plus a directory fsync. Only after that replacement does the launcher send
+`com.gathin.tvhome.COMPANION_UPDATED`, which makes Home rebuild from the new state. Repeating activation
+of the same session returns the original `{revision, operation_id}`.
+
+Patch semantics are `{set: {...}, remove: [...]}` with no overlapping key. Unknown keys, credentials
+and unsupported features are rejected. Set with an allowlisted value; remove restores absence (the
+theme value reappears) rather than a guessed default. Rotation is 1–1440 minutes, dimming 0–100, order
+`sequential` or `shuffle`, colors `#RRGGBB`, collection IDs 32 lowercase hex. The merge preserves every
+unrelated and unknown theme setting.
+
+`result` returns `activated` with the session and revision, or `unknown` when no operation was
+committed. It is the recovery path after a dropped connection: query it instead of replaying a
+mutation. A crash before the atomic replacement leaves the previous state; a crash after it recovers
+the new state and operation ID.
+
+`discard` marks only unactivated staging as discarded and is idempotent. It refuses to touch a session
+that was activated. Verified immutable assets are retained because they may be referenced by the
+active collection or a companion rollback manifest; automatic expiry and garbage collection are not
+implemented, so long-lived use can hit the storage preflight and should stage a smaller collection.
+Nothing ever deletes active or rollback media to make room.
+
+Stable error codes: `unsupported_protocol`, `unsupported_feature`, `invalid_request`, `access_denied`,
+`revision_conflict`, `request_conflict`, `missing_assets`, `invalid_asset`, `storage_full`, `busy`,
+`unknown_session`, `internal_error`.
+
+Restoration is another reviewed stage/activate transaction with a fresh `expected_revision`. It never
+resets all settings and never overwrites a later manual change.
+
 ## Verification
 
 - `launcher/app/src/test/java/com/gathin/tvhome/CompanionAccessTest.java` covers shell UID accepted,
@@ -85,6 +133,10 @@ No secret appears in capabilities, state, errors, logcat or exports.
   shape, canonical revisions and a malformed request touching no file.
 - `tests/test_launcher_protocol.py` checks the supported/legacy/newer/incomplete capability fixtures and
   that the opt-in manifest is the only one carrying the provider.
+- `CompanionTransactionTest` covers idempotent/conflicting staging, stale revisions, patch and
+  identifier rejection, truncated/wrong-hash/oversized assets, unsolicited hashes, missing-asset
+  activation, idempotent activation, result recovery, discard safety, remove-restores-absence and
+  secret/path redaction.
 
-Device verification on a compatible TV with the opt-in build is still required before closing the
+Physical apply/restore on a compatible TV with the opt-in build is still required before closing the
 issue; it cannot be replaced by JVM tests.
