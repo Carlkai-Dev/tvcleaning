@@ -83,4 +83,11 @@
         <item quantity="other">%1$d uygulama</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="dock_pin">Dock\'a sabitle</string>
+    <string name="dock_remove">Dock\'tan kaldır</string>
+    <string name="tile_move">Taşı</string>
+    <string name="tile_app_info">Uygulama bilgileri</string>
+    <string name="dock_pinned">%1$s artık Dock\'ta. %2$s aşağıya, uygulamalara taşındı.</string>
+    <string name="dock_removed">%1$s aşağıya, uygulamalara taşındı. Dock\'taki yerini %2$s aldı.</string>
+    <string name="tile_move_hint">Oklar taşır, OK yerleştirir. Bitirmek için Geri.</string>
 </resources>

@@ -57,4 +57,11 @@
         <item quantity="other">%1$d แอป</item>
     </plurals>
     <string name="greeting_with_name">%1$s %2$s</string>
+    <string name="dock_pin">ปักหมุดในแถบแอป</string>
+    <string name="dock_remove">นำออกจากแถบแอป</string>
+    <string name="tile_move">ย้าย</string>
+    <string name="tile_app_info">ข้อมูลแอป</string>
+    <string name="dock_pinned">%1$s อยู่ในแถบแอปแล้ว %2$s ย้ายลงไปอยู่กับแอปด้านล่าง</string>
+    <string name="dock_removed">%1$s ย้ายลงไปอยู่กับแอปด้านล่าง %2$s เข้ามาแทนที่ในแถบแอป</string>
+    <string name="tile_move_hint">ใช้ลูกศรเพื่อย้าย กด OK เพื่อวาง กดย้อนกลับเพื่อเสร็จสิ้น</string>
 </resources>
