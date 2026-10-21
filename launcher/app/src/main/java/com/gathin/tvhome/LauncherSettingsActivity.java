@@ -8,7 +8,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -194,15 +196,35 @@ public final class LauncherSettingsActivity extends Activity {
                 labels[i] = pkg;
             }
         }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.hidden_apps).setMessage(R.string.hidden_apps_hint)
-                .setItems(labels, (dialog, which) -> {
-                    HiddenApps.unhide(this, packages.get(which));
-                    setResult(RESULT_OK);
-                    if (!HiddenApps.load(this).isEmpty()) showHiddenApps();
-                })
+        // Hint and list live in one view: setMessage() alongside setItems() renders as a
+        // message-only dialog on some TV dialog themes, which hid the list entirely.
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        android.content.Context dialogContext = builder.getContext();
+        TextView hint = new TextView(dialogContext);
+        hint.setText(R.string.hidden_apps_hint);
+        hint.setTextSize(14);
+        hint.setTextColor(0xFFACB8C1);
+        int pad = (int) (24 * getResources().getDisplayMetrics().density);
+        hint.setPadding(pad, pad / 2, pad, pad / 3);
+        ListView list = new ListView(dialogContext);
+        list.setAdapter(new ArrayAdapter<>(dialogContext, android.R.layout.simple_list_item_1, labels));
+        LinearLayout box = new LinearLayout(dialogContext);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.addView(hint);
+        box.addView(list);
+        AlertDialog dialog = builder
+                .setTitle(R.string.hidden_apps)
+                .setView(box)
                 .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .create();
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            dialog.dismiss();
+            HiddenApps.unhide(this, packages.get(position));
+            setResult(RESULT_OK);
+            if (!HiddenApps.load(this).isEmpty()) showHiddenApps();
+        });
+        dialog.setOnShowListener(d -> list.requestFocus());
+        dialog.show();
     }
 
     private void setAdvanced(boolean enabled) {
