@@ -90,7 +90,7 @@
     <string name="uninstall_app">Uninstall</string>
     <string name="app_hidden">%1$s hidden</string>
     <string name="cant_uninstall">Can\'t uninstall %1$s</string>
-    <string name="hidden_apps">Hidden apps</string>
+    <string name="hidden_apps">Hidden apps</string> <string name="hidden_apps_hint">Select an app to unhide it. It will return to the Home screen.</string>
     <string name="hidden_apps_none">No hidden apps</string>
     <string name="library_save_failed">Could not save the shortcut</string>
     <string name="library_recent">New · Add to Home</string>
