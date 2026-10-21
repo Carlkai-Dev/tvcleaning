@@ -276,6 +276,7 @@ tools/theme.sh themes/aurora                                 # push a theme; --r
 | [`tools/disable.sh`](tools/disable.sh), [`restore.sh`](tools/restore.sh) | Apply or undo a debloat list, the undo from the state recorded before the change. |
 | [`tools/recovery.py`](tools/recovery.py) | Writes the record `disable.sh` needs to undo itself, and prints the restore batch. |
 | [`tools/theme.sh`](tools/theme.sh) | Push a folder from [`themes/`](themes/) to the launcher and restart Home. |
+| [`tools/release_manifest.py`](tools/release_manifest.py) | Creates `launcher-release.json` for a release APK and verifies a download against it before installing. |
 | [`tools/race_calendar.py`](tools/race_calendar.py) | Writes this season's F1 calendar into a theme for race-weekend mode, from the free Jolpica API. |
 | [`launcher/build-and-install.sh`](launcher/build-and-install.sh) | Builds a shrunk release (about 405 KB), installs it, switches Home, and rolls back if Home does not land on it. |
 
@@ -323,6 +324,22 @@ the install script finds `~/Android/Sdk` and the `java` on your PATH.
 - **Remote keys**: an optional accessibility service keeps the remote's Input button working on Google TV (`INPUT_KEY_SERVICE=1` at install) and can bring back other buttons only the stock launcher answered, such as the YouTube button (`app_keys` and `input_key_keycodes`, in `config.xml` or a theme; `HOME_KEY_SERVICE=1` reads `app_keys` too), another fixes sticks whose Home key sends ALL_APPS and opens Settings from the remote's gear button, even one Android does not map (`HOME_KEY_SERVICE=1`, scancodes or keycodes in `config.xml`). With `settings_key_panel` the gear opens a [small quick settings panel](docs/quick-settings-panel.jpg) instead, over Home or any app: TV settings, Display, Network, Apps and Launcher settings.
 - **Navigation** is deliberate: Up and Down move one row, the top buttons never fall through to tiles and Down from them returns to the dock tile you came from, the last focused app is remembered, and installing or removing an app refreshes the tiles while Home is open.
 - **Artwork**: app banners load at xhdpi or better, so low-density TV UIs do not downsample them before the focus zoom.
+
+### Installing a published build
+
+A published release carries a release-signed APK and `launcher-release.json`. Before installing,
+verify the download against the manifest (this changes nothing on the TV):
+
+```bash
+tools/venv/bin/python tools/release_manifest.py verify \
+  --apk cleanyourtv-launcher-2.5.apk --manifest launcher-release.json
+```
+
+It checks the SHA-256 and size, package, version, SDK levels, ABIs and signer certificate, and says
+whether installing would be fresh, an upgrade, a no-op or a downgrade. A mismatch exits non-zero and
+nothing is installed. Building from source is unchanged and keeps the debug key unless you add
+`launcher/keystore.properties`; the manifest format, signing setup and rollback limits are in
+[`docs/specs/release-artifact.md`](docs/specs/release-artifact.md).
 
 ## Restoring your TV
 
