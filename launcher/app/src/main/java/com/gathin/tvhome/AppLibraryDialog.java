@@ -26,10 +26,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.dynamicanimation.animation.DynamicAnimation;
 import androidx.dynamicanimation.animation.FloatPropertyCompat;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.Collator;
@@ -64,13 +65,18 @@ final class AppLibraryDialog {
     private RecyclerView catalog;
     private FrameLayout shelf;
     private GlassView highlight;
-    private SpringAnimation spring;
+    /** The glass follows the focus across (x) and down the scrolling grid (y, in content coordinates). */
+    private SpringAnimation springX;
+    private SpringAnimation springY;
     private float scrollOffset;
     private boolean highlightShown;
     private final int catalogWidth;
+    private final int catalogHeight;
+    /** Grid columns, as Google TV's "Your apps" lays its apps out. */
+    private final int columns;
 
     private void stopHighlight() {
-        if (spring != null) spring.cancel();
+        cancelSprings();
         if (catalog != null) catalog.stopScroll();
         catalog = null;
         highlightShown = false;
@@ -84,14 +90,23 @@ final class AppLibraryDialog {
         lp.width = rect.width() + dp(12);
         lp.height = rect.height() + dp(12);
         highlight.setLayoutParams(lp);
-        highlight.setTranslationY(rect.top - dp(6));
-        float x = rect.left - dp(6) + scrollOffset;
+        float x = rect.left - dp(6);
+        float y = rect.top - dp(6) + scrollOffset;
         if (!highlightShown || !animate || !animations) {
-            spring.cancel();
-            highlight.setTranslationX(x - scrollOffset);
-        } else spring.animateToFinalPosition(x);
+            cancelSprings();
+            highlight.setTranslationX(x);
+            highlight.setTranslationY(y - scrollOffset);
+        } else {
+            springX.animateToFinalPosition(x);
+            springY.animateToFinalPosition(y);
+        }
         highlightShown = true;
         highlight.setAlpha(1f);
+    }
+
+    private void cancelSprings() {
+        if (springX != null) springX.cancel();
+        if (springY != null) springY.cancel();
     }
 
     private GradientDrawable surface(int color, int radius) {
@@ -122,9 +137,13 @@ final class AppLibraryDialog {
         panel.setPadding(dp(12), dp(8), dp(12), dp(12));
         panel.setBackgroundResource(R.drawable.glass_panel);
         View decor = activity.getWindow().getDecorView();
-        catalogWidth = Math.min(dp(800), Math.max(dp(200), decor.getWidth() - dp(64)));
+        // Four cards across, as many as fit on a narrow screen: panel and list paddings, then a card plus its margins
+        // per column. The panel is only as wide as they need, centred over Home.
+        columns = Math.max(2, Math.min(4, (decor.getWidth() - dp(64) - dp(24) - dp(20)) / dp(142)));
+        catalogWidth = columns * dp(142) + dp(24) + dp(20);
+        catalogHeight = Math.max(dp(280), decor.getHeight() - dp(64));
         int width = catalogWidth;
-        int height = dp(280);
+        int height = catalogHeight;
         popup = new PopupWindow(panel, width, height, true);
         popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         popup.setOutsideTouchable(true);
@@ -212,7 +231,7 @@ final class AppLibraryDialog {
 
     private void showCatalog() {
         stopHighlight();
-        resize(catalogWidth, dp(280));
+        resize(catalogWidth, catalogHeight);
         panel.removeAllViews();
         LinearLayout header = new LinearLayout(activity);
         header.setGravity(Gravity.CENTER_VERTICAL);
@@ -247,7 +266,7 @@ final class AppLibraryDialog {
         RecyclerView list = new RecyclerView(activity);
         list.setLayoutDirection(rtl ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
         catalog = list;
-        list.setLayoutManager(new LinearLayoutManager(activity, RecyclerView.HORIZONTAL, false) {
+        list.setLayoutManager(new GridLayoutManager(activity, columns) {
             @Override protected boolean isLayoutRTL() { return rtl; }
         });
         list.setItemAnimator(null);
@@ -263,16 +282,19 @@ final class AppLibraryDialog {
         highlight.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         shelf.addView(highlight, new FrameLayout.LayoutParams(dp(144), dp(180)));
         scrollOffset = 0;
-        spring = new SpringAnimation(highlight, new FloatPropertyCompat<View>("libraryScrollX") {
-            @Override public float getValue(View view) { return view.getTranslationX() + scrollOffset; }
-            @Override public void setValue(View view, float value) { view.setTranslationX(value - scrollOffset); }
+        springX = new SpringAnimation(highlight, DynamicAnimation.TRANSLATION_X);
+        springY = new SpringAnimation(highlight, new FloatPropertyCompat<View>("libraryScrollY") {
+            @Override public float getValue(View view) { return view.getTranslationY() + scrollOffset; }
+            @Override public void setValue(View view, float value) { view.setTranslationY(value - scrollOffset); }
         });
-        spring.setSpring(new SpringForce().setStiffness(reducedMotion ? 1400f : 260f)
-                .setDampingRatio(reducedMotion ? 0.95f : 0.58f));
+        for (SpringAnimation spring : new SpringAnimation[]{springX, springY}) {
+            spring.setSpring(new SpringForce().setStiffness(reducedMotion ? 1400f : 260f)
+                    .setDampingRatio(reducedMotion ? 0.95f : 0.58f));
+        }
         list.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
-                scrollOffset += dx;
-                highlight.setTranslationX(highlight.getTranslationX() - dx);
+                scrollOffset += dy;
+                highlight.setTranslationY(highlight.getTranslationY() - dy);
             }
         });
         panel.addView(shelf, new LinearLayout.LayoutParams(-1, 0, 1));
@@ -280,7 +302,7 @@ final class AppLibraryDialog {
         for (int i = 0; i < apps.size(); i++) {
             if (apps.get(i).activityInfo.packageName.equals(selectedPackage)) { position = i; break; }
         }
-        ((LinearLayoutManager) list.getLayoutManager()).scrollToPositionWithOffset(position, selectedOffset);
+        ((GridLayoutManager) list.getLayoutManager()).scrollToPositionWithOffset(position, selectedOffset);
         final int target = position;
         list.post(() -> {
             if (catalog != list || !popup.isShowing()) return;
@@ -315,11 +337,9 @@ final class AppLibraryDialog {
             if (holder != null) {
                 View card = holder.itemView;
                 RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) card.getLayoutParams();
-                selectedOffset = rtl
-                        ? catalog.getWidth() - catalog.getPaddingRight()
-                            - catalog.getLayoutManager().getDecoratedRight(card) - params.rightMargin
-                        : catalog.getLayoutManager().getDecoratedLeft(card)
-                            - params.leftMargin - catalog.getPaddingLeft();
+                // The card's row stays where it is on screen when the catalogue is rebuilt.
+                selectedOffset = catalog.getLayoutManager().getDecoratedTop(card)
+                        - params.topMargin - catalog.getPaddingTop();
             }
             // Advance through missing shortcuts instead of following the newly checked app
             // into the Home group. Preserve its screen slot when the catalogue is rebuilt.
@@ -352,7 +372,7 @@ final class AppLibraryDialog {
         dismissActions();
         selectedPackage = app.activityInfo.packageName;
         String pkg = selectedPackage;
-        if (spring != null) spring.cancel();
+        cancelSprings();
         View menuPanel = activity.getLayoutInflater().inflate(R.layout.popup_inputs, panel, false);
         LinearLayout rows = menuPanel.findViewById(R.id.rows);
         PopupWindow menu = new PopupWindow(menuPanel, dp(220), ViewGroup.LayoutParams.WRAP_CONTENT, true);
@@ -437,8 +457,9 @@ final class AppLibraryDialog {
     private final class Catalog extends RecyclerView.Adapter<Row> {
         @NonNull @Override public Row onCreateViewHolder(@NonNull ViewGroup parent, int type) {
             FrameLayout row = new FrameLayout(activity);
-            RecyclerView.LayoutParams params = new RecyclerView.LayoutParams(dp(132), dp(170));
-            params.setMargins(dp(6), dp(2), dp(6), dp(2));
+            // The grid gives each card its column's width.
+            RecyclerView.LayoutParams params = new RecyclerView.LayoutParams(-1, dp(150));
+            params.setMargins(dp(6), dp(6), dp(6), dp(6));
             row.setLayoutParams(params);
             row.setPadding(dp(10), dp(12), dp(10), dp(10));
             row.setFocusableInTouchMode(true);
@@ -455,8 +476,8 @@ final class AppLibraryDialog {
             name.setId(R.id.title);
             name.setGravity(Gravity.CENTER);
             name.setMaxLines(2);
-            LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(-1, dp(44));
-            nameParams.topMargin = dp(10);
+            LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(-1, dp(40));
+            nameParams.topMargin = dp(8);
             content.addView(name, nameParams);
             TextView status = text("", 11, 0xBBFFFFFF);
             status.setId(R.id.status);
@@ -506,12 +527,17 @@ final class AppLibraryDialog {
                     if (index != RecyclerView.NO_POSITION) selectedPosition = index;
                 }
             });
+            // Focus stops at the grid's edges instead of wrapping to the next row or leaving the panel.
             holder.itemView.setOnKeyListener((v, key, event) -> {
                 int index = holder.getBindingAdapterPosition();
-                return event.getAction() == KeyEvent.ACTION_DOWN && (key == KeyEvent.KEYCODE_DPAD_UP
-                        || key == KeyEvent.KEYCODE_DPAD_DOWN
-                        || (rtl ? key == KeyEvent.KEYCODE_DPAD_RIGHT : key == KeyEvent.KEYCODE_DPAD_LEFT) && index == 0
-                        || (rtl ? key == KeyEvent.KEYCODE_DPAD_LEFT : key == KeyEvent.KEYCODE_DPAD_RIGHT) && index == apps.size() - 1);
+                if (event.getAction() != KeyEvent.ACTION_DOWN || index == RecyclerView.NO_POSITION) return false;
+                int column = index % columns;
+                boolean lastRow = index / columns == (apps.size() - 1) / columns;
+                return key == KeyEvent.KEYCODE_DPAD_UP && index < columns
+                        || key == KeyEvent.KEYCODE_DPAD_DOWN && lastRow
+                        || (rtl ? key == KeyEvent.KEYCODE_DPAD_RIGHT : key == KeyEvent.KEYCODE_DPAD_LEFT) && column == 0
+                        || (rtl ? key == KeyEvent.KEYCODE_DPAD_LEFT : key == KeyEvent.KEYCODE_DPAD_RIGHT)
+                            && (column == columns - 1 || index == apps.size() - 1);
             });
         }
         @Override public int getItemCount() { return apps.size(); }
