@@ -257,6 +257,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             if (!seen.add(pkg + '\n' + label)) continue;
             Drawable banner = loadBanner(pm, ri);
             Drawable icon = ri.loadIcon(pm);
+            if (banner == null || !isBannerShaped(banner.getIntrinsicWidth(), banner.getIntrinsicHeight())
+                    || pkg.contains("smarttube") || pkg.contains("videomanager")) {
+                int accent = card != null ? card.accent : vividColor(icon);
+                banner = CinematicBannerFactory.getOrGenerateBanner(ctx, pkg, label, icon, accent);
+            }
             if (card != null) {
                 fresh.add(new Entry(Entry.CARD, label, component, banner, icon, card.caption, card.accent));
             } else {
@@ -382,7 +387,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.card.setVisibility(View.VISIBLE);
         h.card.setFocusable(true);
         h.name.setText(e.name);
-        h.name.setVisibility(dockRow && position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
+        h.name.setVisibility(View.VISIBLE);   // the dock has no labels
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : 0f);
         h.card.setScaleX(focused && animations ? focusScale() : 1f);
@@ -397,12 +402,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.icon.setVisibility(View.GONE);
             h.label.setVisibility(View.GONE);
         } else {
-            h.banner.setImageDrawable(null);
-            h.banner.setVisibility(View.GONE);
-            h.icon.setImageDrawable(e.icon);
-            h.icon.setVisibility(View.VISIBLE);
-            h.label.setText(e.label);
-            h.label.setVisibility(View.VISIBLE);
+            Drawable generated = CinematicBannerFactory.getOrGenerateBanner(ctx, e.pkg, e.label, e.icon, ambientColorAt(position));
+            h.banner.setImageDrawable(generated);
+            h.banner.setVisibility(View.VISIBLE);
+            h.icon.setVisibility(View.GONE);
+            h.label.setVisibility(View.GONE);
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
@@ -412,6 +416,12 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             }
             return true;
         });
+    }
+
+    void launchAt(int position) {
+        if (position >= 0 && position < items.size()) {
+            launch(items.get(position));
+        }
     }
 
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */

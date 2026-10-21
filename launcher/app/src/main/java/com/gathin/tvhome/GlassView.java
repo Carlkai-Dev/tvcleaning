@@ -30,9 +30,9 @@ public class GlassView extends View {
     public GlassView(Context context, AttributeSet attrs) {
         super(context, attrs);
         density = getResources().getDisplayMetrics().density;
-        radius = 20f * density;
+        radius = 16f * density;
         rim.setStyle(Paint.Style.STROKE);
-        rim.setStrokeWidth(1.5f * density);
+        rim.setStrokeWidth(2f * density);
         rim.setColor(0xCCE0F2FE);
         glow.setStyle(Paint.Style.STROKE);
         // Cache the slab as a texture. The spring only changes translation, so the GPU can

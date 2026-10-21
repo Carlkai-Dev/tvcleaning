@@ -120,6 +120,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView heroName;
     private TextView heroBadge;
     private TextView heroSubtitle;
+    private TextView heroAction;
     private int ambientColor = -1;
     private ValueAnimator ambientAnimator;
     private boolean heroShown;
@@ -301,6 +302,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName = findViewById(R.id.heroName);
         heroBadge = findViewById(R.id.heroBadge);
         heroSubtitle = findViewById(R.id.heroSubtitle);
+        heroAction = findViewById(R.id.heroAction);
+        if (heroAction != null) {
+            heroAction.setOnClickListener(v -> {
+                if (adapter != null && lastFocused >= 0 && lastFocused < adapter.getItemCount()) {
+                    adapter.launchAt(lastFocused);
+                }
+            });
+        }
         // aurora view removed
         if (!cfg.dockTitle && heroLayout != null) heroLayout.setVisibility(View.GONE);
         greeting = findViewById(R.id.greeting);
@@ -394,24 +403,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
         int rowsBelowDock = cfg.rowsBelowDock;
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-            int h = b - t;
-            // Item height follows the tile size, which follows the columns and the rows that must fit (AppAdapter.tileWidthPx).
-            int inner = (r - l) - grid.getPaddingLeft() - grid.getPaddingRight();
-            int tileW = AppAdapter.tileWidthPx(inner, h, COLUMNS, rowsBelowDock, cfg.dockTitle, cfg.dockRow, density);
-            int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), density);
-            int dockRow = itemH + (int) (AppAdapter.DOCK_EXTRA_DP * density);   // item height plus DockDecoration offsets
-            int gridRows = itemH * rowsBelowDock;
-            // Keep the hero below the header when the library is enabled on a short screen,
-            // even when the theme requests an extra visible row below the dock.
-            int shelfClearance = cfg.appLibrary ? heroName.getMeasuredHeight() + (int) (40 * density) : 0;
-            int want = Math.max(shelfClearance, h - dockRow - gridRows - (int) (AppAdapter.BOTTOM_ROOM_DP * density));
-            // Where the rows cannot fit even at the smallest tile (3 rows with the title on), the title keeps its
-            // room above the dock and the last rows run off the bottom instead of the title drawing over the clock.
-            if (MainActivity.this.dockRow && cfg.dockTitle && rowsBelowDock > 0) want = Math.max(want, (int) (AppAdapter.TITLE_ROOM_DP * density));
-            // No dock to push down: the grid starts at the top, with room for the first row's zoom and glass.
-            if (!MainActivity.this.dockRow) want = (int) (AppAdapter.TOP_ROOM_DP * density);
-            if (grid.getPaddingTop() != want) {
-                grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
+            int padTop = (int) (4 * density);
+            int padBottom = (int) (24 * density);
+            if (grid.getPaddingTop() != padTop || grid.getPaddingBottom() != padBottom) {
+                grid.setPadding(grid.getPaddingLeft(), padTop, grid.getPaddingRight(), padBottom);
             }
         });
 
@@ -642,7 +637,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int pos = adapter.positionOf(returnKey);
             lastFocused = Math.max(0, Math.min(pos >= 0 ? pos : returnSlot, adapter.appCount() - 1));
             lastFocusedKey = adapter.keyAt(lastFocused);
-            if (pos < 0) hideHero();
+            showHero(lastFocused, 0);
             // A newly installed app may have brought a card with it.
             tilesReady = true;
             showCardPrompt();
@@ -1723,23 +1718,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(y - glassScrollShift);
         }
         View item = (View) card.getParent();
+        showHero(position, 0);
         if (dockRow && position < COLUMNS) {
-            // Dock: park it at the bottom of the screen and show the top shelf for this app.
             int decoratedTop = item.getTop() - (int) (6 * density);
             int dy = decoratedTop - grid.getPaddingTop();
-            // A 1px mismatch used to start a scroll on every dock move. Only scroll when the row is
-            // actually off; reduced motion does it in one jump so it does not fight the highlight.
             boolean scroll = Math.abs(dy) > (int) (8 * density);
             if (scroll) {
                 if (!animations || reducedMotion) grid.scrollBy(0, dy);
                 else grid.smoothScrollBy(0, dy);
             }
-            showHero(position, scroll ? r.top - dy : r.top);
         } else {
-            // A plain grid (dock_row false) has no dock to carry the glow, so it follows every tile there.
-            if (dockRow) hideHero();
-            else showGlowOnly(position);
-            // Scroll just enough so the whole glass (not only the tile) is visible.
             Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
             grid.requestChildRectangleOnScreen(item, want, reducedMotion);
         }
@@ -1748,64 +1736,55 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- top shelf -------------------------------------------------------------------------------
 
     private void showHero(int position, float dockTopInRoot) {
+        if (adapter == null || position < 0 || position >= adapter.getItemCount()) return;
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
         View targetHero = heroLayout != null ? heroLayout : heroName;
-        float y = dockTopInRoot - 14 * density - 26 * density - targetHero.getHeight();
+        if (targetHero == null) return;
         boolean changed = !label.contentEquals(heroName.getText());
 
         String pkg = adapter.keyAt(position);
         HeroMetadata.Info info = HeroMetadata.getInfo(pkg, label);
 
-        heroName.setText(label);
-        if (heroBadge != null) heroBadge.setText(info.badge);
-        if (heroSubtitle != null) heroSubtitle.setText(info.subtitle);
-
         if (!animations || reducedMotion) {
-            targetHero.animate().cancel();
-            ambient.animate().cancel();
-            targetHero.setY(y);
-            targetHero.setTranslationX(0f);
+            heroName.setText(label);
+            if (heroBadge != null) heroBadge.setText(info.badge);
+            if (heroSubtitle != null) heroSubtitle.setText(info.subtitle);
             targetHero.setAlpha(1f);
+            targetHero.setTranslationX(0f);
             setAmbient(color);
-            if (!animations) {
-                ambient.setAlpha(1f);
-                heroShown = true;
-            } else if (!heroShown) {
-                ambient.setAlpha(0f);
-                ambient.animate().alpha(1f).setDuration(160).start();
-                heroShown = true;
-            }
+            ambient.setAlpha(1f);
+            heroShown = true;
             return;
         }
 
         if (!heroShown) {
-            stopAmbientAnimation();
+            heroName.setText(label);
+            if (heroBadge != null) heroBadge.setText(info.badge);
+            if (heroSubtitle != null) heroSubtitle.setText(info.subtitle);
             targetHero.animate().cancel();
-            ambient.animate().cancel();
-            targetHero.setY(y);
-            targetHero.setTranslationX(0f);
-            targetHero.animate().alpha(1f).setDuration(260).start();
+            targetHero.setAlpha(0f);
+            targetHero.animate().alpha(1f).setDuration(220).start();
             setAmbient(color);
-            ambient.animate().alpha(1f).setDuration(600).start();
+            ambient.animate().alpha(1f).setDuration(400).start();
             heroShown = true;
         } else if (changed) {
-            if (advancedEffects) targetHero.animate().cancel();
-            targetHero.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
-                targetHero.setY(y);
-                targetHero.setTranslationX(12 * density);
-                targetHero.animate().alpha(1f).translationX(0f).setDuration(200).start();
+            targetHero.animate().cancel();
+            targetHero.animate().alpha(0.2f).translationX(-10 * density).setDuration(100).withEndAction(() -> {
+                heroName.setText(label);
+                if (heroBadge != null) heroBadge.setText(info.badge);
+                if (heroSubtitle != null) heroSubtitle.setText(info.subtitle);
+                targetHero.setTranslationX(10 * density);
+                targetHero.animate().alpha(1f).translationX(0f).setDuration(180).start();
             }).start();
             if (advancedEffects) {
                 transitionAmbient(color);
             } else if (color != ambientColor) {
-                ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
+                ambient.animate().alpha(0.35f).setDuration(160).withEndAction(() -> {
                     setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(500).start();
+                    ambient.animate().alpha(1f).setDuration(350).start();
                 }).start();
             }
-        } else {
-            targetHero.setY(y);
         }
     }
 
