@@ -69,6 +69,13 @@
     <string name="quick_sound">צליל</string>
     <string name="quick_game_mode">מצב משחק</string>
     <string name="quick_accessibility">נגישות</string>
+    <string name="quick_free_memory">פינוי זיכרון</string>
+    <string name="close_apps_title">מפנה זיכרון…</string>
+    <string name="close_apps_step">%1$s · %2$d מתוך %3$d</string>
+    <string name="close_apps_done">%1$d אפליקציות נסגרו · %2$d MB פונו</string>
+    <string name="close_apps_stopped">נעצר אחרי %1$d אפליקציות</string>
+    <string name="close_apps_none">אין אפליקציות אחרונות</string>
+    <string name="close_apps_service_description">עוצר אפליקציות אחרונות דרך ההגדרות.</string>
     <string name="dock_edit">עריכת שורת המועדפים</string>
     <string name="dock_edit_hint">בחרו מקום בשורת המועדפים ולחצו אישור. חזרה לסיום.</string>
     <string name="dock_edit_pick_app">עכשיו בחרו את האפליקציה שתופיע שם ולחצו אישור. חזרה לבחירת מקום אחר.</string>

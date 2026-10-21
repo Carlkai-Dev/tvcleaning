@@ -185,10 +185,16 @@ esac
 #                         It also handles input_key_keycodes and app_keys (config.xml or a theme; a YouTube button)
 #   HOME_KEY_SERVICE=1    remotes whose Home button sends KEYCODE_ALL_APPS instead of HOME, e.g. Xiaomi
 #                         sticks: the key is routed to the launcher (HomeKeyService)
+#   CLOSE_APPS_SERVICE=1  Free memory: close_apps_keycodes and the quick settings panel's tile force-stop the
+#                         recently used apps through Settings (CloseAppsService; Android TV Settings only)
 enable_service() {   # appends to enabled_accessibility_services without dropping other services
   svc=com.gathin.tvhome/.$1
   "$PY" -I ../tools/tv.py "s=\$(settings get secure enabled_accessibility_services); case \"\$s\" in *$1*) ;; null|'') settings put secure enabled_accessibility_services $svc ;; *) settings put secure enabled_accessibility_services \"\$s:$svc\" ;; esac; settings put secure accessibility_enabled 1; echo $1 enabled"
 }
 if [ "${INPUT_KEY_SERVICE:-0}" = 1 ]; then enable_service InputKeyService; fi
 if [ "${HOME_KEY_SERVICE:-0}" = 1 ]; then enable_service HomeKeyService; fi
+if [ "${CLOSE_APPS_SERVICE:-0}" = 1 ]; then
+  "$PY" -I ../tools/tv.py "appops set com.gathin.tvhome GET_USAGE_STATS allow"
+  enable_service CloseAppsService
+fi
 echo "Installed. Press Home on the remote to see it."

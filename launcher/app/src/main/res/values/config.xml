@@ -198,4 +198,10 @@
          Live TV window does not keep the screen on (CVTE): there the system screensaver would start in the
          middle of a programme. Can also be set with "home_idle_clock_minutes": 10 in a theme's config.json. -->
     <integer name="home_idle_clock_minutes">0</integer>
+    <!-- Free memory (CLOSE_APPS_SERVICE=1): remote buttons that force-stop the apps used in the last six hours,
+         through Settings > Apps > the app > Force stop, behind a picture of the screen with a progress card. Android
+         TV's own Settings app only; Live TV, Settings, the Play Store and Play services are never stopped. The TCL
+         G09 remote's shield (TCL Guard) button is 4140. Can also be set with "close_apps_keycodes" in a theme. -->
+    <integer-array name="close_apps_keycodes">
+    </integer-array>
 </resources>

@@ -7,11 +7,13 @@
 #        [-InputKeyService]   remote's Input button opens the input switcher (Google TV), plus config.xml
 #                             input_key_keycodes and app_keys; re-pass on every install
 #        [-HomeKeyService]    remotes whose Home button sends KEYCODE_ALL_APPS (Xiaomi sticks)
+#        [-CloseAppsService]  Free memory: close_apps_keycodes and the quick panel's tile force-stop recent apps
 param(
     [string]$TvHost = $env:TV_HOST,
     [string]$StockLauncher = '',
     [switch]$InputKeyService,
-    [switch]$HomeKeyService
+    [switch]$HomeKeyService,
+    [switch]$CloseAppsService
 )
 $ErrorActionPreference = 'Stop'
 # Pipe plain UTF-8 to native commands; the default here prepends a BOM that corrupts the first command.
@@ -100,4 +102,8 @@ function Enable-Service([string]$Name) {
 }
 if ($InputKeyService) { Enable-Service 'InputKeyService' }
 if ($HomeKeyService) { Enable-Service 'HomeKeyService' }
+if ($CloseAppsService) {
+    'appops set com.gathin.tvhome GET_USAGE_STATS allow' | & $py -I ..\tools\tv.py --batch
+    Enable-Service 'CloseAppsService'
+}
 Write-Host 'Installed. Press Home on the remote to see it.'

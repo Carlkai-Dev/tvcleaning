@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -20,7 +22,8 @@ import android.widget.Toast;
 /**
  * The panel the remote's Settings button opens when {@code settings_key_panel} is on, in the manner of Google TV's
  * quick settings: a translucent side panel on the right with the time, a grid of tiles (network, inputs, picture,
- * sound, game mode, accessibility, apps) and the full TV and launcher settings below. Translucent and in
+ * sound, game mode, accessibility, apps, and free memory with CloseAppsService) and the full TV and launcher
+ * settings below. Translucent and in
  * a task of its own, so the app behind keeps running and Back returns to it. Pressing Settings again closes it.
  */
 // pill_text and qs_subtitle are colour selectors kept in drawable/, as the pills' own are; lint expects color/.
@@ -52,6 +55,11 @@ public final class QuickSettingsActivity extends Activity {
                 new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         addTile(tiles, R.drawable.ic_apps, getString(R.string.quick_apps), getString(R.string.quick_apps_hint),
                 new Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
+        // Only with CloseAppsService running: it does the work.
+        if (CloseAppsService.current() != null) {
+            View free = addTile(tiles, R.drawable.ic_memory, getString(R.string.quick_free_memory), null, null);
+            free.setOnClickListener(v -> freeMemory());
+        }
 
         LinearLayout rows = findViewById(R.id.rows);
         addRow(rows, R.drawable.ic_settings, R.string.tv_settings, new Intent(Settings.ACTION_SETTINGS));
@@ -97,6 +105,17 @@ public final class QuickSettingsActivity extends Activity {
         } catch (RuntimeException e) {
             return null;
         }
+    }
+
+    /** As the remote's button does; the panel goes first, so the frozen screen behind the progress card is clean. */
+    private void freeMemory() {
+        CloseAppsService service = CloseAppsService.current();
+        if (service == null) {
+            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        finish();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> RecentAppsCloser.start(service), 350);
     }
 
     private View addTile(GridLayout grid, int icon, String title, String subtitle, Intent target) {

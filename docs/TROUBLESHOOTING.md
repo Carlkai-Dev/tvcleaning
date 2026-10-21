@@ -292,6 +292,7 @@ tools/tv.py 'dumpsys accessibility'
 | Helper | Component in the enabled-services list | Key it filters |
 | --- | --- | --- |
 | Home button | `com.gathin.tvhome/.HomeKeyService` | `KEYCODE_ALL_APPS` (not an ordinary `KEYCODE_HOME`) |
+| Free memory | `com.gathin.tvhome/.CloseAppsService` | The keycodes in `close_apps_keycodes` (`config.xml` or a theme) |
 | Input button | `com.gathin.tvhome/.InputKeyService` | `KEYCODE_TV`, `KEYCODE_TV_INPUT`, plus the keycodes in `input_key_keycodes` and `app_keys` (`config.xml` or a theme) |
 
 - **Enabled** means the component is in that user's colon-separated list (the class may be written in

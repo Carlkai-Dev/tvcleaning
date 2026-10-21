@@ -52,6 +52,13 @@
     <string name="quick_sound">Sound</string>
     <string name="quick_game_mode">Game mode</string>
     <string name="quick_accessibility">Accessibility</string>
+    <string name="quick_free_memory">Free memory</string>
+    <string name="close_apps_title">Freeing memory…</string>
+    <string name="close_apps_step">%1$s · %2$d of %3$d</string>
+    <string name="close_apps_done">%1$d apps closed · %2$d MB freed</string>
+    <string name="close_apps_stopped">Stopped after %1$d apps</string>
+    <string name="close_apps_none">No recent apps</string>
+    <string name="close_apps_service_description">Force-stops recent apps via Settings.</string>
     <string name="on">On</string>
     <string name="off">Off</string>
     <string name="enable">Enable</string>
