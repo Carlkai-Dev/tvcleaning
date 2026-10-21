@@ -516,7 +516,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        // With settings_key_panel the pill opens the quick settings panel, as the remote's Settings button does; the
+        // full TV and launcher settings are then a hold of OK away (and at the end of the panel).
+        btnSettings.setOnClickListener(v -> open(settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
+                : systemIntent(Settings.ACTION_SETTINGS)));
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
@@ -2459,12 +2462,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     // ---- launcher settings and module cards -------------------------------------------------------
 
-    /** Keep a normal Settings click for the TV; the launcher's choices live behind hold OK. */
+    /** Hold OK on the Settings pill: the launcher's choices, and the full TV settings when a click opens the panel. */
     private void showSettingsMenu() {
         View anchor = findViewById(R.id.btnSettings);
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
+        if (settingsKeyPanel) {
+            addSettingsMenuRow(rows, popup, R.string.tv_settings, () -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        }
         addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> startActivityForResult(
                 new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         if (moduleCards) addSettingsMenuRow(rows, popup, R.string.module_cards, this::showModuleCards);

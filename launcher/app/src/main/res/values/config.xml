@@ -74,7 +74,8 @@
     </integer-array>
     <!-- What those Settings buttons open: false, the TV's Settings; true, a quick settings panel along the right
          edge, as Google TV's: the time, tiles for Network, Inputs, Picture, Sound, Game mode, Accessibility and Apps
-         (re-enable an app), then TV settings and Launcher settings, over whatever is on screen.
+         (re-enable an app), then TV settings and Launcher settings, over whatever is on screen. The Settings pill
+         on Home opens it too; holding OK on the pill offers TV settings and Launcher settings.
          Both keys can also be set from a theme's config.json ("settings_key_keycodes": [83]). -->
     <bool name="settings_key_panel">false</bool>
 
