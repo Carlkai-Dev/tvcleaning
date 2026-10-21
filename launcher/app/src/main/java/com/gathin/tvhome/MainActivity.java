@@ -115,6 +115,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private AppAdapter adapter;
     private RecyclerView grid;
     private FrameLayout root;
+    /** A foreign home (Fire OS) is installed, so HomeKeyService's cover shows a still of Home (HomeSnapshot). */
+    private boolean snapshotForCover;
     private WallpaperPlayer wallpaperPlayer;
     private GlassView glass;
     private View ambient;
@@ -322,6 +324,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelAction = cfg.sourcePanelAction;
 
         root = findViewById(R.id.root);
+        snapshotForCover = HomeKeyService.foreignHome(this) != null;
         root.setBackgroundColor(cfg.backgroundColor);
         // root fills the window with an opaque colour (Config keeps background_color opaque), so the window's own
         // black under it is a second full-screen fill on every frame for nothing. The starting window still uses
@@ -516,7 +519,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> openSystemSettings());
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
@@ -784,6 +787,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        if (snapshotForCover) HomeSnapshot.capture(root);
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
@@ -2223,6 +2227,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** The TV's Settings. On Fire OS they live in Amazon's launcher (ui.SettingsActivity), which HomeKeyService
+     *  would push away like its home screen, so that one time it is let through as for the Inputs pill. */
+    private void openSystemSettings() {
+        Intent i = systemIntent(Settings.ACTION_SETTINGS);
+        ComponentName foreignHome = HomeKeyService.foreignHome(this);
+        ResolveInfo target = foreignHome == null ? null : getPackageManager().resolveActivity(i, 0);
+        if (target != null && foreignHome.getPackageName().equals(target.activityInfo.packageName)) {
+            HomeKeyService.letForeignHomeThrough();
+        }
+        open(i);
+    }
+
     private void open(Intent i) {
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
@@ -2236,6 +2252,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      *  which the Live TV app handles; where nothing takes that, the configured `input_action` is sent
      *  with the same URI instead (XGIMI's HDMI player only answers com.xgimi.action.hdmiPlayer). */
     private void openInput(String inputId) {
+        // Fire OS: Amazon's input player needs TUNE_INPUT, so the input plays in a TvView of our own.
+        if (HomeKeyService.foreignHome(this) != null) {
+            open(new Intent(this, HdmiPlayerActivity.class).putExtra(HdmiPlayerActivity.EXTRA_INPUT_ID, inputId));
+            return;
+        }
         Uri uri = TvContract.buildChannelUriForPassthroughInput(inputId);
         Intent view = new Intent(Intent.ACTION_VIEW).setDataAndType(uri, "vnd.android.cursor.item/channel")
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -2253,6 +2274,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
     private void showInputs() {
+        // Fire OS: HDMI rows play in HdmiPlayerActivity (openInput); Live TV stays Amazon's (TUNE_CHANNEL), below.
+        final ComponentName foreignHome = HomeKeyService.foreignHome(this);
         // A configured source panel and no Live TV row to offer next to it: the panel is the whole menu.
         // The BYINTEK U4 needs this, as its TvInputManager lists three HDMI ports and an AV input it doesn't have.
         if (!sourcePanelService.isEmpty() && liveTvIntent() == null) {
@@ -2384,6 +2407,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (rows.getChildCount() > 0) addSeparator(rows);
             final Intent liveTvIntent = liveTv;
             addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> open(liveTvIntent));
+        } else if (foreignHome != null) {
+            // Only Amazon's own apps may start its Live TV, so this opens Amazon's home once, where its Live tab and
+            // the tuner inputs are (HomeKeyService lets it stay until something is opened from it).
+            if (rows.getChildCount() > 0) addSeparator(rows);
+            addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> {
+                HomeKeyService.letForeignHomeThrough();
+                open(new Intent(Intent.ACTION_MAIN).setComponent(foreignHome));
+            });
         }
         if (rows.getChildCount() == 0) {
             Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();

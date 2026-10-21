@@ -78,6 +78,14 @@
             android:noHistory="true"
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+        <!-- HDMI in a TvView where the firmware's input player is closed to other apps (Fire OS); see HdmiPlayerActivity.
+             In Home's task, so Back returns to Home directly. -->
+        <activity
+            android:name=".HdmiPlayerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
         <activity
             android:name=".HomeSettingsActivity"
             android:exported="false"

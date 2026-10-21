@@ -89,13 +89,13 @@ Anything running **Android TV** or **Google TV**.
 | Platform | What works |
 |---|---|
 | **Android TV, Google TV** | The debloat and the launcher. |
-| **Fire TV** | The debloat half only, since Fire OS will not hand Home to a third-party launcher. And on the 2015 Fire TV Box (Fire OS 5) even that half fails: every `pm` route is refused. |
+| **Fire TV** | The debloat half only, since Fire OS will not hand Home to a third-party launcher. And on the 2015 Fire TV Box (Fire OS 5) even that half fails: every `pm` route is refused. On a Fire OS 7 TV the launcher can still sit on top of Amazon's home, with HDMI in its own player ([`examples/amazon-fire-tv-afteu014`](examples/amazon-fire-tv-afteu014/debloat.txt)). |
 | **A few China-market TCL sets** | They refuse to install any launcher at all; their lists say so in the header. |
 | **Samsung (Tizen), LG (webOS)** | Different systems. See [SHOWCASE.md](SHOWCASE.md) for a webOS port, and [docs/devices/samsung-tizen.md](docs/devices/samsung-tizen.md) for what a 2021 Samsung set answers over Wi-Fi (no ADB, so no `pm disable-user`) if you are weighing a Tizen port. |
 
 Tested lists from contributors, one folder per model in [`examples/`](examples/):
 
-**TCL** 40 · **Sony** 22 · **Xiaomi** 22 · **Philips** 10 · **Hisense** 7 · **Amazon Fire TV** 5 ·
+**TCL** 40 · **Sony** 22 · **Xiaomi** 22 · **Philips** 10 · **Hisense** 7 · **Amazon Fire TV** 6 ·
 **Panasonic** 3 · **Skyworth** 3 · **Thomson** 3 · **BenQ** 2 · **CHiQ** 2 · **Google** 2 · **Haier** 2 · **Hitachi** 2 ·
 **Kalley** 2 · **NVIDIA Shield** 2 · **OnePlus** 2 · **onn** 2 · **Redmi** 2 · **Toshiba** 2 · **Vu** 2 ·
 AiPro2K · AIWA · Artel · Cecotec · Challenger · Compac · Dialog · EKO · FFalcon · Freebox · Insignia Fire TV ·
@@ -110,6 +110,7 @@ BYINTEK, JMGO, Portronics, Stellamore, Wanbo and XGIMI projectors
 |---|---|
 | AiPro2K (Expressluck, dongnae; Changhong AI PONT family) | Android TV 14 |
 | AIWA AI PONT SA (Changhong, osaka, ISDB86AW) | Google TV 14 |
+| Amazon Fire TV smart TV (AFTEU014, greta, MediaTek m7322), Germany | Fire OS 7.6.8.5 / Android 9 |
 | Amazon Fire TV 50" 4K smart TV (AFTTIFF43, brandenburg) | Fire OS 7.7.1.7 / Android 9 |
 | Amazon Fire TV Stick 4K Max, 1st gen 2021 (AFTKA, kara), Colombia | Fire OS 7.7.1.3 / Android 9 |
 | Amazon Fire TV Stick 4K, 1st gen 2018 (AFTMM, mantis) | Fire OS 6.7.1.1 / Android 7.1 |
