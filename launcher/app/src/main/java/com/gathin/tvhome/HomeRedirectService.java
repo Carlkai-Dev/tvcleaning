@@ -18,8 +18,8 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Shared stock-HOME fallback. Component name is retained for installed Fire TV builds. */
-public final class FireTvHomeService extends AccessibilityService {
+/** Shared stock-HOME fallback for configured TV launchers. */
+public final class HomeRedirectService extends AccessibilityService {
     private static final String PREFS = "fire_tv_home";
     private static volatile boolean bound;
     private final Handler handler = new Handler(Looper.getMainLooper());

@@ -170,5 +170,5 @@ This is not a supported Home takeover or evidence that the reference
 [device report](devices/amazon-fire-tv-stick-3rd-gen.md) for the timed trace,
 physical-remote limitations and recovery notes. Keep the stock launcher enabled
 and test the real remote rather than inferring success from a written setting.
-The separate [opt-in FireTvHomeService](FIRE_TV_HOME.md) ports that redirect;
+The separate [opt-in HomeRedirectService](FIRE_TV_HOME.md) ports that redirect;
 it does not remove the firmware's delay or change the existing key-filter service.

@@ -104,8 +104,8 @@
                 android:resource="@xml/home_key_service" />
         </service>
 
-        <!-- Shared HOME redirect; retain component name for upgrades. Explicit Accessibility opt-in. -->
-        <service android:name=".FireTvHomeService"
+        <!-- Shared HOME redirect. Explicit Accessibility opt-in. -->
+        <service android:name=".HomeRedirectService"
             android:label="@string/home_redirect_name"
             android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">

@@ -1,7 +1,7 @@
 # Optional Fire TV Home redirect
 
 Fire OS can keep Amazon as the protected default Home even when
-`set-home-activity` reports success. `FireTvHomeService` is an opt-in fallback:
+`set-home-activity` reports success. `HomeRedirectService` is an opt-in fallback:
 when Amazon Home appears, it requests this launcher afterward. It does not
 disable Amazon Home, replace its HOME role, or intercept the physical HOME key.
 
@@ -29,7 +29,7 @@ Accessibility if the helper is not bound. Enable **Home redirect**
 there. Other TVs without a configured redirect target retain the system Home picker.
 
 If Fire OS hides the sideloaded service in Accessibility, enable just
-`com.gathin.tvhome/.FireTvHomeService` over ADB for the current user. Read and
+`com.gathin.tvhome/.HomeRedirectService` over ADB for the current user. Read and
 save `enabled_accessibility_services` and `accessibility_enabled` first, append
 the component to that user's colon-separated list, and set the master switch
 to 1. Preserve other components; never replace the entire list. Check binding
@@ -73,8 +73,11 @@ a target is configured. On Fire TV, explicitly enabling the helper without a
 configured target uses the Amazon package from `config.xml`.
 
 Push the theme with `tools/theme.sh` or `tools/theme.ps1`, then enable **Home
-redirect** in Accessibility. Its component remains
-`com.gathin.tvhome/.FireTvHomeService` for compatibility with installed builds.
+redirect** in Accessibility. Its component is
+`com.gathin.tvhome/.HomeRedirectService`. After upgrading from a build with
+`FireTvHomeService`, enable **Home redirect** again in Accessibility and remove
+the old component from any ADB-managed enabled-services list. Android does not
+transfer accessibility approval when a service component is renamed.
 The theme tools restart the app and restore previously enabled services so
 the target is reread. If changing files manually, disable and re-enable this
 service afterward. A theme alone never enables an accessibility service.

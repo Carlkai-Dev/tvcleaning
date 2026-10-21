@@ -91,7 +91,6 @@
         <item quantity="other">%1$d אפליקציות</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
-    <string name="fire_tv_home_name">הפניית מסך הבית של Fire TV</string>
     <string name="fire_tv_stock_home">שימוש ב-Amazon Home</string>
     <string name="fire_tv_home_description">יש להפעיל שירות זה בהגדרות הנגישות כדי להפנות לכאן את כפתור הבית. Fire OS עשוי להציג תחילה את Amazon Home במשך כחמש שניות. תוכן המסך אינו נקרא. בחרו שימוש ב-Amazon Home כדי לבטל את ההפניה.</string>
 </resources>

@@ -85,7 +85,7 @@ public final class LauncherSettingsActivity extends Activity {
             refresh();
         });
         findViewById(R.id.defaultHomeChoice).setOnClickListener(v -> {
-            if (FireTvHomeService.showHomeOptions(this)) return;
+            if (HomeRedirectService.showHomeOptions(this)) return;
             Toast.makeText(this, R.string.home_settings_help, Toast.LENGTH_LONG).show();
             open(new Intent(Settings.ACTION_HOME_SETTINGS));
         });
@@ -94,7 +94,7 @@ public final class LauncherSettingsActivity extends Activity {
         refresh();
         columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
         if (state == null && getIntent().getBooleanExtra("fire_tv_home", false)) {
-            FireTvHomeService.showHomeOptions(this);
+            HomeRedirectService.showHomeOptions(this);
         }
     }
 
