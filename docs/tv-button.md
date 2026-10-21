@@ -7,3 +7,5 @@ Enable the existing Input button or Home button accessibility helper through the
 Destinations are cached and refreshed when preferences or installed packages change. A complete uncancelled press launches once; unavailable destinations show a message. The app chooser displays app names only, retaining package identifiers internally. Duplicate app names remain separately selectable with deterministic internal ordering.
 
 Validated with a physical Android TV remote from Home and another app using InputKeyService. Injected ADB events alone do not reach accessibility key filtering. Device-specific configuration and validation records remain private.
+
+The custom remote-friendly picker mirrors title, selection markers, label alignment and cancel placement for RTL UI locales, without mirroring other launcher layouts. App names sort with the UI locale collator. Back/cancel preserve the selection.

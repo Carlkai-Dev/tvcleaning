@@ -1,7 +1,7 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import java.text.Collator;
 import android.content.*;
 import android.content.pm.ResolveInfo;
 import android.provider.Settings;
@@ -25,15 +25,13 @@ final class TvButtonSettings {
             }
         }
         List<String> packages = new ArrayList<>(apps.keySet());
-        packages.sort((a,b) -> { int order = apps.get(a).compareToIgnoreCase(apps.get(b)); return order != 0 ? order : a.compareTo(b); });
+        Collator collator = Collator.getInstance(activity.getResources().getConfiguration().getLocales().get(0));
+        packages.sort((a,b) -> { int order = collator.compare(apps.get(a), apps.get(b)); return order != 0 ? order : a.compareTo(b); });
         for (String pkg : packages) { labels.add(apps.get(pkg)); values.add("app:" + pkg); }
         String current = prefs.getString(TvButtonController.CHOICE, TvButtonController.FOLLOW);
         if (!values.contains(current)) { labels.add(activity.getString(R.string.tv_button_unavailable)); values.add(current); }
-        new AlertDialog.Builder(activity).setTitle(R.string.tv_button)
-                .setSingleChoiceItems(labels.toArray(new String[0]), values.indexOf(current), (dialog, which) -> {
-                    prefs.edit().putString(TvButtonController.CHOICE, values.get(which)).apply();
-                    dialog.dismiss();
-                }).setNegativeButton(android.R.string.cancel, null).show();
+        TvButtonPicker.show(activity, labels, values.indexOf(current), which ->
+                prefs.edit().putString(TvButtonController.CHOICE, values.get(which)).apply());
     }
 
     static void refreshStatus(Activity activity, TextView text) {
