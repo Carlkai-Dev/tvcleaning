@@ -12,7 +12,6 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
-import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.FrameLayout;
@@ -23,13 +22,15 @@ import java.util.Map;
 /**
  * High-performance remote key and window manager for Fire TV:
  * Intercepts KEYCODE_HOME and window state changes with an instant zero-latency visual shield
- * and aggressive retry loop to completely eliminate any flash of the Amazon stock launcher.
+ * and resilient retry loop to completely eliminate any flash of the Amazon stock launcher.
  */
 public class HomeKeyService extends AccessibilityService {
 
     private static final String TAG = "HomeKeyService";
     private static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
     private static final String AMAZON_HOMESTARTER = "com.amazon.firehomestarter";
+
+    public static volatile HomeKeyService instance;
 
     private int[] settingsScancodes = new int[0];
     private int[] settingsKeycodes = new int[0];
@@ -48,7 +49,7 @@ public class HomeKeyService extends AccessibilityService {
     private final Runnable retryRunnable = new Runnable() {
         @Override
         public void run() {
-            if (retryCount < 25) { // Retries every 100ms for up to 2.5s
+            if (retryCount < 70) { // Retries every 100ms for up to 7.0 seconds
                 retryCount++;
                 launchMainActivity();
                 handler.postDelayed(this, 100);
@@ -58,9 +59,30 @@ public class HomeKeyService extends AccessibilityService {
         }
     };
 
+    public static void notifyCleanYourTVResumed() {
+        HomeKeyService current = instance;
+        if (current != null) {
+            current.onMainActivityResumed();
+        }
+    }
+
+    private void onMainActivityResumed() {
+        handler.post(() -> {
+            handler.removeCallbacks(retryRunnable);
+            hideShield();
+        });
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        instance = this;
+    }
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        instance = this;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         settingsScancodes = getResources().getIntArray(R.array.settings_key_scancodes);
         Config config = Config.load(this);
@@ -192,10 +214,6 @@ public class HomeKeyService extends AccessibilityService {
                 String pkg = pkgSeq.toString();
                 if (pkg.equals(AMAZON_LAUNCHER) || pkg.equals(AMAZON_HOMESTARTER)) {
                     launchCleanYourTV();
-                } else if (pkg.equals(getPackageName())) {
-                    // CleanYourTV is active and on screen: dismiss shield immediately
-                    handler.removeCallbacks(retryRunnable);
-                    hideShield();
                 }
             }
         }
@@ -209,6 +227,7 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (instance == this) instance = null;
         hideShield();
     }
 }

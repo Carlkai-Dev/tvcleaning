@@ -549,6 +549,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        HomeKeyService.notifyCleanYourTVResumed();
+        try {
+            String accServices = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            if (accServices == null || !accServices.contains("HomeKeyService")) {
+                android.provider.Settings.Secure.putString(getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "com.gathin.tvhome/com.gathin.tvhome.HomeKeyService");
+                android.provider.Settings.Secure.putInt(getContentResolver(), android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, 1);
+            }
+        } catch (Throwable ignored) {}
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
             recreate();
@@ -686,6 +694,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
+            HomeKeyService.notifyCleanYourTVResumed();
+        try {
+            String accServices = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            if (accServices == null || !accServices.contains("HomeKeyService")) {
+                android.provider.Settings.Secure.putString(getContentResolver(), android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "com.gathin.tvhome/com.gathin.tvhome.HomeKeyService");
+                android.provider.Settings.Secure.putInt(getContentResolver(), android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, 1);
+            }
+        } catch (Throwable ignored) {}
             if (libraryFocusPending && appLibrary == null) focusLibrary();
             showCardPrompt();
         }
