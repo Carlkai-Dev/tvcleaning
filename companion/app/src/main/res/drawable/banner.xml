@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 16:9 banner for the launcher grid: the house mark on the left of a dark band. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp" android:viewportWidth="160" android:viewportHeight="90">
+    <path android:fillColor="#FF15181E" android:pathData="M0,0h160v90h-160z" />
+    <path android:fillColor="#FF9FD8FF" android:pathData="M80,22L58,40h6v26h32V40h6z" />
+    <path android:fillColor="#FF15181E" android:pathData="M70,46h20v4h-20zM70,54h20v4h-20z" />
+</vector>

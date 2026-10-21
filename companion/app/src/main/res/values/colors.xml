@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Media and Dashboard screens' palette: near-black, white text, one cool accent, and three state colours. -->
+<resources>
+    <color name="bg">#FF0E1116</color>
+    <color name="surface">#FF1A1E26</color>
+    <color name="text">#FFFFFFFF</color>
+    <color name="text_dim">#FFA6B0BF</color>
+    <color name="accent">#FF9FD8FF</color>
+    <color name="ok">#FF7BD88F</color>
+    <color name="warn">#FFFFC46B</color>
+    <color name="bad">#FFFF7B7B</color>
+</resources>

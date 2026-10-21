@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'io.github.epochcoder.homelab'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'io.github.epochcoder.homelab'
+        // Same floor as the launcher (Android 8.0).
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '0.1'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Sideloaded over ADB, never published: sign with the debug key, like the launcher.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    testOptions {
+        // Config and the API clients log through android.util.Log; return defaults instead of throwing on the JVM.
+        unitTests.returnDefaultValues = true
+    }
+}
+
+dependencies {
+    // No runtime dependencies: HttpURLConnection, org.json and the platform widgets cover everything.
+    testImplementation 'junit:junit:4.13.2'
+    // The android.jar org.json is a stub on the JVM; the real implementation for the unit tests only.
+    testImplementation 'org.json:json:20240303'
+}

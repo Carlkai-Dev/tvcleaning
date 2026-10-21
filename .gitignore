@@ -17,3 +17,10 @@ work/
 *.aab
 launcher/hs_err_pid*.log
 launcher/replay_pid*.log
+
+# Homelab companion: build output, and config.json, which holds your API keys.
+companion/.gradle/
+companion/build/
+companion/app/build/
+companion/local.properties
+companion/config.json

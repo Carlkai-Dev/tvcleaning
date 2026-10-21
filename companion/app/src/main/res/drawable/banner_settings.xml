@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 16:9 banner for Homelab Settings: the house mark in grey, with a slider line under it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp" android:viewportWidth="160" android:viewportHeight="90">
+    <path android:fillColor="#FF15181E" android:pathData="M0,0h160v90h-160z" />
+    <path android:fillColor="#FFB8C0CC" android:pathData="M80,16L62,31h5v21h26V31h5z" />
+    <path android:fillColor="#FFB8C0CC" android:pathData="M54,66h52v3h-52z" />
+    <path android:fillColor="#FF9FD8FF" android:pathData="M88,62h6v11h-6z" />
+</vector>

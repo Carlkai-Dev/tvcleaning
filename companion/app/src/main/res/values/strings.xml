@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">Homelab</string>
+    <string name="dashboard_name">Homelab</string>
+    <string name="settings_name">Homelab Settings</string>
+
+    <string name="not_configured">%1$s is not set up yet: open Homelab Settings.</string>
+    <string name="loading">Loading…</string>
+    <string name="error">%1$s: %2$s</string>
+    <string name="blocked_link">Only %1$s opens here</string>
+
+    <string name="settings">Settings</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Dashboard -->
+    <string name="dash_loading">Loading Homepage…</string>
+    <string name="dash_error_title">Homepage did not load</string>
+    <string name="dash_unreachable">Could not reach %1$s: %2$s</string>
+    <string name="dash_http">%2$s answered with HTTP %1$d. If a login sits in front of Homepage, it cannot be passed from here.</string>
+    <string name="dash_tls" tools:ignore="TypographyDashes">The certificate of %1$s is not trusted. With Caddy\'s tls internal, push its root with companion/push-config.sh --ca.</string>
+    <string name="dash_retry">Try again</string>
+    <string name="dash_hint">▲ ▼ scroll    ·    MENU reloads</string>
+
+    <string name="s_tip">Changes are saved when you leave this screen. For long API keys, type with your phone: the Google TV app\'s keyboard works here.</string>
+    <string name="s_url">Address</string>
+    <string name="s_api_key">API key</string>
+    <string name="s_test">Test</string>
+    <string name="s_text_zoom">Text size, percent (100)</string>
+    <string name="s_none">None</string>
+    <string name="s_server_default">Server default (first listed)</string>
+    <string name="s_certificates">Certificates</string>
+    <!-- The double hyphen below is a push-config.sh option, not a dash. -->
+    <string name="s_ca_none" tools:ignore="TypographyDashes">No extra CA certificate. Only needed when Caddy uses tls internal: add its root with companion/push-config.sh --ca.</string>
+    <string name="s_ca_set">An extra CA certificate is set (from companion/push-config.sh) and trusted alongside the system ones.</string>
+    <string name="s_keep_awake">Keep the screen on</string>
+    <string name="s_save">Save and close</string>
+    <string name="s_saved">Saved</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LAN services are often plain http (an IP and a port), so cleartext is allowed; the app only ever
+     connects to the URLs in config.json. For https behind Caddy's internal CA, put the root certificate
+     in config.json's "ca_pem" instead of trusting user CAs: see Tls. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
