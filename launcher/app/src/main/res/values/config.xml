@@ -72,9 +72,10 @@
          with `tools/tv.py 'logcat -v time -s InputReader:D'` while pressing the button. Leave empty to omit. -->
     <integer-array name="settings_key_keycodes">
     </integer-array>
-    <!-- What those Settings buttons open: false, the TV's Settings; true, a small glass panel at the top right
-         with TV settings, Display, Network, Apps (re-enable an app) and Launcher settings, over whatever is on screen.
-         Both keys can also be set from a theme's config.json ("settings_key_keycodes": [83]). -->
+    <!-- What those Settings buttons and the Settings pill open: false, the TV's Settings; true, a settings sheet
+         on the right with a volume slider, Network, Display, Apps (re-enable an app), Launcher settings, About and
+         TV settings, over whatever is on screen. Both keys can also be set from a theme's config.json
+         ("settings_key_keycodes": [83]). -->
     <bool name="settings_key_panel">false</bool>
 
     <!-- More remote buttons that open the input switcher, by Android keycode (INPUT_KEY_SERVICE=1

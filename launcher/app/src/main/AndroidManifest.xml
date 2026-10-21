@@ -30,6 +30,10 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="com.gathin.tvhome.category.DOCK_CARD" />
         </intent>
+        <!-- Settings sheet: Android TV 11 has no Display screen, so the Display row falls back to Display & Sound. -->
+        <intent>
+            <action android:name="android.settings.DISPLAY_SETTINGS" />
+        </intent>
         <!-- China-market MIUI TV firmware: the Settings and Wi-Fi pills fall back to Xiaomi's settings app. -->
         <package android:name="com.xiaomi.mitv.settings" />
     </queries>

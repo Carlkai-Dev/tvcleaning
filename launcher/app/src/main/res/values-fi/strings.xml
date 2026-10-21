@@ -38,6 +38,8 @@
     <string name="quick_network">Verkko</string>
     <string name="quick_apps">Sovellukset</string>
     <string name="quick_apps_hint">Ota uudelleen käyttöön</string>
+    <string name="quick_volume">Äänenvoimakkuus</string>
+    <string name="quick_about">Tietoja</string>
     <string name="on">Päällä</string>
     <string name="off">Pois</string>
     <string name="enable">Ota käyttöön</string>

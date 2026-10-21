@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Quick settings opened by the remote's Settings button: the Inputs dropdown's glass panel, placed
-     under the Settings pill so it lines up on Home and sits top right over any app. -->
+<!-- Settings sheet opened by the Settings pill and the remote's Settings button: grouped rows with coloured
+     icons on a dark sheet at the right, over Home or whatever app is playing. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/scrim"
     android:layout_width="match_parent"
@@ -8,21 +8,60 @@
 
     <LinearLayout
         android:id="@+id/panel"
-        android:layout_width="wrap_content"
-        android:minWidth="220dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="105dp"
-        android:layout_marginEnd="56dp"
+        android:layout_width="380dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"
         android:orientation="vertical"
         android:background="@drawable/glass_panel"
-        android:padding="6dp"
-        android:elevation="12dp">
+        android:paddingTop="20dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:elevation="16dp">
 
-        <LinearLayout
-            android:id="@+id/rows"
+        <TextView
+            android:id="@+id/heading"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:layout_marginStart="8dp"
+            android:text="@string/settings"
+            android:textColor="#FFFFFFFF"
+            android:textSize="26sp"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold"
+            android:letterSpacing="-0.01" />
+
+        <TextView
+            android:id="@+id/subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="14dp"
+            android:textColor="#FF8E8E93"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif"
+            android:singleLine="true" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingBottom="14dp">
+
+            <LinearLayout
+                android:id="@+id/rows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:clipChildren="false" />
+        </ScrollView>
     </LinearLayout>
 </FrameLayout>
