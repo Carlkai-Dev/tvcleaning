@@ -23,6 +23,9 @@
 > [@gathint, 17 October 2026](https://x.com/gathint/status/2111379569030939102). The replies are where
 > most of the TV lists here came from. The repo was called tv-vibehack until the 19th; old links work.
 
+> **LG webOS?** There is a port for rooted LG TVs in [`webos/`](webos/): same Apple TV-style home, plus
+> an ad and telemetry debloat, installed with one command. See [`webos/README.md`](webos/README.md).
+
 ## How it works
 
 Android TVs have the same debug bridge as Android phones. Switch on USB debugging in the TV's
