@@ -69,9 +69,8 @@
     <string name="dock_remove">Ukloni sa doka</string>
     <string name="tile_move">Pomeri</string>
     <string name="tile_app_info">Informacije o aplikaciji</string>
-    <string name="app_order_label">Redosled aplikacija ispod doka</string>
     <string name="app_order_state">Redosled aplikacija: %1$s</string>
-    <string name="app_order_custom">Prilagođeno (vaš raspored)</string>
-    <string name="app_order_az">Abecedno (A do Ž)</string>
+    <string name="app_order_custom">Prilagođeno</string>
+    <string name="app_order_az">Abecedno</string>
     <string name="app_order_newest">Najnovije instalirane prve</string>
 </resources>

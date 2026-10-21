@@ -92,9 +92,8 @@
     <string name="dock_remove">Poista telakasta</string>
     <string name="tile_move">Siirrä</string>
     <string name="tile_app_info">Sovelluksen tiedot</string>
-    <string name="app_order_label">Telakan alla olevien sovellusten järjestys</string>
     <string name="app_order_state">Sovellusten järjestys: %1$s</string>
-    <string name="app_order_custom">Oma (sinun järjestyksesi)</string>
-    <string name="app_order_az">Aakkosjärjestys (A–Ö)</string>
+    <string name="app_order_custom">Oma</string>
+    <string name="app_order_az">Aakkosjärjestys</string>
     <string name="app_order_newest">Viimeksi asennetut ensin</string>
 </resources>

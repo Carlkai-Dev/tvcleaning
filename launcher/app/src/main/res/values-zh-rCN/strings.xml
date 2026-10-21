@@ -62,9 +62,8 @@
     <string name="dock_remove">从程序坞移除</string>
     <string name="tile_move">移动</string>
     <string name="tile_app_info">应用信息</string>
-    <string name="app_order_label">程序坞下方应用的顺序</string>
     <string name="app_order_state">应用顺序：%1$s</string>
-    <string name="app_order_custom">自定义（你的排列）</string>
-    <string name="app_order_az">按字母顺序（A 到 Z）</string>
+    <string name="app_order_custom">自定义</string>
+    <string name="app_order_az">按字母顺序</string>
     <string name="app_order_newest">最新安装的在前</string>
 </resources>

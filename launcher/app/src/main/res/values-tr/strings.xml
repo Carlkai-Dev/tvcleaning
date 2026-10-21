@@ -87,9 +87,8 @@
     <string name="dock_remove">Dock\'tan kaldır</string>
     <string name="tile_move">Taşı</string>
     <string name="tile_app_info">Uygulama bilgileri</string>
-    <string name="app_order_label">Dock altındaki uygulamaların sırası</string>
     <string name="app_order_state">Uygulama sırası: %1$s</string>
-    <string name="app_order_custom">Özel (sizin düzeniniz)</string>
-    <string name="app_order_az">Alfabetik (A\'dan Z\'ye)</string>
+    <string name="app_order_custom">Özel</string>
+    <string name="app_order_az">Alfabetik</string>
     <string name="app_order_newest">En son yüklenenler önce</string>
 </resources>

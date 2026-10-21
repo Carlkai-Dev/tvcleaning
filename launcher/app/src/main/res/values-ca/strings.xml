@@ -60,9 +60,8 @@
     <string name="dock_remove">Treu del dock</string>
     <string name="tile_move">Mou</string>
     <string name="tile_app_info">Informació de l\'aplicació</string>
-    <string name="app_order_label">Ordre de les aplicacions sota el dock</string>
     <string name="app_order_state">Ordre de les aplicacions: %1$s</string>
-    <string name="app_order_custom">Personalitzat (el vostre ordre)</string>
-    <string name="app_order_az">Alfabètic (de la A a la Z)</string>
+    <string name="app_order_custom">Personalitzat</string>
+    <string name="app_order_az">Alfabètic</string>
     <string name="app_order_newest">Les instal·lades més recentment primer</string>
 </resources>

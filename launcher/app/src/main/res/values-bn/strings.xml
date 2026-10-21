@@ -92,9 +92,8 @@
     <string name="dock_remove">ডক থেকে সরান</string>
     <string name="tile_move">সরান</string>
     <string name="tile_app_info">অ্যাপের তথ্য</string>
-    <string name="app_order_label">ডকের নিচের অ্যাপগুলোর ক্রম</string>
     <string name="app_order_state">অ্যাপের ক্রম: %1$s</string>
-    <string name="app_order_custom">কাস্টম (আপনার সাজানো)</string>
-    <string name="app_order_az">বর্ণানুক্রমে (A থেকে Z)</string>
+    <string name="app_order_custom">কাস্টম</string>
+    <string name="app_order_az">বর্ণানুক্রমে</string>
     <string name="app_order_newest">সবচেয়ে নতুন ইনস্টল আগে</string>
 </resources>

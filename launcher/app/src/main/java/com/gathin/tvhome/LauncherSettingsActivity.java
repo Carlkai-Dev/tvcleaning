@@ -175,7 +175,7 @@ public final class LauncherSettingsActivity extends Activity {
     /** Not a theme choice (Follow theme leaves it alone): it only decides how the owner's apps are sorted. */
     private void showAppOrderPicker() {
         new AlertDialog.Builder(this)
-                .setTitle(R.string.app_order_label)
+                .setTitle(appOrderChoice.getText())   // "App order: Custom", the row itself
                 .setSingleChoiceItems(appOrderLabels(), appOrderIndex(), (dialog, which) -> {
                     dialog.dismiss();
                     if (which == appOrderIndex()) return;

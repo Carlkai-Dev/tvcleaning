@@ -72,9 +72,8 @@
     <string name="dock_remove">Gỡ khỏi dock</string>
     <string name="tile_move">Di chuyển</string>
     <string name="tile_app_info">Thông tin ứng dụng</string>
-    <string name="app_order_label">Thứ tự ứng dụng bên dưới dock</string>
     <string name="app_order_state">Thứ tự ứng dụng: %1$s</string>
-    <string name="app_order_custom">Tùy chỉnh (cách bạn sắp xếp)</string>
-    <string name="app_order_az">Theo bảng chữ cái (A đến Z)</string>
+    <string name="app_order_custom">Tùy chỉnh</string>
+    <string name="app_order_az">Theo bảng chữ cái</string>
     <string name="app_order_newest">Cài đặt mới nhất trước</string>
 </resources>

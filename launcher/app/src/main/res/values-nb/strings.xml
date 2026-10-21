@@ -104,9 +104,8 @@
     <string name="dock_remove">Fjern fra favorittraden</string>
     <string name="tile_move">Flytt</string>
     <string name="tile_app_info">Appinfo</string>
-    <string name="app_order_label">Rekkefølgen på appene under favorittraden</string>
     <string name="app_order_state">Apprekkefølge: %1$s</string>
-    <string name="app_order_custom">Egendefinert (din rekkefølge)</string>
-    <string name="app_order_az">Alfabetisk (A til Å)</string>
+    <string name="app_order_custom">Egendefinert</string>
+    <string name="app_order_az">Alfabetisk</string>
     <string name="app_order_newest">Sist installerte først</string>
 </resources>

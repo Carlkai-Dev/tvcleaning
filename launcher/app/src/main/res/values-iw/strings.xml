@@ -75,9 +75,8 @@
     <string name="dock_remove">הסרה משורת המועדפים</string>
     <string name="tile_move">הזזה</string>
     <string name="tile_app_info">פרטי האפליקציה</string>
-    <string name="app_order_label">סדר האפליקציות שמתחת לשורת המועדפים</string>
     <string name="app_order_state">סדר האפליקציות: %1$s</string>
-    <string name="app_order_custom">מותאם אישית (הסידור שלכם)</string>
+    <string name="app_order_custom">מותאם אישית</string>
     <string name="app_order_az">לפי האלף-בית</string>
     <string name="app_order_newest">החדשות ביותר קודם</string>
     <string name="app_library">ספריית אפליקציות</string>

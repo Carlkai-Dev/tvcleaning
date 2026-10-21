@@ -104,9 +104,8 @@
     <string name="dock_remove">Dockdan olib tashlash</string>
     <string name="tile_move">Koʻchirish</string>
     <string name="tile_app_info">Ilova haqida</string>
-    <string name="app_order_label">Dock ostidagi ilovalar tartibi</string>
     <string name="app_order_state">Ilovalar tartibi: %1$s</string>
-    <string name="app_order_custom">Maxsus (sizning tartibingiz)</string>
-    <string name="app_order_az">Alifbo boʻyicha (A dan Z gacha)</string>
+    <string name="app_order_custom">Maxsus</string>
+    <string name="app_order_az">Alifbo boʻyicha</string>
     <string name="app_order_newest">Eng yangi oʻrnatilganlar avval</string>
 </resources>

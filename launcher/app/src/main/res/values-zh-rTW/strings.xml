@@ -86,9 +86,8 @@
     <string name="dock_remove">從 Dock 移除</string>
     <string name="tile_move">移動</string>
     <string name="tile_app_info">應用程式資訊</string>
-    <string name="app_order_label">Dock 下方應用程式的順序</string>
     <string name="app_order_state">應用程式順序：%1$s</string>
-    <string name="app_order_custom">自訂（你的排列）</string>
-    <string name="app_order_az">依字母順序（A 到 Z）</string>
+    <string name="app_order_custom">自訂</string>
+    <string name="app_order_az">依字母順序</string>
     <string name="app_order_newest">最新安裝的優先</string>
 </resources>

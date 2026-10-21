@@ -105,9 +105,8 @@
     <string name="dock_remove">Uit dock halen</string>
     <string name="tile_move">Verplaatsen</string>
     <string name="tile_app_info">App-info</string>
-    <string name="app_order_label">Volgorde van de apps onder het dock</string>
     <string name="app_order_state">App-volgorde: %1$s</string>
-    <string name="app_order_custom">Aangepast (jouw indeling)</string>
-    <string name="app_order_az">Alfabetisch (A tot Z)</string>
+    <string name="app_order_custom">Aangepast</string>
+    <string name="app_order_az">Alfabetisch</string>
     <string name="app_order_newest">Laatst geïnstalleerd eerst</string>
 </resources>

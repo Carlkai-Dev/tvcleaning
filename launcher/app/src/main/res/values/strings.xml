@@ -83,10 +83,9 @@
     <string name="dock_remove">Remove from dock</string>
     <string name="tile_move">Move</string>
     <string name="tile_app_info">App info</string>
-    <string name="app_order_label">Order of the apps below the dock</string>
     <string name="app_order_state">App order: %1$s</string>
-    <string name="app_order_custom">Custom (your arrangement)</string>
-    <string name="app_order_az">Alphabetical (A to Z)</string>
+    <string name="app_order_custom">Custom</string>
+    <string name="app_order_az">Alphabetical</string>
     <string name="app_order_newest">Newest installed first</string>
     <string name="app_library">App library</string>
     <string name="library_empty">No launchable apps found</string>

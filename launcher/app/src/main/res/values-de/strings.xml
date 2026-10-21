@@ -64,9 +64,8 @@
     <string name="dock_remove">Aus dem Dock entfernen</string>
     <string name="tile_move">Verschieben</string>
     <string name="tile_app_info">App-Info</string>
-    <string name="app_order_label">Reihenfolge der Apps unter dem Dock</string>
     <string name="app_order_state">App-Reihenfolge: %1$s</string>
-    <string name="app_order_custom">Eigene (deine Anordnung)</string>
-    <string name="app_order_az">Alphabetisch (A bis Z)</string>
+    <string name="app_order_custom">Eigene</string>
+    <string name="app_order_az">Alphabetisch</string>
     <string name="app_order_newest">Zuletzt installierte zuerst</string>
 </resources>

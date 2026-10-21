@@ -107,9 +107,8 @@
     <string name="dock_remove">Remover da dock</string>
     <string name="tile_move">Mover</string>
     <string name="tile_app_info">Informações da app</string>
-    <string name="app_order_label">Ordem das apps abaixo da dock</string>
     <string name="app_order_state">Ordem das apps: %1$s</string>
-    <string name="app_order_custom">Personalizada (a sua organização)</string>
-    <string name="app_order_az">Alfabética (de A a Z)</string>
+    <string name="app_order_custom">Personalizada</string>
+    <string name="app_order_az">Alfabética</string>
     <string name="app_order_newest">Instaladas mais recentemente primeiro</string>
 </resources>
