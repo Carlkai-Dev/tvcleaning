@@ -1032,7 +1032,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 addSettingsMenuRow(rows, popup, R.string.dock_pin, () -> pinToDock(key));
             }
         }
-        addSettingsMenuRow(rows, popup, R.string.tile_move, () -> moveTile(key));
+        // Sorted A-Z or by install date, a tile below the dock would snap back to its sorted place.
+        if (position < adapter.dockFilled() || AppOrder.CUSTOM.equals(adapter.appOrder())) {
+            addSettingsMenuRow(rows, popup, R.string.tile_move, () -> moveTile(key));
+        }
         addSettingsMenuRow(rows, popup, R.string.tile_app_info, () -> AppAdapter.openAppInfo(this, pkg));
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
@@ -1069,6 +1072,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String label = adapter.labelAt(from), displaced = adapter.labelAt(to);
         keepScroll(() -> adapter.move(from, to));
         endReorder();
+        resortAfterDockChange();
         int now = adapter.positionOf(key);
         refocusAfterLayout(now >= 0 ? now : to);
         Toast.makeText(this, getString(R.string.dock_pinned, label, displaced), Toast.LENGTH_LONG).show();
@@ -1085,8 +1089,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String label = adapter.labelAt(from), incoming = adapter.labelAt(to);
         keepScroll(() -> adapter.move(from, to));
         endReorder();
+        resortAfterDockChange();
         refocusAfterLayout(from);   // stay on the dock place, now holding the app that moved up
         Toast.makeText(this, getString(R.string.dock_removed, label, incoming), Toast.LENGTH_LONG).show();
+    }
+
+    /** App order A-Z or newest: the app that left the dock goes to its sorted place now, not at the next reload. */
+    private void resortAfterDockChange() {
+        if (!AppOrder.CUSTOM.equals(adapter.appOrder())) keepScroll(this::reloadTiles);
     }
 
     /** Move: reorder mode with this tile already picked up. */

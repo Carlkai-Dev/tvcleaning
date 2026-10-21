@@ -295,6 +295,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             if (ca != cb) return ca ? -1 : 1;
             return a.label.compareToIgnoreCase(b.label);
         });
+        sortBelowDock(fresh, pm);
         // Retain the optional Default-home tile until dependent tile-ordering work is merged.
         if (showHomeSettings
                 && pm.resolveActivity(new Intent(Settings.ACTION_HOME_SETTINGS), 0) != null) {
@@ -312,6 +313,46 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    /** Launcher settings, App order (AppOrder): custom, az or newest. */
+    String appOrder() {
+        return AppOrder.parse(ctx.getSharedPreferences(Config.SETTINGS_NAME, Context.MODE_PRIVATE)
+                .getString(AppOrder.KEY, null));
+    }
+
+    /**
+     * App order az or newest: re-sorts the tiles after the dock. The dock is the first row, or with fill_dock off
+     * only the pinned apps at its start (the rest of that row are tiles of the grid, shown after the empty slots).
+     */
+    private void sortBelowDock(List<Entry> fresh, PackageManager pm) {
+        String mode = appOrder();
+        if (AppOrder.CUSTOM.equals(mode)) return;
+        int dock = Math.min(dockSize, fresh.size());
+        if (dockRow && !fillDock) {
+            int pinned = 0;
+            while (pinned < dock && favourites.contains(fresh.get(pinned).pkg)) pinned++;
+            dock = pinned;
+        }
+        java.util.Comparator<Entry> byName = (a, b) -> a.label.compareToIgnoreCase(b.label);
+        if (AppOrder.AZ.equals(mode)) {
+            AppOrder.sortFrom(fresh, dock, byName);
+            return;
+        }
+        Map<String, Long> installed = new HashMap<>();
+        for (int i = dock; i < fresh.size(); i++) {
+            String pkg = fresh.get(i).pkg;
+            long when = 0;
+            try {
+                when = pm.getPackageInfo(pkg, 0).firstInstallTime;
+            } catch (PackageManager.NameNotFoundException ignored) {
+            }
+            installed.put(pkg, when);
+        }
+        AppOrder.sortFrom(fresh, dock, (a, b) -> {
+            int newer = Long.compare(installed.get(b.pkg), installed.get(a.pkg));
+            return newer != 0 ? newer : byName.compare(a, b);
+        });
     }
 
     /** A banner_* drawable bundled with the launcher, or null for none or a name that is not one. */
