@@ -164,17 +164,25 @@ final class WallpaperPlayer {
     }
 
     private Bitmap decode(File file) {
+        return decode(file, width, height, bitmapConfig, dimColor);
+    }
+
+    /**
+     * A picture sized to cover the screen, with dimColor (ARGB black, 0 for none) painted in, in GPU memory.
+     * Null when it can't be read or is too large.
+     */
+    static Bitmap decode(File file, int screenWidth, int screenHeight, Bitmap.Config bitmapConfig, int dimColor) {
         try {
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inJustDecodeBounds = true;
             BitmapFactory.decodeFile(file.getPath(), options);
             int width = options.outWidth, height = options.outHeight;
             if (width <= 0 || height <= 0) return null;
-            int sample = WallpaperSize.sampleSize(width, height, this.width, this.height);
+            int sample = WallpaperSize.sampleSize(width, height, screenWidth, screenHeight);
             if (!WallpaperSize.accepted(width / sample, height / sample)) return null;
             options.inJustDecodeBounds = false;
             options.inSampleSize = sample;
-            int[] scale = WallpaperSize.coverScale(width / sample, height / sample, this.width, this.height);
+            int[] scale = WallpaperSize.coverScale(width / sample, height / sample, screenWidth, screenHeight);
             if (scale != null) {
                 options.inScaled = true;
                 options.inDensity = scale[0];
