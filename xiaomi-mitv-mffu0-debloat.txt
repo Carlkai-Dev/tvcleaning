@@ -1,0 +1,58 @@
+# Xiaomi TV S Pro 65 (MiTV-MFFU0, codename finch), HyperOS TV on Android 14 (SDK 34),
+# firmware OS3.0.115.0.UFFMATV, 4 GB RAM, 3840x2160.
+# Fingerprint: ro.product.model=MiTV-MFFU0 / ro.product.device=finch / ro.product.manufacturer=xiaomi
+# 151 packages installed, 46 of them xiaomi/mitv, 0 disabled before this run.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/xiaomi-mitv-mffu0/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/xiaomi-mitv-mffu0/debloat.txt
+# Everything is DISABLED, not uninstalled.
+#
+# Tested 2026-10-21 on a real unit: all 15 packages reached `disabled-user`, the accessibility
+# list and HOME resolution were unchanged, and no new entries appeared in the crash buffer.
+# Not yet verified across a reboot or over days — treat that as pending.
+#
+# Notes from this TV:
+# - This unit is NOT running the stock launcher as Home. It runs Aerial (app.orchard.tv,
+#   github.com/pengchujin/aerial-tv), which does NOT claim MAIN+HOME. It takes over the Home key
+#   at runtime through an AccessibilityService (HomeGuardService), so `cmd package resolve-activity
+#   -a android.intent.action.MAIN -c android.intent.category.HOME` still returns
+#   com.mitv.tvhome/.MainActivityUserMode. That is expected, not a failure. Do not "fix" it by
+#   disabling com.mitv.tvhome — if the accessibility service ever stops, Home falls through to
+#   FallbackHome and you get a black screen.
+# - enabled_accessibility_services on this unit is
+#   com.xiaomi.voicecontrol/.VoiceAccessibilityService:app.orchard.tv/app.orchard.tv.guard.HomeGuardService
+#   ⇒ com.xiaomi.voicecontrol must stay ENABLED. It looks like an assistant package but it owns the
+#   accessibility entry that Aerial's HomeGuard shares the list with.
+# - Wireless ADB is on port 5555 the whole time (service.adb.tcp.port=5555, ro.adb.secure=0), and it
+#   survives standby. The pure-Python client works here: tools/tv.py needs adb_shell + pyasn1 + rsa.
+# - The shell here is zsh: unquoted variables are NOT word-split, so a list like
+#   `for p in $PKGS; do echo "pm disable-user --user 0 $p"; done` emits ONE line with every package
+#   in it and pm silently acts on the first only. Use a literal list, or bash.
+
+# Telemetry and analytics
+com.miui.analytics
+com.miui.tv.analytics
+
+# Ad / promo surfaces and cloud control
+com.xiaomi.mitv.smartpanel               # smart panel: recommendation rows and promo cards
+com.mitv.shoplugin                       # mall / shopping plugin
+com.mitv.cloudcontrol                    # cloud-pushed config and promo content
+com.xm.webcontent                        # Xiaomi web content / promo feed
+com.duokan.videodaily                    # Duokan video daily promo
+com.newtv.cboxtv                         # CNTV/besTV content promo surface
+
+# Background services that earn their keep only for the vendor
+com.xiaomi.mitv.tvpush.tvpushservice     # push service, long-lived connection
+com.xiaomi.mitv.tvmanager                # "TV manager" cleaner / manager service
+com.mitv.toolhouse                       # toolbox service host
+com.xiaomi.gamecenter.sdk.service.mibox  # game centre SDK service
+com.xiaomi.mi_connect_service            # phone-to-TV connect bridge
+com.xiaomi.mitv.smartshare               # SmartShare / cast duplicate
+
+# Kept on purpose — comment out any line you want to disable yourself
+# com.xiaomi.mitv.upgrade                # system OTA: disable this and the TV stops taking updates
+# com.xiaomi.screenrecorder              # screen recorder
+# com.mitv.gallery                       # gallery / photo viewer
+# com.xiaomi.tv.gallery                  # second gallery entry
+# com.xiaomi.mitv.mediaexplorer          # media explorer (USB playback)
+# com.android.printspooler               # printing
