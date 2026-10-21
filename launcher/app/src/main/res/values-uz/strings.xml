@@ -35,6 +35,11 @@
     <string name="wallpaper_none">Yoʻq</string>
     <string name="wallpaper_applied">Fon rasmi oʻzgartirildi</string>
     <string name="wallpaper_theme_default">Mavzu boʻyicha</string>
+    <string name="dock_style_label">Dok</string>
+    <string name="dock_style_state">Dok: %1$s</string>
+    <string name="dock_solid">Toʻliq</string>
+    <string name="dock_translucent">Yarim shaffof</string>
+    <string name="dock_glass_style">Shisha</string>
     <string name="animations_state">Animatsiyalar: %1$s</string>
     <string name="advanced_effects">Qoʻshimcha effektlar</string>
     <string name="advanced_effects_state">Qoʻshimcha effektlar: %1$s</string>

@@ -68,4 +68,9 @@
     <string name="dock_edit">Chỉnh sửa dock</string>
     <string name="dock_edit_hint">Chọn vị trí trên dock cần đổi rồi nhấn OK. Nhấn Quay lại để kết thúc.</string>
     <string name="dock_edit_pick_app">Giờ chọn ứng dụng để đặt vào đó rồi nhấn OK. Nhấn Quay lại để chọn vị trí khác.</string>
+    <string name="dock_style_label">Thanh dock</string>
+    <string name="dock_style_state">Thanh dock: %1$s</string>
+    <string name="dock_solid">Đặc</string>
+    <string name="dock_translucent">Bán trong suốt</string>
+    <string name="dock_glass_style">Kính</string>
 </resources>

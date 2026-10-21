@@ -82,6 +82,11 @@
     <string name="wallpaper_none">Nenhum</string>
     <string name="wallpaper_applied">Papel de parede alterado</string>
     <string name="wallpaper_theme_default">Padrão do tema</string>
+    <string name="dock_style_label">Dock</string>
+    <string name="dock_style_state">Dock: %1$s</string>
+    <string name="dock_solid">Sólido</string>
+    <string name="dock_translucent">Semitransparente</string>
+    <string name="dock_glass_style">Vidro</string>
     <string name="animations_state">Animações: %1$s</string>
     <string name="advanced_effects">Efeitos avançados</string>
     <string name="advanced_effects_state">Efeitos avançados: %1$s</string>

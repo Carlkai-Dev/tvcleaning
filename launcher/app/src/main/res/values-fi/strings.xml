@@ -88,4 +88,9 @@
     <string name="dock_edit">Muokkaa telakkaa</string>
     <string name="dock_edit_hint">Valitse muutettava telakan paikka ja paina OK. Takaisin lopettaa.</string>
     <string name="dock_edit_pick_app">Valitse nyt sinne tuleva sovellus ja paina OK. Takaisin valitsee toisen paikan.</string>
+    <string name="dock_style_label">Telakka</string>
+    <string name="dock_style_state">Telakka: %1$s</string>
+    <string name="dock_solid">Peittävä</string>
+    <string name="dock_translucent">Puoliläpinäkyvä</string>
+    <string name="dock_glass_style">Lasi</string>
 </resources>

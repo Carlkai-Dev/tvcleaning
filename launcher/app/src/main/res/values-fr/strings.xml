@@ -83,4 +83,9 @@
         <item quantity="other">%1$d applications</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="dock_style_label">Dock</string>
+    <string name="dock_style_state">Dock : %1$s</string>
+    <string name="dock_solid">Opaque</string>
+    <string name="dock_translucent">Translucide</string>
+    <string name="dock_glass_style">Verre</string>
 </resources>

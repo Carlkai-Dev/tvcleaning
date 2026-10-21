@@ -87,4 +87,9 @@
         <item quantity="other">%1$d تطبيق</item>
     </plurals>
     <string name="greeting_with_name">%1$s، %2$s</string>
+    <string name="dock_style_label">شريط التطبيقات</string>
+    <string name="dock_style_state">شريط التطبيقات: %1$s</string>
+    <string name="dock_solid">معتم</string>
+    <string name="dock_translucent">شبه شفاف</string>
+    <string name="dock_glass_style">زجاجي</string>
 </resources>

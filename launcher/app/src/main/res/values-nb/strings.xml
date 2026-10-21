@@ -35,6 +35,11 @@
     <string name="wallpaper_none">Ingen</string>
     <string name="wallpaper_applied">Bakgrunnsbildet er endret</string>
     <string name="wallpaper_theme_default">Temaets standard</string>
+    <string name="dock_style_label">Dokk</string>
+    <string name="dock_style_state">Dokk: %1$s</string>
+    <string name="dock_solid">Heldekkende</string>
+    <string name="dock_translucent">Halvgjennomsiktig</string>
+    <string name="dock_glass_style">Glass</string>
     <string name="animations_state">Animasjoner: %1$s</string>
     <string name="advanced_effects">Avanserte effekter</string>
     <string name="advanced_effects_state">Avanserte effekter: %1$s</string>
