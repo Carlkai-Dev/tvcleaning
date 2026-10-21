@@ -2,6 +2,7 @@ package io.github.epochcoder.homelab;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.TypedValue;
@@ -64,6 +65,7 @@ public class SettingsActivity extends Activity {
         heading(R.string.settings_name, 28);
         note(getString(R.string.s_tip));
 
+        immich();
         homepage();
 
         heading(R.string.s_certificates, 22);
@@ -81,6 +83,34 @@ public class SettingsActivity extends Activity {
     }
 
     // Sections, one per service.
+
+    private void immich() {
+        JSONObject im = section("immich");
+        heading(R.string.dream_name, 22);
+        text(im, "url", R.string.s_url, InputType.TYPE_TEXT_VARIATION_URI);
+        text(im, "api_key", R.string.s_api_key, InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        test(() -> {
+            int n = immich(im).albums().length();
+            return getResources().getQuantityString(R.plurals.s_connected_albums, n, n);
+        });
+        number(im, "recent_days", R.string.s_recent_days);
+        number(im, "max_photos", R.string.s_max_photos);
+        number(im, "interval_seconds", R.string.s_interval);
+        toggle(im, "shuffle", R.string.s_shuffle, true);
+        toggle(im, "crop", R.string.s_crop, false);
+        toggle(im, "show_clock", R.string.s_clock, true);
+        toggle(im, "details", R.string.s_details, true);
+        toggle(im, "motion", R.string.s_motion, true);
+        toggle(im, "pair_portraits", R.string.s_pair, true);
+        pickMany(im, "exclude_albums", R.string.s_exclude_albums,
+                () -> names(immich(im).albums(), "albumName"));
+        pickMany(im, "exclude_tags", R.string.s_exclude_tags,
+                () -> names(immich(im).tags(), "value"));
+        action(R.string.s_preview, () -> {
+            commitAndSave();
+            startActivity(new Intent(this, SlideshowActivity.class));
+        });
+    }
 
     private void homepage() {
         JSONObject hp = section("homepage");
@@ -243,6 +273,13 @@ public class SettingsActivity extends Activity {
 
     private interface Check {
         String run() throws Exception;
+    }
+
+    /** A client for the section as it is now filled in, or the reason it cannot be one yet. */
+    private Immich immich(JSONObject section) throws java.io.IOException {
+        Config.Immich c = new Config.Immich(section);
+        need(c.configured(), R.string.s_fill_in);
+        return new Immich(c, tls());
     }
 
     /** Stops a Test or a picker before it sends a request to an empty address, with words instead of "no protocol". */

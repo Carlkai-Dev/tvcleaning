@@ -3,6 +3,7 @@ package io.github.epochcoder.homelab;
 import android.content.Context;
 import android.util.Log;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -13,6 +14,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The companion's settings, read from {@code config.json} in private storage. {@link SettingsActivity} edits
@@ -31,7 +35,53 @@ final class Config {
      * ca_pem and the ca.pem file together. Empty if none.
      */
     final String caPem;
+    final Immich immich;
     final Homepage homepage;
+
+    static final class Immich {
+        final String url;
+        final String apiKey;
+        /** Photos taken in the last this-many days. */
+        final int recentDays;
+        /** Upper bound on the photos fetched per dream, newest first. */
+        final int maxPhotos;
+        /** Album names (case-insensitive) or ids whose photos never show. */
+        final List<String> excludeAlbums;
+        /** Tag names or full tag paths ("People/Work"), or ids, whose photos never show. */
+        final List<String> excludeTags;
+        final boolean shuffle;
+        final int intervalSeconds;
+        /**
+         * Fill the screen with every landscape photo, cropping its edges. Off, only photos close to the screen's
+         * shape fill and the rest fit over a blurred copy of themselves.
+         */
+        final boolean crop;
+        final boolean showClock;
+        /** The album, date, place and people under each photo. */
+        final boolean details;
+        /** A slow zoom across each photo while it is on screen. */
+        final boolean motion;
+        /** Two portrait photos side by side instead of one with wide margins. */
+        final boolean pairPortraits;
+
+        Immich(JSONObject o) {
+            url = baseUrl(o.optString("url"));
+            apiKey = o.optString("api_key").trim();
+            recentDays = clamp(o.optInt("recent_days", 90), 1, 36500);
+            maxPhotos = clamp(o.optInt("max_photos", 500), 1, 5000);
+            excludeAlbums = strings(o.optJSONArray("exclude_albums"));
+            excludeTags = strings(o.optJSONArray("exclude_tags"));
+            shuffle = o.optBoolean("shuffle", true);
+            intervalSeconds = clamp(o.optInt("interval_seconds", 20), 5, 3600);
+            crop = o.optBoolean("crop", false);
+            showClock = o.optBoolean("show_clock", true);
+            details = o.optBoolean("details", true);
+            motion = o.optBoolean("motion", true);
+            pairPortraits = o.optBoolean("pair_portraits", true);
+        }
+
+        boolean configured() { return !url.isEmpty() && !apiKey.isEmpty(); }
+    }
 
     static final class Homepage {
         final String url;
@@ -51,6 +101,7 @@ final class Config {
 
     private Config(JSONObject o, String caFile) {
         caPem = (o.optString("ca_pem").trim() + "\n" + caFile.trim()).trim();
+        immich = new Immich(section(o, "immich"));
         homepage = new Homepage(section(o, "homepage"));
     }
 
@@ -121,6 +172,16 @@ final class Config {
         while (u.endsWith("/")) u = u.substring(0, u.length() - 1);
         String lower = u.toLowerCase(java.util.Locale.ROOT);
         return lower.startsWith("http://") || lower.startsWith("https://") ? u : "";
+    }
+
+    private static List<String> strings(JSONArray a) {
+        if (a == null) return Collections.emptyList();
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < a.length(); i++) {
+            String s = a.optString(i, "").trim();
+            if (!s.isEmpty()) out.add(s);
+        }
+        return Collections.unmodifiableList(out);
     }
 
     private static int clamp(int v, int min, int max) {

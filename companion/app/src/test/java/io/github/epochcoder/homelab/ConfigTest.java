@@ -6,6 +6,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /** One test per config.json section, so each reads on its own. */
 public class ConfigTest {
     @Test
@@ -45,6 +47,40 @@ public class ConfigTest {
         Config.Homepage d = Config.parse("{\"homepage\":{\"text_zoom\":1000}}").homepage;
         assertEquals(300, d.textZoom);
         assertFalse(d.keepAwake);
+    }
+
+    @Test
+    public void immich() {
+        Config.Immich i = Config.parse("{\"immich\":{\"url\":\"https://photos.lan/\",\"api_key\":\"k\",\"recent_days\":30,"
+                + "\"exclude_albums\":[\"Screenshots\",\" \",\"Work\"],\"exclude_tags\":[\"People/Work\"],"
+                + "\"shuffle\":false,\"crop\":true,\"show_clock\":false}}").immich;
+        assertTrue(i.configured());
+        assertEquals("https://photos.lan", i.url);
+        assertEquals(30, i.recentDays);
+        assertEquals(Arrays.asList("Screenshots", "Work"), i.excludeAlbums);
+        assertEquals(Arrays.asList("People/Work"), i.excludeTags);
+        assertFalse(i.shuffle);
+        assertTrue(i.crop);
+        assertFalse(i.showClock);
+        assertFalse("a url without a key is not enough", Config.parse("{\"immich\":{\"url\":\"http://x\"}}").immich.configured());
+    }
+
+    @Test
+    public void immichDefaultsAndClamps() {
+        Config.Immich i = Config.parse("{\"immich\":{\"url\":\"http://10.0.0.2:2283\",\"api_key\":\"k\","
+                + "\"interval_seconds\":1,\"max_photos\":999999}}").immich;
+        assertEquals(90, i.recentDays);
+        assertEquals(5, i.intervalSeconds);
+        assertEquals(5000, i.maxPhotos);
+        assertTrue(i.shuffle);
+        assertTrue(i.showClock);
+        assertTrue(i.details);
+        assertTrue(i.motion);
+        assertTrue(i.pairPortraits);
+        Config.Immich off = Config.parse("{\"immich\":{\"details\":false,\"motion\":false,\"pair_portraits\":false}}").immich;
+        assertFalse(off.details);
+        assertFalse(off.motion);
+        assertFalse(off.pairPortraits);
     }
 
 }

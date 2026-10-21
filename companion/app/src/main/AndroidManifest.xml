@@ -45,6 +45,30 @@
             </intent-filter>
         </activity>
 
+        <!-- The screensaver's slideshow as an activity, to try a config without waiting for the dream:
+             tools/tv.py 'am start -n io.github.epochcoder.homelab/.SlideshowActivity'. No launcher tile. -->
+        <activity
+            android:name=".SlideshowActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+        <!-- Immich screensaver: build-and-install.sh SCREENSAVER=1 selects it, or Settings > Screensaver. -->
+        <service
+            android:name=".PhotoDream"
+            android:label="@string/dream_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.dream"
+                android:resource="@xml/dream_info" />
+        </service>
+
         <!-- push-config.sh writes a whole config.json (URLs, API keys, ca_pem) through this into private storage,
              so the keys never sit on /sdcard. WRITE_SECURE_SETTINGS: the adb shell has it, ordinary apps don't.
              Write and delete only; nothing can read the file back through it. -->
