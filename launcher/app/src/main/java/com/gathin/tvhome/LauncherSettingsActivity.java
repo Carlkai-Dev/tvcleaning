@@ -195,7 +195,7 @@ public final class LauncherSettingsActivity extends Activity {
             }
         }
         new AlertDialog.Builder(this)
-                .setTitle(R.string.hidden_apps)
+                .setTitle(R.string.hidden_apps).setMessage(R.string.hidden_apps_hint)
                 .setItems(labels, (dialog, which) -> {
                     HiddenApps.unhide(this, packages.get(which));
                     setResult(RESULT_OK);
