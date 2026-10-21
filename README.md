@@ -371,8 +371,8 @@ The **TV** needs Android 8.0 (API 26) or newer: `minSdk` is a compile-time floor
 
 | What | How it works |
 |---|---|
-| **Configure** | Dock order, hidden apps, Live TV app, 4 to 7 tiles per row, reduced motion. All in [`config.xml`](launcher/app/src/main/res/values/config.xml) |
-| **Settings on the TV** | Hold OK on the Settings pill for Launcher settings: tiles per row, animations, advanced effects |
+| **Configure** | Dock order, 1 or 2 dock rows, hidden apps, Live TV app, 4 to 7 tiles per row, reduced motion. All in [`config.xml`](launcher/app/src/main/res/values/config.xml) |
+| **Settings on the TV** | Hold OK on the Settings pill for Launcher settings: tiles per row, 1 or 2 dock rows, animations, advanced effects |
 | **Themes** | Background, wallpaper and layout from a `config.json` pushed over Wi-Fi, no rebuild. Five ship in [`themes/`](themes/) |
 | **24 languages** | Follows the TV's language, with a fully mirrored right-to-left layout for Hebrew |
 | **App library** | Optional: browse every installed app and add or remove Home shortcuts. See [the app library guide](docs/app-library.md) |
@@ -392,7 +392,7 @@ and `sdkmanager "platforms;android-34" "build-tools;34.0.0"`. On Linux the insta
 <details>
 <summary><b>Configure</b></summary>
 
-[`config.xml`](launcher/app/src/main/res/values/config.xml) sets the dock order, hidden apps, the Live TV
+[`config.xml`](launcher/app/src/main/res/values/config.xml) sets the dock order, dock rows (1 or 2), hidden apps, the Live TV
 package, columns (tiles shrink from 5 up), rows under the dock, an optional VPN app for the network pill,
 and `reduced_motion` for TVs whose GPU cannot keep up. Themes set the same keys plus a background colour
 and a wallpaper.
@@ -403,7 +403,7 @@ and a wallpaper.
 <summary><b>Launcher settings and the default home</b></summary>
 
 - Click **Settings** for the TV's own settings. Hold OK on it and choose **Launcher settings** to set 4, 5,
-  6 or 7 apps per row, turn animations on or off, and opt into advanced effects (tile lift, icon zoom and
+  6 or 7 apps per row, choose 1 or 2 dock rows, turn animations on or off, and opt into advanced effects (tile lift, icon zoom and
   smooth ambient-colour transitions; they may use more memory).
 - **Follow theme** clears the on-TV choices. Pushing or resetting a theme clears them too.
 - **Change the default home:** Launcher settings and the optional Default-home tile

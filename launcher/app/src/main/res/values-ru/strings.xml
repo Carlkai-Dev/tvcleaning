@@ -52,6 +52,7 @@
     <string name="card_state_new_label">Новое название</string>
     <string name="launcher_settings">Настройки главного экрана</string>
     <string name="columns_label">Приложений в ряду</string>
+    <string name="dock_rows_label">Ряды дока</string>
     <string name="animations_state">Анимация: %1$s</string>
     <string name="advanced_effects">Расширенные эффекты</string>
     <string name="advanced_effects_state">Расширенные эффекты: %1$s</string>

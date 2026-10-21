@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 public class DockDecoration extends RecyclerView.ItemDecoration {
 
     private final int dockSize;
+    private final int columns;
     private final float density;
     private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -25,8 +26,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
      * @param translucent the cinematic shelf's band: the artwork and the glow show through it.
      * @param names       the dock tiles show their names, so the band reaches down over them.
      */
-    DockDecoration(int dockSize, float density, boolean translucent, boolean names) {
+    DockDecoration(int dockSize, int columns, float density, boolean translucent, boolean names) {
         this.dockSize = dockSize;
+        this.columns = columns;
         this.density = density;
         this.namesRoom = names ? 22 * density : 0;
         band.setColor(translucent ? 0x8C121014 : 0xFF141416);
@@ -40,8 +42,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
                                @NonNull RecyclerView.State state) {
         int pos = parent.getChildAdapterPosition(view);
         if (pos >= 0 && pos < dockSize) {
-            outRect.top = (int) (6 * density);
-            outRect.bottom = (int) (12 * density);
+            boolean isTopRow = pos < columns;
+            boolean isBottomRow = pos >= dockSize - columns;
+            outRect.top = (int) ((isTopRow ? 6 : 4) * density);
+            outRect.bottom = (int) ((isBottomRow ? 14 : 4) * density);
         }
     }
 

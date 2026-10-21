@@ -121,7 +121,7 @@
             android:layout_gravity="right"
             android:gravity="right"
             android:textColor="#FFFFFFFF"
-            android:textSize="48sp"
+            android:textSize="36sp"
             android:fontFamily="@font/outfit_light"
             android:letterSpacing="-0.02"
             android:includeFontPadding="false"

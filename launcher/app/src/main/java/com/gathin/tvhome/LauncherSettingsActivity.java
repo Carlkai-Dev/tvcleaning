@@ -18,12 +18,14 @@ import java.util.List;
 public final class LauncherSettingsActivity extends Activity {
     private SharedPreferences choices;
     private final TextView[] columnChoices = new TextView[4];
+    private final TextView[] dockRowChoices = new TextView[2];
     private final TextView[] rowChoices = new TextView[4];
     private TextView wallpaperChoice;
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
     private int columns;
+    private int dockRows;
     private int rowsBelowDock;
     private boolean animations;
     private boolean advancedEffects;
@@ -35,6 +37,7 @@ public final class LauncherSettingsActivity extends Activity {
         choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
         Config config = Config.load(this);
         columns = config.columns;
+        dockRows = config.dockRows;
         rowsBelowDock = config.rowsBelowDock;
         animations = config.animations;
         advancedEffects = config.animations && config.advancedEffects;
@@ -47,6 +50,18 @@ public final class LauncherSettingsActivity extends Activity {
                 if (columns == value) return;
                 columns = value;
                 choices.edit().putInt("columns", value).apply();
+                setResult(RESULT_OK);
+                refresh();
+            });
+        }
+        int[] dockRowIds = {R.id.dockRows1, R.id.dockRows2};
+        for (int i = 0; i < dockRowIds.length; i++) {
+            final int value = i + 1;
+            dockRowChoices[i] = findViewById(dockRowIds[i]);
+            dockRowChoices[i].setOnClickListener(v -> {
+                if (dockRows == value) return;
+                dockRows = value;
+                choices.edit().putInt(Config.DOCK_ROWS_KEY, value).apply();
                 setResult(RESULT_OK);
                 refresh();
             });
@@ -67,6 +82,7 @@ public final class LauncherSettingsActivity extends Activity {
         // actual views so D-pad focus follows their positions without changing the saved values.
         if (getResources().getBoolean(R.bool.rtl_app_grid)) {
             reverseRow(columnChoices);
+            reverseRow(dockRowChoices);
             reverseRow(rowChoices);
         }
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
@@ -96,10 +112,11 @@ public final class LauncherSettingsActivity extends Activity {
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
-            choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
+            choices.edit().remove("columns").remove(Config.DOCK_ROWS_KEY).remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY).commit();
             Config current = Config.load(this);
             columns = current.columns;
+            dockRows = current.dockRows;
             rowsBelowDock = current.rowsBelowDock;
             animations = current.animations;
             advancedEffects = current.animations && current.advancedEffects;
@@ -177,6 +194,9 @@ public final class LauncherSettingsActivity extends Activity {
         for (int i = 0; i < columnChoices.length; i++) {
             columnChoices[i].setSelected(columns == i + 4);
         }
+        for (int i = 0; i < dockRowChoices.length; i++) {
+            dockRowChoices[i].setSelected(dockRows == i + 1);
+        }
         for (int i = 0; i < rowChoices.length; i++) {
             rowChoices[i].setSelected(rowsBelowDock == i);
         }
@@ -195,7 +215,8 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     private boolean hasOnTvChoices() {
-        return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
+        return choices.contains("columns") || choices.contains(Config.DOCK_ROWS_KEY)
+                || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
                 || choices.contains(Config.WALLPAPER_CHOICE_KEY);
     }
