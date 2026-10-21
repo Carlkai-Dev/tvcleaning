@@ -5,6 +5,9 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.TransitionDrawable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
@@ -37,6 +40,7 @@ final class WallpaperPlayer {
     private final int dimColor;
     /** The picture on screen, released once the next one has been drawn. */
     private Bitmap current;
+    private static final int FADE_MS = 2000;
     private boolean active;
     private boolean closed;
     private boolean loading;
@@ -155,12 +159,23 @@ final class WallpaperPlayer {
         return key.toString();
     }
 
-    /** Puts a picture on screen and releases the previous one after a frame has drawn the new one. */
+    /** Puts a picture on screen, fading it in over the previous one, and releases the previous one afterwards. */
     private void show(Bitmap bitmap) {
         Bitmap old = current;
         current = bitmap;
-        image.setImageBitmap(bitmap);
-        if (old != null && old != bitmap) image.postDelayed(old::recycle, 500);
+        if (old == null || old == bitmap) {
+            image.setImageBitmap(bitmap);
+            return;
+        }
+        // A rotation fades the next picture in over the last instead of cutting to it.
+        TransitionDrawable fade = new TransitionDrawable(new Drawable[]{
+                new BitmapDrawable(image.getResources(), old), new BitmapDrawable(image.getResources(), bitmap)});
+        image.setImageDrawable(fade);
+        fade.startTransition(FADE_MS);
+        image.postDelayed(() -> {
+            if (current == bitmap) image.setImageBitmap(bitmap);
+            old.recycle();
+        }, FADE_MS + 500);
     }
 
     private Bitmap decode(File file) {
