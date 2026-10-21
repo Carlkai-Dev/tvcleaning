@@ -99,6 +99,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String liveTvPkg;
     private String liveTvAction;
     private String inputAction;
+    private boolean hideInactiveHdmi;
     private String sourcePanelService;
     private String sourcePanelAction;
 
@@ -189,6 +190,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean rebuildOnResume = true;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
+    private PopupWindow inputPopup;
+    private LinearLayout inputRows;
     /** Reorder mode is on (top-bar button). */
     private boolean reordering;
     /** Key of the tile being carried in reorder mode, or null. */
@@ -209,6 +212,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView.OnScrollListener pendingFocusScroll;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable refreshInputs = this::refreshOpenInputs;
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
     private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
         @Override
@@ -226,11 +230,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void onInputAdded(String inputId) {
             updateInputsButton();
+            queueInputRefresh();
         }
 
         @Override
         public void onInputRemoved(String inputId) {
             updateInputsButton();
+            queueInputRefresh();
+        }
+
+        @Override
+        public void onInputStateChanged(String inputId, int state) {
+            queueInputRefresh();
+        }
+
+        @Override
+        public void onInputUpdated(String inputId) {
+            queueInputRefresh();
+        }
+
+        @Override
+        public void onTvInputInfoUpdated(TvInputInfo inputInfo) {
+            queueInputRefresh();
         }
     };
     /** Listens for any VPN coming up or going down, even one this app's traffic is excluded from. */
@@ -287,6 +308,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         liveTvPkg = cfg.liveTvPackage;
         liveTvAction = cfg.liveTvAction;
         inputAction = cfg.inputAction;
+        hideInactiveHdmi = cfg.hideInactiveHdmi;
         sourcePanelService = cfg.sourcePanelService;
         sourcePanelAction = cfg.sourcePanelAction;
 
@@ -2069,6 +2091,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int width = Math.max(anchor.getWidth(), (int) (150 * density));
         final PopupWindow popup = glassPopup(panel, width);
 
+        populateInputs(rows, popup);
+        if (rows.getChildCount() == 0) {
+            openPopup = null;
+            Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        inputPopup = popup;
+        inputRows = rows;
+        popup.setWidth(inputPopupWidth(panel));
+        int alignment = getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.END : Gravity.START;
+        dropIn(popup, panel, anchor, alignment);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /** Build from a fresh framework snapshot, for both opening and hotplug updates. */
+    private void populateInputs(LinearLayout rows, PopupWindow popup) {
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         boolean sawNonHdmi = false;
         String tunerId = null;
@@ -2151,7 +2189,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         String deviceLabel = name == null || name.length() == 0 ? label : name + " \u00B7 " + label;
                         final String deviceId = device.getId();
                         int state = hdmiStateBogus ? -1 : tim.getInputState(deviceId);
-                        addInputRow(rows, popup, R.drawable.ic_input, deviceLabel, state, () -> openInput(deviceId));
+                        addInputRow(rows, popup, R.drawable.ic_input, deviceLabel, state, () -> openInput(deviceId))
+                                .setTag(deviceId);
                     }
                     continue;
                 }
@@ -2159,13 +2198,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (named) label = custom + " \u00B7 " + label;
                 final String id = info.getId();
                 int state = hdmi && hdmiStateBogus ? -1 : tim.getInputState(id);
+                if (hdmi && !HdmiVisibility.visible(hideInactiveHdmi, state)) continue;
                 addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, label, state,
-                        () -> openInput(id));
+                        () -> openInput(id)).setTag(id);
             }
         }
         // Nothing to list where there is no TvInputManager: the TV's own source panel switches inputs.
         if (rows.getChildCount() == 0 && !sourcePanelService.isEmpty()) {
-            addInputRow(rows, popup, R.drawable.ic_input, getString(R.string.inputs), -1, this::openSourcePanel);
+            addInputRow(rows, popup, R.drawable.ic_input, getString(R.string.inputs), -1, this::openSourcePanel)
+                    .setTag("source-panel");
         }
         Intent liveTv = liveTvIntent();
         if (liveTv != null && tunerId != null) {
@@ -2183,20 +2224,66 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (liveTv != null) {
             if (rows.getChildCount() > 0) addSeparator(rows);
             final Intent liveTvIntent = liveTv;
-            addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> open(liveTvIntent));
+            addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> open(liveTvIntent))
+                    .setTag("live-tv");
         }
-        if (rows.getChildCount() == 0) {
-            Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();
-            return;
-        }
+    }
 
+    private int inputPopupWidth(View panel) {
         // Fit the widest row: TVs that report a status on every port (Sony) would otherwise squeeze the names out.
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
+        int width = Math.max(findViewById(R.id.btnInputs).getWidth(), (int) (150 * density));
+        return Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (360 * density)));
+    }
 
-        int alignment = getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.END : Gravity.START;
-        dropIn(popup, panel, anchor, alignment);
-        rows.getChildAt(0).requestFocus();
+    private void queueInputRefresh() {
+        if (inputPopup == null) return;
+        // CEC discovery and HDMI hotplug can arrive in a burst. No polling while the menu is closed.
+        handler.removeCallbacks(refreshInputs);
+        handler.postDelayed(refreshInputs, 200);
+    }
+
+    private void refreshOpenInputs() {
+        if (inputPopup == null || !inputPopup.isShowing() || inputRows == null) return;
+        Object focusedId = null;
+        int focusedIndex = -1;
+        for (int i = 0; i < inputRows.getChildCount(); i++) {
+            View row = inputRows.getChildAt(i);
+            if (row.hasFocus()) {
+                focusedId = row.getTag();
+                focusedIndex = i;
+                break;
+            }
+        }
+        inputRows.removeAllViews();
+        populateInputs(inputRows, inputPopup);
+        if (inputRows.getChildCount() == 0) {
+            // Keep the popup alive so a reconnected source can appear without reopening it.
+            addInputRow(inputRows, inputPopup, R.drawable.ic_input, getString(R.string.no_inputs), -1, () -> {})
+                    .setTag("empty");
+        }
+        if (focusedIndex >= 0) {
+            View next = null;
+            int distance = Integer.MAX_VALUE;
+            for (int i = 0; i < inputRows.getChildCount(); i++) {
+                View row = inputRows.getChildAt(i);
+                if (!row.isFocusable()) continue;
+                if (focusedId != null && focusedId.equals(row.getTag())) {
+                    next = row;
+                    break;
+                }
+                if (Math.abs(i - focusedIndex) < distance) {
+                    distance = Math.abs(i - focusedIndex);
+                    next = row;
+                }
+            }
+            if (next != null) next.requestFocus();
+        }
+        View panel = inputPopup.getContentView();
+        int width = inputPopupWidth(panel);
+        panel.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.UNSPECIFIED);
+        inputPopup.update(width, panel.getMeasuredHeight());
     }
 
     private PopupWindow glassPopup(View panel, int width) {
@@ -2207,6 +2294,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setElevation(0f);
         popup.setOnDismissListener(() -> {
             if (openPopup == popup) openPopup = null;
+            if (inputPopup == popup) {
+                handler.removeCallbacks(refreshInputs);
+                inputPopup = null;
+                inputRows = null;
+            }
         });
         openPopup = popup;
         return popup;
@@ -2232,7 +2324,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rows.addView(line, lp);
     }
 
-    private void addInputRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, int state, Runnable action) {
+    private View addInputRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, int state, Runnable action) {
         View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
         ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
         ((TextView) row.findViewById(R.id.title)).setText(title);
@@ -2255,6 +2347,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             action.run();
         });
         rows.addView(row);
+        return row;
     }
 
     // ---- launcher settings and module cards -------------------------------------------------------

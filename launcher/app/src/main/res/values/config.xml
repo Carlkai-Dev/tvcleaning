@@ -59,6 +59,9 @@
          Live TV app handles. Where nothing answers that, this action is sent with the same URI instead
          (XGIMI projectors: com.xgimi.action.hdmiPlayer). Leave empty to omit. -->
     <string name="input_action" translatable="false"></string>
+    <!-- Hide bare HDMI ports reported as standby/disconnected. CEC devices remain selectable to wake them.
+         Off by default: firmware may not report activity reliably, and off sources may disappear too. -->
+    <bool name="hide_inactive_hdmi">false</bool>
 
     <!-- Remote buttons that open Settings, by Linux scancode (HOME_KEY_SERVICE=1 build-and-install.sh). Remotes
          that send KEYCODE_SETTINGS need no entry. Some send a code Android does not map: the Xiaomi/Fengmi
