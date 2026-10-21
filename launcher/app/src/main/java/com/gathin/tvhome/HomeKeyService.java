@@ -1,10 +1,13 @@
 package com.gathin.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.ActivityManager;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -17,13 +20,17 @@ import android.view.accessibility.AccessibilityEvent;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.Map;
 
 /**
- * High-performance remote key and window manager for Fire TV:
- * Intercepts KEYCODE_HOME and window state changes with a stealth visual mask
- * and resilient retry loop to completely eliminate any flash of the Amazon stock launcher.
+ * Ultra-fast zero-latency Home button interception and window manager for Fire TV:
+ * - Uses continuous real-time system logcat streaming to detect Amazon Home launch at 0ms.
+ * - Instantly displays a pitch-black stealth overlay mask BEFORE Amazon renders a single frame.
+ * - Sustains a takeover loop through Fire OS's 5.0-second stopAppSwitches lock.
+ * - Seamlessly reveals CleanYourTV the moment it resumes.
  */
 public class HomeKeyService extends AccessibilityService {
 
@@ -43,11 +50,15 @@ public class HomeKeyService extends AccessibilityService {
     private WindowManager windowManager;
     private View maskView = null;
     private boolean maskAttached = false;
-    private static final long MASK_HARD_TIMEOUT_MS = 6000; // 6.0s hard safety backstop
+    private static final long MASK_HARD_TIMEOUT_MS = 6500; // 6.5s hard safety backstop
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private int retryCount = 0;
     private boolean isRetrying = false;
+
+    // Zero-latency background logcat monitor
+    private Thread logcatThread = null;
+    private volatile boolean logcatRunning = false;
 
     private final Runnable maskTimeoutRunnable = () -> {
         Log.w(TAG, "Mask hard-timeout reached; removing mask");
@@ -58,10 +69,10 @@ public class HomeKeyService extends AccessibilityService {
         @Override
         public void run() {
             if (!isRetrying) return;
-            if (retryCount < 40) { // Retries every 150ms for up to ~6.0s (outlasts 5.0s stopAppSwitches)
+            if (retryCount < 55) { // Retries every 100ms for up to 5.5s (outlasts 5.0s stopAppSwitches)
                 retryCount++;
                 performTakeover();
-                handler.postDelayed(this, 150);
+                handler.postDelayed(this, 100);
             } else {
                 isRetrying = false;
                 hideMask();
@@ -100,6 +111,106 @@ public class HomeKeyService extends AccessibilityService {
         settingsKeycodes = config.settingsKeycodes;
         settingsPanel = config.settingsKeyPanel;
         appKeys = RemoteKeys.parseAppKeys(config.appKeys);
+
+        // Explicitly register runtime key filtering flags
+        try {
+            AccessibilityServiceInfo info = getServiceInfo();
+            if (info == null) {
+                info = new AccessibilityServiceInfo();
+            }
+            info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED | AccessibilityEvent.TYPE_WINDOWS_CHANGED;
+            info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC;
+            info.flags |= AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
+                    | AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
+            setServiceInfo(info);
+            Log.i(TAG, "setServiceInfo SUCCESS! flags=" + info.flags);
+        } catch (Throwable t) {
+            Log.e(TAG, "setServiceInfo FAILED", t);
+        }
+
+        // 1. Prewarm WindowManager overlay render pipeline
+        prewarmMask();
+
+        // 2. Start zero-latency logcat monitor daemon
+        startLogcatMonitor();
+    }
+
+    /**
+     * Prewarms the WindowManager overlay path with a tiny 1x1 view so GPU shaders
+     * and window tokens are pre-cached, eliminating cold-start overlay latency.
+     */
+    private void prewarmMask() {
+        handler.postDelayed(() -> {
+            try {
+                if (windowManager == null) {
+                    windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+                }
+                if (windowManager != null && !maskAttached) {
+                    View warm = new View(this);
+                    WindowManager.LayoutParams lp = getMaskLayoutParams();
+                    lp.width = 1;
+                    lp.height = 1;
+                    windowManager.addView(warm, lp);
+                    handler.postDelayed(() -> {
+                        try {
+                            if (warm.isAttachedToWindow() && windowManager != null) {
+                                windowManager.removeView(warm);
+                            }
+                        } catch (Throwable ignored) {}
+                    }, 80);
+                    Log.i(TAG, "Overlay render pipeline successfully prewarmed");
+                }
+            } catch (Throwable t) {
+                Log.w(TAG, "prewarmMask notice", t);
+            }
+        }, 500);
+    }
+
+    /**
+     * Spawns a high-priority background thread to stream ActivityManager logcat events.
+     * Fires at 0ms the moment PhoneWindowManager issues the HOME intent.
+     */
+    private void startLogcatMonitor() {
+        if (logcatRunning) return;
+        logcatRunning = true;
+        logcatThread = new Thread(() -> {
+            Log.i(TAG, "Zero-latency logcat monitor active");
+            while (logcatRunning) {
+                Process process = null;
+                BufferedReader reader = null;
+                try {
+                    // Stream only recent and new ActivityManager events from system and main buffers
+                    process = Runtime.getRuntime().exec(new String[]{
+                            "logcat", "-v", "brief", "-b", "system", "-b", "main", "-T", "1", "-s", "ActivityManager:I"
+                    });
+                    reader = new BufferedReader(new InputStreamReader(process.getInputStream()), 1024);
+                    String line;
+                    while (logcatRunning && (line = reader.readLine()) != null) {
+                        // Look for START of Amazon launcher
+                        if (line.contains("cmp=com.amazon.tv.launcher") || line.contains("cmp=com.amazon.firehomestarter")) {
+                            if (line.contains("START") || line.contains("category.HOME") || line.contains("HomeActivity")) {
+                                Log.i(TAG, ">>> [0ms Trigger] Detected Amazon Launcher start in logcat: " + line);
+                                handler.post(this::launchCleanYourTV);
+                            }
+                        }
+                    }
+                } catch (Throwable t) {
+                    Log.w(TAG, "Logcat monitor exception: " + t.getMessage());
+                } finally {
+                    if (reader != null) {
+                        try { reader.close(); } catch (Throwable ignored) {}
+                    }
+                    if (process != null) {
+                        try { process.destroy(); } catch (Throwable ignored) {}
+                    }
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ignored) {}
+            }
+        }, "HomeLogcatMonitor");
+        logcatThread.setPriority(Thread.MAX_PRIORITY);
+        logcatThread.start();
     }
 
     private View createMaskView() {
@@ -142,7 +253,7 @@ public class HomeKeyService extends AccessibilityService {
 
     private synchronized void showMask() {
         if (maskAttached) return;
-        handler.post(() -> {
+        Runnable attach = () -> {
             if (maskAttached) return;
             try {
                 if (windowManager == null) {
@@ -151,6 +262,7 @@ public class HomeKeyService extends AccessibilityService {
                 maskView = createMaskView();
                 windowManager.addView(maskView, getMaskLayoutParams());
                 maskAttached = true;
+                Log.i(TAG, "Stealth mask attached to WindowManager");
 
                 // Arm the hard safety timeout once
                 handler.removeCallbacks(maskTimeoutRunnable);
@@ -160,11 +272,17 @@ public class HomeKeyService extends AccessibilityService {
                 maskAttached = false;
                 maskView = null;
             }
-        });
+        };
+
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            attach.run();
+        } else {
+            handler.post(attach);
+        }
     }
 
     private synchronized void hideMask() {
-        handler.post(() -> {
+        Runnable detach = () -> {
             handler.removeCallbacks(maskTimeoutRunnable);
             if (!maskAttached || maskView == null) return;
             final View viewToRemove = maskView;
@@ -190,14 +308,22 @@ public class HomeKeyService extends AccessibilityService {
                     }
                 } catch (Throwable ignored) {}
             }
-        });
+        };
+
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            detach.run();
+        } else {
+            handler.post(detach);
+        }
     }
 
     private void launchMainActivity() {
-        Intent home = new Intent(this, MainActivity.class);
-        home.setAction(Intent.ACTION_MAIN);
+        Intent home = new Intent(Intent.ACTION_MAIN);
+        home.addCategory(Intent.CATEGORY_HOME);
+        home.setComponent(new ComponentName(this, MainActivity.class));
         home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
                 | Intent.FLAG_ACTIVITY_NO_ANIMATION);
         try {
             startActivity(home);
@@ -248,15 +374,17 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
         int keyCode = event.getKeyCode();
+        int action = event.getAction();
+
         if (keyCode == KeyEvent.KEYCODE_HOME || keyCode == KeyEvent.KEYCODE_ALL_APPS) {
-            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+            if (action == KeyEvent.ACTION_UP && !event.isCanceled()) {
                 launchCleanYourTV();
             }
             return true;
         }
 
         if (isSettingsKey(event)) {
-            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+            if (action == KeyEvent.ACTION_UP && !event.isCanceled()) {
                 Intent open = settingsPanel ? new Intent(this, QuickSettingsActivity.class)
                         : new Intent(Settings.ACTION_SETTINGS);
                 startActivity(open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -266,7 +394,7 @@ public class HomeKeyService extends AccessibilityService {
 
         String app = appKeys.get(keyCode);
         if (app != null) {
-            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) RemoteKeys.launch(this, app);
+            if (action == KeyEvent.ACTION_UP && !event.isCanceled()) RemoteKeys.launch(this, app);
             return true;
         }
 
@@ -275,20 +403,17 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            return;
-        }
         CharSequence pkgSeq = event.getPackageName();
         if (pkgSeq == null) return;
         String pkg = pkgSeq.toString();
 
         // STRICT SAFETY: Do NOT react to our own package events.
-        // Adding maskView causes TYPE_WINDOW_STATE_CHANGED for com.gathin.tvhome.
         if (pkg.equals(getPackageName())) {
             return;
         }
 
         if (pkg.equals(AMAZON_LAUNCHER) || pkg.equals(AMAZON_HOMESTARTER)) {
+            Log.i(TAG, ">>> [Accessibility Backup] detected " + pkg + ", triggering launchCleanYourTV()");
             launchCleanYourTV();
         }
     }
@@ -303,6 +428,11 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        logcatRunning = false;
+        if (logcatThread != null) {
+            logcatThread.interrupt();
+            logcatThread = null;
+        }
         if (instance == this) instance = null;
         isRetrying = false;
         handler.removeCallbacks(retryRunnable);
