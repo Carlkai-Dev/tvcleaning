@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
+import android.app.ActivityManager;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
@@ -14,8 +15,9 @@ import java.util.Map;
 
 /**
  * High-performance remote key and window manager for Fire TV:
- * Intercepts KEYCODE_HOME and window state changes with a resilient retry loop
- * to reliably take over from the stock Amazon launcher without blocking or freezing the screen.
+ * Intercepts KEYCODE_HOME and window state changes with instant task reordering,
+ * system back action, and a resilient non-blocking retry loop to reliably take over
+ * from the stock Amazon launcher without blocking or freezing the screen.
  */
 public class HomeKeyService extends AccessibilityService {
 
@@ -34,14 +36,18 @@ public class HomeKeyService extends AccessibilityService {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private int retryCount = 0;
+    private boolean isRetrying = false;
 
     private final Runnable retryRunnable = new Runnable() {
         @Override
         public void run() {
-            if (retryCount < 40) { // Retries every 150ms for up to 6.0 seconds
+            if (!isRetrying) return;
+            if (retryCount < 35) { // Retries every 200ms for up to 7.0 seconds (safely outlasting 5.0s stopAppSwitches)
                 retryCount++;
-                launchMainActivity();
-                handler.postDelayed(this, 150);
+                performTakeover();
+                handler.postDelayed(this, 200);
+            } else {
+                isRetrying = false;
             }
         }
     };
@@ -55,6 +61,7 @@ public class HomeKeyService extends AccessibilityService {
 
     public void onMainActivityResumed() {
         handler.post(() -> {
+            isRetrying = false;
             handler.removeCallbacks(retryRunnable);
         });
     }
@@ -96,14 +103,40 @@ public class HomeKeyService extends AccessibilityService {
         }
     }
 
+    private void performTakeover() {
+        // 1. Instant task reordering: bring existing MainActivity task to front
+        try {
+            int taskId = MainActivity.mainTaskId;
+            if (taskId > 0) {
+                ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                if (am != null) {
+                    am.moveTaskToFront(taskId, ActivityManager.MOVE_TASK_NO_USER_ACTION);
+                }
+            }
+        } catch (Throwable t) {
+            Log.d(TAG, "moveTaskToFront failed: " + t.getMessage());
+        }
+
+        // 2. Instant dismissal of Amazon Launcher: simulate system Back action
+        try {
+            performGlobalAction(GLOBAL_ACTION_BACK);
+        } catch (Throwable ignored) {}
+
+        // 3. Fallback direct startActivity
+        launchMainActivity();
+    }
+
     private void launchCleanYourTV() {
         long now = System.currentTimeMillis();
-        if (now - lastLaunchTime > 150) {
-            lastLaunchTime = now;
-            launchMainActivity();
+        if (now - lastLaunchTime < 100) return;
+        lastLaunchTime = now;
+
+        performTakeover();
+
+        if (!isRetrying) {
+            isRetrying = true;
             retryCount = 0;
-            handler.removeCallbacks(retryRunnable);
-            handler.postDelayed(retryRunnable, 150);
+            handler.postDelayed(retryRunnable, 200);
         }
     }
 
@@ -154,6 +187,7 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
+        isRetrying = false;
         handler.removeCallbacks(retryRunnable);
     }
 
@@ -161,6 +195,7 @@ public class HomeKeyService extends AccessibilityService {
     public void onDestroy() {
         super.onDestroy();
         if (instance == this) instance = null;
+        isRetrying = false;
         handler.removeCallbacks(retryRunnable);
     }
 }
