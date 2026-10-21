@@ -107,4 +107,9 @@
     <string name="dock_pinned">%1$s está en el dock. %2$s ha bajado a las apps.</string>
     <string name="dock_removed">%1$s ha bajado a las apps. %2$s ocupa su lugar en el dock.</string>
     <string name="tile_move_hint">Las flechas la mueven, OK la coloca. Atrás para terminar.</string>
+    <string name="app_order_label">Orden de las apps bajo el dock</string>
+    <string name="app_order_state">Orden de las apps: %1$s</string>
+    <string name="app_order_custom">Personalizado (tu orden)</string>
+    <string name="app_order_az">Alfabético (de la A a la Z)</string>
+    <string name="app_order_newest">Las instaladas más recientemente primero</string>
 </resources>

@@ -94,4 +94,9 @@
     <string name="dock_pinned">أصبح %1$s في شريط التطبيقات. انتقل %2$s إلى التطبيقات أدناه.</string>
     <string name="dock_removed">انتقل %1$s إلى التطبيقات أدناه. يأخذ %2$s مكانه في شريط التطبيقات.</string>
     <string name="tile_move_hint">الأسهم تنقله، وموافق يضعه. رجوع للإنهاء.</string>
+    <string name="app_order_label">ترتيب التطبيقات أسفل شريط التطبيقات</string>
+    <string name="app_order_state">ترتيب التطبيقات: %1$s</string>
+    <string name="app_order_custom">مخصص (ترتيبك)</string>
+    <string name="app_order_az">أبجدي (أ إلى ي)</string>
+    <string name="app_order_newest">الأحدث تثبيتًا أولًا</string>
 </resources>

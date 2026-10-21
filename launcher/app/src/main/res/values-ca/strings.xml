@@ -63,4 +63,9 @@
     <string name="dock_pinned">%1$s és al dock. %2$s ha baixat a les aplicacions.</string>
     <string name="dock_removed">%1$s ha baixat a les aplicacions. %2$s ocupa el seu lloc al dock.</string>
     <string name="tile_move_hint">Les fletxes la mouen, D\'acord la deixa. Enrere per acabar.</string>
+    <string name="app_order_label">Ordre de les aplicacions sota el dock</string>
+    <string name="app_order_state">Ordre de les aplicacions: %1$s</string>
+    <string name="app_order_custom">Personalitzat (el vostre ordre)</string>
+    <string name="app_order_az">Alfabètic (de la A a la Z)</string>
+    <string name="app_order_newest">Les instal·lades més recentment primer</string>
 </resources>

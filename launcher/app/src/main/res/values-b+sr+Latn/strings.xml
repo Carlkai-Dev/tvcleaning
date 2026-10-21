@@ -72,4 +72,9 @@
     <string name="dock_pinned">%1$s je na doku. %2$s je premeštena među aplikacije ispod.</string>
     <string name="dock_removed">%1$s je premeštena među aplikacije ispod. %2$s zauzima njeno mesto na doku.</string>
     <string name="tile_move_hint">Strelice je pomeraju, OK je postavlja. Nazad za kraj.</string>
+    <string name="app_order_label">Redosled aplikacija ispod doka</string>
+    <string name="app_order_state">Redosled aplikacija: %1$s</string>
+    <string name="app_order_custom">Prilagođeno (vaš raspored)</string>
+    <string name="app_order_az">Abecedno (A do Ž)</string>
+    <string name="app_order_newest">Najnovije instalirane prve</string>
 </resources>

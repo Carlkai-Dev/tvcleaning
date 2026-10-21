@@ -97,4 +97,9 @@
     <string name="dock_pinned">%1$s теперь в доке. %2$s перемещено вниз, к приложениям.</string>
     <string name="dock_removed">%1$s перемещено вниз, к приложениям. Его место в доке занимает %2$s.</string>
     <string name="tile_move_hint">Стрелки перемещают, OK ставит на место. Назад — завершить.</string>
+    <string name="app_order_label">Порядок приложений под доком</string>
+    <string name="app_order_state">Порядок приложений: %1$s</string>
+    <string name="app_order_custom">Свой (ваша расстановка)</string>
+    <string name="app_order_az">По алфавиту (от А до Я)</string>
+    <string name="app_order_newest">Сначала недавно установленные</string>
 </resources>

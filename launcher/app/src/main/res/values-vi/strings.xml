@@ -75,4 +75,9 @@
     <string name="dock_pinned">%1$s đã ở trong dock. %2$s đã chuyển xuống phần ứng dụng.</string>
     <string name="dock_removed">%1$s đã chuyển xuống phần ứng dụng. %2$s thay chỗ trong dock.</string>
     <string name="tile_move_hint">Phím mũi tên để di chuyển, OK để đặt. Quay lại để kết thúc.</string>
+    <string name="app_order_label">Thứ tự ứng dụng bên dưới dock</string>
+    <string name="app_order_state">Thứ tự ứng dụng: %1$s</string>
+    <string name="app_order_custom">Tùy chỉnh (cách bạn sắp xếp)</string>
+    <string name="app_order_az">Theo bảng chữ cái (A đến Z)</string>
+    <string name="app_order_newest">Cài đặt mới nhất trước</string>
 </resources>

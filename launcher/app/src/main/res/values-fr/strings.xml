@@ -90,4 +90,9 @@
     <string name="dock_pinned">%1$s est dans le dock. %2$s est descendue dans les applis.</string>
     <string name="dock_removed">%1$s est descendue dans les applis. %2$s prend sa place dans le dock.</string>
     <string name="tile_move_hint">Les flèches la déplacent, OK la pose. Retour pour terminer.</string>
+    <string name="app_order_label">Ordre des applis sous le dock</string>
+    <string name="app_order_state">Ordre des applis : %1$s</string>
+    <string name="app_order_custom">Personnalisé (votre disposition)</string>
+    <string name="app_order_az">Alphabétique (de A à Z)</string>
+    <string name="app_order_newest">Les plus récemment installées d\'abord</string>
 </resources>

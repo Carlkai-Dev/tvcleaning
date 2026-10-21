@@ -95,4 +95,9 @@
     <string name="dock_pinned">%1$s এখন ডকে আছে। %2$s নিচের অ্যাপগুলোতে চলে গেছে।</string>
     <string name="dock_removed">%1$s নিচের অ্যাপগুলোতে চলে গেছে। ডকে তার জায়গা নিয়েছে %2$s।</string>
     <string name="tile_move_hint">তীরচিহ্ন দিয়ে সরান, OK দিয়ে রাখুন। শেষ করতে Back।</string>
+    <string name="app_order_label">ডকের নিচের অ্যাপগুলোর ক্রম</string>
+    <string name="app_order_state">অ্যাপের ক্রম: %1$s</string>
+    <string name="app_order_custom">কাস্টম (আপনার সাজানো)</string>
+    <string name="app_order_az">বর্ণানুক্রমে (A থেকে Z)</string>
+    <string name="app_order_newest">সবচেয়ে নতুন ইনস্টল আগে</string>
 </resources>

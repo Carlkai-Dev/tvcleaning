@@ -106,4 +106,9 @@
     <string name="dock_pinned">%1$s ada di Dock. %2$s pindah ke bawah, ke daftar app.</string>
     <string name="dock_removed">%1$s pindah ke bawah, ke daftar app. %2$s menggantikan tempatnya di Dock.</string>
     <string name="tile_move_hint">Tombol panah memindahkan, OK meletakkan. Kembali untuk selesai.</string>
+    <string name="app_order_label">Urutan app di bawah Dock</string>
+    <string name="app_order_state">Urutan app: %1$s</string>
+    <string name="app_order_custom">Kustom (susunan Anda)</string>
+    <string name="app_order_az">Abjad (A sampai Z)</string>
+    <string name="app_order_newest">Terbaru dipasang lebih dulu</string>
 </resources>

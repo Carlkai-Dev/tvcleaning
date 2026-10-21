@@ -90,4 +90,9 @@
     <string name="dock_pinned">%1$s artık Dock\'ta. %2$s aşağıya, uygulamalara taşındı.</string>
     <string name="dock_removed">%1$s aşağıya, uygulamalara taşındı. Dock\'taki yerini %2$s aldı.</string>
     <string name="tile_move_hint">Oklar taşır, OK yerleştirir. Bitirmek için Geri.</string>
+    <string name="app_order_label">Dock altındaki uygulamaların sırası</string>
+    <string name="app_order_state">Uygulama sırası: %1$s</string>
+    <string name="app_order_custom">Özel (sizin düzeniniz)</string>
+    <string name="app_order_az">Alfabetik (A\'dan Z\'ye)</string>
+    <string name="app_order_newest">En son yüklenenler önce</string>
 </resources>

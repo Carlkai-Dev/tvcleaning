@@ -107,4 +107,9 @@
     <string name="dock_pinned">%1$s dockda. %2$s pastga, ilovalar qatoriga tushdi.</string>
     <string name="dock_removed">%1$s pastga, ilovalar qatoriga tushdi. Dockdagi oʻrnini %2$s egalladi.</string>
     <string name="tile_move_hint">Strelkalar koʻchiradi, OK joylaydi. Tugatish uchun Orqaga.</string>
+    <string name="app_order_label">Dock ostidagi ilovalar tartibi</string>
+    <string name="app_order_state">Ilovalar tartibi: %1$s</string>
+    <string name="app_order_custom">Maxsus (sizning tartibingiz)</string>
+    <string name="app_order_az">Alifbo boʻyicha (A dan Z gacha)</string>
+    <string name="app_order_newest">Eng yangi oʻrnatilganlar avval</string>
 </resources>

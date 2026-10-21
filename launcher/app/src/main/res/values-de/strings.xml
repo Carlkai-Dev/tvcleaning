@@ -67,4 +67,9 @@
     <string name="dock_pinned">%1$s ist jetzt im Dock. %2$s ist nach unten zu den Apps gewandert.</string>
     <string name="dock_removed">%1$s ist nach unten zu den Apps gewandert. %2$s nimmt den Platz im Dock ein.</string>
     <string name="tile_move_hint">Pfeile verschieben, OK legt ab. Zurück zum Beenden.</string>
+    <string name="app_order_label">Reihenfolge der Apps unter dem Dock</string>
+    <string name="app_order_state">App-Reihenfolge: %1$s</string>
+    <string name="app_order_custom">Eigene (deine Anordnung)</string>
+    <string name="app_order_az">Alphabetisch (A bis Z)</string>
+    <string name="app_order_newest">Zuletzt installierte zuerst</string>
 </resources>
