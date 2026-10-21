@@ -516,7 +516,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        // settings_key_panel also covers the pill, so the remote button and the pill open the same thing.
+        btnSettings.setOnClickListener(v -> open(settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
+                : systemIntent(Settings.ACTION_SETTINGS)));
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
