@@ -15,7 +15,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ChangedPackages;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -40,11 +39,8 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -78,13 +74,11 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gathin.tvhome.calendar.Festival;
-import com.gathin.tvhome.calendar.Holidays;
-import com.gathin.tvhome.calendar.RaceWeekend;
+import com.gathin.tvhome.calendar.RacePanel;
 import com.gathin.tvhome.calendar.Season;
 import com.gathin.tvhome.calendar.Shamsi;
 import com.gathin.tvhome.cards.CardFeature;
 import com.gathin.tvhome.cards.Cards;
-import com.gathin.tvhome.cards.Feed;
 import com.gathin.tvhome.decor.BellDrawable;
 import com.gathin.tvhome.decor.DecorationView;
 import com.gathin.tvhome.decor.DiyaDrawable;
@@ -100,7 +94,7 @@ import com.gathin.tvhome.home.LastOpened;
 import com.gathin.tvhome.home.LibraryApps;
 import com.gathin.tvhome.home.Order;
 import com.gathin.tvhome.home.TileRefresh;
-import com.gathin.tvhome.stats.StatsText;
+import com.gathin.tvhome.stats.SystemStatsLine;
 import com.gathin.tvhome.util.Config;
 import com.gathin.tvhome.util.CoocaaSources;
 import com.gathin.tvhome.util.GlassView;
@@ -111,13 +105,10 @@ import com.gathin.tvhome.util.VpnBadge;
 import com.gathin.tvhome.wallpaper.HeroArt;
 import com.gathin.tvhome.wallpaper.PhotoFetch;
 import com.gathin.tvhome.wallpaper.WallpaperPlayer;
-import com.gathin.tvhome.waste.WasteCalendar;
-import com.gathin.tvhome.waste.WasteFetch;
+import com.gathin.tvhome.waste.WastePanel;
 import com.gathin.tvhome.weather.SkyView;
-import com.gathin.tvhome.weather.Sun;
-import com.gathin.tvhome.weather.Weather;
+import com.gathin.tvhome.weather.WeatherCards;
 import java.io.File;
-import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -143,7 +134,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     static int COLUMNS = 4;
     private boolean rtlAppGrid;
     private static final long MINUTE_MS = 60_000L;
-    private static final long STATS_MS = 10_000L;
     /**
      * 2025-01-01. TVs without a clock battery boot at the epoch (08:00 in China) and keep it until network
      * time arrives; the clock, date and greeting stay hidden before then.
@@ -212,36 +202,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** The pills have been filled in once; later resumes refresh them after the first frame. */
     private boolean pillsShown;
     private TextView shamsiDate;
-    private TextView stats;
-    private List<RaceWeekend.Race> raceCalendar;
-    private View racePanel;
-    private TextView raceKicker, raceHeadline, raceSessions;
-    private String wasteCommune, wasteLocality, wasteStreet;
-    private List<WasteCalendar.Pickup> wastePickups = java.util.Collections.emptyList();
-    private View wastePanel;
-    private TextView wasteKicker, wasteAlert, wasteHeadline;
+    private SystemStatsLine systemStats;
+    private RacePanel racePanel;
+    private WastePanel wastePanel;
+    /** The weather cards, or null while config.xml weather is off. */
+    private WeatherCards weatherCards;
     /** Scrolled away over this distance, the cards have faded out under the clock. */
     private static final float CARD_FADE_DP = 60f;
     private View[] homeCards = new View[0];
     private DecorationView decorations;
-    private LinearLayout wasteRows;
-    private boolean wasteReminding;
-    private Config.WeatherCard weatherCfg;
-    private final Feed weatherFeed = new Feed("weather", 90L * 60 * 1000);
-    private final Feed publicHolidayFeed = new Feed("public_holidays", 7L * 24 * 60 * 60 * 1000);
-    private final Feed schoolHolidayFeed = new Feed("school_holidays", 7L * 24 * 60 * 60 * 1000);
-    private String weatherJson;
-    private List<Holidays.Holiday> holidays = new ArrayList<>();
-    private View weatherCard;
-    private TextView weatherPlace, weatherTemp, weatherSky, weatherHighLow, weatherFooter;
-    private LinearLayout weatherHours, forecastDays;
-    private View forecastCard;
-    private TextView forecastFooter;
-    private Weather.Sky weatherBackdrop;
-    private Boolean weatherBackdropDay;
-    private boolean weatherRainAlert;
-    /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
-    private boolean showStats;
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
@@ -404,10 +373,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void run() {
             updateGreeting();
-            updateRace();
-            updateWaste();
-            refreshWeatherFeeds();
-            updateWeather();
+            updateCards();
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
             // signal level, so only it needs this minute's binder calls (about 7 ms on the UI thread).
             if (festive) updateWifiLabel();
@@ -507,27 +473,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
-        stats = findViewById(R.id.stats);
-        raceCalendar = cfg.raceCalendar;
-        racePanel = findViewById(R.id.racePanel);
-        raceKicker = findViewById(R.id.raceKicker);
-        raceHeadline = findViewById(R.id.raceHeadline);
-        raceSessions = findViewById(R.id.raceSessions);
-        wasteCommune = cfg.wasteCommune;
-        wasteLocality = cfg.wasteLocality;
-        wasteStreet = cfg.wasteStreet;
-        wastePanel = findViewById(R.id.wastePanel);
-        wasteKicker = findViewById(R.id.wasteKicker);
-        wasteAlert = findViewById(R.id.wasteAlert);
-        wasteHeadline = findViewById(R.id.wasteHeadline);
-        wasteRows = findViewById(R.id.wasteRows);
-        if (!wasteCommune.isEmpty()) setUpWasteRows();
-        // A few dozen lines from the last weekly download; small enough to read here.
-        if (!wasteCommune.isEmpty()) wastePickups = WasteFetch.cached(this, wasteCommune, wasteLocality, wasteStreet);
-        weatherCfg = cfg.weather ? new Config.WeatherCard(cfg.weatherPlace, cfg.latitude, cfg.longitude, cfg.holidaysCountry) : null;
-        weatherCard = findViewById(R.id.weatherCard);
-        if (weatherCfg != null) setUpWeatherCard();
-        showStats = cfg.showStats;
+        systemStats = new SystemStatsLine(this, findViewById(R.id.stats), handler, cfg.showStats);
+        racePanel = new RacePanel(this, cfg.raceCalendar);
+        wastePanel = new WastePanel(this, cfg.wasteCommune, cfg.wasteLocality, cfg.wasteStreet);
+        if (cfg.weather) {
+            weatherCards = new WeatherCards(this,
+                    new Config.WeatherCard(cfg.weatherPlace, cfg.latitude, cfg.longitude, cfg.holidaysCountry));
+        }
         shamsi = cfg.shamsiDate;
         greetingName = cfg.greetingName;
         if (shamsi) {
@@ -639,7 +591,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // The Home cards scroll up with the grid instead of staying behind it, fading as they reach the clock.
         homeCards = new View[]{findViewById(R.id.wastePanel), findViewById(R.id.weatherCard),
-                findViewById(R.id.forecastCard), racePanel};
+                findViewById(R.id.forecastCard), racePanel.view()};
         // The holiday's decorations on the card and dock edges, over everything but taking no focus.
         if (season != null) {
             decorations = new DecorationView(this, season, new View[]{homeCards[0], homeCards[1], homeCards[2]},
@@ -947,16 +899,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (openLiveTvAfterBoot()) return;
         updateGreeting();
-        updateRace();
-        updateWaste();
-        if (!wasteCommune.isEmpty()) {
-            WasteFetch.refreshIfDue(this, wasteCommune, wasteLocality, wasteStreet, pickups -> {
-                wastePickups = pickups;
-                updateWaste();
-            });
-        }
-        refreshWeatherFeeds();
-        updateWeather();
+        updateCards();
+        wastePanel.refreshIfDue(this::updateWaste);
         if (!unsplashKey.isEmpty()) {
             PhotoFetch.refreshIfDue(this, unsplashKey, Season.pick(seasonSetting, LocalDate.now()), () -> photosChanged = true);
         }
@@ -971,7 +915,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateInputsButton();
             pillsShown = true;
         }
-        if (showStats) startStats();
+        systemStats.start();
         sky.update();
         wallpaperPlayer.start();
         if (decorations != null) decorations.start();
@@ -1154,7 +1098,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.animate().cancel();
         heroArt.animate().cancel();
         handler.removeCallbacks(minuteTick);
-        stopStats();
+        systemStats.stop();
         if (diya != null) diya.stop();
         cancelPendingFocusScroll();
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
@@ -2004,195 +1948,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else glass.setAlpha(0f);
     }
 
-    // ---- optional system stats (config.xml show_stats) --------------------------------------------
-
-    /** Background reader. Started only while Home is resumed and show_stats is on. */
-    private HandlerThread statsThread;
-    /** The current run's handler; a run whose handler is no longer this one stops (volatile: read off-thread). */
-    private volatile Handler statsBg;
-
-    private void startStats() {
-        if (statsThread != null) return;
-        stats.setVisibility(View.VISIBLE);
-        cpuTotalPrev = -1;
-        idlePrev = -1;
-        procStatDead = false;
-        statsThread = new HandlerThread("stats");
-        statsThread.start();
-        // Each start gets its own handler, held by its task: stopStats on the main thread can clear the field
-        // at any moment without the reader tripping over it.
-        Handler bg = new Handler(statsThread.getLooper());
-        statsBg = bg;
-        bg.post(new Runnable() {
-            @Override
-            public void run() {
-                if (statsBg != bg) return;
-                String line = readStatsLine();
-                handler.post(() -> {
-                    if (showStats && stats != null && statsBg == bg) stats.setText(line);
-                });
-                if (statsBg == bg) bg.postDelayed(this, STATS_MS);
-            }
-        });
-    }
-
-    private void stopStats() {
-        if (statsThread == null) return;
-        statsBg.removeCallbacksAndMessages(null);
-        statsThread.quit();
-        statsThread = null;
-        statsBg = null;
-        // Paused (the quick panel or an app on top): keep the last line on screen. Taking it away moved the grid up
-        // under a glass highlight that stayed put.
-        if (!showStats) stats.setVisibility(View.GONE);
-    }
-
-    /** One quiet line, e.g. "CPU 8%  ·  Memory 430 MB free  ·  Storage 3.1 GB free". Runs off the main thread. */
-    private static void appendStat(StringBuilder line, String part) {
-        if (line.length() > 0) line.append("  ·  ");
-        line.append(part);
-    }
-
-    private String readStatsLine() {
-        int cpu = cpuPercent();
-        if (cpu < 0) {
-            try {
-                Thread.sleep(200);             // second sample, so the first line already has a CPU figure
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return "";
-            }
-            cpu = cpuPercent();
-        }
-        // Android 8 and later hide /proc/stat from apps on many TVs: then the line leaves CPU out rather than
-        // showing a dash that never fills in.
-        StringBuilder line = new StringBuilder();
-        if (cpu >= 0) line.append(getString(R.string.stats_cpu, cpu));
-        long[] mem = memUsedOfTotalMb();
-        if (mem != null) appendStat(line, getString(R.string.stats_memory, mem[0], mem[1]));
-        String free = formatGb(getResources(), Environment.getDataDirectory().getFreeSpace());
-        if (!free.isEmpty()) appendStat(line, getString(R.string.stats_storage, free));
-        return StatsText.forLocale(line.toString(), getResources().getConfiguration().getLocales().get(0));
-    }
-
-    // -1: need another sample. -2: this source cannot be read (Android 9 hides /proc/stat from apps).
-    private static final int CPU_UNREADABLE = -2;
-    private long cpuTotalPrev = -1, cpuIdlePrev = -1;
-    private boolean procStatDead;
-    private long idlePrev = -1, wallPrev = -1;
-
-    private int cpuPercent() {
-        if (!procStatDead) {
-            int fromStat = cpuFromProcStat();
-            if (fromStat != CPU_UNREADABLE) return fromStat;
-            procStatDead = true;
-            idlePrev = -1;
-        }
-        return cpuFromIdle();
-    }
-
-    private int cpuFromProcStat() {
-        String s = readFirstLine("/proc/stat");
-        if (s == null || !s.startsWith("cpu")) return CPU_UNREADABLE;
-        String[] t = s.trim().split("\\s+");
-        if (t.length < 5) return CPU_UNREADABLE;
-        try {
-            long user = Long.parseLong(t[1]), nice = Long.parseLong(t[2]), sys = Long.parseLong(t[3]);
-            long idle = Long.parseLong(t[4]);
-            long iowait = t.length > 5 ? Long.parseLong(t[5]) : 0;
-            long irq = t.length > 6 ? Long.parseLong(t[6]) : 0;
-            long soft = t.length > 7 ? Long.parseLong(t[7]) : 0;
-            long total = user + nice + sys + idle + iowait + irq + soft;
-            long idleAll = idle + iowait;
-            if (cpuTotalPrev < 0) {
-                cpuTotalPrev = total;
-                cpuIdlePrev = idleAll;
-                return -1;
-            }
-            long dt = total - cpuTotalPrev, di = idleAll - cpuIdlePrev;
-            cpuTotalPrev = total;
-            cpuIdlePrev = idleAll;
-            if (dt <= 0) return -1;
-            int busy = (int) Math.round((dt - di) * 100.0 / dt);
-            return Math.max(0, Math.min(100, busy));
-        } catch (NumberFormatException e) {
-            return CPU_UNREADABLE;
-        }
-    }
-
-    /** Busy percent from cpuidle time (microseconds) across the cores. -1 until the second sample. */
-    private int cpuFromIdle() {
-        long idle = 0;
-        int cores = 0;
-        for (int i = 0; i < 8; i++) {
-            boolean any = false;
-            for (int state = 0; state < 8; state++) {
-                String t = readFirstLine("/sys/devices/system/cpu/cpu" + i
-                        + "/cpuidle/state" + state + "/time");
-                if (t == null) break;
-                try {
-                    idle += Long.parseLong(t.trim());
-                    any = true;
-                } catch (NumberFormatException e) {
-                    break;
-                }
-            }
-            if (!any) break;
-            cores++;
-        }
-        if (cores == 0) return -1;
-        long wall = SystemClock.elapsedRealtime() * 1000L;
-        if (idlePrev < 0) {
-            idlePrev = idle;
-            wallPrev = wall;
-            return -1;
-        }
-        long di = idle - idlePrev;
-        long dw = (wall - wallPrev) * cores;
-        idlePrev = idle;
-        wallPrev = wall;
-        if (dw <= 0) return -1;
-        int busy = (int) Math.round((dw - di) * 100.0 / dw);
-        return Math.max(0, Math.min(100, busy));
-    }
-
-    /** RAM usage as {used, total} in MB, used = MemTotal - MemAvailable, e.g. "945 / 1536 MB". Used over
-     *  free so the line reads as a load against a known whole; null when /proc/meminfo cannot be read. */
-    private long[] memUsedOfTotalMb() {
-        long available = -1, total = -1;
-        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/meminfo"))) {
-            String line;
-            String[] t;
-            while ((line = r.readLine()) != null) {
-                if (line.startsWith("MemAvailable:")) {
-                    t = line.split("\\s+");
-                    if (t.length >= 2) available = Long.parseLong(t[1]) / 1024;
-                } else if (line.startsWith("MemTotal:")) {
-                    t = line.split("\\s+");
-                    if (t.length >= 2) total = Long.parseLong(t[1]) / 1024;
-                }
-            }
-        } catch (IOException | NumberFormatException ignored) {
-        }
-        if (available < 0 || total <= 0) return null;
-        return new long[]{Math.max(0, total - available), total};
-    }
-
-    private static String readFirstLine(String path) {
-        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(path))) {
-            return r.readLine();
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    private static String formatGb(Resources res, long bytes) {
-        if (bytes <= 0) return "";
-        double gb = bytes / (1024.0 * 1024 * 1024);
-        return gb >= 10 ? res.getString(R.string.storage_gb_whole, gb)
-                : res.getString(R.string.storage_gb_decimal, gb);
-    }
-
     // ---- navigation ------------------------------------------------------------------------------
 
     @Override
@@ -2337,6 +2092,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.smoothScrollToPosition(pos);
     }
 
+    // ---- Home cards: race weekend, bins, weather ---------------------------------------------------
+
+    /** Every Home card for this minute; the weather feeds download only when overdue. */
+    private void updateCards() {
+        racePanel.update();
+        updateWaste();
+        if (weatherCards != null) {
+            weatherCards.refreshFeeds();
+            weatherCards.update();
+        }
+    }
+
+    /** The bin card gives way to the race-weekend panel. */
+    private void updateWaste() {
+        wastePanel.update(racePanel.isShown());
+    }
+
     // ---- top bar ---------------------------------------------------------------------------------
 
     /** Some TVs (Coocaa OS) set the network time without ACTION_TIME_CHANGED, so keep checking until it is valid. */
@@ -2382,517 +2154,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             greeting.setTextColor(greetingColor);
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
-    }
-
-    // ---- race-weekend panel (a theme's race_calendar) -----------------------------------------------
-
-    private static final int RACE_RED = 0xFFFF3B2F;
-
-    /**
-     * Shows or hides the race-weekend panel for this minute. Text only, set once a minute with the clock:
-     * nothing animates, so the panel costs the GPU nothing between ticks.
-     */
-    private void updateRace() {
-        if (raceCalendar.isEmpty()) return;
-        RaceWeekend.State s = RaceWeekend.at(raceCalendar, java.time.Instant.now());
-        if (s == null) {
-            racePanel.setVisibility(View.GONE);
-            return;
-        }
-        RaceWeekend.Race race = s.race;
-        raceKicker.setText(race.place.isEmpty()
-                ? getString(R.string.race_kicker_no_place, race.round, race.shortName())
-                : getString(R.string.race_kicker, race.round, race.shortName(), race.place));
-
-        if (s.live != null) {
-            SpannableString live = new SpannableString("\u25CF  " + getString(R.string.race_live, s.live.title(getResources())));
-            live.setSpan(new android.text.style.ForegroundColorSpan(RACE_RED), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            raceHeadline.setText(live);
-        } else if (s.next != null) {
-            String in = RaceWeekend.countdown(getResources(), s.untilNext);
-            raceHeadline.setText(s.next.isRace() ? getString(R.string.race_lights_out, in)
-                    : getString(R.string.race_next, s.next.title(getResources()), in));
-        } else {
-            raceHeadline.setText(R.string.race_finished);
-        }
-
-        // FP1 FRI 11:00 PM   FP2 SAT 2:30 AM ...: done sessions fade, the live one is red, the next one bright.
-        java.time.format.DateTimeFormatter when = java.time.format.DateTimeFormatter.ofPattern(
-                android.text.format.DateFormat.is24HourFormat(this) ? "EEE HH:mm" : "EEE h:mm a", Locale.getDefault())
-                .withZone(java.time.ZoneId.systemDefault());
-        android.text.SpannableStringBuilder row = new android.text.SpannableStringBuilder();
-        for (int i = 0; i < race.sessions.size(); i++) {
-            RaceWeekend.Session session = race.sessions.get(i);
-            if (i > 0) row.append("     ");
-            int start = row.length();
-            row.append(session.shortName(getResources())).append("  ").append(when.format(session.start).toUpperCase(Locale.getDefault()));
-            int color;
-            switch (s.statuses.get(i)) {
-                case DONE: color = 0x47FFFFFF; break;
-                case LIVE: color = RACE_RED; break;
-                case NEXT: color = 0xFFFFFFFF; break;
-                default: color = 0x99FFFFFF;
-            }
-            row.setSpan(new android.text.style.ForegroundColorSpan(color), start, row.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
-        raceSessions.setText(row);
-        racePanel.setVisibility(View.VISIBLE);
-    }
-
-    // ---- bin calendar panel (config.xml waste_commune) ------------------------------------------------
-
-    /** Rows on the bin card: one per bin type normally, fewer under the evening reminder. */
-    private static final int WASTE_ROWS = 4, WASTE_ROWS_TONIGHT = 2;
-
-    private void setUpWasteRows() {
-        for (int i = 0; i < WASTE_ROWS; i++) {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            android.widget.ImageView icon = new android.widget.ImageView(this);
-            LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams((int) (18 * density), (int) (18 * density));
-            ip.setMarginEnd((int) (10 * density));
-            row.addView(icon, ip);
-            row.addView(wasteText(14f, 0xFFFFFFFF), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            TextView date = wasteText(13f, 0xE6FFFFFF);
-            row.addView(date, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            TextView rel = wasteText(12f, 0x99FFFFFF);
-            rel.setGravity(Gravity.END);
-            row.addView(rel, new LinearLayout.LayoutParams((int) (72 * density), ViewGroup.LayoutParams.WRAP_CONTENT));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.topMargin = (int) (6 * density);
-            wasteRows.addView(row, lp);
-        }
-    }
-
-    private TextView wasteText(float sp, int color) {
-        TextView t = new TextView(this);
-        t.setTextSize(sp);
-        t.setTextColor(color);
-        t.setSingleLine(true);
-        t.setEllipsize(android.text.TextUtils.TruncateAt.END);
-        t.setIncludeFontPadding(false);
-        t.setTypeface(wasteKicker.getTypeface());
-        return t;
-    }
-
-    private void updateWaste() {
-        if (wasteCommune.isEmpty()) return;
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        List<WasteCalendar.Pickup> upcoming = WasteCalendar.upcoming(wastePickups, now);
-        if (upcoming.isEmpty() || racePanel.getVisibility() == View.VISIBLE) {
-            wastePanel.setVisibility(View.GONE);
-            return;
-        }
-        String place = wasteLocality.isEmpty() ? wasteCommune : wasteLocality;
-        wasteKicker.setText(getString(R.string.waste_kicker, place));
-
-        // The evening before a collection the card turns amber and leads with the bins to put out.
-        List<WasteCalendar.Pickup> tonight = WasteCalendar.tonight(wastePickups, now);
-        boolean remind = !tonight.isEmpty();
-        if (remind != wasteReminding) {
-            wasteReminding = remind;
-            wastePanel.setBackgroundResource(remind ? R.drawable.waste_panel_alert : R.drawable.waste_panel);
-            wasteAlert.setVisibility(remind ? View.VISIBLE : View.GONE);
-            wasteHeadline.setVisibility(remind ? View.VISIBLE : View.GONE);
-        }
-        List<WasteCalendar.Pickup> rows = WasteCalendar.nextPerKind(upcoming);
-        if (remind) {
-            wasteAlert.setText(getString(R.string.waste_put_out_tonight));
-            android.text.SpannableStringBuilder bins = new android.text.SpannableStringBuilder();
-            for (WasteCalendar.Pickup p : tonight) {
-                if (bins.length() > 0) bins.append("   ");
-                int at = bins.length();
-                bins.append('￼');
-                bins.setSpan(wasteIcon(p.kind, wasteHeadline.getTextSize()), at, at + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                bins.append(' ').append(wasteName(this, p));
-            }
-            wasteHeadline.setText(bins);
-            // Under it, what comes after tomorrow.
-            List<WasteCalendar.Pickup> later = new ArrayList<>();
-            for (WasteCalendar.Pickup p : rows) if (!p.date.equals(tonight.get(0).date)) later.add(p);
-            rows = later;
-        }
-
-        // Each row: [icon] Household   Fri 23   in 2 days.
-        java.time.LocalDate today = now.toLocalDate();
-        int shown = remind ? WASTE_ROWS_TONIGHT : WASTE_ROWS;
-        for (int i = 0; i < wasteRows.getChildCount(); i++) {
-            LinearLayout row = (LinearLayout) wasteRows.getChildAt(i);
-            if (i >= shown || i >= rows.size()) {
-                row.setVisibility(View.GONE);
-                continue;
-            }
-            WasteCalendar.Pickup p = rows.get(i);
-            row.setVisibility(View.VISIBLE);
-            android.graphics.drawable.Drawable icon = getDrawable(wasteIconRes(p.kind)).mutate();
-            icon.setTint(wasteColor(p.kind));
-            ((android.widget.ImageView) row.getChildAt(0)).setImageDrawable(icon);
-            ((TextView) row.getChildAt(1)).setText(wasteName(this, p));
-            ((TextView) row.getChildAt(2)).setText(wasteDay(p.date,
-                    p.date.isBefore(today.plusDays(7)) ? "EEE d" : "EEE d MMM"));
-            long days = java.time.temporal.ChronoUnit.DAYS.between(today, p.date);
-            ((TextView) row.getChildAt(3)).setText(days == 0 ? getString(R.string.waste_today)
-                    : days == 1 ? getString(R.string.waste_tomorrow) : getString(R.string.waste_in_days, (int) days));
-        }
-        wastePanel.setVisibility(View.VISIBLE);
-    }
-
-    /** A bin's icon as a text span, {@code size} pixels square, tinted in the bin's colour. */
-    private android.text.style.ImageSpan wasteIcon(WasteCalendar.Kind kind, float size) {
-        android.graphics.drawable.Drawable d = getDrawable(wasteIconRes(kind)).mutate();
-        d.setTint(wasteColor(kind));
-        d.setBounds(0, 0, Math.round(size), Math.round(size));
-        return new android.text.style.ImageSpan(d, Build.VERSION.SDK_INT >= 29
-                ? android.text.style.DynamicDrawableSpan.ALIGN_CENTER : android.text.style.DynamicDrawableSpan.ALIGN_BASELINE);
-    }
-
-    public static int wasteIconRes(WasteCalendar.Kind kind) {
-        switch (kind) {
-            case HOUSEHOLD: return R.drawable.ic_bin_household;
-            case BIO: return R.drawable.ic_bin_bio;
-            case VALORLUX: return R.drawable.ic_bin_valorlux;
-            case PAPER: return R.drawable.ic_bin_paper;
-            case GLASS: return R.drawable.ic_bin_glass;
-            case BULKY: return R.drawable.ic_bin_bulky;
-            case ELECTRONICS: return R.drawable.ic_bin_electronics;
-            case SDK: return R.drawable.ic_bin_sdk;
-            case GREEN: return R.drawable.ic_bin_green;
-            case TREES: return R.drawable.ic_bin_trees;
-            case WOOD: return R.drawable.ic_bin_wood;
-            default: return R.drawable.ic_bin_other;
-        }
-    }
-
-    private String wasteDay(java.time.LocalDate date, String pattern) {
-        return java.time.format.DateTimeFormatter.ofPattern(pattern, Locale.getDefault()).format(date);
-    }
-
-    public static String wasteName(Context c, WasteCalendar.Pickup p) {
-        switch (p.kind) {
-            case HOUSEHOLD: return c.getString(R.string.waste_household);
-            case BIO: return c.getString(R.string.waste_bio);
-            case VALORLUX: return c.getString(R.string.waste_valorlux);
-            case PAPER: return c.getString(R.string.waste_paper);
-            case GLASS: return c.getString(R.string.waste_glass);
-            case BULKY: return c.getString(R.string.waste_bulky);
-            case ELECTRONICS: return c.getString(R.string.waste_electronics);
-            case SDK: return c.getString(R.string.waste_sdk);
-            case GREEN: return c.getString(R.string.waste_green);
-            case TREES: return c.getString(R.string.waste_trees);
-            case WOOD: return c.getString(R.string.waste_wood);
-            default: return p.type;
-        }
-    }
-
-    /** One colour per bin, for the dots in the row: grey residual, green bio, blue Valorlux bags and so on. */
-    public static int wasteColor(WasteCalendar.Kind kind) {
-        switch (kind) {
-            case HOUSEHOLD: return 0xFFB0BEC5;
-            case BIO: return 0xFF8BC34A;
-            case VALORLUX: return 0xFF42A5F5;
-            case PAPER: return 0xFFFFD54F;
-            case GLASS: return 0xFF26A69A;
-            case BULKY: return 0xFFBCAAA4;
-            case ELECTRONICS: return 0xFFAB47BC;
-            case SDK: return 0xFFEF5350;
-            case GREEN: return 0xFF66BB6A;
-            case TREES: return 0xFF81C784;
-            case WOOD: return 0xFFA1887F;
-            default: return 0x99FFFFFF;
-        }
-    }
-
-    // ---- weather cards (config.xml weather): today, and the next days --------------------------------------
-
-    /** Hours shown on the today card; the forecast carries {@link Weather#HOURS}. */
-    private static final int SHOWN_HOURS = 3;
-
-    private void setUpWeatherCard() {
-        weatherPlace = findViewById(R.id.weatherPlace);
-        weatherTemp = findViewById(R.id.weatherTemp);
-        weatherSky = findViewById(R.id.weatherSky);
-        weatherHighLow = findViewById(R.id.weatherHighLow);
-        weatherFooter = findViewById(R.id.weatherFooter);
-        weatherHours = findViewById(R.id.weatherHours);
-        forecastCard = findViewById(R.id.forecastCard);
-        forecastDays = findViewById(R.id.forecastDays);
-        forecastFooter = findViewById(R.id.forecastFooter);
-        ((TextView) findViewById(R.id.forecastKicker)).setText(getString(R.string.forecast_title, Weather.DAYS));
-        weatherPlace.setText(weatherCfg.place);
-        // One column per hour: time, icon, temperature, and the chance of rain when it is worth showing.
-        for (int i = 0; i < SHOWN_HOURS; i++) {
-            LinearLayout cell = new LinearLayout(this);
-            cell.setOrientation(LinearLayout.VERTICAL);
-            cell.setGravity(Gravity.CENTER_HORIZONTAL);
-            cell.setLayoutParams(new LinearLayout.LayoutParams((int) (31 * density), ViewGroup.LayoutParams.WRAP_CONTENT));
-            cell.addView(weatherText(11f, 0xB3FFFFFF));
-            cell.addView(new android.widget.ImageView(this), weatherIconParams(20, 4));
-            cell.addView(weatherText(13f, 0xFFFFFFFF));
-            cell.addView(weatherText(10f, 0xFF7CC4FF));
-            weatherHours.addView(cell);
-        }
-        // One row per day: day, icon, chance of rain, then the high and the low on the far side.
-        for (int i = 0; i < Weather.DAYS; i++) {
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            TextView day = weatherText(13f, 0xD9FFFFFF);
-            row.addView(day, new LinearLayout.LayoutParams((int) (44 * density), ViewGroup.LayoutParams.WRAP_CONTENT));
-            row.addView(new android.widget.ImageView(this), weatherIconParams(18, 0));
-            TextView rain = weatherText(10f, 0xFF7CC4FF);
-            rain.setPadding((int) (6 * density), 0, 0, 0);
-            row.addView(rain, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            TextView high = weatherText(13f, 0xFFFFFFFF);
-            high.setGravity(Gravity.END);
-            row.addView(high, new LinearLayout.LayoutParams((int) (34 * density), ViewGroup.LayoutParams.WRAP_CONTENT));
-            TextView low = weatherText(13f, 0x8CFFFFFF);
-            low.setGravity(Gravity.END);
-            row.addView(low, new LinearLayout.LayoutParams((int) (34 * density), ViewGroup.LayoutParams.WRAP_CONTENT));
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.topMargin = (int) (3 * density);
-            forecastDays.addView(row, lp);
-        }
-        weatherJson = weatherFeed.cached(this, Weather.url(weatherCfg.latitude, weatherCfg.longitude));
-        loadHolidays();
-    }
-
-    private LinearLayout.LayoutParams weatherIconParams(int dp, int marginDp) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int) (dp * density), (int) (dp * density));
-        lp.topMargin = (int) (marginDp * density);
-        lp.bottomMargin = (int) (marginDp * density);
-        return lp;
-    }
-
-    private TextView weatherText(float sp, int color) {
-        TextView t = new TextView(this);
-        t.setTextSize(sp);
-        t.setTextColor(color);
-        t.setSingleLine(true);
-        t.setIncludeFontPadding(false);
-        t.setTypeface(weatherPlace.getTypeface());
-        return t;
-    }
-
-    private void loadHolidays() {
-        if (weatherCfg.holidaysCountry.isEmpty()) return;
-        java.time.LocalDate today = java.time.LocalDate.now();
-        List<Holidays.Holiday> all = new ArrayList<>(Holidays.parse(publicHolidayFeed.cached(this,
-                Holidays.publicUrl(weatherCfg.holidaysCountry, today)), false));
-        all.addAll(Holidays.parse(schoolHolidayFeed.cached(this,
-                Holidays.schoolUrl(weatherCfg.holidaysCountry, today)), true));
-        holidays = all;
-    }
-
-    /** Overdue downloads only; a few preference reads otherwise, so it can run every minute. */
-    private void refreshWeatherFeeds() {
-        if (weatherCfg == null) return;
-        weatherFeed.refreshIfDue(this, Weather.url(weatherCfg.latitude, weatherCfg.longitude), body -> {
-            weatherJson = body;
-            updateWeather();
-        });
-        if (weatherCfg.holidaysCountry.isEmpty()) return;
-        java.time.LocalDate today = java.time.LocalDate.now();
-        publicHolidayFeed.refreshIfDue(this, Holidays.publicUrl(weatherCfg.holidaysCountry, today), body -> {
-            loadHolidays();
-            updateWeather();
-        });
-        schoolHolidayFeed.refreshIfDue(this, Holidays.schoolUrl(weatherCfg.holidaysCountry, today), body -> {
-            loadHolidays();
-            updateWeather();
-        });
-    }
-
-    /** Fills both weather cards for this minute, or hides them while there is no forecast for the current hour. */
-    private void updateWeather() {
-        if (weatherCfg == null) return;
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        Weather.Now w = weatherJson == null ? null : Weather.at(weatherJson, now);
-        if (w == null) {
-            weatherCard.setVisibility(View.GONE);
-            forecastCard.setVisibility(View.GONE);
-            return;
-        }
-        weatherTemp.setText(Weather.degrees(w.current.temp));
-        android.text.SpannableStringBuilder sky = new android.text.SpannableStringBuilder();
-        appendIcon(sky, skyIcon(w.current.sky, w.current.day), weatherSky.getTextSize() * 1.5f);
-        sky.append(' ').append(skyName(this, w.current.sky));
-        weatherSky.setText(sky);
-        weatherHighLow.setText(getString(R.string.weather_high_low, Weather.degrees(w.high), Weather.degrees(w.low)));
-
-        java.time.format.DateTimeFormatter hourFormat = java.time.format.DateTimeFormatter.ofPattern(
-                android.text.format.DateFormat.is24HourFormat(this) ? "HH" : "ha", Locale.getDefault());
-        for (int i = 0; i < weatherHours.getChildCount(); i++) {
-            LinearLayout cell = (LinearLayout) weatherHours.getChildAt(i);
-            if (i >= w.next.size()) {
-                cell.setVisibility(View.INVISIBLE);
-                continue;
-            }
-            Weather.Hour h = w.next.get(i);
-            cell.setVisibility(View.VISIBLE);
-            ((TextView) cell.getChildAt(0)).setText(hourFormat.format(h.time).toLowerCase(Locale.getDefault()));
-            ((android.widget.ImageView) cell.getChildAt(1)).setImageResource(skyIcon(h.sky, h.day));
-            ((TextView) cell.getChildAt(2)).setText(Weather.degrees(h.temp));
-            // Like the iPad widget: the chance of rain only when it is likely enough to matter.
-            ((TextView) cell.getChildAt(3)).setText(h.precip >= 30 ? h.precip + "%" : "");
-        }
-        // A rain alert takes the footer's place (and turns the outline blue) while it is dry and rain is coming.
-        if (w.rain != null) {
-            android.text.SpannableStringBuilder alert = new android.text.SpannableStringBuilder();
-            appendIcon(alert, skyIcon(w.rain.sky, w.rain.day), weatherFooter.getTextSize() * 1.6f);
-            String at = java.time.format.DateTimeFormatter.ofPattern(
-                    android.text.format.DateFormat.is24HourFormat(this) ? "HH:mm" : "h a", Locale.getDefault()).format(w.rain.time);
-            alert.append(' ').append(getString(w.rain.sky == Weather.Sky.SNOW ? R.string.weather_snow_from
-                    : R.string.weather_rain_from, at));
-            weatherFooter.setText(alert);
-            weatherFooter.setTextColor(0xFFBFE1FF);
-        } else {
-            weatherFooter.setText(sunText(now.toLocalDate()));
-            weatherFooter.setTextColor(0xD9FFFFFF);
-        }
-
-        java.time.format.DateTimeFormatter dayFormat = java.time.format.DateTimeFormatter.ofPattern("EEE", Locale.getDefault());
-        for (int i = 0; i < forecastDays.getChildCount(); i++) {
-            LinearLayout row = (LinearLayout) forecastDays.getChildAt(i);
-            if (i >= w.days.size()) {
-                row.setVisibility(View.INVISIBLE);
-                continue;
-            }
-            Weather.Day d = w.days.get(i);
-            row.setVisibility(View.VISIBLE);
-            ((TextView) row.getChildAt(0)).setText(dayFormat.format(d.date));
-            ((android.widget.ImageView) row.getChildAt(1)).setImageResource(skyIcon(d.sky, true));
-            ((TextView) row.getChildAt(2)).setText(d.precip >= 30 ? d.precip + "%" : "");
-            ((TextView) row.getChildAt(3)).setText(Weather.degrees(d.high));
-            ((TextView) row.getChildAt(4)).setText(Weather.degrees(d.low));
-        }
-        CharSequence holiday = holidayText(now.toLocalDate());
-        forecastFooter.setText(holiday);
-        forecastFooter.setVisibility(holiday.length() == 0 ? View.INVISIBLE : View.VISIBLE);
-
-        setWeatherBackdrop(w.current.sky, w.current.day, w.rain != null);
-        weatherCard.setVisibility(View.VISIBLE);
-        forecastCard.setVisibility(View.VISIBLE);
-    }
-
-    /** Sunrise and sunset, computed here (no network). */
-    private CharSequence sunText(java.time.LocalDate today) {
-        android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder();
-        int[] sun = Sun.riseAndSet(today, Double.parseDouble(weatherCfg.latitude),
-                Double.parseDouble(weatherCfg.longitude), java.time.ZoneId.systemDefault());
-        if (sun == null) return b;
-        float icon = weatherFooter.getTextSize() * 1.6f;
-        java.time.format.DateTimeFormatter t = java.time.format.DateTimeFormatter.ofPattern(
-                android.text.format.DateFormat.is24HourFormat(this) ? "HH:mm" : "h:mm a", Locale.getDefault());
-        appendIcon(b, R.drawable.ic_wx_sunrise, icon);
-        b.append(' ').append(t.format(java.time.LocalTime.MIN.plusMinutes(Math.floorMod(sun[0], 1440)))).append("     ");
-        appendIcon(b, R.drawable.ic_wx_sunset, icon);
-        b.append(' ').append(t.format(java.time.LocalTime.MIN.plusMinutes(Math.floorMod(sun[1], 1440))));
-        return b;
-    }
-
-    /** The holiday under way or coming up, or nothing. */
-    private CharSequence holidayText(java.time.LocalDate today) {
-        Holidays.Next next = Holidays.at(holidays, today);
-        if (next == null) return "";
-        String name = next.holiday.name;
-        if (next.now) {
-            return !next.holiday.school || next.holiday.end.equals(today) ? name
-                    : getString(R.string.holiday_until, name, wasteDay(next.holiday.end, "EEE d MMM"));
-        }
-        if (next.inDays == 1) return getString(R.string.holiday_tomorrow, name);
-        return getString(R.string.holiday_in, name, (int) next.inDays);
-    }
-
-    private void appendIcon(android.text.SpannableStringBuilder b, int res, float size) {
-        b.append('￼');
-        b.setSpan(weatherIconSpan(res, size), b.length() - 1, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    }
-
-    /** Both cards' gradient follows the sky, in deep tones that sit on a dark Home: navy at night, blue by day. */
-    private void setWeatherBackdrop(Weather.Sky sky, boolean day, boolean rainAlert) {
-        if (sky == weatherBackdrop && Boolean.valueOf(day).equals(weatherBackdropDay) && rainAlert == weatherRainAlert) return;
-        weatherBackdrop = sky;
-        weatherBackdropDay = day;
-        weatherRainAlert = rainAlert;
-        int top, bottom;
-        switch (sky) {
-            case CLEAR:
-            case MAINLY_CLEAR:
-                top = day ? 0xF22F6FB8 : 0xF2142046;
-                bottom = day ? 0xF2183A6E : 0xF20A0F24;
-                break;
-            case PARTLY_CLOUDY:
-                top = day ? 0xF2356089 : 0xF21B2547;
-                bottom = day ? 0xF21C3550 : 0xF20D1226;
-                break;
-            case RAIN:
-            case DRIZZLE:
-            case SHOWERS:
-                top = 0xF2324456;
-                bottom = 0xF2192430;
-                break;
-            case THUNDER:
-                top = 0xF2332B4A;
-                bottom = 0xF2161325;
-                break;
-            case SNOW:
-                top = 0xF2465468;
-                bottom = 0xF2222A36;
-                break;
-            default:   // cloudy, fog
-                top = day ? 0xF2465565 : 0xF2252C38;
-                bottom = day ? 0xF2252D38 : 0xF2121519;
-        }
-        for (View card : new View[]{weatherCard, forecastCard}) {
-            android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable(
-                    android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM, new int[]{top, bottom});
-            g.setCornerRadius(20 * density);
-            // The today card's outline turns blue under a rain alert; the next-days card keeps the quiet one.
-            boolean alert = rainAlert && card == weatherCard;
-            g.setStroke(Math.max(1, (int) (alert ? 1.5f * density : density)), alert ? 0xFF42A5F5 : 0x38FFFFFF);
-            card.setBackground(g);
-        }
-    }
-
-    public static int skyIcon(Weather.Sky sky, boolean day) {
-        switch (sky) {
-            case CLEAR: return day ? R.drawable.ic_wx_sun : R.drawable.ic_wx_moon;
-            case MAINLY_CLEAR:
-            case PARTLY_CLOUDY: return day ? R.drawable.ic_wx_sun_cloud : R.drawable.ic_wx_moon_cloud;
-            case FOG: return R.drawable.ic_wx_fog;
-            case DRIZZLE: return R.drawable.ic_wx_drizzle;
-            case RAIN: return R.drawable.ic_wx_rain;
-            case SHOWERS: return day ? R.drawable.ic_wx_showers : R.drawable.ic_wx_rain;
-            case SNOW: return R.drawable.ic_wx_snow;
-            case THUNDER: return R.drawable.ic_wx_thunder;
-            default: return R.drawable.ic_wx_cloud;
-        }
-    }
-
-    public static String skyName(Context c, Weather.Sky sky) {
-        switch (sky) {
-            case CLEAR: return c.getString(R.string.weather_clear);
-            case MAINLY_CLEAR: return c.getString(R.string.weather_mainly_clear);
-            case PARTLY_CLOUDY: return c.getString(R.string.weather_partly_cloudy);
-            case FOG: return c.getString(R.string.weather_fog);
-            case DRIZZLE: return c.getString(R.string.weather_drizzle);
-            case RAIN: return c.getString(R.string.weather_rain);
-            case SHOWERS: return c.getString(R.string.weather_showers);
-            case SNOW: return c.getString(R.string.weather_snow);
-            case THUNDER: return c.getString(R.string.weather_thunder);
-            default: return c.getString(R.string.weather_cloudy);
-        }
-    }
-
-    /** A coloured weather icon as a text span, {@code size} pixels square. */
-    private android.text.style.ImageSpan weatherIconSpan(int res, float size) {
-        android.graphics.drawable.Drawable d = getDrawable(res).mutate();
-        d.setBounds(0, 0, Math.round(size), Math.round(size));
-        return new android.text.style.ImageSpan(d, Build.VERSION.SDK_INT >= 29
-                ? android.text.style.DynamicDrawableSpan.ALIGN_CENTER : android.text.style.DynamicDrawableSpan.ALIGN_BASELINE);
     }
 
     private void refreshPillsAfterNextDraw() {

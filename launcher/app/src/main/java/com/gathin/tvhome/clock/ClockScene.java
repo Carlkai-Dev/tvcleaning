@@ -17,7 +17,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.gathin.tvhome.MainActivity;
 import com.gathin.tvhome.R;
 import com.gathin.tvhome.cards.Feed;
 import com.gathin.tvhome.util.Config;
@@ -25,7 +24,9 @@ import com.gathin.tvhome.wallpaper.PhotoFetch;
 import com.gathin.tvhome.wallpaper.WallpaperPlayer;
 import com.gathin.tvhome.waste.WasteCalendar;
 import com.gathin.tvhome.waste.WasteFetch;
+import com.gathin.tvhome.waste.WastePanel;
 import com.gathin.tvhome.weather.Weather;
+import com.gathin.tvhome.weather.WeatherCards;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -152,10 +153,10 @@ public final class ClockScene {
         }
         if (w != null) {
             SpannableStringBuilder t = new SpannableStringBuilder();
-            icon(t, ctx.getDrawable(MainActivity.skyIcon(w.current.sky, w.current.day)).mutate(),
+            icon(t, ctx.getDrawable(WeatherCards.skyIcon(w.current.sky, w.current.day)).mutate(),
                     weather.getTextSize() * 1.3f);
             t.append("  ").append(Weather.degrees(w.current.temp)).append("  ·  ")
-                    .append(MainActivity.skyName(ctx, w.current.sky));
+                    .append(WeatherCards.skyName(ctx, w.current.sky));
             weather.setText(t);
             weather.setVisibility(View.VISIBLE);
         } else {
@@ -172,10 +173,10 @@ public final class ClockScene {
         for (int i = 0; i < tonight.size(); i++) {
             WasteCalendar.Pickup p = tonight.get(i);
             t.append(i == 0 ? "   " : "   +   ");
-            Drawable d = ctx.getDrawable(MainActivity.wasteIconRes(p.kind)).mutate();
-            d.setTint(MainActivity.wasteColor(p.kind));
+            Drawable d = ctx.getDrawable(WastePanel.iconRes(p.kind)).mutate();
+            d.setTint(WastePanel.color(p.kind));
             icon(t, d, bins.getTextSize() * 1.3f);
-            t.append(' ').append(MainActivity.wasteName(ctx, p));
+            t.append(' ').append(WastePanel.name(ctx, p));
         }
         bins.setText(t);
         bins.setVisibility(View.VISIBLE);
