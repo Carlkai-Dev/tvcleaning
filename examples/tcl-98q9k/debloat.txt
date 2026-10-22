@@ -1,0 +1,71 @@
+# TCL 98Q9K (China, 98-inch QD-Mini LED 2024), device tcl_mt5879_cn,
+# Android 11 (SDK 30), build RQ3A.210705.001 release-keys, ro.adb.secure=1.
+# Same platform as examples/tcl-q10g-pro (tcl_mt5879_cn / MT9952 family), whose list was
+# applied on a real unit and re-checked after a full reboot. This file = that list
+# (com.tcl.bi is not present on this unit, skipped) + extras confirmed by the owner.
+#
+# ADB: Settings (设置) -> 关于本机 -> 本机信息, press UP DOWN LEFT RIGHT on the remote
+# (repeat 2-3x), ADB toggle appears at the bottom. Persists across reboots, port 5555.
+#
+# Launcher: com.tcl.cyberui stays enabled as the fallback Home. The firmware's install gate
+# (OverseasAppConfig + InstallConfig strategies) was opened by writing the provider's config
+# rows through its debug shell command — see docs/devices/tcl-98q9k.md. com.gathin.tvhome is
+# now installed, set as the default Home and reboot-verified.
+# Live TV: com.tcl.tv stays (owns DTV/HDMI playback and the remote's source key).
+#
+# Kept on purpose (owner's choice, 2026-10-22):
+#   com.tcl.qiyiguo            奇异果 (iQIYI TV)
+#   cn.miguvideo.migutv        咪咕视频
+#   com.hunantv.market         芒果TV市场
+#   com.xiaodianshi.tv.yst     云视听小电视 (Bilibili TV)
+#   com.tcl.MultiScreenInteraction_TV / com.tcl.miracast / com.kookong.tvplus / com.limelight
+#                               casting, kept: the owner casts from a phone
+#   org.xbmc.kodi              owner-installed
+#   com.tcl.vod / com.tcl.tliveplay  TCL VOD / live apps, kept: they register playback
+#                                 services the stock Live TV may use
+#   com.tcl.guard, com.tcl.appmarket2, com.sohu.inputmethod.sogou.tv, com.tcl.ui_mediaCenter,
+#   com.tcl.settings, com.tcl.systemserver, com.tcl.ttvs   (same as the Q10G Pro list)
+#
+# Apply:  TV_HOST=<tv ip> tools/disable.sh examples/tcl-98q9k/debloat.txt
+#         (Windows: powershell -ExecutionPolicy Bypass -File tools\disable.ps1 -TvHost <tv ip> examples\tcl-98q9k\debloat.txt)
+# Undo:   TV_HOST=<tv ip> tools/restore.sh examples/tcl-98q9k/debloat.txt com.tcl.cyberui
+#
+# ============================================================================
+
+# Ad and telemetry reporting (from the Q10G Pro list, verified on this platform)
+com.tcl.bootadservice                    # full-screen ad before Home (开机广告)
+com.tcl.profilemanager                   # audience / profile reporting
+com.tcl.xian.StartandroidService         # background reporting service
+com.tcl.logkit                           # log collection and upload
+com.tcl.recognize.service                # screen recognition; silent-install channel
+com.tcl.appreciate.art                   # art-wallpaper / screensaver promo content
+com.tcl.atomic.servicecenter             # home-screen recommendation cards (plugin host)
+com.tcl.c2dm.client                      # TCL push, long-lived connection
+com.tcl.wholenetsearch                   # whole-net search; results carry VOD promotions
+com.tcl.playskill                        # "tips" promo app
+com.tcl.repairguide                      # repair-guide app
+com.tcl.useragreement                    # user-agreement popup
+android.autoinstalls.config.tcl.device   # first-boot auto-install of preloaded apps
+
+# Content apps that carry their own promo surfaces (from the Q10G Pro list)
+com.tcl.ffeducation                      # kids / education content
+com.tcl.ffkaraoke                        # karaoke
+
+# OTA and account (owner chose to disable; re-enable to update or sign in)
+com.tcl.versionUpdateApp                 # system OTA and app auto-update
+com.tcl.UpdatePeripheral                 # peripheral firmware OTA, ~210 MB resident
+com.tcl.usercenter                       # account / wallet / VIP + XMPP
+
+# Voice (owner chose to disable; remote's voice key does nothing afterwards)
+com.tcl.walleve                          # iFlytek voice engine; registers an AccessibilityService
+
+# Extras on this unit, owner confirmed disable (regular /data/app applications)
+com.cibn.tv                              # CIBN 环球影视
+com.ktcp.csvideo                         # KTCP video
+com.xx.blbl                              # blbl video
+com.cmgame.gamehalltv                    # 咪咕游戏大厅 game hall
+com.tcl.browser                          # TCL browser
+com.tcl.common.weather                   # weather
+com.tcl.tvsmartalbum                     # TV smart album
+com.tcl.videocall                        # video call
+com.tcl.weixin                           # WeChat TV integration
