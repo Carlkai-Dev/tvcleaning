@@ -19,19 +19,21 @@ import java.util.List;
 public final class LauncherSettingsActivity extends Activity {
     static final String EXTRA_REORDER = "com.gathin.tvhome.extra.REORDER_FROM_SETTINGS";
     private SharedPreferences choices;
-    private final TextView[] columnChoices = new TextView[4];
-    private final TextView[] rowChoices = new TextView[4];
-    private static final int[] DOCK_OPACITIES = {100, 70, 50, 30};
+    // A short list on purpose: the extremes (7 columns, 3 rows, a 30% dock) and advanced effects stay theme keys.
+    private final TextView[] columnChoices = new TextView[3];
+    private final TextView[] rowChoices = new TextView[3];
+    private static final int[] DOCK_OPACITIES = {100, 70, 50};
     private final TextView[] dockChoices = new TextView[DOCK_OPACITIES.length];
     private TextView wallpaperChoice;
     private TextView animationsChoice;
-    private TextView advancedChoice;
+    private SettingsPreview preview;
     private TextView followThemeChoice;
     private int columns;
     private int rowsBelowDock;
     private int dockOpacity;
     private boolean animations;
     private boolean advancedEffects;
+    private boolean themeWallpaper;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -50,8 +52,9 @@ public final class LauncherSettingsActivity extends Activity {
         dockOpacity = config.dockOpacity;
         animations = config.animations;
         advancedEffects = config.animations && config.advancedEffects;
+        themeWallpaper = config.wallpaperEnabled && !config.wallpapers.isEmpty();
 
-        int[] ids = {R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7};
+        int[] ids = {R.id.columns4, R.id.columns5, R.id.columns6};
         for (int i = 0; i < ids.length; i++) {
             final int value = i + 4;
             columnChoices[i] = findViewById(ids[i]);
@@ -63,7 +66,7 @@ public final class LauncherSettingsActivity extends Activity {
                 refresh();
             });
         }
-        int[] rowIds = {R.id.rows0, R.id.rows1, R.id.rows2, R.id.rows3};
+        int[] rowIds = {R.id.rows0, R.id.rows1, R.id.rows2};
         for (int i = 0; i < rowIds.length; i++) {
             final int value = i;
             rowChoices[i] = findViewById(rowIds[i]);
@@ -75,7 +78,7 @@ public final class LauncherSettingsActivity extends Activity {
                 refresh();
             });
         }
-        int[] dockIds = {R.id.dock100, R.id.dock70, R.id.dock50, R.id.dock30};
+        int[] dockIds = {R.id.dock100, R.id.dock70, R.id.dock50};
         for (int i = 0; i < dockIds.length; i++) {
             final int value = DOCK_OPACITIES[i];
             dockChoices[i] = findViewById(dockIds[i]);
@@ -96,6 +99,17 @@ public final class LauncherSettingsActivity extends Activity {
         }
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
         wallpaperChoice.setOnClickListener(v -> showWallpaperPicker());
+        // Only offered when there is a picture to pick: without a theme wallpaper the row would lead nowhere.
+        File themeDir = Config.dir(this);
+        boolean pictures = themeDir != null && (new File(themeDir, Config.WALLPAPER_NAME).isFile()
+                || !WallpaperRotation.images(new File(themeDir, "wallpapers")).isEmpty());
+        wallpaperChoice.setVisibility(pictures ? View.VISIBLE : View.GONE);
+        if (!pictures) {
+            // Animations then opens the group of rows, with the 24dp a group starts with.
+            android.view.ViewGroup.MarginLayoutParams lp =
+                    (android.view.ViewGroup.MarginLayoutParams) findViewById(R.id.animationsChoice).getLayoutParams();
+            lp.topMargin = Math.round(24 * getResources().getDisplayMetrics().density);
+        }
         animationsChoice = findViewById(R.id.animationsChoice);
         animationsChoice.setOnClickListener(v -> {
             animations = !animations;
@@ -104,19 +118,6 @@ public final class LauncherSettingsActivity extends Activity {
                     .putBoolean("advanced_effects", advancedEffects).apply();
             setResult(RESULT_OK);
             refresh();
-        });
-        advancedChoice = findViewById(R.id.advancedChoice);
-        advancedChoice.setOnClickListener(v -> {
-            if (advancedEffects) {
-                setAdvanced(false);
-            } else {
-                new AlertDialog.Builder(this)
-                        .setTitle(R.string.advanced_effects)
-                        .setMessage(R.string.advanced_effects_warning)
-                        .setPositiveButton(R.string.enable, (dialog, which) -> setAdvanced(true))
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show();
-            }
         });
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
@@ -139,9 +140,13 @@ public final class LauncherSettingsActivity extends Activity {
         });
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
+        preview = findViewById(R.id.preview);
+        // The sketch follows focus: a choice shows itself before it is pressed, anything else shows what is set.
+        getWindow().getDecorView().getViewTreeObserver()
+                .addOnGlobalFocusChangeListener((old, now) -> showPreview(now));
         refresh();
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
-        else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+        else columnChoices[Math.max(0, Math.min(columns - 4, columnChoices.length - 1))].requestFocus();
     }
 
     private void reverseRow(TextView[] views) {
@@ -194,11 +199,15 @@ public final class LauncherSettingsActivity extends Activity {
         return -1;
     }
 
-    private void setAdvanced(boolean enabled) {
-        advancedEffects = enabled;
-        choices.edit().putBoolean("advanced_effects", enabled).apply();
-        setResult(RESULT_OK);
-        refresh();
+    private void showPreview(View focused) {
+        if (preview == null) return;
+        int c = columns, r = rowsBelowDock, d = dockOpacity;
+        for (int i = 0; i < columnChoices.length; i++) if (focused == columnChoices[i]) c = i + 4;
+        for (int i = 0; i < rowChoices.length; i++) if (focused == rowChoices[i]) r = i;
+        for (int i = 0; i < dockChoices.length; i++) if (focused == dockChoices[i]) d = DOCK_OPACITIES[i];
+        String wallpaperCurrent = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
+        boolean wallpaper = wallpaperCurrent == null ? themeWallpaper : !"none".equals(wallpaperCurrent);
+        preview.show(c, r, d, animations, wallpaper);
     }
 
     private void refresh() {
@@ -213,16 +222,13 @@ public final class LauncherSettingsActivity extends Activity {
         }
         animationsChoice.setText(getString(R.string.animations_state,
                 getString(animations ? R.string.on : R.string.off)));
-        advancedChoice.setText(getString(R.string.advanced_effects_state,
-                getString(advancedEffects ? R.string.on : R.string.off)));
-        advancedChoice.setEnabled(animations);
-        advancedChoice.setAlpha(animations ? 1f : 0.5f);
         String wallpaperCurrent = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
         wallpaperChoice.setText(getString(R.string.wallpaper_state,
                 "none".equals(wallpaperCurrent) ? getString(R.string.wallpaper_none)
                         : wallpaperCurrent != null ? wallpaperCurrent
                         : getString(R.string.wallpaper_theme_default)));
         followThemeChoice.setSelected(!hasOnTvChoices());
+        showPreview(getCurrentFocus());
     }
 
     private boolean hasOnTvChoices() {

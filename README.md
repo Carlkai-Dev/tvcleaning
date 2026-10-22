@@ -491,9 +491,10 @@ and a wallpaper.
 <details>
 <summary><b>Launcher settings and the default home</b></summary>
 
-- Click **Settings** for the TV's own settings. Hold OK on it and choose **Launcher settings** to set 4, 5,
-  6 or 7 apps per row, turn animations on or off, and opt into advanced effects (tile lift, icon zoom and
-  smooth ambient-colour transitions; they may use more memory).
+- Click **Settings** for the TV's own settings. Hold OK on it and choose **Launcher settings** to set 4, 5
+  or 6 apps per row, 0, 1 or 2 rows below the dock, the dock band's opacity (100, 70 or 50%) and animations.
+  A sketch of Home on the right shows the choice you are on before you press OK. Seven apps per row, three
+  rows, a 30% band and advanced effects are theme keys (`themes/README.md`).
 - **Follow theme** clears the on-TV choices. Pushing or resetting a theme clears them too.
 - **Change the default home:** Launcher settings and the optional Default-home tile
   (`show_home_settings_shortcut`) open Android's home picker. Choose the original launcher to stop using
