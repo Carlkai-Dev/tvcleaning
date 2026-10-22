@@ -23,6 +23,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.gathin.tvhome.stats.Stats;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;

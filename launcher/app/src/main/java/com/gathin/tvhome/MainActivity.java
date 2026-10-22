@@ -77,6 +77,45 @@ import androidx.dynamicanimation.animation.SpringForce;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.gathin.tvhome.calendar.Festival;
+import com.gathin.tvhome.calendar.Holidays;
+import com.gathin.tvhome.calendar.RaceWeekend;
+import com.gathin.tvhome.calendar.Season;
+import com.gathin.tvhome.calendar.Shamsi;
+import com.gathin.tvhome.cards.CardFeature;
+import com.gathin.tvhome.cards.Cards;
+import com.gathin.tvhome.cards.Feed;
+import com.gathin.tvhome.decor.BellDrawable;
+import com.gathin.tvhome.decor.DecorationView;
+import com.gathin.tvhome.decor.DiyaDrawable;
+import com.gathin.tvhome.decor.DockDecoration;
+import com.gathin.tvhome.decor.MarigoldDrawable;
+import com.gathin.tvhome.decor.PetalShowerView;
+import com.gathin.tvhome.decor.SeasonShowerView;
+import com.gathin.tvhome.home.AppAdapter;
+import com.gathin.tvhome.home.AppLibraryDialog;
+import com.gathin.tvhome.home.DockSlots;
+import com.gathin.tvhome.home.GridNavigation;
+import com.gathin.tvhome.home.LastOpened;
+import com.gathin.tvhome.home.LibraryApps;
+import com.gathin.tvhome.home.Order;
+import com.gathin.tvhome.home.TileRefresh;
+import com.gathin.tvhome.stats.StatsText;
+import com.gathin.tvhome.util.Config;
+import com.gathin.tvhome.util.CoocaaSources;
+import com.gathin.tvhome.util.GlassView;
+import com.gathin.tvhome.util.Motion;
+import com.gathin.tvhome.util.ServiceRepair;
+import com.gathin.tvhome.util.SystemSettings;
+import com.gathin.tvhome.util.VpnBadge;
+import com.gathin.tvhome.wallpaper.HeroArt;
+import com.gathin.tvhome.wallpaper.PhotoFetch;
+import com.gathin.tvhome.wallpaper.WallpaperPlayer;
+import com.gathin.tvhome.waste.WasteCalendar;
+import com.gathin.tvhome.waste.WasteFetch;
+import com.gathin.tvhome.weather.SkyView;
+import com.gathin.tvhome.weather.Sun;
+import com.gathin.tvhome.weather.Weather;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -2509,7 +2548,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ? android.text.style.DynamicDrawableSpan.ALIGN_CENTER : android.text.style.DynamicDrawableSpan.ALIGN_BASELINE);
     }
 
-    static int wasteIconRes(WasteCalendar.Kind kind) {
+    public static int wasteIconRes(WasteCalendar.Kind kind) {
         switch (kind) {
             case HOUSEHOLD: return R.drawable.ic_bin_household;
             case BIO: return R.drawable.ic_bin_bio;
@@ -2530,7 +2569,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return java.time.format.DateTimeFormatter.ofPattern(pattern, Locale.getDefault()).format(date);
     }
 
-    static String wasteName(Context c, WasteCalendar.Pickup p) {
+    public static String wasteName(Context c, WasteCalendar.Pickup p) {
         switch (p.kind) {
             case HOUSEHOLD: return c.getString(R.string.waste_household);
             case BIO: return c.getString(R.string.waste_bio);
@@ -2548,7 +2587,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /** One colour per bin, for the dots in the row: grey residual, green bio, blue Valorlux bags and so on. */
-    static int wasteColor(WasteCalendar.Kind kind) {
+    public static int wasteColor(WasteCalendar.Kind kind) {
         switch (kind) {
             case HOUSEHOLD: return 0xFFB0BEC5;
             case BIO: return 0xFF8BC34A;
@@ -2818,7 +2857,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    static int skyIcon(Weather.Sky sky, boolean day) {
+    public static int skyIcon(Weather.Sky sky, boolean day) {
         switch (sky) {
             case CLEAR: return day ? R.drawable.ic_wx_sun : R.drawable.ic_wx_moon;
             case MAINLY_CLEAR:
@@ -2833,7 +2872,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    static String skyName(Context c, Weather.Sky sky) {
+    public static String skyName(Context c, Weather.Sky sky) {
         switch (sky) {
             case CLEAR: return c.getString(R.string.weather_clear);
             case MAINLY_CLEAR: return c.getString(R.string.weather_mainly_clear);
