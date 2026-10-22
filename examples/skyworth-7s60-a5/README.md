@@ -47,7 +47,7 @@ PY=tools/venv/bin/python
    (cd launcher && ./gradlew assembleRelease -PlauncherApplicationId=com.coocaa.tvhome)
    "$PY" -I tools/b64push.py launcher/app/build/outputs/apk/release/app-release.apk /data/local/tmp/tvhome.apk
    "$PY" -I tools/tv.py 'pm install -r /data/local/tmp/tvhome.apk; rm -f /data/local/tmp/tvhome.apk'
-   "$PY" -I tools/tv.py 'am start -W -n com.coocaa.tvhome/com.gathin.tvhome.MainActivity'
+   "$PY" -I tools/tv.py 'am start -W -a android.intent.action.MAIN -c android.intent.category.HOME -n com.coocaa.tvhome/com.gathin.tvhome.MainActivity'
    ```
 
 2. Push `config.json` (`tools/theme.sh` assumes `com.gathin.tvhome`, so push it by hand), and
@@ -55,7 +55,7 @@ PY=tools/venv/bin/python
 
    ```bash
    "$PY" -I tools/b64push.py examples/skyworth-7s60-a5/config.json /sdcard/Android/data/com.coocaa.tvhome/files/config.json
-   "$PY" -I tools/tv.py 'am force-stop com.coocaa.tvhome; am start -n com.coocaa.tvhome/com.gathin.tvhome.MainActivity'
+   "$PY" -I tools/tv.py 'am force-stop com.coocaa.tvhome; am start -a android.intent.action.MAIN -c android.intent.category.HOME -n com.coocaa.tvhome/com.gathin.tvhome.MainActivity'
    ```
 
 3. Install the shim (APK from its [releases](https://github.com/VincentYe123/coocaa-home-shim/releases),

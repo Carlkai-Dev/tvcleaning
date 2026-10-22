@@ -39,7 +39,7 @@ PY=tools/venv/bin/python
 (cd launcher && ./gradlew assembleRelease -PlauncherApplicationId=com.ts.launcher)
 "$PY" -I tools/b64push.py launcher/app/build/outputs/apk/release/app-release.apk /data/local/tmp/tvhome-allowlist.apk
 "$PY" -I tools/tv.py 'pm install -r /data/local/tmp/tvhome-allowlist.apk'
-"$PY" -I tools/tv.py 'am start -W -n com.ts.launcher/com.gathin.tvhome.MainActivity'
+"$PY" -I tools/tv.py 'am start -W -a android.intent.action.MAIN -c android.intent.category.HOME -n com.ts.launcher/com.gathin.tvhome.MainActivity'
 ```
 
 After inspecting the new screen, select and verify Home:
