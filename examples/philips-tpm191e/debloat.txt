@@ -21,12 +21,20 @@
 
 # Batch 1: telemetry and retail demo
 org.droidtv.candeebug                     # "DAC" analytics uploader
+org.droidtv.ci                            # continuous integration / telemetry
 org.droidtv.gel                           # metrics collector sharing candeebug's process
+org.droidtv.icp                           # telemetry / analytics
 org.droidtv.usagelogger                   # boot stats, remote keypress counts, panel telemetry
+org.droidtv.tv.frameworklogger            # framework-level logging
+org.droidtv.dropboxprovider               # crash reporting / telemetry
+org.droidtv.tv.inactivityservice          # inactivity monitoring
 org.droidtv.demome                        # "Demo me" retail demo mode
+com.android.statementservice             # usage statistics / telemetry
 com.google.android.feedback               # Market Feedback Agent
 com.google.android.partnersetup           # partner referrer / attribution
 com.google.android.onetimeinitializer     # runs once at first setup, nothing afterwards
+com.google.android.gms                    # Google Mobile Services (telemetry)
+com.google.android.gsf                    # Google Services Framework (telemetry)
 com.google.android.syncadapters.calendar  # Google Calendar sync; no calendar app installed
 
 # Batch 2: Philips promotions
@@ -37,8 +45,10 @@ org.droidtv.nettv.market                  # "Smart TV Collection" app storefront
 # Batch 3: apps this owner does not use
 com.google.android.katniss                # Assistant and voice search; the remote's mic button and "Hey Google" stop. Alexa is separate
 com.amazon.amazonvideo.livingroom         # Prime Video
+org.droidtv.amazonalexa                   # Alexa integration (optional: keep if using voice control)
 com.google.android.videos                 # Google TV / Play Movies
 com.google.android.music                  # Google Play Music, discontinued service
+com.google.android.youtube.tv              # YouTube
 com.google.android.youtube.tvmusic        # YouTube Music
 com.google.android.play.games
 com.google.android.marvin.talkback        # TalkBack screen reader; keep if anyone needs it
