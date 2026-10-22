@@ -73,6 +73,7 @@ A home screen that looks like an Apple TV and gets out of the way:
 | **Three frosted buttons** | Inputs (HDMI ports under the names you gave them in the TV's settings, AV, Live TV), Wi-Fi or Ethernet with the network name, Settings. |
 | **A greeting, a thin clock and the date** | In [Outfit](https://fonts.google.com/specimen/Outfit), and a matching Clock screensaver. Set `show_stats` in config or a theme for one line under the clock: CPU, free memory and free storage. It stays off unless you turn it on, and it refreshes only while Home is on screen. |
 | **Themes and module cards** | Themes change colours, wallpaper, dock and columns without a rebuild, and module cards let other apps plug a tile in, only with your say-so. |
+| **A Live TV app (optional)** | A separate Flutter player in [`apps/live-tv`](apps/live-tv) for free public channels from iptv-org and other M3U lists, with a link checker, speed labels and an on-TV test mode. The launcher never depends on it. See [`docs/LIVETV_APP.md`](docs/LIVETV_APP.md) |
 
 And a TV that stops working against you: no sponsored rows, no "Discover" nags, no analytics
 phoning home, no apps you never asked for.
