@@ -2067,6 +2067,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return findViewById(R.id.btnSettings);
     }
 
+    @Override public void onLauncherSettingsRequested() {
+        startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+    }
+
     @Override public void onLibraryUp() {
         if (adapter.appCount() == 0) { firstTopButton().requestFocus(); return; }
         int lastRow = ((adapter.appCount() - 1) / COLUMNS) * COLUMNS;
