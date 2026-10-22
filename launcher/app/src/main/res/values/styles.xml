@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Inter is the default typeface for every view in the launcher (see values/type.xml for the scale). -->
     <style name="Theme.TvHome" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:fontFamily">@string/font_regular</item>
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:colorBackground">@android:color/black</item>
         <item name="android:windowAnimationStyle">@null</item>
@@ -9,29 +11,28 @@
     <!-- Frosted pill, tvOS style. -->
     <style name="TopButtonBase">
         <item name="android:layout_width">wrap_content</item>
-        <item name="android:layout_height">42dp</item>
-        <item name="android:layout_marginStart">10dp</item>
-        <item name="android:paddingStart">16dp</item>
-        <item name="android:paddingEnd">20dp</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:layout_marginStart">16dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">18dp</item>
         <item name="android:gravity">center</item>
         <item name="android:background">@drawable/pill_bg</item>
         <item name="android:textColor">@drawable/pill_text</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">@dimen/text_label</item>
         <item name="android:fontFamily">@string/font_medium</item>
-        <item name="android:letterSpacing">0.01</item>
-        <item name="android:drawablePadding">9dp</item>
+        <item name="android:drawablePadding">8dp</item>
         <item name="android:drawableTint">@drawable/pill_text</item>
         <item name="android:focusable">true</item>
         <item name="android:clickable">true</item>
     </style>
     <style name="TopButton" parent="TopButtonBase" />
 
-    <!-- Icon-only pill: a 42dp circle (pill_bg's 21dp corners) with the 22dp icon centred by even padding. Give it a
+    <!-- Icon-only pill: a 36dp circle with the 20dp icon centred by even padding. Give it a
          contentDescription, since there is no text. -->
     <style name="TopButtonIcon" parent="TopButtonBase">
-        <item name="android:layout_width">42dp</item>
-        <item name="android:paddingStart">10dp</item>
-        <item name="android:paddingEnd">10dp</item>
+        <item name="android:layout_width">36dp</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
         <item name="android:drawablePadding">0dp</item>
     </style>
 
@@ -43,7 +44,7 @@
         <item name="android:paddingEnd">18dp</item>
         <item name="android:background">@drawable/settings_choice_bg</item>
         <item name="android:textColor">#FFFFFFFF</item>
-        <item name="android:textSize">18sp</item>
+        <item name="android:textSize">@dimen/text_body</item>
         <item name="android:focusable">true</item>
         <item name="android:clickable">true</item>
     </style>
@@ -52,5 +53,13 @@
         <item name="android:layout_weight">1</item>
         <item name="android:layout_marginEnd">10dp</item>
         <item name="android:gravity">center</item>
+    </style>
+
+    <style name="Theme.TvHome.Translucent" parent="android:Theme.Translucent.NoTitleBar.Fullscreen">
+        <item name="android:fontFamily">@string/font_regular</item>
+    </style>
+
+    <style name="Theme.TvHome.Clock" parent="android:Theme.Black.NoTitleBar.Fullscreen">
+        <item name="android:fontFamily">@string/font_regular</item>
     </style>
 </resources>

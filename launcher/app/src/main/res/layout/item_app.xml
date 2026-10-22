@@ -2,15 +2,15 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="16dp"
     android:clipChildren="false"
     android:clipToPadding="false">
 
     <FrameLayout
         android:id="@+id/card"
-        android:layout_width="180dp"
-        android:layout_height="101dp"
+        android:layout_width="176dp"
+        android:layout_height="99dp"
         android:layout_gravity="center_horizontal|top"
         android:background="@drawable/tile_bg"
         android:focusable="true"
@@ -44,7 +44,7 @@
             android:singleLine="true"
             android:ellipsize="end"
             android:textColor="#FFFFFFFF"
-            android:textSize="13sp"
+            android:textSize="@dimen/text_label"
             android:fontFamily="@string/font_body"
             android:visibility="gone" />
     </FrameLayout>
@@ -52,16 +52,16 @@
     <TextView
         android:id="@+id/name"
         android:layout_width="180dp"
-        android:layout_height="22dp"
+        android:layout_height="24dp"
         android:layout_gravity="center_horizontal|top"
-        android:layout_marginTop="108dp"
+        android:layout_marginTop="107dp"
         android:gravity="center"
         android:singleLine="true"
-        android:ellipsize="end"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="1"
         android:alpha="0"
-        android:translationY="-6dp"
+        android:translationY="0dp"
         android:textColor="#F2FFFFFF"
-        android:textSize="14sp"
-        android:fontFamily="@string/font_medium"
-        android:letterSpacing="0.02" />
+        android:textSize="@dimen/text_body"
+        android:fontFamily="@string/font_medium" />
 </FrameLayout>

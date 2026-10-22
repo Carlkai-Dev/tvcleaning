@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Readable Home type scale. One typeface (Inter, set as the app theme's default), no letter spacing, and five
+     text sizes. Display sizes (the clocks, page titles) are set where they are used. -->
+<resources>
+    <dimen name="text_caption">13sp</dimen>   <!-- small status: "On Home", card captions -->
+    <dimen name="text_label">15sp</dimen>     <!-- buttons, menu rows, the date line, hints -->
+    <dimen name="text_body">17sp</dimen>      <!-- tile names, settings rows -->
+    <dimen name="text_title">20sp</dimen>     <!-- the time in the top bar, section titles -->
+    <dimen name="text_headline">22sp</dimen>  <!-- dialog and library titles, the screensaver date -->
+</resources>

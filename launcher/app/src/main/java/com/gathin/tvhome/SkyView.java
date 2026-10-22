@@ -95,7 +95,7 @@ public class SkyView extends View {
         Canvas canvas = new Canvas(texture);
         canvas.drawColor(0, android.graphics.PorterDuff.Mode.CLEAR);
 
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);   // dithered so the dark gradient does not band
         paint.setShader(new LinearGradient(0f, 0f, 0f, TEX_H,
                 new int[]{sky.top, sky.mid, sky.bottom},
                 new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP));

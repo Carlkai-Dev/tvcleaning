@@ -18,10 +18,9 @@
         android:layout_height="wrap_content"
         android:textColor="@drawable/pill_text_dim"
         android:duplicateParentState="true"
-        android:textSize="11sp"
+        android:textSize="@dimen/text_caption"
         android:textDirection="locale"
-        android:fontFamily="@string/font_body"
-        android:letterSpacing="0.04" />
+        android:fontFamily="@string/font_body" />
 
     <View
         android:id="@+id/dot"
@@ -39,7 +38,7 @@
         android:layout_marginEnd="10dp"
         android:textColor="@drawable/pill_text"
         android:duplicateParentState="true"
-        android:textSize="15sp"
+        android:textSize="@dimen/text_label"
         android:fontFamily="@string/font_medium"
         android:gravity="right"
         android:textDirection="locale"

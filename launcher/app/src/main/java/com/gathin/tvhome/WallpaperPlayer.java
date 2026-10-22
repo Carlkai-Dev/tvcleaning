@@ -51,11 +51,23 @@ final class WallpaperPlayer {
     private final TextView caption;
     private final Map<String, String> names;
 
+    /** True on a TV that is not a low-RAM device and has at least 1.5 GB of RAM. */
+    static boolean roomy(Context context) {
+        android.app.ActivityManager am = (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (am == null || am.isLowRamDevice()) return false;
+        android.app.ActivityManager.MemoryInfo info = new android.app.ActivityManager.MemoryInfo();
+        am.getMemoryInfo(info);
+        return info.totalMem >= 1536L * 1024 * 1024;
+    }
+
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
         this.root = root;
         files = new ArrayList<>(config.wallpapers);
         interval = config.wallpaperRotationMinutes * 60_000L;
-        bitmapConfig = config.wallpaperTrueColor ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
+        // 16-bit colour bands dark gradients into visible steps on a big screen. Decode in full colour when the
+        // theme asks for it, or on its own on a TV with 1.5 GB of RAM or more (8 MB per 1080p picture instead of
+        // 4 MB); low-RAM TVs keep RGB_565.
+        bitmapConfig = config.wallpaperTrueColor || roomy(context) ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
         // The dim is painted into the picture (decode), so no full-screen shade layer is drawn on every frame.
         dimColor = config.wallpaperDim > 0 ? (config.wallpaperDim * 255 / 100) << 24 : 0;
         order = config.wallpaperOrder;

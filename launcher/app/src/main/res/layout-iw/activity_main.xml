@@ -58,9 +58,8 @@
                 android:layout_height="wrap_content"
                 android:singleLine="true"
                 android:textColor="#B3FFFFFF"
-                android:textSize="12sp"
+                android:textSize="@dimen/text_caption"
                 android:fontFamily="@string/font_medium"
-                android:letterSpacing="0.22"
                 android:textAllCaps="true" />
 
             <View
@@ -79,7 +78,6 @@
             android:textColor="#FFFFFFFF"
             android:textSize="34sp"
             android:fontFamily="@string/font_light"
-            android:letterSpacing="-0.01"
             android:includeFontPadding="false" />
 
         <TextView
@@ -89,9 +87,8 @@
             android:layout_marginTop="12dp"
             android:singleLine="true"
             android:textColor="#99FFFFFF"
-            android:textSize="12sp"
-            android:fontFamily="@string/font_medium"
-            android:letterSpacing="0.12" />
+            android:textSize="@dimen/text_caption"
+            android:fontFamily="@string/font_medium" />
     </LinearLayout>
 
     <!-- Cinematic top shelf: darkens the edge behind the shelf and the lower half, so the text and the
@@ -123,7 +120,6 @@
             android:textColor="#FFFFFFFF"
             android:textSize="48sp"
             android:fontFamily="@string/font_light"
-            android:letterSpacing="-0.02"
             android:includeFontPadding="false"
             android:singleLine="true" />
 
@@ -137,7 +133,7 @@
             android:layout_marginTop="12dp"
             android:singleLine="true"
             android:textColor="#B3FFFFFF"
-            android:textSize="15sp"
+            android:textSize="@dimen/text_label"
             android:fontFamily="@string/font_light"
             android:visibility="gone" />
 
@@ -169,117 +165,113 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
+            <!-- Top bar, right side (Hebrew mirrors the default layout): a 48dp block with the 36dp buttons centred
+                 on it. Line 1 is the time with AM/PM to its left; line 2 reads right to left: date | greeting. -->
             <LinearLayout
                 android:id="@+id/leftBlock"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_alignParentEnd="true"
                 android:layout_toEndOf="@+id/topButtons"
                 android:layout_marginStart="16dp"
-                android:orientation="horizontal"
-                android:gravity="right|bottom">
+                android:orientation="vertical"
+                android:gravity="center_vertical|right"
+                android:clipChildren="false">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="bottom"
-                    android:layout_marginBottom="9dp"
-                    android:orientation="vertical">
+                    android:orientation="horizontal"
+                    android:baselineAligned="true">
 
-                    <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
+                    <TextClock
+                        android:id="@+id/ampm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="4dp"
+                        android:singleLine="true"
+                        android:textDirection="rtl"
+                        android:format12Hour="a"
+                        android:format24Hour=""
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="@dimen/text_label"
+                        android:fontFamily="@string/font_medium"
+                        android:includeFontPadding="false"
+                        android:ellipsize="none"
+                        android:textAllCaps="true" />
+
+                    <TextClock
+                        android:id="@+id/clock"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:format12Hour="h:mm"
+                        android:format24Hour="HH:mm"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="@dimen/text_title"
+                        android:fontFamily="@string/font_medium"
+                        android:includeFontPadding="false" />
+                </LinearLayout>
+
+                <!-- Baseline-aligned, so the greeting, the divider and the date sit on one text line. -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:baselineAligned="true">
+
+                    <!-- Shamsi date, shown when shamsi_date is on: after the greeting on line 2. -->
                     <TextView
                         android:id="@+id/shamsiDate"
-                        android:gravity="right"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:singleLine="true"
+                        android:textColor="#E6FFFFFF"
+                        android:textSize="@dimen/text_label"
+                        android:fontFamily="@string/font_regular"
+                        android:includeFontPadding="true"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/greeting"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="right"
                         android:singleLine="true"
                         android:ellipsize="end"
-                        android:textColor="#E6FFFFFF"
-                        android:textSize="17sp"
+                        android:textDirection="rtl"
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="@dimen/text_label"
                         android:fontFamily="@string/font_regular"
-                        android:letterSpacing="0.02"
-                        android:includeFontPadding="false"
-                        android:visibility="gone" />
+                        android:includeFontPadding="true"
+                        android:textAllCaps="false" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:text="|"
+                        android:textColor="#59FFFFFF"
+                        android:textSize="@dimen/text_label"
+                        android:fontFamily="@string/font_regular"
+                        android:includeFontPadding="true"
+                        android:importantForAccessibility="no" />
 
                     <TextClock
                         android:id="@+id/date"
-                        android:gravity="right"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:gravity="right"
                         android:singleLine="true"
-                        android:ellipsize="end"
+                        android:textDirection="rtl"
                         android:format12Hour="@string/date_format"
                         android:format24Hour="@string/date_format"
-                        android:textColor="#A6FFFFFF"
-                        android:textSize="14sp"
+                        android:textColor="#E6FFFFFF"
+                        android:textSize="@dimen/text_label"
                         android:fontFamily="@string/font_regular"
-                        android:letterSpacing="0.14"
-                        android:textAllCaps="true" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="26dp"
-                    android:layout_gravity="bottom"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="16dp"
-                    android:layout_marginBottom="8dp"
-                    android:background="#33FFFFFF" />
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-                    <TextView
-                        android:id="@+id/greeting"
-                        android:gravity="center_horizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:singleLine="true"
-                        android:ellipsize="end"
-                        android:textColor="#8CFFFFFF"
-                        android:textSize="12sp"
-                        android:fontFamily="@string/font_medium"
-                        android:letterSpacing="0.22"
-                        android:textAllCaps="true" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:baselineAligned="true">
-                        <TextClock
-                            android:id="@+id/ampm"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="6dp"
-                            android:singleLine="true"
-                            android:textDirection="rtl"
-                            android:layout_gravity="bottom"
-                            android:layout_marginBottom="8dp"
-                            android:format12Hour="a"
-                            android:format24Hour=""
-                            android:textColor="#B3FFFFFF"
-                            android:textSize="15sp"
-                            android:fontFamily="@string/font_medium"
-                            android:letterSpacing="0"
-                            android:ellipsize="none"
-                            android:textAllCaps="true" />
-
-                        <TextClock
-                            android:id="@+id/clock"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="6dp"
-                            android:format12Hour="h:mm"
-                            android:format24Hour="HH:mm"
-                            android:textColor="#FFFFFFFF"
-                            android:textSize="52sp"
-                            android:fontFamily="@string/font_light"
-                            android:letterSpacing="-0.04"
-                            android:includeFontPadding="false" />
-                    </LinearLayout>
-
+                        android:includeFontPadding="true"
+                        android:textAllCaps="false" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -299,9 +291,8 @@
                 android:singleLine="true"
                 android:ellipsize="end"
                 android:textColor="#D9FFFFFF"
-                android:textSize="14sp"
+                android:textSize="@dimen/text_label"
                 android:fontFamily="@string/font_medium"
-                android:letterSpacing="0.04"
                 android:focusable="false"
                 android:visibility="gone" />
 
@@ -310,8 +301,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
-                android:layout_alignBottom="@id/leftBlock"
-                android:layout_marginBottom="6dp"
+                android:layout_alignTop="@id/leftBlock"
+                android:layout_marginTop="6dp"
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 android:orientation="horizontal">

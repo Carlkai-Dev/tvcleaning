@@ -36,7 +36,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     DockDecoration(int dockSize, float density, boolean translucent, boolean names, int opacity, boolean lightGlass) {
         this.dockSize = dockSize;
         this.density = density;
-        this.namesRoom = names ? 22 * density : 0;
+        this.namesRoom = names ? 28 * density : 0;   // 8dp gap + 24dp name, less ~4dp of the line box under the text
         this.lightGlass = lightGlass;
         band.setColor(translucent ? 0x8C121014 : (Math.round(opacity * 2.55f) << 24) | 0x141416);
         edge.setStyle(Paint.Style.STROKE);
@@ -49,14 +49,15 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
                                @NonNull RecyclerView.State state) {
         int pos = parent.getChildAdapterPosition(view);
         if (pos >= 0 && pos < dockSize) {
-            outRect.top = (int) (6 * density);
-            outRect.bottom = (int) (12 * density);
+            outRect.top = (int) (8 * density);      // band reaches 24dp above the tile: 16dp item padding + 8
+            outRect.bottom = (int) (20 * density);  // leaves exactly one 32dp tile gap under the band
         }
     }
 
     @Override
     public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         boolean any = false;
+        int cardW = 0;
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
             int pos = parent.getChildAdapterPosition(child);
@@ -64,6 +65,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             RecyclerView.ViewHolder vh = parent.getChildViewHolder(child);
             View card = vh instanceof AppAdapter.Holder ? ((AppAdapter.Holder) vh).card : child.findViewById(R.id.card);
             if (card == null) continue;
+            cardW = card.getWidth();
             float l = child.getLeft() + card.getLeft();
             float t = child.getTop() + card.getTop() + child.getTranslationY();
             float r = l + card.getWidth();
@@ -76,17 +78,15 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             }
         }
         if (!any) return;
-        float pad = 14 * density;
-        // The band can only draw inside the grid, and the first and last dock tiles sit 12dp in from its
-        // edges: a full 14dp at the sides sliced the rounded ends flat (#454). Keep the sides, with the
-        // 1dp edge line, inside the grid; the top and bottom have room.
-        // 22dp at the sides (the grid's 10dp padding makes room): a focused first or last tile grows about 7dp
-        // outwards and still keeps about the band's top margin from its rounded end.
-        float sidePad = 22 * density;
-        float side = Math.max(0f, Math.min(sidePad, Math.min(rect.left, parent.getWidth() - rect.right) - density));
+        // One padding on all four sides (3 x 8dp) and a concentric corner: band radius = tile radius + padding.
+        // Tiles sit 24dp in from the grid's edges (8dp grid padding + 16dp half gap), so the band's outer edge
+        // lands on the 56dp content edge shared with the clock and the top buttons. The band may not draw
+        // outside the grid, so the sides are clamped to the room there is (#454).
+        float pad = 24 * density;
+        float side = Math.max(0f, Math.min(pad, Math.min(rect.left, parent.getWidth() - rect.right)));
         rect.inset(-side, -pad);
         rect.bottom += namesRoom;
-        float radius = 26 * density;
+        float radius = AppAdapter.cornerRadius(cardW, density) + pad;
         if (lightGlass && (rect.top != shaderTop || rect.bottom != shaderBottom)) {
             // The pills' glass (pill_bg: white, 18% fading to 8%), a little fainter over this much larger area.
             band.setShader(new LinearGradient(0, rect.top, 0, rect.bottom, 0x24FFFFFF, 0x0DFFFFFF,
@@ -95,6 +95,5 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             shaderBottom = rect.bottom;
         }
         c.drawRoundRect(rect, radius, radius, band);
-        c.drawRoundRect(rect, radius, radius, edge);
     }
 }

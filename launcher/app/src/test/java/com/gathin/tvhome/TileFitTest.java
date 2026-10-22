@@ -9,8 +9,10 @@ import static org.junit.Assert.assertTrue;
 public class TileFitTest {
 
     private static final float D = 2f;              // 1080p TV: 2 px per dp
-    private static final int INNER = 1696;          // grid width minus padding at 1920 px
-    private static final int GRID_H = 846;          // grid height under the top bar
+    // Readable Home geometry at 1920x1080: 56dp content edges and 8dp grid padding leave 1920 - 2 x (56 + 8) x 2;
+    // the grid starts under 32dp top padding, the 48dp top bar and a 10dp margin: 1080 - (32 + 48 + 10) x 2.
+    private static final int INNER = 1664;          // grid width minus padding at 1920 px
+    private static final int GRID_H = 900;          // grid height under the top bar
 
     private static int height(int tileW, int rows, boolean title) {
         int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), D);
@@ -60,8 +62,9 @@ public class TileFitTest {
         int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(w), false, D);
         int needed = itemH * 4 + Math.round((AppAdapter.TOP_ROOM_DP + AppAdapter.COMPACT_BOTTOM_ROOM_DP) * D);
         assertTrue(needed + " > " + GRID_H, needed <= GRID_H + 2);
-        // With the compact spacing the width limit decides, not the height: no extra whitespace between tiles.
-        assertEquals(AppAdapter.tileWidthPx(INNER, 6, D), w);
+        // The 24dp names under the tiles cost some height, so four rows at six columns shrink the tiles a little,
+        // never below the floor.
+        assertTrue(w >= Math.round(AppAdapter.tileWidthPx(INNER, 6, D) * AppAdapter.MIN_HEIGHT_FIT));
     }
 
     @Test

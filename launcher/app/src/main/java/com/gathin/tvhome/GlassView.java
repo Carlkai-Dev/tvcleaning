@@ -4,57 +4,59 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
 
 /**
- * A translucent glass slab: soft sheen fill, bright top specular, crisp rim and a faint outer glow.
+ * The focus frame: a 4dp band of glass around the focused tile. Android 9 has no live blur, so the glass is
+ * drawn from light alone: one band, brightest at the top with a little light returning at the bottom, a crisp
+ * highlight on its outer edge, a faint sheen over the top 40% of the tile, and a slight glow under it.
  * One instance floats over the grid and is moved with spring animations between tiles.
  */
 public class GlassView extends View {
 
-    private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint specular = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint outerEdge = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint sheen = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final RectF rect = new RectF();
+    /** Room around the zoomed tile for the frame and its glow. MainActivity sizes the view with it. */
+    static final float PAD_DP = 14f;
+    private float inset;
+    private final Path frame = new Path();
+    private final RectF tile = new RectF();
+    private final RectF outer = new RectF();
+    private final RectF inner = new RectF();
     private final float density;
     private float radius;
-    /** Glow colour as 0xRRGGBB: white normally, a festival's accent (diya gold) while a festive skin is on. */
-    private int glowRgb = 0xFFFFFF;
-    /** Glow strength: the white glow stays faint, a coloured one needs more alpha to read as warm light. */
-    private int glowAlpha = 0x30;
+    /** Glass tint as 0xRRGGBB: white normally, a festival's accent (diya gold) while a festive skin is on. */
+    private int tint = 0xFFFFFF;
 
     public GlassView(Context context, AttributeSet attrs) {
         super(context, attrs);
         density = getResources().getDisplayMetrics().density;
-        radius = 20f * density;
-        rim.setStyle(Paint.Style.STROKE);
-        rim.setStrokeWidth(1.5f * density);
-        rim.setColor(0xCCFFFFFF);
+        radius = 16f * density;
+        inset = PAD_DP * density;
         glow.setStyle(Paint.Style.STROKE);
-        // Cache the slab as a texture. The spring only changes translation, so the GPU can
-        // move it without replaying clipPath and the glow on every frame. That path is
-        // software-rendered on the MT5895 and is what makes the highlight crawl.
+        outerEdge.setStyle(Paint.Style.STROKE);
+        outerEdge.setStrokeWidth(1f * density);
+        // Cached as a texture: the spring only changes translation, so the GPU moves the frame without
+        // replaying the path and gradients on every frame.
         setLayerType(LAYER_TYPE_HARDWARE, null);
     }
 
-    /** Tints the rim and the outer glow; 0 restores the plain white glass. */
+    /** Tints the glass; 0 restores plain white. */
     void setAccent(int argb) {
-        if (argb == 0) {
-            glowRgb = 0xFFFFFF;
-            glowAlpha = 0x30;
-            rim.setColor(0xCCFFFFFF);
-        } else {
-            glowRgb = argb & 0xFFFFFF;
-            glowAlpha = 0x70;
-            // The rim is the accent lifted towards white, so the edge still reads as glass, not paint.
-            int r = (((glowRgb >> 16) & 0xFF) + 255 * 2) / 3, g = (((glowRgb >> 8) & 0xFF) + 255 * 2) / 3,
-                    b = ((glowRgb & 0xFF) + 255 * 2) / 3;
-            rim.setColor(0xE6000000 | (r << 16) | (g << 8) | b);
-        }
+        tint = argb == 0 ? 0xFFFFFF : lighten(argb & 0xFFFFFF);
+        rebuildShaders(getHeight());
+        invalidate();
+    }
+
+    /** Room between the view's edge and the tile; less room means less glow (the app library's shelf is tight). */
+    void setInset(float px) {
+        inset = px;
         invalidate();
     }
 
@@ -63,40 +65,75 @@ public class GlassView extends View {
         invalidate();
     }
 
+    /** The accent lifted two thirds of the way to white, so it still reads as glass, not paint. */
+    private static int lighten(int rgb) {
+        int r = (((rgb >> 16) & 0xFF) + 255 * 2) / 3, g = (((rgb >> 8) & 0xFF) + 255 * 2) / 3,
+                b = ((rgb & 0xFF) + 255 * 2) / 3;
+        return (r << 16) | (g << 8) | b;
+    }
+
+    private int c(int alpha) {
+        return alpha << 24 | tint;
+    }
+
+    private void rebuildShaders(int h) {
+        if (h <= 0) return;
+        float[] stops = {0f, 0.5f, 1f};
+        // The band: strong light at the top, thinner glass at the sides, some light bouncing back at the bottom.
+        band.setShader(new LinearGradient(0, 0, 0, h, new int[]{c(0xF2), c(0xB8), c(0xD1)}, stops,
+                Shader.TileMode.CLAMP));
+        outerEdge.setShader(new LinearGradient(0, 0, 0, h, new int[]{c(0xFF), c(0x99), c(0xCC)}, stops,
+                Shader.TileMode.CLAMP));
+        sheen.setShader(new LinearGradient(0, 0, 0, h * 0.4f, c(0x2E), c(0x00), Shader.TileMode.CLAMP));
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        fill.setShader(new LinearGradient(0, 0, 0, h, 0x3DFFFFFF, 0x12FFFFFF, Shader.TileMode.CLAMP));
-        specular.setShader(new LinearGradient(0, 0, 0, h * 0.45f, 0x66FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
+        rebuildShaders(h);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        float inset = 6f * density;   // room for the glow
-        rect.set(inset, inset, getWidth() - inset, getHeight() - inset);
+        // The view is the zoomed tile plus `inset` on each side: 4dp of glass, then a soft glow fading out over
+        // the rest. Every corner is concentric with the tile's: outer radius = tile radius + 4dp.
+        float glass = 4f * density, overlap = 1f * density;
+        tile.set(inset, inset, getWidth() - inset, getHeight() - inset);
+        outer.set(tile.left - glass, tile.top - glass, tile.right + glass, tile.bottom + glass);
+        float ro = radius + glass;
+        // The band reaches 1dp over the tile's edge, so sub-pixel placement can never open a seam between
+        // them; its inner radius shrinks by the same 1dp to stay concentric with the tile's corner.
+        inner.set(tile.left + overlap, tile.top + overlap, tile.right - overlap, tile.bottom - overlap);
+        float ri = Math.max(0f, radius - overlap);
 
-        // Outer glow: thin rings across the inset, each a little fainter, so it fades out smoothly. Three wide
-        // strokes left visible bands once the glow took an app's colour at a stronger alpha. The hardware layer
-        // caches the result, so the rings cost one draw, not one per frame of the spring.
-        int rings = 12;
-        float step = inset / rings;
+        // A slight glow under the frame: thin rings, each fainter, out to the view's edge. Drawn once into the
+        // hardware layer like the rest, so it costs nothing while the frame moves.
+        float room = inset - glass;
+        int rings = Math.max(1, Math.round(room / density));
+        float step = room / rings;
         glow.setStrokeWidth(step + 0.5f);
         for (int i = 0; i < rings; i++) {
             float o = step * (i + 0.5f);
             float t = 1f - (float) i / rings;
-            glow.setColor(Math.round(glowAlpha * t) << 24 | glowRgb);
-            canvas.drawRoundRect(rect.left - o, rect.top - o, rect.right + o, rect.bottom + o, radius + o, radius + o, glow);
+            glow.setColor(Math.round(0x2E * t * t) << 24 | tint);
+            canvas.drawRoundRect(outer.left - o, outer.top - o, outer.right + o, outer.bottom + o, ro + o, ro + o, glow);
         }
 
-        canvas.drawRoundRect(rect, radius, radius, fill);
+        // rewind() resets the fill type to WINDING, so set EVEN_ODD again each time; the inner rect also runs the
+        // other way, which leaves the tile uncovered under either rule.
+        frame.rewind();
+        frame.setFillType(Path.FillType.EVEN_ODD);
+        frame.addRoundRect(outer, ro, ro, Path.Direction.CW);
+        frame.addRoundRect(inner, ri, ri, Path.Direction.CCW);
+        canvas.drawPath(frame, band);
 
-        // Sheen across the top 45%: clipRect stays on the GPU (clipPath did not on the MT5895) and
-        // the round rect under it keeps the top corners rounded with a flat bottom edge.
+        // Sheen over the top 40% of the tile only, so the logo below stays clear.
         canvas.save();
-        canvas.clipRect(rect.left, rect.top, rect.right, rect.top + rect.height() * 0.45f);
-        canvas.drawRoundRect(rect, radius, radius, specular);
+        canvas.clipRect(tile.left, tile.top, tile.right, tile.top + tile.height() * 0.4f);
+        canvas.drawRoundRect(tile, radius, radius, sheen);
         canvas.restore();
 
-        canvas.drawRoundRect(rect, radius, radius, rim);
+        float e = outerEdge.getStrokeWidth() / 2f;
+        canvas.drawRoundRect(outer.left + e, outer.top + e, outer.right - e, outer.bottom - e, ro - e, ro - e, outerEdge);
     }
 }
