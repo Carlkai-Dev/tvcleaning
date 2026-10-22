@@ -992,12 +992,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * A Settings button sent as a keycode (settings_key_keycodes, e.g. 83 on TCL Google TV remotes) opens the same
      * thing HomeKeyService would. While that service runs it consumes the key first; without it (not enabled,
      * or switched off by a force-stop) the stock launcher that used to handle the key is gone, and the button did
-     * nothing even on Home.
+     * nothing even on Home. A button the TV itself answers (tools/tcl-keys.sh) still arrives here after the TV
+     * has started RemoteKeyActivity for it, so Home only keeps the key.
      */
     private boolean handleSettingsKey(KeyEvent event) {
         for (int code : settingsKeycodes) {
             if (event.getKeyCode() != code) continue;
-            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()
+                    && !RemoteKeys.answeredByTv(this, code)) {
                 open(settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
                         : systemIntent(Settings.ACTION_SETTINGS));
             }

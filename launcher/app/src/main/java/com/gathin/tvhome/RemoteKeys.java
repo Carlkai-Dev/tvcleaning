@@ -3,9 +3,11 @@ package com.gathin.tvhome;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.ActivityNotFoundException;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.media.tv.TvContract;
+import android.provider.Settings;
 import android.view.KeyEvent;
 
 import java.util.ArrayList;
@@ -91,6 +93,27 @@ final class RemoteKeys {
         if (info == null) return;
         info.flags &= ~AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS;
         service.setServiceInfo(info);
+    }
+
+    /**
+     * Whether the TV itself sends this button to RemoteKeyActivity (tools/tcl-keys.sh): TCL Google TV answers the
+     * keycodes in its CustomKeyList setting with what CustomKey_<keycode> names. The press still reaches the
+     * focused window afterwards, so Home must not answer it a second time.
+     */
+    static boolean answeredByTv(Context ctx, int keyCode) {
+        try {
+            ContentResolver resolver = ctx.getContentResolver();
+            return listed(Settings.Global.getString(resolver, "CustomKeyList"), keyCode)
+                    && String.valueOf(Settings.Global.getString(resolver, "CustomKey_" + keyCode))
+                            .contains(ctx.getPackageName() + "/.RemoteKeyActivity");
+        } catch (RuntimeException unreadable) {
+            return false;   // a firmware that guards its settings answers no button this way
+        }
+    }
+
+    /** Whether a CustomKeyList value, keycodes as JSON strings such as ["4062","83"], holds this keycode. */
+    static boolean listed(String list, int keyCode) {
+        return list != null && list.contains("\"" + keyCode + "\"");
     }
 
     /**

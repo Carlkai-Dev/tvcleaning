@@ -95,6 +95,30 @@ the buttons and the volume ramp cannot both be had, because both need the same f
 It is a toggle, not a fix: two one-line `settings` writes switch between the two behaviours whenever
 you want, but never both at once.
 
+## Why volume loses its ramp
+
+Read later from the firmware itself (`services.jar` of a `G09` on `STT2.230203.001.AS24`), and consistent
+with the bisect above. While any bound service filters keys, Android's `AccessibilityInputFilter` sends each
+key through its `KeyboardInterceptor`, which for `VOLUME_UP` and `VOLUME_DOWN` first asks the window policy
+(`interceptKeyBeforeDispatching`) whether to hold the key back. On a TV the policy adjusts the volume right
+there (`dispatchDirectAudioEvent`) and answers -1, so the interceptor drops the event: it never reaches the
+`InputDispatcher`, which is what makes the repeats of a held key. One step per press. Only the volume keys
+take that early question; the rest go on to the services and are injected back when no service wants them.
+
+## Both, through TCL's key settings
+
+The same firmware has a second way to answer a button, checked before its fixed handling: the global
+settings `CustomKeyList` (a JSON list of keycodes as strings) and `CustomKey_<keycode>` (what a press does,
+for example start an activity). [`tools/tcl-keys.sh`](../../tools/tcl-keys.sh) points the buttons at the
+launcher's `RemoteKeyActivity`, which opens what `app_keys` and `settings_key_keycodes` say. No service
+filters keys, so the volume ramps, and the buttons work in every app. Tried on the AS24 unit: Netflix
+(4062), YouTube (4065), the TCL Channel button (4020) and the gear (83) did what the config says from Home,
+from inside an app and from the screensaver, the gear closed its panel on a second press, and a held volume
+key ramped with the real remote. Prime Video was off on that unit. `system_server` reads these settings (a
+malformed `CustomKeyList` stops it at every boot), so write them only with the tool, which checks the
+keycodes, orders the writes and refuses a button another app already answers. `tools/tcl-keys.sh --off`
+takes back what it wrote and leaves the settings exactly as they were before.
+
 ## Limits
 
 One unit, one firmware build (`STT2.230203.001.AS23`), one session. Only volume up/down was held:

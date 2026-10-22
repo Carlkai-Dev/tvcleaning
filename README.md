@@ -344,6 +344,7 @@ tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt        # undo it, stock la
 tools/venv/bin/python -I tools/check.py examples/xiaomi-mi-tv-4a/debloat.txt   # what a firmware update undid
 TV_HOST=192.168.1.50 launcher/build-and-install.sh           # build the launcher and make it Home
 tools/theme.sh themes/aurora                                 # push a theme; --reset removes it
+tools/tcl-keys.sh 4062 4065 4099 83                          # TCL Google TV: the TV answers these remote buttons
 ```
 
 | Tool | What it does |
@@ -356,6 +357,7 @@ tools/theme.sh themes/aurora                                 # push a theme; --r
 | [`tools/check.py`](tools/check.py) | Compares the TV with the list that was applied, for what a firmware update undid; `--fix` puts it back. |
 | [`tools/privacy.py`](tools/privacy.py) | Audits the TV for voice, ACR and telemetry candidates and prints the evidence for each; `--write` turns the findings into a list `disable.sh` and `restore.sh` already understand. |
 | [`tools/theme.sh`](tools/theme.sh) | Push a folder from [`themes/`](themes/) to the launcher and restart Home. |
+| [`tools/tcl-keys.sh`](tools/tcl-keys.sh) | TCL Google TV: hands remote buttons (Netflix, YouTube, the gear) to the TV's own key settings, so they open what the launcher's config says in any app with no key helper bound, and a held volume key keeps ramping. `--off` takes them back. |
 | [`tools/race_calendar.py`](tools/race_calendar.py) | Writes this season's F1 calendar into a theme for race-weekend mode, from the free Jolpica API. |
 | [`launcher/build-and-install.sh`](launcher/build-and-install.sh) | Builds a shrunk release (about 445 KB), installs it, switches Home, and rolls back if Home does not land on it. |
 
