@@ -27,6 +27,14 @@ android {
         }
     }
 
+    // Self-update permissions only when config.xml update_repo is set: a stock build has no network at all.
+    def updateRepo = new groovy.xml.XmlSlurper().parse(file('src/main/res/values/config.xml'))
+            .string.find { it.@name == 'update_repo' }.text().trim()
+    if (updateRepo) {
+        sourceSets.debug.manifest.srcFile 'src/updater/AndroidManifest.xml'
+        sourceSets.release.manifest.srcFile 'src/updater/AndroidManifest.xml'
+    }
+
     packagingOptions {
         resources {
             // Kotlin metadata pulled in by AndroidX's dependencies. This launcher is plain Java and never reads it;
