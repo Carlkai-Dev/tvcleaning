@@ -144,5 +144,13 @@
             style="@style/SettingsRow"
             android:layout_marginTop="18dp"
             android:text="@string/tv_settings" />
+
+        <!-- Shown only when config.xml update_repo names a GitHub repo. -->
+        <TextView
+            android:id="@+id/updateChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="18dp"
+            android:text="@string/update_check"
+            android:visibility="gone" />
     </LinearLayout>
 </ScrollView>

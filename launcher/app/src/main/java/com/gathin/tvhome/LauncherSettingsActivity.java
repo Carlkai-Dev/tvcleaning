@@ -139,6 +139,12 @@ public final class LauncherSettingsActivity extends Activity {
         });
         findViewById(R.id.tvSettingsChoice).setOnClickListener(v ->
                 open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
+        String updateRepo = getString(R.string.update_repo);
+        if (!updateRepo.isEmpty()) {
+            View updateChoice = findViewById(R.id.updateChoice);
+            updateChoice.setVisibility(View.VISIBLE);
+            updateChoice.setOnClickListener(v -> Updater.check(this, updateRepo));
+        }
         refresh();
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
         else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();

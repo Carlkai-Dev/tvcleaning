@@ -1,0 +1,51 @@
+name: Launcher release
+
+# Push a tag launcher-<versionCode> (for example launcher-1001) on the commit to ship, with the TV's own
+# config.xml in it. The launcher's "Check for updates" (config.xml update_repo) installs the newest one.
+# Secret DEBUG_KEYSTORE_B64: base64 of the ~/.android/debug.keystore the TV's current launcher was signed
+# with; Android refuses an update signed with any other key.
+on:
+  push:
+    tags: ['launcher-*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version from the tag
+        id: version
+        run: |
+          code="${GITHUB_REF_NAME#launcher-}"
+          [[ "$code" =~ ^[0-9]+$ ]] || { echo "tag must be launcher-<number>"; exit 1; }
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          [ -n "$KEYSTORE" ] || { echo "secret DEBUG_KEYSTORE_B64 is missing"; exit 1; }
+          mkdir -p ~/.android && echo "$KEYSTORE" | base64 -d > ~/.android/debug.keystore
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platforms;android-34 build-tools;34.0.0
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests, lint and release build
+        working-directory: launcher
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon -PversionCode=${{ steps.version.outputs.code }} testReleaseUnitTest lintRelease assembleRelease
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk="tvhome-${{ steps.version.outputs.code }}.apk"
+          cp launcher/app/build/outputs/apk/release/app-release.apk "$apk"
+          gh release create "$GITHUB_REF_NAME" "$apk" --title "Launcher ${{ steps.version.outputs.code }}" \
+            --notes "Built from $GITHUB_SHA. Signed with the owner's key; installs only over the owner's builds."

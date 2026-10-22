@@ -11,7 +11,8 @@ android {
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
         minSdk 26
         targetSdk 34
-        versionCode 7
+        // release.yml passes -PversionCode from the release tag, so the self-updater sees a newer build.
+        versionCode providers.gradleProperty('versionCode').getOrElse('7') as int
         versionName '2.6'
     }
 
