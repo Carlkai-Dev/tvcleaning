@@ -16,7 +16,8 @@
 # com.sony.dtv.b2b.softap, com.sony.dtv.all4launcher.
 #
 # Tested and lived with on a KD-43X80L running the clean Apple TV style launcher (com.gathin.tvhome).
-# setupwraith disabled safely (Wi-Fi network owned by com.android.tv.settings, no reconnection issues).
+# Disabling com.google.android.tungsten.setupwraith gives Home back but can break casting.
+# Wi-Fi network is owned by com.android.tv.settings (no Wi-Fi reconnection issues after disabling).
 # HDMI inputs (1-4, eARC), tuner TVX, remote control, and network streaming apps (Max, VLC, TIMVISION,
 # RaiPlay) verified working across reboots.
 
