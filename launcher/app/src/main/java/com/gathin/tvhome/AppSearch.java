@@ -1,11 +1,9 @@
 package com.gathin.tvhome;
 
 import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
-/** Local matching prototype: display names only; no app discovery, persistence or UI mutation. */
+/** Local matching: display names only; no app discovery, persistence or UI mutation. */
 final class AppSearch {
     private AppSearch() { }
 
@@ -33,25 +31,20 @@ final class AppSearch {
         return out.toString();
     }
 
-    /** Indices into the existing sorted catalogue; every query word must occur, and order stays unchanged. */
-    static List<Integer> indices(List<String> labelKeys, String query, Locale locale) {
+    /** Normalize the query once, then check every word against each precomputed display-name key. */
+    static String[] words(String query, Locale locale) {
         String normalized = key(query, locale);
-        String[] words = normalized.isEmpty() ? new String[0] : normalized.split(" ");
-        List<Integer> result = new ArrayList<>();
-        for (int i = 0; i < labelKeys.size(); i++) {
-            boolean match = true;
-            for (String word : words) {
-                if (!labelKeys.get(i).contains(word)) { match = false; break; }
-            }
-            if (match) result.add(i);
-        }
-        return result;
+        return normalized.isEmpty() ? new String[0] : normalized.split(" ");
     }
 
-    /** Keep selection by stable package identity after filtering/refresh; otherwise retain a nearby position. */
-    static int focusIndex(List<String> packages, String selected, int previous) {
-        if (packages.isEmpty()) return -1;
-        int found = packages.indexOf(selected);
-        return found >= 0 ? found : Math.max(0, Math.min(previous, packages.size() - 1));
+    static boolean matches(String labelKey, String[] words) {
+        for (String word : words) if (!labelKey.contains(word)) return false;
+        return true;
+    }
+
+    /** Follow the selected package when present; otherwise keep a nearby position, or none for an empty list. */
+    static int focusIndex(int found, int previous, int count) {
+        if (count == 0) return -1;
+        return found >= 0 ? found : Math.max(0, Math.min(previous, count - 1));
     }
 }

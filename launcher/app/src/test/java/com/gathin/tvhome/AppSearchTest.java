@@ -11,7 +11,12 @@ import static org.junit.Assert.*;
 public class AppSearchTest {
     private List<Integer> find(Locale locale, String query, String... labels) {
         List<String> keys = Arrays.stream(labels).map(s -> AppSearch.key(s, locale)).collect(Collectors.toList());
-        return AppSearch.indices(keys, query, locale);
+        return indices(keys, query, locale);
+    }
+    private List<Integer> indices(List<String> keys, String query, Locale locale) {
+        String[] words = AppSearch.words(query, locale);
+        return java.util.stream.IntStream.range(0, keys.size())
+                .filter(i -> AppSearch.matches(keys.get(i), words)).boxed().collect(Collectors.toList());
     }
     @Test public void findsAPartialAppNameWithoutChangingTheExistingOrder() {
         assertEquals(Arrays.asList(0, 2), find(Locale.ENGLISH, "net", "Netflix", "YouTube", "NET Radio"));
@@ -58,18 +63,18 @@ public class AppSearchTest {
     }
     @Test public void inputCatalogAndKeysAreNotMutated() {
         List<String> keys = Arrays.asList("youtube", "netflix");
-        assertEquals(Collections.singletonList(1), AppSearch.indices(keys, "NET", Locale.ENGLISH));
+        assertEquals(Collections.singletonList(1), indices(keys, "NET", Locale.ENGLISH));
         assertEquals(Arrays.asList("youtube", "netflix"), keys);
     }
-    @Test public void selectionFollowsPackageRatherThanItsPreviousPosition() {
-        assertEquals(1, AppSearch.focusIndex(Arrays.asList("com.a", "com.b"), "com.b", 0));
-        assertEquals(0, AppSearch.focusIndex(Arrays.asList("com.b", "com.a"), "com.b", 1));
+    @Test public void locatedSelectionOverridesItsPreviousPosition() {
+        assertEquals(1, AppSearch.focusIndex(1, 0, 2));
+        assertEquals(0, AppSearch.focusIndex(0, 1, 2));
     }
     @Test public void removingTheSelectedAppChoosesAnExistingNeighbour() {
-        assertEquals(1, AppSearch.focusIndex(Arrays.asList("com.a", "com.c"), "com.b", 9));
-        assertEquals(0, AppSearch.focusIndex(Arrays.asList("com.a", "com.c"), "com.b", -1));
+        assertEquals(1, AppSearch.focusIndex(-1, 9, 2));
+        assertEquals(0, AppSearch.focusIndex(-1, -1, 2));
     }
     @Test public void emptyResultsHaveNoSelectedCard() {
-        assertEquals(-1, AppSearch.focusIndex(Collections.emptyList(), "com.a", 0));
+        assertEquals(-1, AppSearch.focusIndex(-1, 0, 0));
     }
 }
