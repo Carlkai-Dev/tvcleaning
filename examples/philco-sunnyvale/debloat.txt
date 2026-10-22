@@ -1,3 +1,5 @@
+# Philco sunnyvale — Android TV 14 — build UKNV.260821.001
+
 com.google.android.tvlauncher
 com.smartdevice.recommendation
 fusion.android.tv.demo
