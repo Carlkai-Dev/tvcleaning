@@ -432,10 +432,14 @@ apps), which is why the report names that loss per package instead of calling it
 A small native home screen for Android TV: **about 445 KB**, plain Java, built for TVs with 1 GB of RAM.
 No blur, no video, no network permission, no background services.
 
-The **TV** needs Android 8.0 (API 26) or newer: `minSdk` is a compile-time floor in
+The **TV** needs Android 6.0 (API 23) or newer: `minSdk` is a compile-time floor in
 [`launcher/app/build.gradle`](launcher/app/build.gradle), and the install script asks the TV for
 `ro.build.version.sdk` before it builds, so an older set is told both numbers instead of failing at
-`pm install` (see [Troubleshooting](docs/TROUBLESHOOTING.md) for what is left on such a set).
+`pm install` (see [Troubleshooting](docs/TROUBLESHOOTING.md) for what is left on such a set). Below
+Android 8.0 (API 26) the launcher runs without the date-driven theme extras (festive skins, the
+race-weekend panel, sunrise and sunset in the sky) and with the system font instead of Outfit, and
+the install script's Home handover needs `cmd package`, which arrived in Android 7.0: on Android 6
+switch Home by hand ([MXQ Pro notes](docs/devices/mxq-pro-s905x.md)).
 
 | What | How it works |
 |---|---|

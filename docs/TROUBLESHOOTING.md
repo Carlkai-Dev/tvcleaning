@@ -147,17 +147,18 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   and `pm install` hung, then failed with `INSTALL_FAILED_VERIFICATION_FAILURE`, while it targeted
   SDK 29. It targets 34 now; if you built an old checkout, rebuild.
 - **`pm install` fails with `INSTALL_FAILED_OLDER_SDK`** on a set older than the launcher: the APK's
-  `minSdk` is a compile-time floor, so a TV on Android 7.0/7.1 (SDK 24/25) cannot take the published
-  build at all ([#576](https://github.com/Gathin23/cleanyourtv/issues/576)). Read both numbers before
+  `minSdk` is a compile-time floor, so a TV on Android 5.x (SDK 21/22) cannot take the published
+  build at all ([#576](https://github.com/Gathin23/cleanyourtv/issues/576); Android 6 and 7 can since
+  minSdk went from 26 to 23). Read both numbers before
   changing anything: `tools/tv.py 'getprop ro.build.version.sdk'` and
-  `grep minSdk launcher/app/build.gradle` (26, i.e. Android 8.0, at the time of writing).
+  `grep minSdk launcher/app/build.gradle` (23, i.e. Android 6.0, at the time of writing).
   `launcher/build-and-install.sh` now asks the TV first and stops with both numbers, so nothing is
   built or pushed for a set that will refuse it; `build-and-install.ps1` only reports it after
   `pm install`, which fails safely with the stock launcher untouched. Lowering `minSdk` is a source
   change, not a setting, and it means maintaining your own copy: the launcher uses AndroidX and
-  framework calls newer than API 25, so expect compile errors or a launcher that starts and then
+  framework calls newer than API 22, so expect compile errors or a launcher that starts and then
   crashes. An APK produced by rebuilding the project elsewhere (an assistant, an online builder, a
-  "rebuilt for API 25" zip from a forum) is not something this repository can check, and the install
+  "rebuilt for API 22" zip from a forum) is not something this repository can check, and the install
   scripts only push the APK they compiled themselves: a build signed with another key does not
   install over this one (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`), so uninstall the old one first if you
   go that way, and keep the stock launcher enabled until the new one really starts. On a set below
@@ -165,6 +166,14 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   launcher that cannot be installed, not the lists. If the `Failure [...]` line names
   `INSTALL_FAILED_VERIFICATION_FAILURE` instead, that is the bullet above - the firmware's installer
   verifier, not the API level.
+- **Android 6 and 7 sets** take the launcher, with a few differences. `build-and-install.sh` hands Home
+  over with `cmd package`, which Android 6 does not have: the install itself works, then switch Home by
+  hand (disable the stock launcher, check that Home lands on the new one) as in the
+  [MXQ Pro notes](devices/mxq-pro-s905x.md). Below Android 8 the date-driven theme extras are off
+  (festive skins, the race-weekend panel, sunrise and sunset in the sky; the sky keeps its fixed
+  reference day), the tiles use the system font, since font resources arrived in Android 8, Home
+  rebuilds its tiles on every return from an app (it cannot ask which packages changed), and wallpapers
+  stay ordinary bitmaps instead of moving to GPU memory.
 - **Screenshots come out empty** while Live TV, an HDMI input or Netflix is on screen, seen on TCL
   and a [Sony KDL-49W800G](https://github.com/Gathin23/cleanyourtv/issues/92). Press Home before
   `screencap`. An empty capture means nothing about the ADB connection or playback; check those

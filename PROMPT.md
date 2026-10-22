@@ -101,13 +101,14 @@ Launcher
   hit either, do the debloat half, say plainly that the launcher half is impossible here, and stop
   retrying installs. The matching `examples/` header says which case your TV is.
 - Check the TV's SDK level before promising the launcher, too: `tools/tv.py 'getprop
-  ro.build.version.sdk'` against `grep minSdk launcher/app/build.gradle` (26 = Android 8.0). A set
+  ro.build.version.sdk'` against `grep minSdk launcher/app/build.gradle` (23 = Android 6.0). A set
   below it answers `INSTALL_FAILED_OLDER_SDK`; lowering `minSdk` is a source change you would then
   maintain yourself, and an APK rebuilt elsewhere is nothing this repo can verify. On those sets offer
   the debloat half and say the launcher cannot be installed. With no launcher to hand over to, the
   stock one stays: `cmd package` does not exist before Android 7, so `tools/disable.sh` asks `dumpsys
   activity` for Home there and warns when neither answers - that warning means nothing was checked,
-  and a set with no recovery has no way back (#795).
+  and a set with no recovery has no way back (#795). For the same reason, on Android 6 switch Home by
+  hand after the launcher install (docs/devices/mxq-pro-s905x.md).
 - Don't install a third-party launcher that charges for basics like wallpapers. Build a small native
   Android TV launcher instead (Java, AndroidX RecyclerView, minSdk matching the TV, debug build is fine),
   install it over ADB, set it as the default home and disable the stock launcher. If several apps claim
