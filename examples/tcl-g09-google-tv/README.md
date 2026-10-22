@@ -19,23 +19,28 @@ then `build-and-install.sh` starts the new launcher and only then disables launc
 
 ```bash
 TV_HOST=<tv-ip> tools/disable.sh examples/tcl-g09-google-tv/debloat.txt
-INPUT_KEY_SERVICE=1 TV_HOST=<tv-ip> launcher/build-and-install.sh
+TV_HOST=<tv-ip> launcher/build-and-install.sh
 TV_HOST=<tv-ip> tools/theme.sh examples/tcl-g09-google-tv
+TV_HOST=<tv-ip> tools/tcl-keys.sh 4062 4065 4099 83
 TV_HOST=<tv-ip> tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream'
 ```
 
-The last line swaps the Ambient screensaver (`dreamx`, disabled by the list) for the launcher's Clock.
+The last line swaps the Ambient screensaver (`dreamx`, disabled by the list) for the launcher's Clock. The
+`tcl-keys.sh` line gives the remote's app buttons and the gear to the TV itself; see
+[Remote app buttons](#remote-app-buttons).
 
 ## Undo everything
 
 ```bash
+TV_HOST=<tv-ip> tools/tcl-keys.sh --off
 TV_HOST=<tv-ip> tools/restore.sh examples/tcl-g09-google-tv/debloat.txt com.google.android.apps.tv.launcherx
 TV_HOST=<tv-ip> tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components com.google.android.apps.tv.dreamx/.service.Backdrop'
 ```
 
-The launcher stays installed but is no longer Home. Never re-enable just
-`com.google.android.tungsten.setupwraith` on its own while the new launcher is Home; `restore.sh` brings
-Google TV's home back first.
+`tcl-keys.sh --off` goes first: until it runs, the TV keeps sending those buttons to the launcher, and they
+do nothing once the launcher is uninstalled. The launcher stays installed but is no longer Home. Never
+re-enable just `com.google.android.tungsten.setupwraith` on its own while the new launcher is Home;
+`restore.sh` brings Google TV's home back first.
 
 ## Re-enable one app
 
@@ -58,9 +63,16 @@ pill already covers Live TV and the inputs. All keys: [`themes/README.md`](../..
 ## Remote app buttons
 
 With Google TV's home disabled, the Netflix, Prime Video and YouTube buttons on the TCL remote do nothing:
-they send TCL's own keycodes, which TCL's shortcut manager hands to the stock home. `config.json` maps them
-back through the launcher's `InputKeyService`, which is why the install line above passes
-`INPUT_KEY_SERVICE=1`. Re-pass it on every reinstall; a reinstall drops the service from the accessibility list.
+they send TCL's own keycodes, which TCL's shortcut manager hands to the stock home. The `tcl-keys.sh` line
+above hands them to TCL's own key settings instead (`CustomKeyList` and `CustomKey_<keycode>`, which the
+firmware checks before its fixed buttons): from then on the TV starts the launcher for each press, in any app,
+and the launcher opens what `app_keys` in `config.json` names, so a theme push changes a button without
+running the tool again. The gear (83) opens what `settings_key_keycodes` and `settings_key_panel` say. No
+accessibility helper is bound, so holding volume keeps ramping, and a reinstall of the launcher keeps the
+buttons.
+
+The other way is the launcher's `InputKeyService`: install with `INPUT_KEY_SERVICE=1` and the same `app_keys`
+map the buttons through it. Re-pass it on every reinstall; a reinstall drops the service from the accessibility list.
 
 **Ask for that only if you want the buttons more than a ramping volume.** Once a key-filtering service is
 bound, holding volume up/down moves one step instead of repeating, on the whole TV, and one helper or both
@@ -73,12 +85,13 @@ bisect and for the third option (leave launcherx enabled). The Input button belo
 | Prime Video | 4099 | 473 | `app_keys` |
 | YouTube | 4065 | 569 | `app_keys` |
 | Disney+ | | | keeps working on its own |
-| TCL Channel | 4020 | 456 | opens `com.tcl.waterfall.overseas`, which the list disables; map it to any app you like |
-| Shield (TCL Guard) | 4140 | 660 | opens TGuard, which the list disables; free to map |
+| TCL Channel | 4020 | 456 | opens `com.tcl.waterfall.overseas`, which the list disables; map it to any app you like (`app_keys` and the `tcl-keys.sh` line) |
+| Shield (TCL Guard) | 4140 | 660 | opens TGuard, which the list disables; free to map the same way |
 
 Found with `logcat` while pressing each button: TCL logs every press as `handleKeyBeforeQueueing event=KeyEvent
 { ... keyCode=..., scanCode=... }` from `WindowManager`. Keys injected over ADB never reach `InputKeyService`,
-so check with the real remote.
+so check that one with the real remote. They do reach TCL's key settings: once a button is handed over,
+`tools/tv.py 'input keyevent 4062'` tests it.
 
 ## `INPUT_KEY_SERVICE=1` and volume repeat
 
@@ -91,10 +104,13 @@ service stay bound with filtering off, which is the repeat-keeping half of that 
 [the unit's note](../../docs/devices/tcl-55p71b-pro-g09.md). The same unit also lost the volume beep for
 good when launcherx was disabled — re-enabling every debloated package did not bring it back.
 
+`tools/tcl-keys.sh` takes the choice away: the buttons work without any helper, so the repeat stays. Why
+the repeat goes at all is in [the G09 key-repeat note](../../docs/devices/tcl-55p71b-g09-key-repeat.md#why-volume-loses-its-ramp).
+
 ## Notes for this set
 
 - The remote's Input button keeps working without Google TV's home: TCL draws that panel itself.
-  `INPUT_KEY_SERVICE` is only needed for the app buttons above.
+  It needs neither `tcl-keys.sh` nor `INPUT_KEY_SERVICE`.
 - Same lists and buttons on a second unit with firmware STT2.230203.001 AS10 (G09_4K_GB_32BIT).
 - Firmware updates come through Play Services and are untouched.
 - Screenshots come out black while HDMI or Live TV is on screen; press Home first.

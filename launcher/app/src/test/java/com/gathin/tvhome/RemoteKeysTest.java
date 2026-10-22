@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Map;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -84,6 +85,16 @@ public class RemoteKeysTest {
                 "hold:scan:490:com.wbd.hbomax", "hold:scan:491:", "hold:190:a.b", "scan:492:c.d"));
         assertEquals(1, scans.size());
         assertEquals("com.wbd.hbomax", scans.get(490));
+    }
+
+    @Test public void tvKeyListMatchesWholeKeycodes() {
+        String list = "[\"4062\",\"83\"]";
+        assertTrue(RemoteKeys.listed(list, 83));
+        assertTrue(RemoteKeys.listed(list, 4062));
+        assertFalse(RemoteKeys.listed(list, 406));
+        assertFalse(RemoteKeys.listed(list, 8));
+        assertFalse(RemoteKeys.listed("null", 83));
+        assertFalse(RemoteKeys.listed(null, 83));
     }
 
     @Test public void holdTimePicksTheHoldApp() {

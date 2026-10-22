@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public class InputKeyService extends AccessibilityService {
 
-    private static final String ACTION_VIEW_INPUTS = "com.android.tv.action.VIEW_INPUTS";
+    static final String ACTION_VIEW_INPUTS = "com.android.tv.action.VIEW_INPUTS";
 
     private int[] inputKeycodes = new int[0];
     private Map<Integer, String> appKeys = Collections.emptyMap();

@@ -19,9 +19,13 @@ import android.widget.Toast;
  */
 public final class QuickSettingsActivity extends Activity {
 
+    /** Panels created and not destroyed yet (isOpen). */
+    private static int open;
+
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        open++;
         setContentView(R.layout.activity_quick_settings);
         findViewById(R.id.scrim).setOnClickListener(v -> finish());
         LinearLayout rows = findViewById(R.id.rows);
@@ -49,6 +53,21 @@ public final class QuickSettingsActivity extends Activity {
         super.onPause();
         finish();
         overridePendingTransition(0, 0);
+    }
+
+    @Override
+    protected void onDestroy() {
+        open--;
+        super.onDestroy();
+    }
+
+    /**
+     * A panel is up or still closing. A Settings press the TV answers (tools/tcl-keys.sh) starts RemoteKeyActivity
+     * in front of the panel, which closes it on pause; the panel is destroyed only after that activity has run,
+     * so the press reads as the one that closes the panel instead of opening another.
+     */
+    static boolean isOpen() {
+        return open > 0;
     }
 
     private void addRow(LinearLayout rows, int icon, int title, int status, Intent target) {
