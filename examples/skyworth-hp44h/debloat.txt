@@ -1,0 +1,41 @@
+# Skyworth HP44H / HP4417-Telecom "FlowBox-F2" (Telecom Argentina), Android TV 14
+#
+# Firmware FLOW/HP4417-Telecom/HP44H:14/UKG3.250826.001/C5.3.3_20260721 (SDK 34), Amlogic S905X4,
+# 2 GB RAM, armeabi-v7a only (ro.zygote=zygote32), bootloader locked, verified boot green,
+# ro.boot.veritymode=enforcing, no su binary. Tested on one unit, 2026-10-21, over wireless ADB.
+#
+# READ THE README FIRST. The packages that matter on this box are NOT in this list.
+#
+# The firmware ships 19 Flow/Skyworth/SDT packages, and a whitelist patched into services.jar makes
+# `pm uninstall`, `pm disable-user` and `pm hide` fail on every one of them:
+#     Info: <package> is in whitelist, there is no permission to uninstall.
+# `pm suspend --user 0` is not checked by that whitelist and survives a reboot, so that is what the
+# README lists instead. Putting those package names in this file would only make disable.sh report a
+# failure per line.
+#
+# What is here can be disabled with tools/disable.sh. All 16 were removed on the tested unit with no
+# effect on the Play Store, Play services, Chromecast (com.google.android.apps.mediashell), the
+# Bluetooth remote or Home. A second measurement, for anyone comparing: the launcher went from
+# 84 MB free RAM to 193 MB with the vendor telemetry services stopped.
+#
+# Group 1: printing, one-time init and backup/calendar sync a TV never does
+com.android.printspooler
+com.google.android.onetimeinitializer
+com.google.android.syncadapters.calendar
+com.android.providers.calendar
+com.android.wallpaperbackup
+com.android.sharedstoragebackup
+com.android.backupconfirm
+com.android.tv.feedbackconsent
+
+# Group 2: Android 14 privacy/ads modules (what the Google TV launcher would have used)
+com.android.adservices.api
+com.android.ondevicepersonalization.services
+com.android.federatedcompute.services
+
+# Group 3: resource overlays for hardware this box does not have
+com.android.uwb.resources
+com.android.virtualmachine.res
+com.android.cameraextensions
+com.android.health.connect.backuprestore
+com.android.healthconnect.controller
