@@ -1,0 +1,4 @@
+interface:
+  display_name: "TCL TV Configuration"
+  short_description: "Record TCL TV changes with privacy and staged verification"
+  default_prompt: "Use $tcl-tv-configuration to troubleshoot this TCL TV and prepare a sanitized configuration record."
