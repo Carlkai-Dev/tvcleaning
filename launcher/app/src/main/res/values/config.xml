@@ -218,6 +218,10 @@
          for bigger tiles when rows_below_dock is 2 or 3. -->
     <bool name="dock_title">true</bool>
 
+    <!-- The dock position dots under the cinematic shelf's name (cinematic_home). false drops the dots, leaving the
+         name over more of the artwork; ignores dock_title. -->
+    <bool name="dock_dots">true</bool>
+
     <!-- Tiles per row in the grid; the dock always has this many slots. Tiles are 180dp wide at 4 columns and
          shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
     <integer name="columns">4</integer>
