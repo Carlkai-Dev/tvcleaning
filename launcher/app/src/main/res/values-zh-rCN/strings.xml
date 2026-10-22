@@ -16,6 +16,11 @@
     <string name="follow_theme">跟随主题（重置电视端设置）</string>
     <string name="follow_theme_hint">恢复当前主题或内置的布局与动效设置。推送或重置主题也会清除电视端的这些设置。</string>
     <string name="tv_settings">电视系统设置</string>
+    <string name="update_check">检查更新</string>
+    <string name="update_checking">正在检查更新…</string>
+    <string name="update_none">已是最新版本：%1$s</string>
+    <string name="update_downloading">正在下载 %1$s…</string>
+    <string name="update_failed">更新失败：%1$s</string>
     <string name="on">开</string>
     <string name="off">关</string>
     <string name="enable">开启</string>

@@ -275,8 +275,8 @@
          "show_stats": true. Nothing is read, and the clock does not move, while this is false. -->
     <bool name="show_stats">false</bool>
 
-    <!-- Self-update: a GitHub repo ("owner/name") whose latest release carries this launcher's APK, built
-         by .github/workflows/release.yml and signed with the same key. Adds "Check for updates" to
+    <!-- Self-update: a GitHub repo ("owner/name") whose latest release, tagged launcher-<versionCode>, carries
+         tvhome-<versionCode>.apk built with -PversionCode=<versionCode> and signed with the same key. Adds "Check for updates" to
          Launcher settings. Empty (the default): no row, and the launcher never goes online. -->
     <string name="update_repo" translatable="false"></string>
 

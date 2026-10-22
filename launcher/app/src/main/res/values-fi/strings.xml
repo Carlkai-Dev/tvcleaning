@@ -35,6 +35,11 @@
     <string name="follow_theme">Noudata teemaa (nollaa televisiossa tehdyt valinnat)</string>
     <string name="follow_theme_hint">Käyttää nykyisen teeman tai sisäänrakennettuja asettelu- ja liikeasetuksia. Teeman lähettäminen tai nollaaminen poistaa myös televisiossa tehdyt valinnat.</string>
     <string name="tv_settings">Television järjestelmäasetukset</string>
+    <string name="update_check">Tarkista päivitykset</string>
+    <string name="update_checking">Haetaan päivityksiä…</string>
+    <string name="update_none">Ajan tasalla: %1$s</string>
+    <string name="update_downloading">Ladataan %1$s…</string>
+    <string name="update_failed">Päivitys epäonnistui: %1$s</string>
     <string name="quick_picture">Näyttö</string>
     <string name="quick_network">Verkko</string>
     <string name="quick_apps">Sovellukset</string>

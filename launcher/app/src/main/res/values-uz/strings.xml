@@ -43,6 +43,11 @@
     <string name="follow_theme">Mavzuga qaytish (TVdagi tanlovlarni bekor qilish)</string>
     <string name="follow_theme_hint">Joriy mavzu yoki standart joylashuv va harakat sozlamalaridan foydalanadi. Mavzuni yuborish yoki qayta tiklash ham TVdagi tanlovlaringizni tozalaydi.</string>
     <string name="tv_settings">TV tizim sozlamalari</string>
+    <string name="update_check">Yangilanishlarni tekshirish</string>
+    <string name="update_checking">Yangilanishlar tekshirilmoqda…</string>
+    <string name="update_none">Eng soʻnggi versiya: %1$s</string>
+    <string name="update_downloading">%1$s yuklab olinmoqda…</string>
+    <string name="update_failed">Yangilab boʻlmadi: %1$s</string>
     <string name="quick_picture">Ekran</string>
     <string name="quick_network">Tarmoq</string>
     <string name="quick_apps">Ilovalar</string>

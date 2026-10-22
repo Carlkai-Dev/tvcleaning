@@ -42,6 +42,11 @@
     <string name="follow_theme">Ikuti tema (atur ulang pilihan di TV)</string>
     <string name="follow_theme_hint">Menggunakan tema saat ini atau pengaturan tata letak dan gerakan bawaan. Memasang atau mengatur ulang tema juga menghapus pilihan di TV Anda.</string>
     <string name="tv_settings">Setelan Sistem TV</string>
+    <string name="update_check">Periksa pembaruan</string>
+    <string name="update_checking">Memeriksa pembaruan…</string>
+    <string name="update_none">Sudah terbaru: %1$s</string>
+    <string name="update_downloading">Mengunduh %1$s…</string>
+    <string name="update_failed">Pembaruan gagal: %1$s</string>
     <string name="quick_picture">Tampilan</string>
     <string name="quick_network">Jaringan</string>
     <string name="quick_apps">Aplikasi</string>

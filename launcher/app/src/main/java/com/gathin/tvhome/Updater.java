@@ -24,7 +24,7 @@ import java.net.URL;
 
 /**
  * Self-update from the latest GitHub release of config.xml update_repo. A release's tag ends in the
- * versionCode it was built with (launcher-1001, .github/workflows/release.yml) and carries the APK.
+ * versionCode it was built with (launcher-1001, built with -PversionCode=1001) and carries tvhome-1001.apk.
  * Android itself refuses an APK signed with another key, so only the repo owner's builds install.
  */
 final class Updater {
@@ -32,6 +32,11 @@ final class Updater {
     private static boolean running;
 
     private Updater() {
+    }
+
+    /** The release asset this updater installs; any other file on the release is ignored. */
+    static String apkName(long versionCode) {
+        return "tvhome-" + versionCode + ".apk";
     }
 
     /** Trailing digits of a release tag, or -1. */
@@ -50,8 +55,8 @@ final class Updater {
         new Thread(() -> {
             String message;
             try {
-                JSONObject release = new JSONObject(new String(get(
-                        "https://api.github.com/repos/" + repo + "/releases/latest"), "UTF-8"));
+                JSONObject release = new JSONObject(read(
+                        "https://api.github.com/repos/" + repo + "/releases/latest"));
                 String tag = release.getString("tag_name");
                 PackageInfo self = app.getPackageManager().getPackageInfo(app.getPackageName(), 0);
                 long available = versionOf(tag);
@@ -59,13 +64,13 @@ final class Updater {
                 JSONArray assets = release.getJSONArray("assets");
                 for (int i = 0; i < assets.length(); i++) {
                     JSONObject asset = assets.getJSONObject(i);
-                    if (asset.getString("name").endsWith(".apk")) apk = asset.getString("browser_download_url");
+                    if (asset.getString("name").equals(apkName(available))) apk = asset.getString("browser_download_url");
                 }
                 if (available <= self.versionCode || apk == null) {
                     message = app.getString(R.string.update_none, self.versionName + " (" + self.versionCode + ")");
                 } else {
                     main.post(() -> toast(app, app.getString(R.string.update_downloading, tag)));
-                    install(app, get(apk));
+                    install(app, apk);
                     message = null;
                 }
             } catch (Exception e) {
@@ -81,34 +86,51 @@ final class Updater {
         }).start();
     }
 
-    private static byte[] get(String url) throws Exception {
+    private static HttpURLConnection open(String url) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
         c.setConnectTimeout(15000);
         c.setReadTimeout(30000);
-        try {
-            if (c.getResponseCode() != 200) throw new Exception("HTTP " + c.getResponseCode() + " " + url);
-            try (InputStream in = c.getInputStream()) {
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                byte[] buf = new byte[65536];
-                for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
-                return out.toByteArray();
-            }
+        if (c.getResponseCode() != 200) {
+            c.disconnect();
+            throw new Exception("HTTP " + c.getResponseCode() + " " + url);
+        }
+        return c;
+    }
+
+    private static String read(String url) throws Exception {
+        HttpURLConnection c = open(url);
+        try (InputStream in = c.getInputStream()) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            copy(in, out);
+            return out.toString("UTF-8");
         } finally {
             c.disconnect();
         }
     }
 
-    /** Hands the APK to the system installer; it asks the person to confirm, then restarts Home. */
-    private static void install(Context app, byte[] apk) throws Exception {
+    private static void copy(InputStream in, OutputStream out) throws Exception {
+        byte[] buf = new byte[65536];
+        for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+    }
+
+    /** Streams the APK into the system installer; it asks the person to confirm, then restarts Home. */
+    private static void install(Context app, String url) throws Exception {
         PackageInstaller installer = app.getPackageManager().getPackageInstaller();
         PackageInstaller.SessionParams params =
                 new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
         params.setAppPackageName(app.getPackageName());
+        HttpURLConnection c = open(url);
         int id = installer.createSession(params);
         try (PackageInstaller.Session session = installer.openSession(id)) {
-            try (OutputStream out = session.openWrite("update.apk", 0, apk.length)) {
-                out.write(apk);
+            try (InputStream in = c.getInputStream();
+                 OutputStream out = session.openWrite("update.apk", 0, c.getContentLengthLong())) {
+                copy(in, out);
                 session.fsync(out);
+            } catch (Exception e) {
+                session.abandon();
+                throw e;
+            } finally {
+                c.disconnect();
             }
             BroadcastReceiver status = new BroadcastReceiver() {
                 @Override

@@ -43,6 +43,11 @@
     <string name="follow_theme">Thema volgen (keuzes op de tv wissen)</string>
     <string name="follow_theme_hint">Gebruikt de indeling en beweging van het huidige thema of de ingebouwde instellingen. Een thema pushen of resetten wist ook je keuzes op de tv.</string>
     <string name="tv_settings">Systeeminstellingen van de tv</string>
+    <string name="update_check">Zoeken naar updates</string>
+    <string name="update_checking">Zoeken naar updates…</string>
+    <string name="update_none">Up-to-date: %1$s</string>
+    <string name="update_downloading">%1$s downloaden…</string>
+    <string name="update_failed">Update mislukt: %1$s</string>
     <string name="quick_picture">Beeld</string>
     <string name="quick_network">Netwerk</string>
     <string name="quick_apps">Apps</string>

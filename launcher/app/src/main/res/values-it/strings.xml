@@ -38,6 +38,11 @@
     <string name="follow_theme">Segui il tema (azzera le scelte fatte sulla TV)</string>
     <string name="follow_theme_hint">Usa il tema corrente o le impostazioni predefinite di layout e animazioni. Applicare o reimpostare un tema cancella anche le scelte fatte sulla TV.</string>
     <string name="tv_settings">Impostazioni di sistema della TV</string>
+    <string name="update_check">Cerca aggiornamenti</string>
+    <string name="update_checking">Ricerca aggiornamenti…</string>
+    <string name="update_none">Aggiornato: %1$s</string>
+    <string name="update_downloading">Download di %1$s…</string>
+    <string name="update_failed">Aggiornamento non riuscito: %1$s</string>
     <string name="quick_picture">Schermo</string>
     <string name="quick_network">Rete</string>
     <string name="quick_apps">App</string>

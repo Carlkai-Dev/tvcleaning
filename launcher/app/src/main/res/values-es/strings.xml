@@ -34,6 +34,11 @@
     <string name="follow_theme">Seguir el tema (restablecer ajustes)</string>
     <string name="follow_theme_hint">Usa el diseño y los efectos del tema actual o los valores integrados. Aplicar o restablecer un tema también borra estos ajustes.</string>
     <string name="tv_settings">Ajustes del televisor</string>
+    <string name="update_check">Buscar actualizaciones</string>
+    <string name="update_checking">Buscando actualizaciones…</string>
+    <string name="update_none">Actualizado: %1$s</string>
+    <string name="update_downloading">Descargando %1$s…</string>
+    <string name="update_failed">Error al actualizar: %1$s</string>
     <string name="on">Sí</string>
     <string name="off">No</string>
     <string name="enable">Activar</string>

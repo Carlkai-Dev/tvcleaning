@@ -38,6 +38,11 @@
     <string name="follow_theme">থিম অনুসরণ করুন (টিভিতে করা পছন্দ মুছে দিন)</string>
     <string name="follow_theme_hint">বর্তমান থিম বা বিল্ট-ইন লেআউট ও মোশন সেটিংস ব্যবহার করে। থিম পাঠালে বা রিসেট করলেও টিভিতে করা আপনার পছন্দ মুছে যায়।</string>
     <string name="tv_settings">টিভির সিস্টেম সেটিংস</string>
+    <string name="update_check">আপডেট দেখুন</string>
+    <string name="update_checking">আপডেট খোঁজা হচ্ছে…</string>
+    <string name="update_none">আপ টু ডেট: %1$s</string>
+    <string name="update_downloading">%1$s ডাউনলোড হচ্ছে…</string>
+    <string name="update_failed">আপডেট ব্যর্থ: %1$s</string>
     <string name="quick_picture">ডিসপ্লে</string>
     <string name="quick_network">নেটওয়ার্ক</string>
     <string name="quick_apps">অ্যাপ</string>

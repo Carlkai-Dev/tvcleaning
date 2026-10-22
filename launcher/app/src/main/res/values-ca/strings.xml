@@ -32,6 +32,11 @@
     <string name="follow_theme">Segueix el tema (restableix els ajustos)</string>
     <string name="follow_theme_hint">Utilitza la disposició i els efectes del tema actual o els valors integrats. Aplicar o restablir un tema també esborra aquests ajustos.</string>
     <string name="tv_settings">Configuració del televisor</string>
+    <string name="update_check">Cerca actualitzacions</string>
+    <string name="update_checking">S\'estan cercant actualitzacions…</string>
+    <string name="update_none">Actualitzat: %1$s</string>
+    <string name="update_downloading">S\'està baixant %1$s…</string>
+    <string name="update_failed">Error en actualitzar: %1$s</string>
     <string name="on">Activat</string>
     <string name="off">Desactivat</string>
     <string name="enable">Activa</string>

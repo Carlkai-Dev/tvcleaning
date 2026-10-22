@@ -34,6 +34,11 @@
     <string name="follow_theme">ใช้ตามธีม (รีเซ็ตการตั้งค่า)</string>
     <string name="follow_theme_hint">ใช้รูปแบบและภาพเคลื่อนไหวจากธีมปัจจุบันหรือค่าในแอป การใช้หรือรีเซ็ตธีมจะล้างตัวเลือกบนทีวีด้วย</string>
     <string name="tv_settings">การตั้งค่าระบบทีวี</string>
+    <string name="update_check">ตรวจหาอัปเดต</string>
+    <string name="update_checking">กำลังตรวจหาอัปเดต…</string>
+    <string name="update_none">เป็นเวอร์ชันล่าสุด: %1$s</string>
+    <string name="update_downloading">กำลังดาวน์โหลด %1$s…</string>
+    <string name="update_failed">อัปเดตไม่สำเร็จ: %1$s</string>
     <string name="on">เปิด</string>
     <string name="off">ปิด</string>
     <string name="enable">เปิดใช้งาน</string>
