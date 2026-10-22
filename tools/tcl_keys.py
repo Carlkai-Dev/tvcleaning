@@ -16,7 +16,8 @@ Usage, with TV_HOST set and the launcher installed (tools/tcl-keys.sh and tcl-ke
 system_server parses these settings, and a bad value takes it down: CustomKeyList at every boot (it must
 stay a JSON list of keycodes as strings), and a change to CustomKey_<n> while n is not in that list. So the
 script on the TV removes the launcher's dropped entries first, then writes the list, and only then each
-CustomKey_<n>; entries that name another app stay as they are. Only vendor keycodes (above 288, where TCL's own
+CustomKey_<n>; entries that name another app stay as they are, and a requested button that another app already
+answers is refused before anything is written, so --off always puts back exactly what was there. Only vendor keycodes (above 288, where TCL's own
 buttons live) and the Settings buttons (83 and 176) are accepted: a navigation, volume, power or media key
 handed to the TV would stop working as that key.
 """
@@ -46,6 +47,12 @@ if [ -n "$want" ] && ! cmd package resolve-activity --brief -n $act | grep -q "^
   echo "tcl-keys: $act is not on the TV, so the buttons would go dead; install the launcher first. Nothing changed"
   exit 0
 fi
+for n in $want; do
+  case "$(settings get global CustomKey_$n)" in
+    null|*"$pkg/"*) ;;
+    *) echo "tcl-keys: button $n already opens another app on this TV; nothing changed"; exit 0 ;;
+  esac
+done
 old=$(settings get global CustomKeyList)
 [ "$old" = null ] && old=
 keep=

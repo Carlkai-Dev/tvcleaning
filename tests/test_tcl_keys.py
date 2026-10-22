@@ -135,6 +135,36 @@ class ScriptOnTheTvTest(unittest.TestCase):
         self.assertEqual(self.setting("CustomKey_4149"), FOREIGN)
         self.assertIsNone(self.setting("CustomKey_4062"))
 
+    def test_a_button_another_app_answers_is_refused_whole(self):
+        # Overwriting it would lose that mapping for good: --off deletes what it wrote and has no copy.
+        (self.store / "CustomKeyList").write_text('["4149"]')
+        (self.store / "CustomKey_4149").write_text(FOREIGN)
+        for codes in (["4149"], ["4062", "4149"]):
+            with self.subTest(codes=codes):
+                out, journal = self.run_tv(codes)
+                self.assertEqual(journal, [], "nothing at all is written, not even the free buttons")
+                self.assertIn("already opens another app", out)
+                self.assertNotIn("tcl-keys: done", out)
+                self.assertEqual(self.setting("CustomKeyList"), '["4149"]')
+                self.assertEqual(self.setting("CustomKey_4149"), FOREIGN)
+
+    def test_off_puts_back_exactly_what_was_there(self):
+        starts = {
+            "nothing": {},
+            "another app's button": {"CustomKeyList": '["4149"]', "CustomKey_4149": FOREIGN},
+        }
+        for name, start in starts.items():
+            with self.subTest(start=name):
+                for p in self.store.iterdir():
+                    p.unlink()
+                for key, value in start.items():
+                    (self.store / key).write_text(value)
+                self.run_tv(["4062", "4065", "83"])
+                self.run_tv(["4062"])   # a smaller set in between
+                self.run_tv([])
+                after = {p.name: p.read_text() for p in self.store.iterdir()}
+                self.assertEqual(after, start)
+
     def test_off_takes_everything_back(self):
         self.run_tv(["4062", "83"])
         out, _ = self.run_tv([])

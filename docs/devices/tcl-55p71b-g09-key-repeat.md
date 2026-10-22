@@ -116,7 +116,8 @@ filters keys, so the volume ramps, and the buttons work in every app. Tried on t
 from inside an app and from the screensaver, the gear closed its panel on a second press, and a held volume
 key ramped with the real remote. Prime Video was off on that unit. `system_server` reads these settings (a
 malformed `CustomKeyList` stops it at every boot), so write them only with the tool, which checks the
-keycodes and orders the writes. `tools/tcl-keys.sh --off` takes them back.
+keycodes, orders the writes and refuses a button another app already answers. `tools/tcl-keys.sh --off`
+takes back what it wrote and leaves the settings exactly as they were before.
 
 ## Limits
 
