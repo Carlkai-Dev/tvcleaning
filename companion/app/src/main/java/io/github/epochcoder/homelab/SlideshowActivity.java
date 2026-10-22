@@ -4,7 +4,10 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.WindowManager;
 
-/** The screensaver's slideshow as an activity, to try a config.json right after pushing it. Back leaves. */
+/**
+ * The screensaver's slideshow as an activity, to try a config.json right after pushing it. Back
+ * leaves.
+ */
 public class SlideshowActivity extends Activity {
     private Slideshow slideshow;
 

@@ -8,22 +8,20 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
- * One film or show from a search, with everything needed to decide: backdrop, poster, year, runtime or seasons,
- * ratings, overview, and whether it is already in the library. The first button has focus, so adding it and
- * starting the search is a single OK press: "Add and search" for something new, "Search again" for something
- * the library has. Quality and, for a show, which episodes to monitor sit next to it for when the defaults
- * from Settings are not what this one needs.
+ * One film or show from a search, with everything needed to decide: backdrop, poster, year, runtime
+ * or seasons, ratings, overview, and whether it is already in the library. The first button has
+ * focus, so adding it and starting the search is a single OK press: "Add and search" for something
+ * new, "Search again" for something the library has. Quality and, for a show, which episodes to
+ * monitor sit next to it for when the defaults from Settings are not what this one needs.
  */
 public class DetailActivity extends Activity {
     private static final String EXTRA_KIND = "kind";
@@ -36,6 +34,7 @@ public class DetailActivity extends Activity {
     private String monitor;
     private boolean busy;
     private boolean loadingDefaults;
+
     /** Add was pressed before the defaults arrived: add as soon as they do. */
     private boolean addWhenLoaded;
 
@@ -79,38 +78,46 @@ public class DetailActivity extends Activity {
         monitorButton.setOnClickListener(v -> pickMonitor());
         primary.requestFocus();
 
-        if (!item.inLibrary()) loadDefaults();
+        if (!item.inLibrary()) {
+            loadDefaults();
+        }
     }
 
     /**
-     * The quality profile and root folder an add uses, fetched while the screen is read. A press on Add before
-     * they arrive waits for them; a failure leaves Add able to try again.
+     * The quality profile and root folder an add uses, fetched while the screen is read. A press on
+     * Add before they arrive waits for them; a failure leaves Add able to try again.
      */
     private void loadDefaults() {
-        if (loadingDefaults) return;
+        if (loadingDefaults) {
+            return;
+        }
         loadingDefaults = true;
         quality.setText(R.string.loading);
-        io.execute(() -> {
-            try {
-                Arr.Defaults d = arr.defaults();
-                runOnUiThread(() -> {
-                    loadingDefaults = false;
-                    defaults = d;
-                    quality.setText(getString(R.string.quality_button, d.profileName));
-                    if (addWhenLoaded) {
-                        addWhenLoaded = false;
-                        onPrimary();
+        io.execute(
+                () -> {
+                    try {
+                        Arr.Defaults d = arr.defaults();
+                        runOnUiThread(
+                                () -> {
+                                    loadingDefaults = false;
+                                    defaults = d;
+                                    quality.setText(
+                                            getString(R.string.quality_button, d.profileName));
+                                    if (addWhenLoaded) {
+                                        addWhenLoaded = false;
+                                        onPrimary();
+                                    }
+                                });
+                    } catch (Exception e) {
+                        runOnUiThread(
+                                () -> {
+                                    loadingDefaults = false;
+                                    addWhenLoaded = false;
+                                    quality.setText(R.string.s_quality_profile);
+                                    fail(e);
+                                });
                     }
                 });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    loadingDefaults = false;
-                    addWhenLoaded = false;
-                    quality.setText(R.string.s_quality_profile);
-                    fail(e);
-                });
-            }
-        });
     }
 
     @Override
@@ -119,11 +126,15 @@ public class DetailActivity extends Activity {
         super.onDestroy();
     }
 
-    /** Fills the screen from {@code i}; called again after an add with the library's answer. Package-private for previews. */
+    /**
+     * Fills the screen from {@code i}; called again after an add with the library's answer.
+     * Package-private for previews.
+     */
     void bind(Arr.Item i) {
         item = i;
         boolean movie = i.kind == Arr.Kind.MOVIE;
-        ((TextView) findViewById(R.id.kind)).setText(movie ? R.string.kind_movie : R.string.kind_series);
+        ((TextView) findViewById(R.id.kind))
+                .setText(movie ? R.string.kind_movie : R.string.kind_series);
         ((TextView) findViewById(R.id.title)).setText(i.title);
         ((TextView) findViewById(R.id.placeholder)).setText(i.title);
         setLine(findViewById(R.id.meta), i.meta());
@@ -137,10 +148,22 @@ public class DetailActivity extends Activity {
             boolean complete = movie ? i.hasFile : i.episodes > 0 && i.episodeFiles >= i.episodes;
             // A show just added has no episode list yet; "0 of 0" in amber would read as a failure.
             boolean counted = movie || i.episodes > 0;
-            library.setTextColor(getColor(!counted ? R.color.text_dim : complete ? R.color.ok : R.color.warn));
-            library.setText(movie ? getString(i.hasFile ? R.string.library_downloaded : R.string.library_missing)
-                    : counted ? getResources().getQuantityString(R.plurals.library_episodes, i.episodes, i.episodeFiles, i.episodes)
-                    : getString(R.string.library_in));
+            library.setTextColor(
+                    getColor(!counted ? R.color.text_dim : complete ? R.color.ok : R.color.warn));
+            library.setText(
+                    movie
+                            ? getString(
+                                    i.hasFile
+                                            ? R.string.library_downloaded
+                                            : R.string.library_missing)
+                            : counted
+                                    ? getResources()
+                                            .getQuantityString(
+                                                    R.plurals.library_episodes,
+                                                    i.episodes,
+                                                    i.episodeFiles,
+                                                    i.episodes)
+                                    : getString(R.string.library_in));
             primary.setText(R.string.search_again);
             quality.setVisibility(View.GONE);
             monitorButton.setVisibility(View.GONE);
@@ -158,17 +181,26 @@ public class DetailActivity extends Activity {
     private String statusLine(Arr.Item i) {
         String s = getString(R.string.not_in_library);
         switch (i.status) {
-            case "announced": case "tba": return s + "  ·  " + getString(R.string.status_announced);
-            case "inCinemas": return s + "  ·  " + getString(R.string.status_in_cinemas);
-            case "upcoming": return s + "  ·  " + getString(R.string.status_upcoming);
-            case "ended": return s + "  ·  " + getString(R.string.status_ended);
-            case "continuing": return s + "  ·  " + getString(R.string.status_continuing);
-            default: return s;
+            case "announced":
+            case "tba":
+                return s + "  ·  " + getString(R.string.status_announced);
+            case "inCinemas":
+                return s + "  ·  " + getString(R.string.status_in_cinemas);
+            case "upcoming":
+                return s + "  ·  " + getString(R.string.status_upcoming);
+            case "ended":
+                return s + "  ·  " + getString(R.string.status_ended);
+            case "continuing":
+                return s + "  ·  " + getString(R.string.status_continuing);
+            default:
+                return s;
         }
     }
 
     private void onPrimary() {
-        if (busy) return;
+        if (busy) {
+            return;
+        }
         if (!item.inLibrary() && defaults == null) {
             addWhenLoaded = true;
             status.setTextColor(getColor(R.color.text_dim));
@@ -179,26 +211,30 @@ public class DetailActivity extends Activity {
         busy = true;
         status.setTextColor(getColor(R.color.text_dim));
         status.setText(item.inLibrary() ? R.string.searching : R.string.adding);
-        io.execute(() -> {
-            try {
-                if (item.inLibrary()) {
-                    arr.searchNow(item);
-                    runOnUiThread(() -> done(getString(R.string.search_started, arr.name())));
-                } else {
-                    Arr.Item added = arr.add(item, defaults, monitor);
-                    runOnUiThread(() -> {
-                        bind(added);
-                        setResult(RESULT_OK);
-                        done(getString(R.string.added_searching, arr.name()));
-                    });
-                }
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    busy = false;
-                    fail(e);
+        io.execute(
+                () -> {
+                    try {
+                        if (item.inLibrary()) {
+                            arr.searchNow(item);
+                            runOnUiThread(
+                                    () -> done(getString(R.string.search_started, arr.name())));
+                        } else {
+                            Arr.Item added = arr.add(item, defaults, monitor);
+                            runOnUiThread(
+                                    () -> {
+                                        bind(added);
+                                        setResult(RESULT_OK);
+                                        done(getString(R.string.added_searching, arr.name()));
+                                    });
+                        }
+                    } catch (Exception e) {
+                        runOnUiThread(
+                                () -> {
+                                    busy = false;
+                                    fail(e);
+                                });
+                    }
                 });
-            }
-        });
     }
 
     private void done(String message) {
@@ -218,33 +254,49 @@ public class DetailActivity extends Activity {
             loadDefaults();
             return;
         }
-        io.execute(() -> {
-            try {
-                JSONArray profiles = arr.qualityProfiles();
-                runOnUiThread(() -> {
-                    List<String> names = new ArrayList<>();
-                    List<Integer> ids = new ArrayList<>();
-                    int selected = 0;
-                    for (int i = 0; i < profiles.length(); i++) {
-                        JSONObject p = profiles.optJSONObject(i);
-                        if (p == null) continue;
-                        if (p.optInt("id") == defaults.profileId) selected = names.size();
-                        names.add(p.optString("name"));
-                        ids.add(p.optInt("id"));
+        io.execute(
+                () -> {
+                    try {
+                        JSONArray profiles = arr.qualityProfiles();
+                        runOnUiThread(
+                                () -> {
+                                    List<String> names = new ArrayList<>();
+                                    List<Integer> ids = new ArrayList<>();
+                                    int selected = 0;
+                                    for (int i = 0; i < profiles.length(); i++) {
+                                        JSONObject p = profiles.optJSONObject(i);
+                                        if (p == null) {
+                                            continue;
+                                        }
+                                        if (p.optInt("id") == defaults.profileId) {
+                                            selected = names.size();
+                                        }
+                                        names.add(p.optString("name"));
+                                        ids.add(p.optInt("id"));
+                                    }
+                                    new AlertDialog.Builder(this)
+                                            .setTitle(R.string.s_quality_profile)
+                                            .setSingleChoiceItems(
+                                                    names.toArray(new String[0]),
+                                                    selected,
+                                                    (d, which) -> {
+                                                        defaults =
+                                                                new Arr.Defaults(
+                                                                        ids.get(which),
+                                                                        names.get(which),
+                                                                        defaults.rootFolder);
+                                                        quality.setText(
+                                                                getString(
+                                                                        R.string.quality_button,
+                                                                        defaults.profileName));
+                                                        d.dismiss();
+                                                    })
+                                            .show();
+                                });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> fail(e));
                     }
-                    new AlertDialog.Builder(this)
-                            .setTitle(R.string.s_quality_profile)
-                            .setSingleChoiceItems(names.toArray(new String[0]), selected, (d, which) -> {
-                                defaults = new Arr.Defaults(ids.get(which), names.get(which), defaults.rootFolder);
-                                quality.setText(getString(R.string.quality_button, defaults.profileName));
-                                d.dismiss();
-                            })
-                            .show();
                 });
-            } catch (Exception e) {
-                runOnUiThread(() -> fail(e));
-            }
-        });
     }
 
     private void pickMonitor() {
@@ -252,28 +304,41 @@ public class DetailActivity extends Activity {
         int selected = 0;
         for (int i = 0; i < labels.length; i++) {
             labels[i] = monitorLabel(Arr.SERIES_MONITOR[i]);
-            if (Arr.SERIES_MONITOR[i].equals(monitor)) selected = i;
+            if (Arr.SERIES_MONITOR[i].equals(monitor)) {
+                selected = i;
+            }
         }
         new AlertDialog.Builder(this)
                 .setTitle(R.string.s_monitor)
-                .setSingleChoiceItems(labels, selected, (d, which) -> {
-                    monitor = Arr.SERIES_MONITOR[which];
-                    monitorButton.setText(getString(R.string.monitor_button, monitorLabel(monitor)));
-                    d.dismiss();
-                })
+                .setSingleChoiceItems(
+                        labels,
+                        selected,
+                        (d, which) -> {
+                            monitor = Arr.SERIES_MONITOR[which];
+                            monitorButton.setText(
+                                    getString(R.string.monitor_button, monitorLabel(monitor)));
+                            d.dismiss();
+                        })
                 .show();
     }
 
     /** The words for one of {@link Arr#SERIES_MONITOR}; Settings uses the same. */
     static String monitorLabel(Context ctx, String m) {
         switch (m) {
-            case "future": return ctx.getString(R.string.m_future);
-            case "missing": return ctx.getString(R.string.m_missing);
-            case "firstSeason": return ctx.getString(R.string.m_first_season);
-            case "latestSeason": return ctx.getString(R.string.m_latest_season);
-            case "pilot": return ctx.getString(R.string.m_pilot);
-            case "none": return ctx.getString(R.string.m_none);
-            default: return ctx.getString(R.string.m_all);
+            case "future":
+                return ctx.getString(R.string.m_future);
+            case "missing":
+                return ctx.getString(R.string.m_missing);
+            case "firstSeason":
+                return ctx.getString(R.string.m_first_season);
+            case "latestSeason":
+                return ctx.getString(R.string.m_latest_season);
+            case "pilot":
+                return ctx.getString(R.string.m_pilot);
+            case "none":
+                return ctx.getString(R.string.m_none);
+            default:
+                return ctx.getString(R.string.m_all);
         }
     }
 

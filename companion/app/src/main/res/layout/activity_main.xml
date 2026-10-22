@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The whole app: the mark and name, the tabs and a clock across the top, then one page at a time below.
+     Margins keep everything inside the 5% a TV may crop. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="48dp"
+        android:paddingTop="27dp"
+        android:paddingEnd="48dp">
+
+        <ImageView
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_mark" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="24dp"
+            android:fontFamily="sans-serif-medium"
+            android:singleLine="true"
+            android:text="@string/app_name"
+            android:textColor="@color/text"
+            android:textSize="19sp" />
+
+        <LinearLayout
+            android:id="@+id/tabs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/tab_dashboard" style="@style/Homelab.Tab"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true"
+                android:drawableStart="@drawable/ic_tab_dashboard" android:text="@string/tab_dashboard" />
+            <Button android:id="@+id/tab_search" style="@style/Homelab.Tab"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true"
+                android:drawableStart="@drawable/ic_tab_search" android:text="@string/tab_search" />
+            <Button android:id="@+id/tab_downloads" style="@style/Homelab.Tab"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true"
+                android:drawableStart="@drawable/ic_tab_downloads" android:text="@string/tab_downloads" />
+            <Button android:id="@+id/tab_upcoming" style="@style/Homelab.Tab"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true"
+                android:drawableStart="@drawable/ic_tab_upcoming" android:text="@string/tab_upcoming" />
+            <Button android:id="@+id/tab_settings" style="@style/Homelab.Tab"
+                android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true"
+                android:drawableStart="@drawable/ic_tab_settings" android:text="@string/tab_settings" />
+        </LinearLayout>
+
+        <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+
+        <TextClock
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-light"
+            android:textColor="@color/text"
+            android:singleLine="true"
+            android:textSize="22sp" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/pages"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="22dp"
+        android:layout_weight="1" />
+</LinearLayout>

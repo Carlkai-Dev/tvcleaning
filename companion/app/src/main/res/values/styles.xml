@@ -1,12 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.Homelab" parent="@android:style/Theme.DeviceDefault.NoActionBar">
-        <item name="android:windowBackground">@android:color/black</item>
-        <item name="android:colorAccent">#FF9FD8FF</item>
+        <item name="android:windowBackground">@drawable/bg_app</item>
+        <item name="android:colorAccent">@color/accent</item>
         <item name="android:windowFullscreen">true</item>
+        <item name="android:alertDialogTheme">@style/Homelab.Dialog</item>
     </style>
 
-    <!-- Tabs and buttons on the Media and Dashboard screens: pills that turn white when focused. -->
+    <!-- Every dialog (text entry, pickers, stop/start): a rounded raised card in the app's palette. -->
+    <style name="Homelab.Dialog" parent="@android:style/Theme.DeviceDefault.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/dialog_bg</item>
+        <item name="android:colorAccent">@color/accent</item>
+        <item name="android:colorBackground">@color/surface</item>
+        <item name="android:textColorPrimary">@color/text</item>
+        <item name="android:textColorSecondary">@color/text_dim</item>
+        <item name="android:buttonBarButtonStyle">@style/Homelab.DialogButton</item>
+    </style>
+
+    <style name="Homelab.DialogButton" parent="@android:style/Widget.DeviceDefault.Button.Borderless">
+        <item name="android:background">@drawable/pill</item>
+        <item name="android:textColor">@color/pill_text</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:paddingStart">22dp</item>
+        <item name="android:paddingEnd">22dp</item>
+        <item name="android:layout_marginStart">8dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <!-- The top bar's tabs: an icon and a word, white when focused, accent on the current one. -->
+    <style name="Homelab.Tab" parent="@android:style/Widget.DeviceDefault.Button.Borderless">
+        <item name="android:background">@drawable/tab</item>
+        <item name="android:textColor">@color/tab_text</item>
+        <item name="android:drawableTint">@color/tab_text</item>
+        <item name="android:drawablePadding">8dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:gravity">center</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:layout_marginEnd">4dp</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <!-- Buttons on the detail screen and in empty states: pills that turn white when focused. -->
     <style name="Homelab.Pill" parent="@android:style/Widget.DeviceDefault.Button.Borderless">
         <item name="android:background">@drawable/pill</item>
         <item name="android:textColor">@color/pill_text</item>
@@ -30,5 +71,12 @@
         <item name="android:paddingEnd">6dp</item>
         <item name="android:paddingTop">2dp</item>
         <item name="android:paddingBottom">2dp</item>
+    </style>
+
+    <!-- A page's headline (Downloads' speeds, Coming up's summary). -->
+    <style name="Homelab.PageTitle" parent="@android:style/Widget.TextView">
+        <item name="android:fontFamily">sans-serif-light</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="android:textSize">26sp</item>
     </style>
 </resources>

@@ -1,5 +1,11 @@
 plugins {
     id 'com.android.application'
+    // Error Prone runs as a javac plugin on every compile; google-java-format (through Spotless) keeps the
+    // layout uniform: `./gradlew spotlessApply` formats, `spotlessCheck` (part of `check`) fails on drift.
+    id 'net.ltgt.errorprone'
+    id 'com.diffplug.spotless'
+    // Checkstyle carries the one rule the other two do not: braces on every if/else/for/while body.
+    id 'checkstyle'
 }
 
 android {
@@ -37,8 +43,48 @@ android {
 }
 
 dependencies {
+    // 2.36 is the last release that runs on JDK 17, which CI builds with.
+    errorprone 'com.google.errorprone:error_prone_core:2.36.0'
     // No runtime dependencies: HttpURLConnection, org.json and the platform widgets cover everything.
     testImplementation 'junit:junit:4.13.2'
     // The android.jar org.json is a stub on the JVM; the real implementation for the unit tests only.
     testImplementation 'org.json:json:20240303'
 }
+
+// Android compiles with the (test)annotationProcessor paths, so Error Prone has to be on it for javac to find the plugin.
+configurations.annotationProcessor.extendsFrom(configurations.errorprone)
+configurations.testAnnotationProcessor.extendsFrom(configurations.errorprone)
+
+tasks.withType(JavaCompile).configureEach {
+    // An Error Prone warning fails the build like an error, so findings are fixed rather than piling up.
+    options.compilerArgs += ['-Werror']
+    options.errorprone {
+        enabled = true
+        disableWarningsInGeneratedCode = true
+        // R and BuildConfig are generated; only the code in src/ is ours to fix.
+        excludedPaths = '.*/build/generated/.*'
+    }
+}
+
+spotless {
+    java {
+        target 'src/*/java/**/*.java'
+        // AOSP style: google-java-format with the 4-space indent Android code (and this project) uses.
+        googleJavaFormat('1.25.2').aosp().reflowLongStrings()
+        removeUnusedImports()
+    }
+}
+
+checkstyle {
+    toolVersion = '10.21.0'
+    configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+    maxWarnings = 0
+}
+
+// The checkstyle plugin only creates tasks for Java source sets; Android needs its own, over main and test.
+def checkstyleAll = tasks.register('checkstyle', Checkstyle) {
+    source 'src/main/java', 'src/test/java'
+    include '**/*.java'
+    classpath = files()
+}
+tasks.named('check') { dependsOn checkstyleAll }

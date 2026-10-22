@@ -11,8 +11,14 @@ import org.junit.Test;
 /** Arr against a scripted Sonarr or Radarr: what lookup, add and search again send. */
 public class ArrClientTest {
     private static Arr arr(FakeServer s, Arr.Kind kind) throws Exception {
-        return new Arr(kind, new Config.Arr(new JSONObject().put("url", s.url()).put("api_key", "k")
-                .put("quality_profile", "HD-1080p")), null);
+        return new Arr(
+                kind,
+                new Config.Arr(
+                        new JSONObject()
+                                .put("url", s.url())
+                                .put("api_key", "k")
+                                .put("quality_profile", "HD-1080p")),
+                null);
     }
 
     @Test
@@ -26,14 +32,26 @@ public class ArrClientTest {
 
     @Test
     public void addSendsTheLookupWithProfileFolderAndSearch() throws Exception {
-        try (FakeServer s = new FakeServer(r -> {
-            if (r.path.equals("/api/v3/qualityprofile")) return ok("[{\"id\":1,\"name\":\"Any\"},{\"id\":4,\"name\":\"HD-1080p\"}]");
-            if (r.path.equals("/api/v3/rootfolder")) return ok("[{\"id\":1,\"path\":\"/movies\"}]");
-            if (r.path.equals("/api/v3/movie")) return ok("{\"id\":12,\"title\":\"Dune\",\"year\":2021}");
-            return new FakeServer.Reply(404, "");
-        })) {
+        try (FakeServer s =
+                new FakeServer(
+                        r -> {
+                            if (r.path.equals("/api/v3/qualityprofile")) {
+                                return ok(
+                                        "[{\"id\":1,\"name\":\"Any\"},{\"id\":4,\"name\":\"HD-1080p\"}]");
+                            }
+                            if (r.path.equals("/api/v3/rootfolder")) {
+                                return ok("[{\"id\":1,\"path\":\"/movies\"}]");
+                            }
+                            if (r.path.equals("/api/v3/movie")) {
+                                return ok("{\"id\":12,\"title\":\"Dune\",\"year\":2021}");
+                            }
+                            return new FakeServer.Reply(404, "");
+                        })) {
             Arr radarr = arr(s, Arr.Kind.MOVIE);
-            Arr.Item lookup = new Arr.Item(Arr.Kind.MOVIE, new JSONObject("{\"title\":\"Dune\",\"tmdbId\":438631}"));
+            Arr.Item lookup =
+                    new Arr.Item(
+                            Arr.Kind.MOVIE,
+                            new JSONObject("{\"title\":\"Dune\",\"tmdbId\":438631}"));
             Arr.Defaults d = radarr.defaults();
             assertEquals("HD-1080p", d.profileName);
             Arr.Item added = radarr.add(lookup, d, null);
@@ -52,7 +70,9 @@ public class ArrClientTest {
     @Test
     public void searchAgainSendsTheCommand() throws Exception {
         try (FakeServer s = new FakeServer(r -> ok("{}"))) {
-            Arr.Item show = new Arr.Item(Arr.Kind.SERIES, new JSONObject("{\"title\":\"Severance\",\"id\":9}"));
+            Arr.Item show =
+                    new Arr.Item(
+                            Arr.Kind.SERIES, new JSONObject("{\"title\":\"Severance\",\"id\":9}"));
             arr(s, Arr.Kind.SERIES).searchNow(show);
             FakeServer.Request r = s.requests.get(0);
             assertEquals("POST", r.method);

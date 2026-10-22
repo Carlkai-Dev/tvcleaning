@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- 16:9 banner for Media: a plus over a down arrow. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="320dp" android:height="180dp" android:viewportWidth="160" android:viewportHeight="90">
-    <path android:fillColor="#FF1E1515" android:pathData="M0,0h160v90h-160z" />
-    <path android:fillColor="#FFFFC46B" android:pathData="M76,18h8v14h14v8h-14v14h-8v-14h-14v-8h14z" />
-    <path android:fillColor="#FFFFC46B" android:pathData="M60,62h40l-20,14z" />
-</vector>

@@ -3,6 +3,6 @@
     <!-- Homelab services on a LAN are often plain http; the hosts come from the owner's config.json. -->
     <issue id="InsecureBaseConfiguration" severity="ignore" />
     <!-- The WebView only proceeds past a TLS error after Tls.sameCertificate has validated the chain
-         against the configured CA itself; see DashboardActivity. -->
+         against the configured CA itself; see DashboardPage. -->
     <issue id="WebViewClientOnReceivedSslError" severity="ignore" />
 </lint>

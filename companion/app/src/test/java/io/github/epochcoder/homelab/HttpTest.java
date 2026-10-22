@@ -7,11 +7,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
-
-/** Http against a scripted server: the key goes where it should and nowhere else, and failures read well. */
+/**
+ * Http against a scripted server: the key goes where it should and nowhere else, and failures read
+ * well.
+ */
 public class HttpTest {
     @Test
     public void sendsTheKeyAndReturnsJson() throws Exception {
@@ -23,7 +25,11 @@ public class HttpTest {
 
     @Test
     public void aRedirectIsRefusedAndTheKeyStaysHome() throws Exception {
-        try (FakeServer s = new FakeServer(r -> new FakeServer.Reply(302, "").header("Location", "https://auth.lan/login"))) {
+        try (FakeServer s =
+                new FakeServer(
+                        r ->
+                                new FakeServer.Reply(302, "")
+                                        .header("Location", "https://auth.lan/login"))) {
             String m = failure(() -> new Http(null, "X-Api-Key", "secret").get(s.url() + "/api"));
             assertTrue(m, m.startsWith("redirected to auth.lan"));
             assertEquals("the redirect was not followed", 1, s.requests.size());
@@ -50,9 +56,14 @@ public class HttpTest {
 
     @Test
     public void anonymousRequestsFollowRedirects() throws Exception {
-        try (FakeServer s = new FakeServer(r -> r.path.equals("/a")
-                ? new FakeServer.Reply(302, "").header("Location", "/b") : ok("img"))) {
-            assertArrayEquals("img".getBytes(StandardCharsets.UTF_8), Http.anonymous().bytes(s.url() + "/a"));
+        try (FakeServer s =
+                new FakeServer(
+                        r ->
+                                r.path.equals("/a")
+                                        ? new FakeServer.Reply(302, "").header("Location", "/b")
+                                        : ok("img"))) {
+            assertArrayEquals(
+                    "img".getBytes(StandardCharsets.UTF_8), Http.anonymous().bytes(s.url() + "/a"));
             assertEquals(2, s.requests.size());
             assertNull(s.requests.get(0).headers.get("x-api-key"));
         }

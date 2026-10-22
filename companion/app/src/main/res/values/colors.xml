@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Media and Dashboard screens' palette: near-black, white text, one cool accent, and three state colours. -->
+<!-- One palette for every screen: near-black with a cool glow, two raised surfaces, white text, one accent,
+     and three state colours. -->
 <resources>
-    <color name="bg">#FF0E1116</color>
-    <color name="surface">#FF1A1E26</color>
+    <color name="bg">#FF0B0E14</color>
+    <color name="surface">#FF151A23</color>
+    <color name="surface_hi">#FF212835</color>
+    <color name="stroke">#FF2A3240</color>
     <color name="text">#FFFFFFFF</color>
-    <color name="text_dim">#FFA6B0BF</color>
-    <color name="accent">#FF9FD8FF</color>
+    <color name="text_dim">#FF9AA6B8</color>
+    <color name="accent">#FF8FD3FF</color>
+    <color name="accent_soft">#268FD3FF</color>
+    <color name="glow">#2E3E7BAF</color>
     <color name="ok">#FF7BD88F</color>
     <color name="warn">#FFFFC46B</color>
     <color name="bad">#FFFF7B7B</color>

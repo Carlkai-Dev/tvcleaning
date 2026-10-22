@@ -5,31 +5,43 @@ import static io.github.epochcoder.homelab.FakeServer.ok;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.List;
 import org.json.JSONObject;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-
-/** Qbit against a scripted qBittorrent 5.1 (and 4 where they differ): login, retry, stop and start. */
+/**
+ * Qbit against a scripted qBittorrent 5.1 (and 4 where they differ): login, retry, stop and start.
+ */
 public class QbitClientTest {
     private static Qbit qbit(FakeServer s, String user, String password) throws Exception {
-        return new Qbit(new Config.QBittorrent(new JSONObject().put("url", s.url()).put("username", user)
-                .put("password", password)), null);
+        return new Qbit(
+                new Config.QBittorrent(
+                        new JSONObject()
+                                .put("url", s.url())
+                                .put("username", user)
+                                .put("password", password)),
+                null);
     }
 
     /** qBittorrent as 5.1 behaves: 403 without the session cookie, a login that sets it. */
-    private static FakeServer.Reply qbittorrent(FakeServer.Request r, String cookie, int unauthorized) {
+    private static FakeServer.Reply qbittorrent(
+            FakeServer.Request r, String cookie, int unauthorized) {
         if (r.path.equals("/api/v2/auth/login")) {
             return r.body.equals("username=admin&password=p%26ss")
                     ? ok("Ok.").header("Set-Cookie", cookie + "; HttpOnly; SameSite=Strict; path=/")
                     : ok("Fails.");
         }
-        if (!cookie.equals(r.headers.get("cookie"))) return new FakeServer.Reply(unauthorized, "Forbidden");
-        if (r.path.startsWith("/api/v2/torrents/info")) {
-            return ok("[{\"hash\":\"ABC\",\"name\":\"x\",\"progress\":0.5,\"state\":\"downloading\"}]");
+        if (!cookie.equals(r.headers.get("cookie"))) {
+            return new FakeServer.Reply(unauthorized, "Forbidden");
         }
-        if (r.path.equals("/api/v2/app/version")) return ok("v5.1.4");
+        if (r.path.startsWith("/api/v2/torrents/info")) {
+            return ok(
+                    "[{\"hash\":\"ABC\",\"name\":\"x\",\"progress\":0.5,\"state\":\"downloading\"}]");
+        }
+        if (r.path.equals("/api/v2/app/version")) {
+            return ok("v5.1.4");
+        }
         return new FakeServer.Reply(404, "Not Found");
     }
 
@@ -40,7 +52,10 @@ public class QbitClientTest {
             List<Qbit.Torrent> t = q.torrents();
             assertEquals("abc", t.get(0).hash);
             assertEquals(1, s.to("/api/v2/auth/login").size());
-            assertEquals("qBittorrent's CSRF check wants the Referer", s.url(), s.requests.get(0).headers.get("referer"));
+            assertEquals(
+                    "qBittorrent's CSRF check wants the Referer",
+                    s.url(),
+                    s.requests.get(0).headers.get("referer"));
             q.torrents();
             assertEquals("the session is reused", 1, s.to("/api/v2/auth/login").size());
             assertEquals("qBittorrent v5.1.4", q.version());
@@ -69,7 +84,12 @@ public class QbitClientTest {
 
     @Test
     public void qbittorrent5StopsAndStarts() throws Exception {
-        try (FakeServer s = new FakeServer(r -> r.path.startsWith("/api/v2/torrents/") ? ok("") : new FakeServer.Reply(404, ""))) {
+        try (FakeServer s =
+                new FakeServer(
+                        r ->
+                                r.path.startsWith("/api/v2/torrents/")
+                                        ? ok("")
+                                        : new FakeServer.Reply(404, ""))) {
             Qbit q = qbit(s, "", "");
             q.toggle(Qbit.parseTorrents("[{\"hash\":\"a\",\"state\":\"downloading\"}]").get(0));
             q.toggle(Qbit.parseTorrents("[{\"hash\":\"b\",\"state\":\"stoppedDL\"}]").get(0));
@@ -81,8 +101,12 @@ public class QbitClientTest {
 
     @Test
     public void qbittorrent4FallsBackToPauseAndResume() throws Exception {
-        try (FakeServer s = new FakeServer(r -> r.path.endsWith("/pause") || r.path.endsWith("/resume")
-                ? ok("") : new FakeServer.Reply(404, ""))) {
+        try (FakeServer s =
+                new FakeServer(
+                        r ->
+                                r.path.endsWith("/pause") || r.path.endsWith("/resume")
+                                        ? ok("")
+                                        : new FakeServer.Reply(404, ""))) {
             Qbit q = qbit(s, "", "");
             q.toggle(Qbit.parseTorrents("[{\"hash\":\"a\",\"state\":\"downloading\"}]").get(0));
             q.toggle(Qbit.parseTorrents("[{\"hash\":\"b\",\"state\":\"pausedDL\"}]").get(0));

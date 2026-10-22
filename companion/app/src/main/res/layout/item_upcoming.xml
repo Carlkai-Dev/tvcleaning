@@ -3,14 +3,15 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/row_bg"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/card"
     android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="18dp"
-    android:paddingTop="10dp"
-    android:paddingEnd="18dp"
-    android:paddingBottom="10dp">
+    android:paddingStart="22dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="22dp"
+    android:paddingBottom="14dp">
 
     <TextView
         android:id="@+id/time"

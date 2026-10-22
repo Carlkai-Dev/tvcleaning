@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The house mark alone, for the top bar. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp" android:height="32dp" android:viewportWidth="48" android:viewportHeight="48">
+    <path android:fillColor="@color/accent" android:pathData="M24,6L4,22h5v20h30V22h5z" />
+    <path android:fillColor="@color/bg" android:pathData="M16,26h16v4h-16zM16,33h16v4h-16z" />
+</vector>

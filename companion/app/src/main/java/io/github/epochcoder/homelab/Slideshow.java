@@ -15,7 +15,6 @@ import android.view.animation.LinearInterpolator;
 import android.widget.ImageView;
 import android.widget.TextClock;
 import android.widget.TextView;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -27,26 +26,31 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Recent Immich photos in the manner of Google Photos' ambient mode, on the views in layout/slideshow.xml:
- * a crossfade every few seconds, a slow zoom, two portrait photos side by side, a soft blurred copy of the
- * photo behind it instead of black bars, and the album, date, place and people bottom left with the clock
- * bottom right. Used by the screensaver ({@link PhotoDream}) and by {@link SlideshowActivity}.
+ * Recent Immich photos in the manner of Google Photos' ambient mode, on the views in
+ * layout/slideshow.xml: a crossfade every few seconds, a slow zoom, two portrait photos side by
+ * side, a soft blurred copy of the photo behind it instead of black bars, and the album, date,
+ * place and people bottom left with the clock bottom right. Used by the screensaver ({@link
+ * PhotoDream}) and by {@link SlideshowActivity}.
  *
- * Threads: one background thread, running a {@link Worker} that owns the photo list and every request, prepares
- * the next slide while the current one is on screen, so a slide changes on time however slow the server. The
- * main thread only shows what is ready. Each start gets a new Worker, so a request still finishing from an
- * earlier run can only touch that run's state, and its result is dropped. At most about five decoded photos are alive: the slide on screen, the one fading out, the next
- * one ready, and one kept back when a portrait found no portrait partner.
+ * <p>Threads: one background thread, running a {@link Worker} that owns the photo list and every
+ * request, prepares the next slide while the current one is on screen, so a slide changes on time
+ * however slow the server. The main thread only shows what is ready. Each start gets a new Worker,
+ * so a request still finishing from an earlier run can only touch that run's state, and its result
+ * is dropped. At most about five decoded photos are alive: the slide on screen, the one fading out,
+ * the next one ready, and one kept back when a portrait found no portrait partner.
  */
 final class Slideshow {
     private static final String TAG = "Homelab.Slideshow";
     private static final long FADE_MS = 1500;
     private static final long CAPTION_FADE_MS = 500;
     private static final long RETRY_MS = 60_000;
+
     /** Consecutive failures before the error goes on screen instead of only into logcat. */
     private static final int SHOW_ERROR_AFTER = 3;
+
     /** How far the slow zoom goes over one slide; small enough to read as calm, not as movement. */
     private static final float ZOOM = 1.06f;
+
     /** Albums looked up per photo shown, remembered for the next round. */
     private static final int ALBUM_CACHE = 512;
 
@@ -68,7 +72,7 @@ final class Slideshow {
     /** Everything one slide shows, prepared off the main thread. */
     private static final class Slide {
         final Decoded first;
-        final Decoded second;   // the right-hand portrait, or null
+        final Decoded second; // the right-hand portrait, or null
         final Bitmap backdrop;
         final Caption caption;
 
@@ -101,8 +105,12 @@ final class Slideshow {
     private boolean running;
     private int front;
     private Slide ready;
-    /** The current slide's time is up and the next one is not ready yet: show it the moment it is. */
+
+    /**
+     * The current slide's time is up and the next one is not ready yet: show it the moment it is.
+     */
     private boolean due;
+
     /** Bumped on every start and stop, so a callback from an earlier run does nothing. */
     private int generation;
 
@@ -114,7 +122,7 @@ final class Slideshow {
 
     Slideshow(View root) {
         ctx = root.getContext();
-        slides = new View[]{root.findViewById(R.id.slide_a), root.findViewById(R.id.slide_b)};
+        slides = new View[] {root.findViewById(R.id.slide_a), root.findViewById(R.id.slide_b)};
         scrim = root.findViewById(R.id.scrim);
         captionBox = root.findViewById(R.id.caption);
         title = root.findViewById(R.id.title);
@@ -126,7 +134,9 @@ final class Slideshow {
     }
 
     void start() {
-        if (running) return;
+        if (running) {
+            return;
+        }
         running = true;
         generation++;
         Config config = Config.load(ctx);
@@ -156,30 +166,41 @@ final class Slideshow {
         running = false;
         generation++;
         main.removeCallbacksAndMessages(null);
-        if (io != null) io.shutdownNow();
+        if (io != null) {
+            io.shutdownNow();
+        }
         io = null;
         worker = null;
         ready = null;
-        for (int i = 0; i < slides.length; i++) clear(i);
+        for (int i = 0; i < slides.length; i++) {
+            clear(i);
+        }
     }
 
     /** One run's background state and work, on the background thread only. */
     private final class Worker {
         private final Config.Immich cfg;
         private final Immich api;
+
         /** The run this worker belongs to: what it posts is dropped once that run has stopped. */
         private final int gen;
+
         private List<Immich.Photo> photos = Collections.emptyList();
         private int next;
-        /** A decoded photo kept for the next slide: a portrait whose neighbour was not a portrait. */
+
+        /**
+         * A decoded photo kept for the next slide: a portrait whose neighbour was not a portrait.
+         */
         private Decoded spare;
+
         private int failures;
-        private final Map<String, String> albums = new LinkedHashMap<String, String>(64, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
-                return size() > ALBUM_CACHE;
-            }
-        };
+        private final Map<String, String> albums =
+                new LinkedHashMap<String, String>(64, 0.75f, true) {
+                    @Override
+                    protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+                        return size() > ALBUM_CACHE;
+                    }
+                };
 
         Worker(Config.Immich cfg, Immich api, int gen) {
             this.cfg = cfg;
@@ -192,14 +213,18 @@ final class Slideshow {
             try {
                 if (spare == null && next >= photos.size()) {
                     List<Immich.Photo> fresh = api.recentPhotos(System.currentTimeMillis());
-                    if (cfg.shuffle) Collections.shuffle(fresh);
+                    if (cfg.shuffle) {
+                        Collections.shuffle(fresh);
+                    }
                     photos = fresh;
                     next = 0;
                     if (photos.isEmpty()) {
-                        post(gen, () -> {
-                            showStatus(ctx.getString(R.string.no_photos));
-                            retry(RETRY_MS * 10);
-                        });
+                        post(
+                                gen,
+                                () -> {
+                                    showStatus(ctx.getString(R.string.no_photos));
+                                    retry(RETRY_MS * 10);
+                                });
                         return;
                     }
                 }
@@ -207,13 +232,20 @@ final class Slideshow {
                 spare = null;
                 Decoded second = null;
                 if (cfg.pairPortraits && first.portrait() && next < photos.size()) {
-                    // A photo that fails here is skipped like any other; the slide just shows one portrait.
+                    // A photo that fails here is skipped like any other; the slide just shows one
+                    // portrait.
                     Decoded candidate = decodeNextOrNull();
-                    if (candidate != null && candidate.portrait()) second = candidate;
-                    else spare = candidate;
+                    if (candidate != null && candidate.portrait()) {
+                        second = candidate;
+                    } else {
+                        spare = candidate;
+                    }
                 }
-                Caption caption = cfg.details
-                        ? Caption.of(first.photo, albumOf(first.photo.id), datePattern, locale) : null;
+                Caption caption =
+                        cfg.details
+                                ? Caption.of(
+                                        first.photo, albumOf(first.photo.id), datePattern, locale)
+                                : null;
                 Slide slide = new Slide(first, second, backdrop(first.bitmap), caption);
                 failures = 0;
                 post(gen, () -> onPrepared(slide));
@@ -221,17 +253,23 @@ final class Slideshow {
                 int f = ++failures;
                 String msg = String.valueOf(e.getMessage());
                 Log.w(TAG, "slide: " + e);
-                post(gen, () -> {
-                    if (f >= SHOW_ERROR_AFTER) showStatus(ctx.getString(R.string.error, "Immich", msg));
-                    retry(f >= SHOW_ERROR_AFTER ? RETRY_MS : 1000);
-                });
+                post(
+                        gen,
+                        () -> {
+                            if (f >= SHOW_ERROR_AFTER) {
+                                showStatus(ctx.getString(R.string.error, "Immich", msg));
+                            }
+                            retry(f >= SHOW_ERROR_AFTER ? RETRY_MS : 1000);
+                        });
             }
         }
 
         private Decoded decodeNext() throws IOException {
             Immich.Photo p = photos.get(next++);
             Bitmap b = decode(api.preview(p.id), screenW, screenH);
-            if (b == null) throw new IOException("not an image: " + p.id);
+            if (b == null) {
+                throw new IOException("not an image: " + p.id);
+            }
             return new Decoded(p, b);
         }
 
@@ -244,10 +282,15 @@ final class Slideshow {
             }
         }
 
-        /** An album the photo is in, "" if none or when the lookup fails: the caption then leads with the place. */
+        /**
+         * An album the photo is in, "" if none or when the lookup fails: the caption then leads
+         * with the place.
+         */
         private String albumOf(String id) {
             String known = albums.get(id);
-            if (known != null) return known;
+            if (known != null) {
+                return known;
+            }
             try {
                 String name = api.albumOf(id);
                 albums.put(id, name);
@@ -263,16 +306,23 @@ final class Slideshow {
 
     /** Runs {@code r} on the main thread if run {@code g} is still the current one. */
     private void post(int g, Runnable r) {
-        main.post(() -> {
-            if (running && g == generation) r.run();
-        });
+        main.post(
+                () -> {
+                    if (running && g == generation) {
+                        r.run();
+                    }
+                });
     }
 
     private void retry(long delayMs) {
         int g = generation;
-        main.postDelayed(() -> {
-            if (running && g == generation && io != null) io.execute(worker::prepare);
-        }, delayMs);
+        main.postDelayed(
+                () -> {
+                    if (running && g == generation && io != null) {
+                        io.execute(worker::prepare);
+                    }
+                },
+                delayMs);
     }
 
     private void onPrepared(Slide s) {
@@ -301,11 +351,20 @@ final class Slideshow {
         int out = front;
         bind(slides[in], s);
         slides[in].animate().alpha(1f).setDuration(FADE_MS).start();
-        if (cfg.motion) zoom(in);
-        slides[out].animate().alpha(0f).setDuration(FADE_MS).withEndAction(() -> clear(out)).start();
+        if (cfg.motion) {
+            zoom(in);
+        }
+        slides[out]
+                .animate()
+                .alpha(0f)
+                .setDuration(FADE_MS)
+                .withEndAction(() -> clear(out))
+                .start();
         front = in;
         caption(s.caption);
-        if (io != null) io.execute(worker::prepare);
+        if (io != null) {
+            io.execute(worker::prepare);
+        }
         main.postDelayed(this::tick, cfg.intervalSeconds * 1000L);
     }
 
@@ -320,8 +379,10 @@ final class Slideshow {
             photo.setVisibility(View.GONE);
         } else {
             Bitmap b = s.first.bitmap;
-            photo.setScaleType(fills(b.getWidth(), b.getHeight(), screenW, screenH, cfg.crop)
-                    ? ImageView.ScaleType.CENTER_CROP : ImageView.ScaleType.FIT_CENTER);
+            photo.setScaleType(
+                    fills(b.getWidth(), b.getHeight(), screenW, screenH, cfg.crop)
+                            ? ImageView.ScaleType.CENTER_CROP
+                            : ImageView.ScaleType.FIT_CENTER);
             photo.setImageBitmap(s.first.bitmap);
             photo.setVisibility(View.VISIBLE);
             pair.setVisibility(View.GONE);
@@ -337,14 +398,19 @@ final class Slideshow {
         status.bringToFront();
     }
 
-    /** A slow zoom towards a random point near the middle, lasting the whole time the slide is visible. */
+    /**
+     * A slow zoom towards a random point near the middle, lasting the whole time the slide is
+     * visible.
+     */
     private void zoom(int i) {
         View v = slides[i];
         v.setPivotX(screenW * (0.3f + 0.4f * random.nextFloat()));
         v.setPivotY(screenH * (0.3f + 0.4f * random.nextFloat()));
-        ObjectAnimator a = ObjectAnimator.ofPropertyValuesHolder(v,
-                PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, ZOOM),
-                PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, ZOOM));
+        ObjectAnimator a =
+                ObjectAnimator.ofPropertyValuesHolder(
+                        v,
+                        PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, ZOOM),
+                        PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, ZOOM));
         a.setDuration(cfg.intervalSeconds * 1000L + 2 * FADE_MS);
         a.setInterpolator(new LinearInterpolator());
         a.start();
@@ -352,12 +418,14 @@ final class Slideshow {
     }
 
     private void clear(int i) {
-        if (zooms[i] != null) zooms[i].cancel();
+        if (zooms[i] != null) {
+            zooms[i].cancel();
+        }
         zooms[i] = null;
         View slide = slides[i];
         slide.animate().cancel();
         slide.setAlpha(0f);
-        for (int id : new int[]{R.id.backdrop, R.id.photo, R.id.left, R.id.right}) {
+        for (int id : new int[] {R.id.backdrop, R.id.photo, R.id.left, R.id.right}) {
             ((ImageView) slide.findViewById(id)).setImageDrawable(null);
         }
     }
@@ -368,12 +436,13 @@ final class Slideshow {
             captionBox.setVisibility(View.GONE);
             return;
         }
-        Runnable fill = () -> {
-            setLine(title, c.title);
-            setLine(subtitle, c.subtitle);
-            setLine(people, c.people);
-            captionBox.animate().alpha(1f).setDuration(CAPTION_FADE_MS * 2).start();
-        };
+        Runnable fill =
+                () -> {
+                    setLine(title, c.title);
+                    setLine(subtitle, c.subtitle);
+                    setLine(people, c.people);
+                    captionBox.animate().alpha(1f).setDuration(CAPTION_FADE_MS * 2).start();
+                };
         if (captionBox.getVisibility() != View.VISIBLE) {
             captionBox.setAlpha(0f);
             captionBox.setVisibility(View.VISIBLE);
@@ -395,27 +464,35 @@ final class Slideshow {
     }
 
     /**
-     * The photo shrunk to a few dozen pixels: the screen scales it back up with filtering, which reads as a
-     * strong blur of the photo's own colours behind it, without a blur pass the TV's GPU would have to run.
+     * The photo shrunk to a few dozen pixels: the screen scales it back up with filtering, which
+     * reads as a strong blur of the photo's own colours behind it, without a blur pass the TV's GPU
+     * would have to run.
      */
     private static Bitmap backdrop(Bitmap src) {
         int w = src.getWidth();
         int h = src.getHeight();
         Bitmap mid = Bitmap.createScaledBitmap(src, 96, Math.max(1, Math.round(96f * h / w)), true);
-        Bitmap small = Bitmap.createScaledBitmap(mid, 24, Math.max(1, Math.round(24f * h / w)), true);
-        if (mid != src && mid != small) mid.recycle();
+        Bitmap small =
+                Bitmap.createScaledBitmap(mid, 24, Math.max(1, Math.round(24f * h / w)), true);
+        if (mid != src && mid != small) {
+            mid.recycle();
+        }
         return small;
     }
 
     /**
-     * Whether a photo fills the screen (cropping its edges) rather than fitting over its blurred backdrop.
-     * A landscape photo close to the screen's shape fills, so a 3:2 camera shot on 16:9 loses a sliver instead
-     * of gaining bars; with "Fill the screen" every landscape photo does. A portrait never fills: cropping it to
-     * 16:9 cuts off heads.
+     * Whether a photo fills the screen (cropping its edges) rather than fitting over its blurred
+     * backdrop. A landscape photo close to the screen's shape fills, so a 3:2 camera shot on 16:9
+     * loses a sliver instead of gaining bars; with "Fill the screen" every landscape photo does. A
+     * portrait never fills: cropping it to 16:9 cuts off heads.
      */
     static boolean fills(int w, int h, int screenW, int screenH, boolean always) {
-        if (w <= 0 || h <= 0 || screenW <= 0 || screenH <= 0 || isPortrait(w, h) || h > w) return false;
-        if (always) return true;
+        if (w <= 0 || h <= 0 || screenW <= 0 || screenH <= 0 || isPortrait(w, h) || h > w) {
+            return false;
+        }
+        if (always) {
+            return true;
+        }
         float photo = (float) w / h;
         float screen = (float) screenW / screenH;
         return Math.abs(photo - screen) / screen <= 0.2f;
@@ -426,21 +503,29 @@ final class Slideshow {
         return h > w * 1.1f;
     }
 
-    /** Decoded no larger than the screen needs; previews are about 1440 px, so usually at full size. */
+    /**
+     * Decoded no larger than the screen needs; previews are about 1440 px, so usually at full size.
+     */
     static Bitmap decode(byte[] data, int maxW, int maxH) {
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
         BitmapFactory.decodeByteArray(data, 0, data.length, o);
-        if (o.outWidth <= 0 || o.outHeight <= 0) return null;
+        if (o.outWidth <= 0 || o.outHeight <= 0) {
+            return null;
+        }
         o.inSampleSize = sampleSize(o.outWidth, o.outHeight, maxW, maxH);
         o.inJustDecodeBounds = false;
         return BitmapFactory.decodeByteArray(data, 0, data.length, o);
     }
 
-    /** The largest power of two that keeps the image at least as large as the screen on both sides. */
+    /**
+     * The largest power of two that keeps the image at least as large as the screen on both sides.
+     */
     static int sampleSize(int w, int h, int maxW, int maxH) {
         int s = 1;
-        while (w / (s * 2) >= maxW && h / (s * 2) >= maxH) s *= 2;
+        while (w / (s * 2) >= maxW && h / (s * 2) >= maxH) {
+            s *= 2;
+        }
         return s;
     }
 }

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!-- What Error Prone and google-java-format leave open. Error Prone has no check for missing braces and
+     google-java-format never adds them, so this is the one rule: every if, else, for, while and do body
+     is a braced block, even a single statement on one line. -->
+<module name="Checker">
+    <property name="severity" value="error" />
+    <module name="TreeWalker">
+        <module name="NeedBraces">
+            <property name="allowSingleLineStatement" value="false" />
+            <property name="allowEmptyLoopBody" value="false" />
+        </module>
+    </module>
+</module>

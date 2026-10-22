@@ -11,7 +11,9 @@ public class ImagesTest {
         assertEquals("https://image.tmdb.org/t/p/w342/abc.jpg", Images.sized(original, 280));
         assertEquals("https://image.tmdb.org/t/p/w500/abc.jpg", Images.sized(original, 480));
         assertEquals("https://image.tmdb.org/t/p/w1280/abc.jpg", Images.sized(original, 1280));
-        assertEquals("https://artworks.thetvdb.com/banners/p.jpg", Images.sized("https://artworks.thetvdb.com/banners/p.jpg", 280));
+        assertEquals(
+                "https://artworks.thetvdb.com/banners/p.jpg",
+                Images.sized("https://artworks.thetvdb.com/banners/p.jpg", 280));
         assertEquals("", Images.sized("", 280));
     }
 

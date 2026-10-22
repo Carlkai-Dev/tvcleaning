@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Build the Homelab companion and install it on the TV. It sits next to the launcher as three grid tiles
-# (Homelab, Media, Homelab Settings) plus a screensaver; it never touches Home or any other app.
+# Build the Homelab companion and install it on the TV. It sits next to the launcher as one grid tile
+# (Homelab: Dashboard, Search, Downloads, Coming up and Settings tabs) plus a screensaver; it never
+# touches Home or any other app.
 #
 # Usage: TV_HOST=192.168.1.50 companion/build-and-install.sh
 #        TV_HOST=192.168.1.50 SCREENSAVER=1 companion/build-and-install.sh   # also select the Immich screensaver
@@ -38,6 +39,10 @@ OUT=$("$PY" -I "$TOOLS/tv.py" 'pm install -r /data/local/tmp/homelab.apk; rm -f 
 echo "$OUT"
 case "$OUT" in *Success*) ;; *) echo "ERROR: pm install failed." >&2; exit 1 ;; esac
 
+# Lets Settings > Immich photos > Use as the screensaver select the slideshow itself. Only ADB can grant
+# it; a TV that refuses keeps the button as a shortcut to its own screensaver settings.
+"$PY" -I "$TOOLS/tv.py" "pm grant $PKG android.permission.WRITE_SECURE_SETTINGS" >/dev/null 2>&1 || true
+
 if [ "${SCREENSAVER:-0}" = 1 ]; then
   # Print the current choice first, so it can be put back by hand.
   OLD=$("$PY" -I "$TOOLS/tv.py" 'settings get secure screensaver_components' | tr -d '\r')
@@ -49,4 +54,4 @@ if [ "${SCREENSAVER:-0}" = 1 ]; then
     "settings get secure screensaver_components" \
     | "$PY" -I "$TOOLS/tv.py" --batch
 fi
-echo "Installed. Open Homelab Settings on the TV, or push a config.json with companion/push-config.sh."
+echo "Installed. Open Homelab > Settings on the TV, or push a config.json with companion/push-config.sh."

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -8,7 +9,14 @@
          Sonarr, Radarr) and nowhere else. The launcher itself stays without this permission. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Android 11+ package visibility: Media's mic button shows only when something can take voice input. -->
+    <!-- Only so Settings can make the Immich slideshow the screensaver with one press. A TV never grants
+         this to an app by itself; build-and-install.sh does it over ADB (pm grant). Without it, the
+         button opens the TV's screensaver settings instead. -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Android 11+ package visibility: Search's mic button shows only when something can take voice input. -->
     <queries>
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
@@ -24,27 +32,11 @@
         android:supportsRtl="true"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- Homepage (gethomepage.dev) full screen. A grid tile on the launcher. -->
+        <!-- The whole app, one launcher tile: Dashboard, Search, Downloads, Coming up and Settings as tabs. -->
         <activity
-            android:name=".DashboardActivity"
+            android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/dashboard_name"
-            android:banner="@drawable/banner"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
-            android:screenOrientation="landscape">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <!-- Media: search Radarr and Sonarr and add with one press, downloads from qBittorrent and the apps'
-             queues, and what is coming up. A grid tile too. -->
-        <activity
-            android:name=".MediaActivity"
-            android:exported="true"
-            android:label="@string/media_name"
-            android:banner="@drawable/banner_arr"
             android:windowSoftInputMode="adjustPan|stateHidden"
             android:screenOrientation="landscape">
             <intent-filter>
@@ -53,25 +45,17 @@
             </intent-filter>
         </activity>
 
-        <!-- One film or show from a search, opened by MediaActivity only. -->
+        <!-- The screensaver's gear in the TV's settings (dream_info.xml): the same app, starting on Settings. -->
+        <activity-alias
+            android:name=".SettingsActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity" />
+
+        <!-- One film or show from a search, opened by the Search tab only. -->
         <activity
             android:name=".DetailActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
-
-        <!-- Every setting, edited with the remote. A grid tile, and the screensaver's gear in the TV's settings. -->
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="true"
-            android:label="@string/settings_name"
-            android:banner="@drawable/banner_settings"
-            android:windowSoftInputMode="adjustResize"
-            android:screenOrientation="landscape">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-        </activity>
 
         <!-- The screensaver's slideshow as an activity, to try a config without waiting for the dream:
              tools/tv.py 'am start -n io.github.epochcoder.homelab/.SlideshowActivity'. No launcher tile. -->
@@ -82,7 +66,7 @@
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
 
-        <!-- Immich screensaver: build-and-install.sh SCREENSAVER=1 selects it, or Settings > Screensaver. -->
+        <!-- Immich screensaver: build-and-install.sh SCREENSAVER=1 selects it, or the TV's screensaver settings. -->
         <service
             android:name=".PhotoDream"
             android:label="@string/dream_name"

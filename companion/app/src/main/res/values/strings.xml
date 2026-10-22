@@ -1,18 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Homelab</string>
-    <string name="dashboard_name">Homelab</string>
-    <string name="media_name">Media</string>
     <string name="dream_name">Immich photos</string>
     <string name="settings_name">Homelab Settings</string>
 
-    <string name="not_configured">%1$s is not set up yet: open Homelab Settings.</string>
+    <string name="tab_dashboard">Dashboard</string>
+    <string name="tab_settings">Settings</string>
+    <string name="open_settings">Go to Settings</string>
+    <string name="not_configured">%1$s is not set up yet: open Settings.</string>
+    <string name="empty_search_title">Find something to watch</string>
+    <string name="empty_search">Connect Radarr and Sonarr in Settings, then search both at once from here.</string>
+    <string name="empty_dashboard_title">Your dashboard lives here</string>
+    <string name="empty_dashboard">Add your Homepage address in Settings to see it full screen.</string>
+    <string name="empty_downloads_title">No download client yet</string>
+    <string name="empty_upcoming_title">Nothing to show yet</string>
+    <string name="empty_upcoming">Connect Sonarr or Radarr in Settings to see what is coming up.</string>
     <string name="loading">Loading…</string>
     <string name="error">%1$s: %2$s</string>
     <string name="blocked_link">Only %1$s opens here</string>
-    <string name="no_photos">No photos match: check Days of photos and the hidden albums and tags in Homelab Settings.</string>
+    <string name="no_photos">No photos match: check Days of photos and the hidden albums and tags in Homelab\'s Settings tab.</string>
 
-    <string name="settings">Settings</string>
     <string name="cancel">Cancel</string>
 
     <!-- Media -->
@@ -92,24 +99,49 @@
     <string name="dash_http">%2$s answered with HTTP %1$d. If a login sits in front of Homepage, it cannot be passed from here.</string>
     <string name="dash_tls" tools:ignore="TypographyDashes">The certificate of %1$s is not trusted. With Caddy\'s tls internal, push its root with companion/push-config.sh --ca.</string>
     <string name="dash_retry">Try again</string>
-    <string name="dash_hint">▲ ▼ scroll    ·    MENU reloads</string>
+    <string name="dash_hint">▲ ▼ scroll    ·    MENU reloads    ·    BACK to the tabs</string>
 
     <string name="radarr">Radarr</string>
     <string name="sonarr">Sonarr</string>
-    <string name="s_tip">Changes are saved when you leave this screen. For long API keys, type with your phone: the Google TV app\'s keyboard works here.</string>
+    <string name="s_tip">Changes save as you make them. For long API keys, type with your phone: the Google TV app\'s keyboard works here.</string>
+    <string name="s_photos_about">The screensaver: recent photos from Immich, crossfaded with a slow zoom.</string>
+    <string name="s_dashboard_about">Your Homepage dashboard, shown full screen on the Dashboard tab.</string>
+    <string name="s_radarr_about">Films: searched from the Search tab and added with one press.</string>
+    <string name="s_sonarr_about">Shows: searched alongside Radarr, with the episodes to monitor picked here.</string>
+    <string name="s_qbit_about">Torrents on the Downloads tab, named the way Sonarr and Radarr know them.</string>
+    <string name="s_group_connection">Connection</string>
+    <string name="s_group_slideshow">Slideshow</string>
+    <string name="s_group_filters">Filters</string>
+    <string name="s_group_adding">When adding</string>
+    <string name="s_group_display">Display</string>
+    <string name="s_group_screensaver">Screensaver</string>
+    <string name="s_not_set">Not set</string>
+    <string name="s_default_value">%1$s (default)</string>
+    <string name="s_save_field">Save</string>
+    <string name="s_clear">Clear</string>
+    <string name="s_test_summary">Checks the address and the key</string>
+    <string name="s_testing">Testing…</string>
+    <string name="s_use_screensaver">Use as the screensaver</string>
+    <string name="s_screensaver_is_ours">Immich photos is the screensaver</string>
+    <string name="s_screensaver_set_summary">Makes Immich photos the TV\'s screensaver and switches it on</string>
+    <string name="s_screensaver_settings_summary">Opens the TV\'s screensaver settings to pick Immich photos. To do it from here, run companion/build-and-install.sh once more: it grants the permission.</string>
+    <string name="s_immich_key_help">Create the key in Immich under Account Settings › API Keys › New API Key, and tick these permissions: %1$s.</string>
+    <string name="s_missing_permissions">The key is missing these permissions: %1$s. Edit it in Immich under Account Settings › API Keys.</string>
+    <string name="s_status_set">Set up</string>
+    <string name="s_status_unset">Not set up</string>
     <string name="s_url">Address</string>
     <string name="s_api_key">API key</string>
-    <string name="s_test">Test</string>
+    <string name="s_test">Test connection</string>
     <string name="s_fill_in">Fill in the address and the API key first</string>
     <string name="s_fill_in_url">Fill in the address first</string>
     <plurals name="s_connected_albums">
-        <item quantity="one">Connected: %1$d album</item>
-        <item quantity="other">Connected: %1$d albums</item>
+        <item quantity="one">Connected: %1$d album · every permission the key needs is there</item>
+        <item quantity="other">Connected: %1$d albums · every permission the key needs is there</item>
     </plurals>
     <string name="s_connected_to">Connected to %1$s</string>
-    <string name="s_recent_days">Days of photos (90)</string>
-    <string name="s_max_photos">Most photos (500)</string>
-    <string name="s_interval">Seconds per photo (20)</string>
+    <string name="s_recent_days">Days of photos</string>
+    <string name="s_max_photos">Most photos</string>
+    <string name="s_interval">Seconds per photo</string>
     <string name="s_shuffle">Shuffle</string>
     <string name="s_crop">Always fill the screen</string>
     <string name="s_clock">Clock</string>
@@ -119,7 +151,7 @@
     <string name="s_exclude_albums">Hide albums</string>
     <string name="s_exclude_tags">Hide tags</string>
     <string name="s_preview">Preview the screensaver</string>
-    <string name="s_text_zoom">Text size, percent (100)</string>
+    <string name="s_text_zoom">Text size, percent</string>
     <string name="s_quality_profile">Quality profile</string>
     <string name="s_root_folder">Root folder</string>
     <string name="s_none">None</string>
@@ -134,6 +166,4 @@
     <string name="s_qbit_note">Leave the user empty if qBittorrent lets your network in without a login (Bypass authentication for clients in whitelisted IP subnets).</string>
     <string name="s_monitor">Episodes to monitor</string>
     <string name="s_keep_awake">Keep the screen on</string>
-    <string name="s_save">Save and close</string>
-    <string name="s_saved">Saved</string>
 </resources>

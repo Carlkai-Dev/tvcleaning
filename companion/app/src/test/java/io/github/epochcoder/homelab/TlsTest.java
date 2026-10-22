@@ -4,12 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,17 +17,19 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.Scanner;
-
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocketFactory;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
- * Tls against a real HTTPS server presenting a chain shaped like Caddy's tls internal: site certificate for
- * localhost, then the intermediate, signed by a root the system does not know (fixtures in resources/tls).
- * The server is a few lines over an SSLServerSocket: unit tests compile against android.jar, which has no
- * com.sun.net.httpserver.
+ * Tls against a real HTTPS server presenting a chain shaped like Caddy's tls internal: site
+ * certificate for localhost, then the intermediate, signed by a root the system does not know
+ * (fixtures in resources/tls). The server is a few lines over an SSLServerSocket: unit tests
+ * compile against android.jar, which has no com.sun.net.httpserver.
  */
 public class TlsTest {
     private static SSLServerSocket server;
@@ -45,11 +43,15 @@ public class TlsTest {
             ks.load(in, "test".toCharArray());
         }
         siteCert = ks.getCertificateChain("site")[0].getEncoded();
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        KeyManagerFactory kmf =
+                KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(ks, "test".toCharArray());
         SSLContext ctx = SSLContext.getInstance("TLS");
         ctx.init(kmf.getKeyManagers(), null, null);
-        server = (SSLServerSocket) ctx.getServerSocketFactory().createServerSocket(0, 8, InetAddress.getLoopbackAddress());
+        server =
+                (SSLServerSocket)
+                        ctx.getServerSocketFactory()
+                                .createServerSocket(0, 8, InetAddress.getLoopbackAddress());
         port = server.getLocalPort();
         Thread t = new Thread(TlsTest::serve, "tls-test-server");
         t.setDaemon(true);
@@ -60,22 +62,36 @@ public class TlsTest {
     private static void serve() {
         while (!server.isClosed()) {
             try (Socket s = server.accept()) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.US_ASCII));
+                BufferedReader in =
+                        new BufferedReader(
+                                new InputStreamReader(
+                                        s.getInputStream(), StandardCharsets.US_ASCII));
                 String request = in.readLine();
-                for (String line = request; line != null && !line.isEmpty(); ) line = in.readLine();
+                for (String line = request; line != null && !line.isEmpty(); ) {
+                    line = in.readLine();
+                }
                 boolean head = request != null && request.startsWith("HEAD ");
                 OutputStream out = s.getOutputStream();
-                out.write(("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\n"
-                        + "Connection: close\r\n\r\n" + (head ? "" : "[]")).getBytes(StandardCharsets.US_ASCII));
+                out.write(
+                        ("HTTP/1.1 200 OK\r\n"
+                                        + "Content-Type: application/json\r\n"
+                                        + "Content-Length: 2\r\n"
+                                        + "Connection: close\r\n\r\n"
+                                        + (head ? "" : "[]"))
+                                .getBytes(StandardCharsets.US_ASCII));
                 out.flush();
-            } catch (IOException ignored) {
+            } catch (IOException e) {
+                // The handshakes the tests mean to fail end here; the loop serves the next one.
+                System.err.println("TlsTest server: " + e.getMessage());
             }
         }
     }
 
     @AfterClass
     public static void stopServer() throws IOException {
-        if (server != null) server.close();
+        if (server != null) {
+            server.close();
+        }
     }
 
     private static InputStream resource(String name) {
@@ -101,23 +117,18 @@ public class TlsTest {
 
     @Test
     public void refusesWithoutTheRoot() {
-        for (SSLSocketFactory tls : new SSLSocketFactory[]{null, Tls.socketFactory(pem("other-root.pem"))}) {
-            try {
-                get(tls, "localhost");
-                fail("connected without trusting the server's root");
-            } catch (IOException expected) {
-            }
+        for (SSLSocketFactory tls :
+                new SSLSocketFactory[] {null, Tls.socketFactory(pem("other-root.pem"))}) {
+            assertThrows(IOException.class, () -> get(tls, "localhost"));
         }
     }
 
     @Test
     public void stillChecksTheHostname() {
-        try {
-            // The certificate names localhost, not 127.0.0.1: trusting the root must not trust every name.
-            get(Tls.socketFactory(pem("root.pem")), "127.0.0.1");
-            fail("accepted a certificate for another name");
-        } catch (IOException expected) {
-        }
+        // The certificate names localhost, not 127.0.0.1: trusting the root must not trust every
+        // name.
+        SSLSocketFactory tls = Tls.socketFactory(pem("root.pem"));
+        assertThrows(IOException.class, () -> get(tls, "127.0.0.1"));
     }
 
     @Test
@@ -136,6 +147,8 @@ public class TlsTest {
     public void unusablePemTrustsSystemCasOnly() {
         assertNull(Tls.socketFactory(""));
         assertNull(Tls.socketFactory(null));
-        assertNull(Tls.socketFactory("-----BEGIN CERTIFICATE-----\nnope\n-----END CERTIFICATE-----\n"));
+        assertNull(
+                Tls.socketFactory(
+                        "-----BEGIN CERTIFICATE-----\nnope\n-----END CERTIFICATE-----\n"));
     }
 }

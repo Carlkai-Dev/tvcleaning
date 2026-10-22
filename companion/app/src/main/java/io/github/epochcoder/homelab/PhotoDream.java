@@ -3,9 +3,9 @@ package io.github.epochcoder.homelab;
 import android.service.dreams.DreamService;
 
 /**
- * The screensaver: recent Immich photos (see {@link Slideshow}). Select it with build-and-install.sh
- * SCREENSAVER=1, or Settings > Device Preferences > Screen saver where the firmware still shows that page.
- * Any key wakes the projector, as with the stock screensaver.
+ * The screensaver: recent Immich photos (see {@link Slideshow}). Select it with
+ * build-and-install.sh SCREENSAVER=1, or Settings > Device Preferences > Screen saver where the
+ * firmware still shows that page. Any key wakes the projector, as with the stock screensaver.
  */
 public class PhotoDream extends DreamService {
     private Slideshow slideshow;

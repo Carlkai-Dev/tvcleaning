@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The gear next to the screensaver in the TV's settings opens Homelab Settings. -->
+<!-- The gear next to the screensaver in the TV's settings opens Homelab on its Settings tab (an alias of MainActivity). -->
 <dream xmlns:android="http://schemas.android.com/apk/res/android"
     android:settingsActivity="io.github.epochcoder.homelab/.SettingsActivity" />
