@@ -20,10 +20,8 @@
     <string name="not_available">TV này không hỗ trợ</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="bt_screen_row">Bluetooth của TV</string>
-    <string name="bt_radio_busy">Bluetooth đang bận — thử lại</string>
-    <string name="bt_failed">Ghép nối không thành công</string>
+    <string name="bt_radio_busy">Bận — thử lại</string>
     <string name="bt_pairing">Đang ghép nối…</string>
-    <string name="bt_paired">Đã ghép nối</string>
     <string name="bt_failed_retry">Chưa ghép nối — thử lại</string>
     <string name="cant_open">Không mở được %1$s</string>
     <!-- "Thứ Hai, 20 tháng 10" -->
@@ -35,6 +33,7 @@
     <string name="home_settings_help">Chọn màn hình chính gốc để thôi dùng CleanYourTV, hoặc chọn CleanYourTV để dùng lại. Launcher gốc phải đang bật và TV phải có mục chọn màn hình chính; nếu launcher gốc đã bị tắt, hãy chạy script khôi phục trước.</string>
     <string name="launcher_settings">Cài đặt launcher</string>
     <string name="columns_label">Số ứng dụng mỗi hàng</string>
+    <string name="dock_opacity_label">Độ đậm của thanh dock</string>
     <string name="animations_state">Hiệu ứng: %1$s</string>
     <string name="advanced_effects">Hiệu ứng nâng cao</string>
     <string name="advanced_effects_state">Hiệu ứng nâng cao: %1$s</string>
@@ -75,6 +74,9 @@
     <string name="dock_edit">Chỉnh sửa dock</string>
     <string name="dock_edit_hint">Chọn vị trí trên dock cần đổi rồi nhấn OK. Nhấn Quay lại để kết thúc.</string>
     <string name="dock_edit_pick_app">Giờ chọn ứng dụng để đặt vào đó rồi nhấn OK. Nhấn Quay lại để chọn vị trí khác.</string>
+    <string name="tile_add_to_dock">Thêm vào dock</string>
+    <string name="tile_replace_in_dock">Thay bằng ứng dụng khác</string>
+    <string name="dock_edit_pick_place">Chọn vị trí trên dock cho ứng dụng này rồi nhấn OK. Nhấn Quay lại để hủy.</string>
     <string name="festival_dussehra_greeting">Chúc mừng lễ Dussehra</string>
     <string name="festival_diwali_greeting">Chúc mừng lễ Diwali</string>
     <string name="stats_memory">Bộ nhớ %1$d / %2$d MB</string>
@@ -118,4 +120,5 @@
     <string name="race_countdown_hours">%1$d giờ %2$d phút</string>
     <string name="race_countdown_days">%1$d ngày %2$d giờ</string>
     <string name="last_opened">Mở lần cuối %1$s</string>
+    <string name="tile_move">Di chuyển</string>
 </resources>

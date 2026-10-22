@@ -30,7 +30,10 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   then `adb connect`), run `adb tcpip 5555`, and `tools/tv.py` works from then on. `dns-sd -B
   _adb-tls-pairing._tcp` (or `adb mdns services`) shows the pairing port while the code is on screen.
   Android switches Wireless debugging off whenever Wi-Fi drops; turn it back on and `adb` reconnects
-  without a new code. Port 5555 from `adb tcpip` usually lasts only until the next reboot.
+  without a new code. Port 5555 from `adb tcpip` usually lasts only until the next reboot. When you
+  close up, switch Wireless debugging off on its own: on a Chromecast with Google TV 4K (`sabrina`)
+  turning USB debugging off left the Wireless debugging port accepting connections, and
+  `tools/adb-closed.py` only checks 5555. `adb mdns services` lists that port while it is open.
 - **USB devices go dead while USB debugging is on**, seen on the Xiaomi Mi Box S and the Xiaomi TV
   Box S 3rd gen ([MiTV-AFMU0, Google TV 14](https://github.com/Gathin23/cleanyourtv/issues/737)):
   their firmware switches the USB port to ADB device mode, which cuts the power to a USB speaker or
@@ -332,7 +335,13 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   the credentials in memory, so casting survives until the next reboot - and only in that process.
   `am force-stop com.google.android.apps.mediashell` followed by the receiver coming back prints
   `Retry loading factory credentials` and `No private key, hence empty signature` again, so anything
-  that restarts it (a crash, a force-stop, an update) needs the same sequence. Reported on Google's
+  that restarts it (a crash, a force-stop, an update) needs the same sequence. Re-enabling the
+  wizard is not always enough after a reboot: on a Chromecast with Google TV 4K (`sabrina`,
+  UTTC.250917.004) no `ClientAuthSigner` line came within 3 minutes and phones did not even list the
+  device. Restart the receiver while setupwraith is enabled instead: `am force-stop
+  com.google.android.apps.mediashell`, then `am start-foreground-service -n
+  com.google.android.apps.mediashell/.CastReceiverService` (after a force-stop nothing starts it
+  again), and the signer line and `MdnsAppFilter: Done announcing.` follow within seconds. Reported on Google's
   own Chromecast hardware (`boreal`) and, with the same log lines, on a Google TV Streamer
   (`kirkwood`, `UTTK.260317.003`), where the `CastInfoProvider` also lives inside the setupwraith
   APK; the Xiaomi Mi Box S 2nd gen list says casting from a Pixel still works there with
@@ -462,6 +471,11 @@ tools/tv.py 'dumpsys accessibility'
 | Home button | `com.gathin.tvhome/.HomeKeyService` | `KEYCODE_ALL_APPS` (not an ordinary `KEYCODE_HOME`) |
 | Input button | `com.gathin.tvhome/.InputKeyService` | `KEYCODE_TV`, `KEYCODE_TV_INPUT`, plus the keycodes in `input_key_keycodes` and `app_keys` (`config.xml` or a theme) |
 
+A force stop of the launcher (Settings > Apps, a cleaner app, `am force-stop`) takes both helpers off
+that list. With `restore_key_services` on (`config.xml` or a theme) and `WRITE_SECURE_SETTINGS` granted
+(`RESTORE_KEY_SERVICES=1` at install, `-RestoreKeyServices` on Windows), Home puts the helpers that were
+running back on the list the next time it starts; a helper turned off in Settings stays off.
+
 - **Enabled** means the component is in that user's colon-separated list (the class may be written in
   full, `com.gathin.tvhome/com.gathin.tvhome.HomeKeyService`). Match the whole component.
 - **Bound** means it appears under that user's `Bound services` section of the dump (`services` on older
@@ -518,6 +532,38 @@ change and the denial is back. Seen on a TCL C89B (Google TV 14, `G08`, `UTT2.25
 reads `[TclAppBoot]:forbid bind service ComponentInfo{com.gathin.tvhome/com.gathin.tvhome.HomeKeyService}`
 and whose `appops get` names the op `AUTO_START`: use the name `appops get` prints. When reporting, give the
 model, build, current user and the relevant redacted lines, not the raw dump.
+
+## SHIELD TV phone app connects, but no key does anything
+
+On an NVIDIA SHIELD, the SHIELD TV phone app finds the box and connects, but the D-pad, OK, Back and
+power buttons in the app do nothing. Restarting the remote server brings them back until the next
+reboot. The key helpers are not the cause: it happens with them off too.
+
+The app's keys go through `com.nvidia.shield.remote.server`, which injects them through its own
+`virtualinput.InputService`, a `TvRemoteProvider` that Android's TV remote service binds at boot.
+Read the state without changing anything:
+
+```sh
+tools/tv.py "logcat -d | grep -E 'Key injection failed|Beyonder_VIS'"
+tools/tv.py "dumpsys activity services com.nvidia.shield.remote.server | awk '/\* ServiceRecord/{inb=/virtualinput.InputService/} inb' | grep -c IntentBindRecord"
+```
+
+`Key injection failed` with `Beyonder_VIS ... mProvider ... isInitialized=false`, and a count of `0`, is
+this fault: the service runs but Android never bound it. `1` is a bound, working service.
+
+Cause: `com.google.android.tvrecommendations` disabled. With it disabled, the provider is not bound after
+boot. Bisected with a reboot per step on a 2017 SHIELD (`darcy`) and confirmed on a 2015/2017 one
+(`foster_e`), both on SHIELD Experience with Android 11: every reboot with it off left the count at `0`,
+every reboot with it on gave `1`. Fix:
+
+```sh
+tools/tv.py "pm enable com.google.android.tvrecommendations"
+```
+
+Wait about 20 seconds before rebooting: Android writes package state to disk with a delay, and a reboot
+straight after `pm enable` can lose the change. `am force-stop com.nvidia.shield.remote.server` makes
+Android bind the provider at once, but only until the next boot. The SHIELD lists in `examples/` keep
+`tvrecommendations` enabled for this reason.
 
 ## Fire TV (Fire OS): debloat works, the launcher cannot take Home
 

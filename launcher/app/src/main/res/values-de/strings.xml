@@ -19,10 +19,8 @@
     <string name="not_available">Auf diesem TV nicht verfügbar</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="bt_screen_row">Bluetooth am TV</string>
-    <string name="bt_radio_busy">Bluetooth belegt – erneut versuchen</string>
-    <string name="bt_failed">Kopplung fehlgeschlagen</string>
+    <string name="bt_radio_busy">Belegt – erneut versuchen</string>
     <string name="bt_pairing">Koppeln…</string>
-    <string name="bt_paired">Gekoppelt</string>
     <string name="bt_failed_retry">Nicht gekoppelt – erneut tippen</string>
     <string name="cant_open">%1$s lässt sich nicht öffnen</string>
     <string name="date_format">EEEE, d. MMMM</string>
@@ -35,6 +33,7 @@
     <string name="input_key_service_description">Öffnet die Quellenauswahl, wenn die Input-Taste der Fernbedienung gedrückt wird.</string>
     <string name="launcher_settings">Launcher-Einstellungen</string>
     <string name="columns_label">Apps pro Zeile</string>
+    <string name="dock_opacity_label">Deckkraft der Dock-Leiste</string>
     <string name="animations_state">Animationen: %1$s</string>
     <string name="advanced_effects">Erweiterte Effekte</string>
     <string name="advanced_effects_state">Erweiterte Effekte: %1$s</string>
@@ -48,7 +47,11 @@
     <string name="dock_edit">Dock bearbeiten</string>
     <string name="dock_edit_hint">Wähle den Dock-Platz, den du ändern willst, und drücke OK. Zurück zum Beenden.</string>
     <string name="dock_edit_pick_app">Wähle jetzt die App für diesen Platz und drücke OK. Zurück, um einen anderen Platz zu wählen.</string>
+    <string name="tile_add_to_dock">Zum Dock hinzufügen</string>
+    <string name="tile_replace_in_dock">Durch andere App ersetzen</string>
+    <string name="dock_edit_pick_place">Wähle den Dock-Platz für diese App und drücke OK. Zurück zum Abbrechen.</string>
     <string name="reorder">Apps anordnen</string>
+    <string name="tile_move">Verschieben</string>
     <string name="reorder_hint">OK hebt eine App an, Pfeiltasten verschieben sie, Zurück legt sie ab. Nochmals Zurück zum Beenden.</string>
     <string name="reorder_not_saved">Neue Reihenfolge konnte nicht gespeichert werden</string>
     <string name="app_library">App-Bibliothek</string>

@@ -19,10 +19,8 @@
     <string name="offline">אין חיבור לרשת</string>
     <string name="not_available">לא זמין בטלוויזיה זו</string>
     <string name="bt_screen_row">מסך בלוטות׳ של הטלוויזיה</string>
-    <string name="bt_radio_busy">הרדיו עסוק — יש לסגור ולנסות שוב</string>
-    <string name="bt_failed">הצימוד נכשל</string>
+    <string name="bt_radio_busy">עסוק — נסו שוב</string>
     <string name="bt_pairing">מצמד…</string>
-    <string name="bt_paired">צומד</string>
     <string name="bt_failed_retry">לא צומד — יש להקיש לניסיון חוזר</string>
     <string name="cant_open">לא ניתן לפתוח את %1$s</string>
     <string name="date_format">EEEE  d בMMMM</string>
@@ -36,6 +34,7 @@
     <string name="home_settings_help">כדי להפסיק להשתמש ב־CleanYourTV כמסך הבית, יש לבחור במסך הבית המקורי. כדי לחזור, יש לבחור ב־CleanYourTV. מפעיל מסך הבית המקורי חייב להיות פעיל, והטלוויזיה צריכה לתמוך בבחירת מסך בית. אם הוא הושבת, יש להפעיל תחילה את סקריפט השחזור.</string>
     <string name="launcher_settings">הגדרות מסך הבית</string>
     <string name="columns_label">אפליקציות בשורה</string>
+    <string name="dock_opacity_label">אטימות פס ה-Dock</string>
     <string name="animations_state">הנפשות: %1$s</string>
     <string name="advanced_effects">אפקטים מתקדמים</string>
     <string name="advanced_effects_state">אפקטים מתקדמים: %1$s</string>
@@ -75,7 +74,11 @@
     <string name="dock_edit">עריכת שורת המועדפים</string>
     <string name="dock_edit_hint">בחרו מקום בשורת המועדפים ולחצו אישור. חזרה לסיום.</string>
     <string name="dock_edit_pick_app">עכשיו בחרו את האפליקציה שתופיע שם ולחצו אישור. חזרה לבחירת מקום אחר.</string>
+    <string name="tile_add_to_dock">הוספה לשורת המועדפים</string>
+    <string name="tile_replace_in_dock">החלפה באפליקציה אחרת</string>
+    <string name="dock_edit_pick_place">בחרו מקום בשורת המועדפים לאפליקציה הזו ולחצו אישור. חזרה לביטול.</string>
     <string name="reorder">סידור אפליקציות</string>
+    <string name="tile_move">העברה</string>
     <string name="reorder_hint">אישור מרים אפליקציה, החצים מזיזים אותה, חזרה מניחה אותה. חזרה שוב לסיום.</string>
     <string name="reorder_not_saved">לא ניתן לשמור את הסדר החדש</string>
     <string name="app_library">ספריית אפליקציות</string>

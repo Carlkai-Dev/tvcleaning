@@ -21,10 +21,8 @@
     <string name="not_available">Недоступно на цьому телевізорі</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="bt_screen_row">Екран Bluetooth телевізора</string>
-    <string name="bt_radio_busy">Bluetooth зайнято — закрийте й спробуйте ще раз</string>
-    <string name="bt_failed">Не вдалося спарувати</string>
+    <string name="bt_radio_busy">Зайнято — спробуйте ще раз</string>
     <string name="bt_pairing">Спаровування…</string>
-    <string name="bt_paired">Спаровано</string>
     <string name="bt_failed_retry">Не спаровано — торкніться, щоб повторити</string>
     <string name="cant_open">Не вдалося відкрити %1$s</string>
     <string name="date_format">EEEE, d MMMM</string>
@@ -98,7 +96,11 @@
     <string name="dock_edit">Редагувати док</string>
     <string name="dock_edit_hint">Виберіть місце в доку, яке треба змінити, і натисніть OK. «Назад» — завершити.</string>
     <string name="dock_edit_pick_app">Тепер виберіть застосунок для цього місця та натисніть OK. «Назад» — вибрати інше місце.</string>
+    <string name="tile_add_to_dock">Додати в док</string>
+    <string name="tile_replace_in_dock">Замінити іншим застосунком</string>
+    <string name="dock_edit_pick_place">Виберіть місце в доку для цього застосунку та натисніть OK. «Назад» — скасувати.</string>
     <string name="reorder">Упорядкувати застосунки</string>
+    <string name="tile_move">Перемістити</string>
     <string name="reorder_hint">OK бере застосунок, стрілки переміщують, «Назад» ставить на місце. Ще раз «Назад» — завершити.</string>
     <string name="reorder_not_saved">Не вдалося зберегти новий порядок</string>
     <string name="app_library">Бібліотека застосунків</string>

@@ -196,6 +196,8 @@ esac
 #   HOME_KEY_SERVICE=1    remotes whose Home button sends KEYCODE_ALL_APPS instead of HOME, e.g. Xiaomi
 #                         sticks: the key is routed to the launcher, and settings_key_* plus
 #                         app_keys in config.xml or a theme are applied (HomeKeyService)
+#   RESTORE_KEY_SERVICES=1  grants WRITE_SECURE_SETTINGS, so that with restore_key_services (config.xml or a
+#                         theme) Home puts these helpers back after a force stop of the launcher
 # TCL firmware (TclAppBoot) refuses to bind an app's accessibility service while the app is not running unless it
 # holds the AUTO_START app-op, so grant it first; other TVs do not know the op and ignore it. A service that is
 # already listed was refused while the APK was replaced, and binds again only once the list changes, so clear it,
@@ -206,4 +208,7 @@ enable_service() {   # appends to enabled_accessibility_services without droppin
 }
 if [ "${INPUT_KEY_SERVICE:-0}" = 1 ]; then enable_service InputKeyService; fi
 if [ "${HOME_KEY_SERVICE:-0}" = 1 ]; then enable_service HomeKeyService; fi
+if [ "${RESTORE_KEY_SERVICES:-0}" = 1 ]; then
+  "$PY" -I ../tools/tv.py "pm grant com.gathin.tvhome android.permission.WRITE_SECURE_SETTINGS && echo restore-granted"
+fi
 echo "Installed. Press Home on the remote to see it."

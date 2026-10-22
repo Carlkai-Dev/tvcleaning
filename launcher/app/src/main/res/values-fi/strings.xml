@@ -19,10 +19,8 @@
     <string name="not_available">Ei käytettävissä tässä televisiossa</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="bt_screen_row">TV:n Bluetooth</string>
-    <string name="bt_radio_busy">Bluetooth varattu – yritä uudelleen</string>
-    <string name="bt_failed">Pariliittäminen epäonnistui</string>
+    <string name="bt_radio_busy">Varattu – yritä uudelleen</string>
     <string name="bt_pairing">Pariliitetään…</string>
-    <string name="bt_paired">Pariliitetty</string>
     <string name="bt_failed_retry">Ei pariliitetty – yritä uudelleen</string>
     <string name="cant_open">Ei voitu avata: %1$s</string>
     <!-- Finnish: "tiistaina 20. lokakuuta"; the weekday comes out in the essive form. -->
@@ -34,6 +32,7 @@
     <string name="home_settings_help">Valitse alkuperäinen kotinäkymä, jos haluat lopettaa CleanYourTV:n käytön kotinäkymänä, tai CleanYourTV palataksesi siihen. Alkuperäisen käynnistimen on oltava käytössä ja television on tarjottava kotinäkymän valinta. Jos käynnistin on poistettu käytöstä, aja ensin palautusskripti.</string>
     <string name="launcher_settings">Käynnistimen asetukset</string>
     <string name="columns_label">Sovelluksia rivillä</string>
+    <string name="dock_opacity_label">Telakkapalkin peittävyys</string>
     <string name="animations_state">Animaatiot: %1$s</string>
     <string name="advanced_effects">Lisätehosteet</string>
     <string name="advanced_effects_state">Lisätehosteet: %1$s</string>
@@ -75,6 +74,7 @@
     <string name="stats_memory">Muisti %1$d / %2$d Mt</string>
     <string name="stats_storage">Tallennustilaa vapaana %1$s</string>
     <string name="reorder">Järjestä sovellukset</string>
+    <string name="tile_move">Siirrä</string>
     <string name="reorder_hint">OK nostaa sovelluksen, nuolet siirtävät sitä ja Takaisin laskee sen paikalleen. Lopeta painamalla Takaisin uudelleen.</string>
     <string name="reorder_not_saved">Uutta järjestystä ei voitu tallentaa</string>
     <string name="app_library">Sovelluskirjasto</string>
@@ -95,4 +95,7 @@
     <string name="dock_edit">Muokkaa telakkaa</string>
     <string name="dock_edit_hint">Valitse muutettava telakan paikka ja paina OK. Takaisin lopettaa.</string>
     <string name="dock_edit_pick_app">Valitse nyt sinne tuleva sovellus ja paina OK. Takaisin valitsee toisen paikan.</string>
+    <string name="tile_add_to_dock">Lisää telakkaan</string>
+    <string name="tile_replace_in_dock">Korvaa toisella sovelluksella</string>
+    <string name="dock_edit_pick_place">Valitse telakan paikka tälle sovellukselle ja paina OK. Takaisin peruuttaa.</string>
 </resources>

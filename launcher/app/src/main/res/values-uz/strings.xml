@@ -19,10 +19,8 @@
     <string name="not_available">Bu televizorda mavjud emas</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="bt_screen_row">Televizor Bluetooth</string>
-    <string name="bt_radio_busy">Bluetooth band — qayta urinib ko‘ring</string>
-    <string name="bt_failed">Juftlash amalga oshmadi</string>
+    <string name="bt_radio_busy">Band — qayta urinib ko‘ring</string>
     <string name="bt_pairing">Juftlanmoqda…</string>
-    <string name="bt_paired">Juftlangan</string>
     <string name="bt_failed_retry">Juftlanmagan — qayta urinib ko‘ring</string>
     <string name="cant_open">%1$s ochilmadi</string>
     <string name="date_format">EEEE  d-MMMM</string>
@@ -36,6 +34,7 @@
     <string name="home_settings_help">CleanYourTV oʻrniga eski bosh ekranga qaytish uchun uni tanlang, CleanYourTV ga qaytish uchun esa CleanYourTV ni. Eski launcher yoqilgan boʻlishi va televizorda bosh ekran tanlash oynasi boʻlishi kerak; agar u oʻchirilgan boʻlsa, avval tiklash skriptini ishga tushiring.</string>
     <string name="launcher_settings">Launcher sozlamalari</string>
     <string name="columns_label">Qatordagi ilovalar</string>
+    <string name="dock_opacity_label">Dock paneli noshaffofligi</string>
     <string name="rows_below_dock_label">Dock ostidagi qatorlar</string>
     <string name="wallpaper_label">Fon rasmi</string>
     <string name="wallpaper_state">Fon rasmi: %1$s</string>
@@ -81,7 +80,11 @@
     <string name="dock_edit">Dockni tahrirlash</string>
     <string name="dock_edit_hint">Oʻzgartiriladigan joyni tanlab, OK ni bosing. Tugatish uchun Back.</string>
     <string name="dock_edit_pick_app">Endi u yerga qoʻyiladigan ilovani tanlab, OK ni bosing. Boshqa joy tanlash uchun Back.</string>
+    <string name="tile_add_to_dock">Dockga qoʻshish</string>
+    <string name="tile_replace_in_dock">Boshqa ilova bilan almashtirish</string>
+    <string name="dock_edit_pick_place">Bu ilova uchun dockdagi joyni tanlab, OK ni bosing. Bekor qilish uchun Back.</string>
     <string name="reorder">Ilovalar tartibini oʻzgartirish</string>
+    <string name="tile_move">Koʻchirish</string>
     <string name="reorder_hint">OK ilovani ushlaydi, strelkalar suradi, Back joyiga qoʻyadi. Tugatish uchun yana Back.</string>
     <string name="reorder_not_saved">Yangi tartib saqlanmadi</string>
     <string name="app_library">Ilovalar kutubxonasi</string>

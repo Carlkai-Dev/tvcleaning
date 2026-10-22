@@ -19,10 +19,8 @@
     <string name="not_available">Niedostępne na tym telewizorze</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="bt_screen_row">Bluetooth TV</string>
-    <string name="bt_radio_busy">Bluetooth zajęte — spróbuj ponownie</string>
-    <string name="bt_failed">Parowanie nie powiodło się</string>
+    <string name="bt_radio_busy">Zajęte — spróbuj ponownie</string>
     <string name="bt_pairing">Parowanie…</string>
-    <string name="bt_paired">Sparowano</string>
     <string name="bt_failed_retry">Nie sparowano — spróbuj ponownie</string>
     <string name="cant_open">Nie można otworzyć: %1$s</string>
     <string name="date_format">EEEE  d MMMM</string>
@@ -58,6 +56,7 @@
     <string name="card_state_new_label">Nowa nazwa</string>
     <string name="launcher_settings">Ustawienia ekranu głównego</string>
     <string name="columns_label">Aplikacji w rzędzie</string>
+    <string name="dock_opacity_label">Krycie paska docka</string>
     <string name="animations_state">Animacje: %1$s</string>
     <string name="advanced_effects">Efekty zaawansowane</string>
     <string name="advanced_effects_state">Efekty zaawansowane: %1$s</string>
@@ -71,7 +70,11 @@
     <string name="dock_edit">Edytuj dock</string>
     <string name="dock_edit_hint">Wybierz miejsce w docku do zmiany i naciśnij OK. Wstecz, aby zakończyć.</string>
     <string name="dock_edit_pick_app">Teraz wybierz aplikację, która ma się tam znaleźć, i naciśnij OK. Wstecz, aby wybrać inne miejsce.</string>
+    <string name="tile_add_to_dock">Dodaj do docku</string>
+    <string name="tile_replace_in_dock">Zamień na inną aplikację</string>
+    <string name="dock_edit_pick_place">Wybierz miejsce w docku dla tej aplikacji i naciśnij OK. Wstecz, aby anulować.</string>
     <string name="reorder">Zmień kolejność aplikacji</string>
+    <string name="tile_move">Przenieś</string>
     <string name="reorder_hint">OK podnosi aplikację, strzałki ją przesuwają, Wstecz ją upuszcza. Ponownie Wstecz, aby zakończyć.</string>
     <string name="reorder_not_saved">Nie udało się zapisać nowej kolejności</string>
     <string name="app_library">Biblioteka aplikacji</string>
