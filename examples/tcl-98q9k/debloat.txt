@@ -1,8 +1,9 @@
 # TCL 98Q9K (China, 98-inch QD-Mini LED 2024), device tcl_mt5879_cn,
-# Android 11 (SDK 30), build RQ3A.210705.001 release-keys, ro.adb.secure=1.
-# Same platform as examples/tcl-q10g-pro (tcl_mt5879_cn / MT9952 family), whose list was
-# applied on a real unit and re-checked after a full reboot. This file = that list
-# (com.tcl.bi is not present on this unit, skipped) + extras confirmed by the owner.
+# Android 11 (SDK 30), build RQ3A.210705.001 release-keys, ro.adb.secure=1, 32-bit only
+# (ro.product.cpu.abilist = armeabi-v7a,armeabi — no obstacle for the launcher, it is pure Java).
+# Same platform as examples/tcl-q10g-pro (tcl_mt5879_cn / MT9952 family). This file = that
+# list, minus com.tcl.bi which is not present on this unit. Applied with disable.sh and
+# re-checked after a full reboot: every entry stayed disabled, no crash-buffer entries.
 #
 # ADB: Settings (设置) -> 关于本机 -> 本机信息, press UP DOWN LEFT RIGHT on the remote
 # (repeat 2-3x), ADB toggle appears at the bottom. Persists across reboots, port 5555.
@@ -10,21 +11,23 @@
 # Launcher: com.tcl.cyberui stays enabled as the fallback Home. The firmware's install gate
 # (OverseasAppConfig + InstallConfig strategies) was opened by writing the provider's config
 # rows through its debug shell command — see docs/devices/tcl-98q9k.md. com.gathin.tvhome is
-# now installed, set as the default Home and reboot-verified.
+# installed, set as the default Home and reboot-verified.
 # Live TV: com.tcl.tv stays (owns DTV/HDMI playback and the remote's source key).
 #
-# Kept on purpose (owner's choice, 2026-10-22):
-#   com.tcl.qiyiguo            奇异果 (iQIYI TV)
-#   cn.miguvideo.migutv        咪咕视频
-#   com.hunantv.market         芒果TV市场
-#   com.xiaodianshi.tv.yst     云视听小电视 (Bilibili TV)
-#   com.tcl.MultiScreenInteraction_TV / com.tcl.miracast / com.kookong.tvplus / com.limelight
-#                               casting, kept: the owner casts from a phone
-#   org.xbmc.kodi              owner-installed
-#   com.tcl.vod / com.tcl.tliveplay  TCL VOD / live apps, kept: they register playback
-#                                 services the stock Live TV may use
-#   com.tcl.guard, com.tcl.appmarket2, com.sohu.inputmethod.sogou.tv, com.tcl.ui_mediaCenter,
+# Kept on purpose:
+#   com.tcl.guard                 电视卫士; the USB install path, keep it
+#   com.tcl.appmarket2            TCL app store, the other install channel
+#   com.sohu.inputmethod.sogou.tv the only input method; disable it and there is no keyboard
+#   com.tcl.ui_mediaCenter        USB playback
 #   com.tcl.settings, com.tcl.systemserver, com.tcl.ttvs   (same as the Q10G Pro list)
+#   com.tcl.MultiScreenInteraction_TV / com.tcl.miracast / com.kookong.tvplus   phone casting
+#   com.tcl.vod / com.tcl.tliveplay   register playback services the stock Live TV may use
+#
+# The unit also carries ordinary /data/app content preloads (CIBN, Migu Video, Mango TV,
+# Bilibili TV 云视听小电视, KTCP, blbl, Migu game hall, TCL browser, weather, album, video
+# call, WeChat TV). They are regular applications, not part of any system boot chain, so
+# disable the ones you don't use the same way — they are left out of this list because
+# which of them you want is a per-household choice.
 #
 # Apply:  TV_HOST=<tv ip> tools/disable.sh examples/tcl-98q9k/debloat.txt
 #         (Windows: powershell -ExecutionPolicy Bypass -File tools\disable.ps1 -TvHost <tv ip> examples\tcl-98q9k\debloat.txt)
@@ -51,21 +54,10 @@ android.autoinstalls.config.tcl.device   # first-boot auto-install of preloaded 
 com.tcl.ffeducation                      # kids / education content
 com.tcl.ffkaraoke                        # karaoke
 
-# OTA and account (owner chose to disable; re-enable to update or sign in)
+# OTA and account — re-enable com.tcl.versionUpdateApp when you want firmware updates
 com.tcl.versionUpdateApp                 # system OTA and app auto-update
-com.tcl.UpdatePeripheral                 # peripheral firmware OTA, ~210 MB resident
-com.tcl.usercenter                       # account / wallet / VIP + XMPP
+com.tcl.UpdatePeripheral                 # peripheral firmware OTA, ~210 MB resident, the top RSS here
+com.tcl.usercenter                       # account / wallet / VIP + XMPP; re-enable to sign in
 
-# Voice (owner chose to disable; remote's voice key does nothing afterwards)
+# Voice — the remote's voice key does nothing afterwards, re-enable com.tcl.walleve to bring it back
 com.tcl.walleve                          # iFlytek voice engine; registers an AccessibilityService
-
-# Extras on this unit, owner confirmed disable (regular /data/app applications)
-com.cibn.tv                              # CIBN 环球影视
-com.ktcp.csvideo                         # KTCP video
-com.xx.blbl                              # blbl video
-com.cmgame.gamehalltv                    # 咪咕游戏大厅 game hall
-com.tcl.browser                          # TCL browser
-com.tcl.common.weather                   # weather
-com.tcl.tvsmartalbum                     # TV smart album
-com.tcl.videocall                        # video call
-com.tcl.weixin                           # WeChat TV integration

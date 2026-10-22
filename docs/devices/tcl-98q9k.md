@@ -5,7 +5,7 @@ Tested 2026-10-22 on a TCL 98Q9K (98-inch QD-Mini LED 2024), device `tcl_mt5879_
 build RQ3A.210705.001 release-keys, 3.8 GB RAM, **32-bit only**
 (`ro.product.cpu.abilist = armeabi-v7a,armeabi`), `ro.adb.secure=1`.
 
-Outcome: the debloat list in `examples/tcl-98q9k/debloat.txt` (28 packages) applied and
+Outcome: the debloat list in `examples/tcl-98q9k/debloat.txt` (19 packages) applied and
 survived reboots, **and** the repo launcher `com.gathin.tvhome` was installed over Wi-Fi,
 set as the default Home and verified over a full reboot. The Q10G Pro note "a third-party
 launcher cannot be installed here" holds for `adb install` as shipped, but the gate can be
@@ -46,8 +46,9 @@ cannot be written that way. The writable path is the provider's debug shell comm
 2. Reboot once. Then `cmd feature <verb> ...` works (verbs: query / insert / update /
    delete, content passed as a raw argument, colons fine; `dumpsys feature` only dumps).
 3. Writes that opened installs on this unit:
-   - `OverseasAppConfig` packages += `com.gathin.tvhome` (and `org.xbmc.kodi`,
-     `com.limelight`, the owner's other sideloads),
+   - `OverseasAppConfig` packages += `com.gathin.tvhome` (plus the package
+     names of any other apps you sideload and want to keep installing and
+     updating over ADB),
    - `InstallConfig`: `launcherStrategy.packages` += `com.gathin.tvhome`, and
      `pmStrategy.enable` → `false`.
    Both persist in the database; after that, `pm install` works without the debug prop
@@ -66,7 +67,8 @@ cannot be written that way. The writable path is the provider's debug shell comm
 - The provider runs in `system_server` (`android:process="system"`,
   `coreApp="true"`), so no app process to restart; only a reboot re-reads
   `mDebug`. The database is named `config_test.db` in production.
-- Kept apps the owner chose: 奇异果 (com.tcl.qiyiguo), 咪咕视频
-  (cn.miguvideo.migutv), 芒果TV市场 (com.hunantv.market), 云视听小电视
-  (com.xiaodianshi.tv.yst), all casting components, org.xbmc.kodi and
-  com.limelight. Dock: those four, `live_tv_package` = com.tcl.tv.
+- Kept apps worth knowing about: the content preloads on this unit (CIBN, Migu Video,
+  Mango TV, Bilibili TV 云视听小电视, KTCP, blbl, Migu game hall, TCL browser, weather,
+  album, video call, WeChat TV) are ordinary `/data/app` applications — disable any of
+  them the same way if unused; `live_tv_package` for a launcher build is `com.tcl.tv`
+  (hidden from the grid, offered in the Inputs menu).
