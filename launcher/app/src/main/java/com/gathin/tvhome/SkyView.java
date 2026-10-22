@@ -8,6 +8,7 @@ import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
@@ -75,6 +76,7 @@ public class SkyView extends View {
         String lat = getContext().getString(R.string.latitude);
         String lon = getContext().getString(R.string.longitude);
         if (lat.isEmpty() || lon.isEmpty()) return null;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null;   // Sun uses java.time
         try {
             return Sun.riseAndSet(LocalDate.now(), Double.parseDouble(lat), Double.parseDouble(lon),
                     ZoneId.systemDefault());

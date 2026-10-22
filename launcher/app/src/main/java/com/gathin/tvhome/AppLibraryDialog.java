@@ -13,6 +13,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -38,6 +39,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -46,10 +48,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Predicate;
 
 /** On-demand installed-app picker. Uses the launcher's glass resources; no backdrop capture or blur. */
 final class AppLibraryDialog {
+    /** Whether a package is on Home. Not java.util.function.Predicate: Android 6 has no java.util.function. */
+    interface OnHome {
+        boolean test(String pkg);
+    }
+
     /**
      * The catalogue, the labels and the icons load here, off the UI thread: each label and icon opens the app's
      * resources, and on a TCL G09 that froze Home for 60-140 ms (2 to 4 janky frames) every time the library opened.
@@ -77,7 +83,7 @@ final class AppLibraryDialog {
     /** Only the latest load fills the catalogue. */
     private int loads;
     private final Activity activity;
-    private final Predicate<String> onHome;
+    private final OnHome onHome;
     private final Runnable changed;
     private final LinearLayout panel;
     private final boolean reducedMotion;
@@ -142,7 +148,7 @@ final class AppLibraryDialog {
         if (popup.isShowing()) popup.update(width, height);
     }
 
-    AppLibraryDialog(Activity activity, boolean animations, boolean reducedMotion, Predicate<String> onHome, Runnable changed, Runnable dismissed) {
+    AppLibraryDialog(Activity activity, boolean animations, boolean reducedMotion, OnHome onHome, Runnable changed, Runnable dismissed) {
         this.activity = activity;
         this.animations = animations;
         this.rtl = activity.getResources().getBoolean(R.bool.rtl_app_grid);
@@ -270,7 +276,7 @@ final class AppLibraryDialog {
         }
         catalogTime = System.currentTimeMillis();
         Collator collator = Collator.getInstance();
-        apps.sort((a, b) -> {
+        Collections.sort(apps, (a, b) -> {
             String pa = a.activityInfo.packageName, pb = b.activityInfo.packageName;
             int priority = LibraryApps.comparePriority(home.get(pa), installTimes.get(pa),
                     home.get(pb), installTimes.get(pb), catalogTime);
@@ -544,7 +550,10 @@ final class AppLibraryDialog {
         view.setText(value);
         view.setTextSize(size);
         view.setTextColor(color);
-        view.setTypeface(activity.getResources().getFont(R.font.outfit_medium));
+        // Font resources need Android 8; older sets keep the system font, as the XML layouts do there.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            view.setTypeface(activity.getResources().getFont(R.font.outfit_medium));
+        }
         view.setLetterSpacing(0.01f);
         view.setIncludeFontPadding(false);
         return view;
@@ -597,7 +606,8 @@ final class AppLibraryDialog {
             name.setEllipsize(TextUtils.TruncateAt.END);
             TextView status = holder.itemView.findViewById(R.id.status);
             boolean home = onHome.test(pkg);
-            boolean recent = LibraryApps.recent(installTimes.getOrDefault(pkg, 0L), catalogTime);
+            Long installed = installTimes.get(pkg);
+            boolean recent = LibraryApps.recent(installed == null ? 0L : installed, catalogTime);
             status.setText(home ? R.string.library_on_home : recent ? R.string.library_recent : R.string.library_add_home);
             status.setVisibility(View.VISIBLE);
             holder.itemView.setBackground(surface(home ? 0x1475BBA4 : 0x0CFFFFFF, 18));

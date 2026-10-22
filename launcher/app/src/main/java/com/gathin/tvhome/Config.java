@@ -4,8 +4,11 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
+
+import androidx.annotation.RequiresApi;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -419,8 +422,10 @@ final class Config {
                 wallpaperEnabled = true;
             }
         }
-        // A festive skin comes only from a theme; config.xml has no festival.
-        Festival festival = json == null ? Festival.NONE : Festival.parse(string(json, "festival", ""),
+        // A festive skin comes only from a theme; config.xml has no festival. Its dates need java.time
+        // (Android 8), so Android 6 and 7 keep the plain look, as they do without race_calendar below.
+        boolean dates = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
+        Festival festival = json == null || !dates ? Festival.NONE : Festival.parse(string(json, "festival", ""),
                 string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
 
         return new Config(dock, fillDock, hidden, liveTv, liveTvAction, liveTvInputId, packageMap(launchActions), packageMap(appLabels),
@@ -430,7 +435,7 @@ final class Config {
                 shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv, dockTitle, dockRow, reorderButton, showNetworkPill, showInputsPill, iconOnlyButtons, libraryButton, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot, vpn, homeSettings, showStats, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied,
-                festival, inputKeycodes, appKeys, stockHomeRedirect, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow,
+                festival, inputKeycodes, appKeys, stockHomeRedirect, json == null || !dates ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow,
                 Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs);
     }
 
@@ -439,6 +444,7 @@ final class Config {
      * "sessions": [{"name": "FP1", "start": "2026-10-23T17:30:00Z"}, ...]}, ...]}. A race or session that does
      * not parse is left out on its own; the rest of the calendar still counts.
      */
+    @RequiresApi(Build.VERSION_CODES.O)
     private static List<RaceWeekend.Race> raceCalendar(JSONObject json) {
         List<RaceWeekend.Race> races = new ArrayList<>();
         JSONArray list = json.optJSONArray("race_calendar");

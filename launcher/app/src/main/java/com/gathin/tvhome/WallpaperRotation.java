@@ -3,7 +3,7 @@ package com.gathin.tvhome;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -21,7 +21,7 @@ final class WallpaperRotation {
         List<File> result = new ArrayList<>();
         File[] entries = directory == null ? null : directory.listFiles();
         if (entries == null) return result;
-        Arrays.sort(entries, Comparator.comparing(File::getName));
+        Arrays.sort(entries, (a, b) -> a.getName().compareTo(b.getName()));
         for (File entry : entries) {
             String name = entry.getName().toLowerCase(Locale.ROOT);
             if (entry.isFile() && entry.length() > 0 && entry.length() <= 10 * 1024 * 1024
@@ -41,7 +41,11 @@ final class WallpaperRotation {
 
     static File pick(List<File> images, String previous, Random random) {
         List<File> candidates = new ArrayList<>(images);
-        if (candidates.size() > 1) candidates.removeIf(image -> image.getName().equals(previous));
+        if (candidates.size() > 1) {
+            for (Iterator<File> it = candidates.iterator(); it.hasNext(); ) {
+                if (it.next().getName().equals(previous)) it.remove();
+            }
+        }
         return candidates.isEmpty() ? null : candidates.get(random.nextInt(candidates.size()));
     }
 

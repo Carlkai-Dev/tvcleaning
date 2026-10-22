@@ -1,6 +1,9 @@
 package com.gathin.tvhome;
 
 import android.content.res.Resources;
+import android.os.Build;
+
+import androidx.annotation.RequiresApi;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -38,7 +41,9 @@ final class Festival {
     /**
      * Builds the skin from raw config values. Anything malformed turns the skin off rather than leaving a
      * festival on the screen forever: an unreadable end date or an empty name gives {@link #NONE}.
+     * java.time needs Android 8; older sets get {@link #NONE} from Config instead.
      */
+    @RequiresApi(Build.VERSION_CODES.O)
     static Festival parse(String name, String until, String greeting, String accent) {
         String n = name == null ? "" : name.trim().toLowerCase(Locale.ROOT);
         if (n.isEmpty() || n.length() > 40) return NONE;
@@ -55,6 +60,7 @@ final class Festival {
     }
 
     /** Whether the skin shows today. */
+    @RequiresApi(Build.VERSION_CODES.O)
     boolean active(LocalDate today) {
         return !name.isEmpty() && (until == null || !today.isAfter(until));
     }

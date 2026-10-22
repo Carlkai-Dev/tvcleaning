@@ -2,6 +2,8 @@ package com.gathin.tvhome;
 
 import android.content.res.Resources;
 
+import androidx.annotation.RequiresApi;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -13,8 +15,10 @@ import java.util.Locale;
  * Race-weekend mode. A theme's config.json can carry an F1 calendar ({@code race_calendar}, written by
  * tools/race_calendar.py); from shortly before a weekend's first session until the race is over, Home shows
  * a small panel with the next session and a countdown. Scheduling uses the clock against owner-pushed
- * data and is tested on the JVM; display labels use Android resources.
+ * data and is tested on the JVM; display labels use Android resources. java.time needs Android 8 (API 26),
+ * so Config drops race_calendar on older sets and the panel never shows there.
  */
+@RequiresApi(26)
 final class RaceWeekend {
 
     /** The panel shows from this long before a weekend's first session... */
@@ -86,7 +90,7 @@ final class RaceWeekend {
             this.name = name;
             this.place = place;
             List<Session> sorted = new ArrayList<>(sessions);
-            sorted.sort((a, b) -> a.start.compareTo(b.start));
+            Collections.sort(sorted, (a, b) -> a.start.compareTo(b.start));
             this.sessions = Collections.unmodifiableList(sorted);
         }
 

@@ -15,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ChangedPackages;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -348,7 +349,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dockRow = cfg.dockRow;
         focusOvershoot = cfg.focusOvershoot;
         festival = cfg.festival;
-        festive = festival.active(LocalDate.now());
+        festive = festiveToday();
         liveTvPkg = cfg.liveTvPackage;
         idleClockMs = cfg.homeIdleClockMinutes * MINUTE_MS;
         bootToLiveTv = cfg.bootToLiveTv;
@@ -375,7 +376,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient = findViewById(R.id.ambient);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
-        ambient.forceHasOverlappingRendering(false);
+        noOverlappingRendering(ambient);
         ambientGlow = cfg.ambientGlow;
         appGlow = cfg.appGlow;
         if (!ambientGlow) ambient.setVisibility(View.GONE);
@@ -383,7 +384,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hero = findViewById(R.id.hero);
         // The hero is now a group (name, and the cinematic lines): without this every fade of the default
         // shelf would render it through an offscreen buffer first, as the glow above notes.
-        hero.forceHasOverlappingRendering(false);
+        noOverlappingRendering(hero);
         heroMeta = findViewById(R.id.heroMeta);
         heroDots = findViewById(R.id.heroDots);
         heroArt = findViewById(R.id.heroArt);
@@ -636,7 +637,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.registerCallback(inputCallback, handler);
         if (cm != null) {
-            cm.registerDefaultNetworkCallback(networkCallback);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                cm.registerDefaultNetworkCallback(networkCallback);
+            } else {
+                // Android 6 has no default-network callback; any network with internet is close enough for
+                // the pill, which reads the active network itself.
+                cm.registerNetworkCallback(new NetworkRequest.Builder()
+                        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                        .build(), networkCallback);
+            }
             cm.registerNetworkCallback(new NetworkRequest.Builder()
                     .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
                     .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
@@ -737,7 +746,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         // A festival that started or ended while Home was in the background: rebuild with or without it.
-        if (festive != festival.active(LocalDate.now())) {
+        if (festive != festiveToday()) {
             recreate();
             return;
         }
@@ -775,7 +784,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
-        if (festive && diya != null) {
+        if (festive && diya != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             diya.start();
             LocalDate today = LocalDate.now();
             if (!reducedMotion && !today.equals(lastPetalShower)) {
@@ -847,13 +856,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    /** True when PackageManager reports apps changed since the last rebuild (one binder call). */
+    /**
+     * True when PackageManager reports apps changed since the last rebuild (one binder call). Android 6 and 7
+     * cannot tell, so there every return rebuilds the tiles, as before #666.
+     */
     private boolean packagesChangedSinceRebuild() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return true;
         ChangedPackages changed = getPackageManager().getChangedPackages(packageSequence);
         return changed != null && !changed.getPackageNames().isEmpty();
     }
 
     private int currentPackageSequence(int since) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return since;
         ChangedPackages changed = getPackageManager().getChangedPackages(since);
         return changed != null ? changed.getSequenceNumber() : since;
     }
@@ -1407,7 +1421,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float scale = adapter.focusScale();
         int w = (int) (card.getWidth() * scale + 2 * pad);
         int h = (int) (card.getHeight() * scale + 2 * pad);
-        if (!glassShown || card.getWidth() != glassCardW || glass.getWidth() != w || glass.getHeight() != h) {
+        // The grid's top padding can also settle after the first focus and move the dock without a scroll
+        // (Android 6 lays out in that order), leaving the glass where the tile used to be.
+        Rect r = tileRect;
+        r.set(0, 0, card.getWidth(), card.getHeight());
+        root.offsetDescendantRectToMyCoords(card, r);
+        float y = r.exactCenterY() - (card.getHeight() * scale + 2 * pad) / 2f - (advancedEffects ? 4f * density : 0f);
+        boolean moved = Math.abs(glassTargetY - y) > density;
+        if (!glassShown || moved || card.getWidth() != glassCardW || glass.getWidth() != w || glass.getHeight() != h) {
             onTileFocused(pos, card);
         }
     }
@@ -1490,7 +1511,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroDots.setVisibility(View.VISIBLE);
         heroArt.setVisibility(View.VISIBLE);
         // One stretched bitmap: apply its alpha while drawing instead of through an offscreen buffer.
-        heroArt.forceHasOverlappingRendering(false);
+        noOverlappingRendering(heroArt);
         View scrim = findViewById(R.id.heroScrim);
         scrim.setBackground(scrimDrawable());
         scrim.setVisibility(View.VISIBLE);
@@ -2033,7 +2054,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             View card = vh.itemView.findViewById(R.id.card);
             // Already focused (e.g. back from an app): no focus change fires, so restore the glass by hand.
             if (card.isFocused()) onTileFocused(pos, card);
-            else card.requestFocus();
+            else takeFocus(card);
             return;
         }
         // Not laid out yet: scroll there, then focus once the scroll settles.
@@ -2041,7 +2062,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.scrollToPosition(pos);
             grid.post(() -> {
                 RecyclerView.ViewHolder h = grid.findViewHolderForAdapterPosition(pos);
-                if (h != null) h.itemView.findViewById(R.id.card).requestFocus();
+                if (h != null) takeFocus(h.itemView.findViewById(R.id.card));
             });
             return;
         }
@@ -2054,7 +2075,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 pendingFocusScroll = null;
                 RecyclerView.ViewHolder h = rv.findViewHolderForAdapterPosition(pos);
                 View target = h != null ? h.itemView.findViewById(R.id.card) : rv.getChildAt(0);
-                if (target != null) target.requestFocus();
+                if (target != null) takeFocus(target);
             }
         };
         grid.addOnScrollListener(pendingFocusScroll);
@@ -2083,7 +2104,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // Indonesian day parts run on different hours than English:
         // Pagi 00-10, Siang 10-15, Sore 15-18, Malam 18-24.
         // The app's own locale (per-app language on Android 13+), under either code Android uses for Indonesian.
-        String lang = getResources().getConfiguration().getLocales().get(0).getLanguage();
+        Configuration configuration = getResources().getConfiguration();
+        String lang = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? configuration.getLocales().get(0)
+                : configuration.locale).getLanguage();
         if ("in".equals(lang) || "id".equals(lang)) {
             if (hour < 10) res = R.string.good_morning;
             else if (hour < 15) res = R.string.good_afternoon;
@@ -2117,7 +2140,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * nothing animates, so the panel costs the GPU nothing between ticks.
      */
     private void updateRace() {
-        if (raceCalendar.isEmpty()) return;
+        // Config leaves the calendar empty below Android 8; the check here is for lint, which cannot see that.
+        if (raceCalendar.isEmpty() || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
         RaceWeekend.State s = RaceWeekend.at(raceCalendar, java.time.Instant.now());
         if (s == null) {
             racePanel.setVisibility(View.GONE);
@@ -2310,6 +2334,50 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         pill.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, null, null, null);
     }
 
+    /**
+     * requestFocus(), leaving touch mode first when the window is in it: Android 6 boxes (MXQ Pro S905X) start
+     * Home in touch mode, where a tile cannot take focus, so none showed as focused until a key was pressed.
+     */
+    private static void takeFocus(View view) {
+        if (view.isInTouchMode()) view.requestFocusFromTouch();
+        else view.requestFocus();
+    }
+
+    /** Lets a single-layer view apply its alpha while drawing; Android 6 has no switch for it and keeps the buffer. */
+    private static void noOverlappingRendering(View view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) view.forceHasOverlappingRendering(false);
+    }
+
+    /** Whether the theme's festive skin shows today; never below Android 8, where Config has no festival. */
+    private boolean festiveToday() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && festival.active(LocalDate.now());
+    }
+
+    /**
+     * The TV input manager, or null when the set has no TV input service: Android 6 boxes without one (MXQ Pro
+     * S905X) still hand out a manager, and its first getTvInputList() throws NullPointerException.
+     */
+    private TvInputManager tvInputManager() {
+        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+        if (tim == null) return null;
+        try {
+            tim.getTvInputList();
+            return tim;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** Hidden in the TV's Settings > Inputs; Android 6 has no such setting, so nothing is hidden there. */
+    private boolean inputHidden(TvInputInfo info) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && info.isHidden(this);
+    }
+
+    /** The name given to an input in Settings > Inputs, or null (always on Android 6, which cannot rename them). */
+    private CharSequence customLabel(TvInputInfo info) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? info.loadCustomLabel(this) : null;
+    }
+
     /** Runs {@code action} when the view gains focus, keeping any focus listener it already had. */
     private static void addFocusAction(View view, Runnable action) {
         View.OnFocusChangeListener previous = view.getOnFocusChangeListener();
@@ -2356,11 +2424,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         boolean any = liveTvIntent() != null || !sourcePanelService.isEmpty()
                 || (coocaaSources && !CoocaaSources.list(this).isEmpty());
-        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+        TvInputManager tim = tvInputManager();
         if (!any && tim != null) {
             for (TvInputInfo info : tim.getTvInputList()) {
                 // Inputs hidden in Settings > Inputs are left out of the menu, so they don't count here either.
-                if (info.isPassthroughInput() && !info.isHidden(this)) {
+                if (info.isPassthroughInput() && !inputHidden(info)) {
                     any = true;
                     break;
                 }
@@ -2496,7 +2564,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         int width = Math.max(anchor.getWidth(), (int) (150 * density));
         final PopupWindow popup = glassPopup(panel, width);
 
-        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+        TvInputManager tim = tvInputManager();
         boolean sawNonHdmi = false;
         String tunerId = null;
         boolean tunerIsHw = false;
@@ -2519,7 +2587,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             for (TvInputInfo info : inputs) {
                 String parent = info.getParentId();
                 if (parent == null || !inputIds.contains(parent)) continue;
-                if (!info.isPassthroughInput() || info.isHidden(this)) continue;
+                if (!info.isPassthroughInput() || inputHidden(info)) continue;
                 List<TvInputInfo> onPort = cecDevices.get(parent);
                 if (onPort == null) cecDevices.put(parent, onPort = new ArrayList<>());
                 onPort.add(info);
@@ -2557,7 +2625,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     }
                 }
                 // Inputs hidden in the TV's Settings > Inputs stay out of the menu too.
-                if (!info.isPassthroughInput() || info.isHidden(this)) continue;
+                if (!info.isPassthroughInput() || inputHidden(info)) continue;
                 // input_sources can leave out ports the board reports but the set does not have ("HW8=-").
                 if (Integer.valueOf(-1).equals(mappedSource(info.getId()))) continue;
                 // A CEC device's row is added with its port, below.
@@ -2566,7 +2634,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 String label = l == null ? info.getId() : l.toString();
                 boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
                 if (hdmi && !label.toUpperCase(Locale.ROOT).contains("HDMI")) label = "HDMI " + label;
-                CharSequence custom = info.loadCustomLabel(this);
+                CharSequence custom = customLabel(info);
                 boolean named = custom != null && custom.length() > 0 && !custom.toString().equals(label);
                 if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);
                 if (!hdmi) sawNonHdmi = true;
@@ -2576,7 +2644,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     // Settings > Inputs), then the port. Opening the device's input also makes it the CEC
                     // active source, which wakes it.
                     for (TvInputInfo device : devices) {
-                        CharSequence name = device.loadCustomLabel(this);
+                        CharSequence name = customLabel(device);
                         if (name == null || name.length() == 0) name = named ? custom : device.loadLabel(this);
                         String deviceLabel = name == null || name.length() == 0 ? label : name + " \u00B7 " + label;
                         final String deviceId = device.getId();

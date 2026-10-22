@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.os.Build;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -177,10 +178,13 @@ final class WallpaperPlayer {
         text.setMaxWidth(Math.round(520 * dp));
         text.setFocusable(false);
         text.setAlpha(0f);
-        try {
-            text.setTypeface(context.getResources().getFont(R.font.outfit_regular));
-        } catch (Exception ignored) {
-            // the system font is fine
+        // Font resources need Android 8 (a NoSuchMethodError, not an Exception, below it); the system font is fine.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                text.setTypeface(context.getResources().getFont(R.font.outfit_regular));
+            } catch (Exception ignored) {
+                // the system font is fine
+            }
         }
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
@@ -249,7 +253,8 @@ final class WallpaperPlayer {
             if (decoded == null) return null;
             if (dimColor != 0) new Canvas(decoded).drawColor(dimColor);
             // One copy in GPU memory instead of a software bitmap plus its texture; the decode stays off the UI
-            // thread for rotations, and Home's return no longer uploads 4-8 MB to the GPU.
+            // thread for rotations, and Home's return no longer uploads 4-8 MB to the GPU. Android 8 and newer.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return decoded;
             Bitmap gpu = decoded.copy(Bitmap.Config.HARDWARE, false);
             if (gpu == null) return decoded;
             decoded.recycle();

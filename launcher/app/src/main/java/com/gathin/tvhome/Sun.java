@@ -1,5 +1,7 @@
 package com.gathin.tvhome;
 
+import androidx.annotation.RequiresApi;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
 
@@ -7,7 +9,9 @@ import java.time.ZoneId;
  * Sunrise and sunset for a place, computed offline with NOAA's general solar position equations
  * (accurate to a few minutes, which is plenty for a backdrop). Pure maths, no Android types, so
  * it runs in JVM tests; no network and no location permission, the place comes from config.xml.
+ * java.time needs Android 8 (API 26); on older sets SkyView keeps its fixed reference day.
  */
+@RequiresApi(26)
 final class Sun {
 
     private Sun() {

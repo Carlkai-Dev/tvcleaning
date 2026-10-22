@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.UserManager;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -56,7 +57,8 @@ public class HomeKeyService extends AccessibilityService {
         // locked at boot, writes accessibility_enabled=0 and, on TCL G03 firmware, never binds it after the
         // unlock. Config.load reads credential-protected storage, so wait for the unlock before reading it.
         UserManager users = getSystemService(UserManager.class);
-        if (users.isUserUnlocked()) {
+        // Android 6 has no locked state at boot (file-based encryption came with Android 7).
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || users.isUserUnlocked()) {
             loadConfig();
             return;
         }

@@ -9,7 +9,10 @@ android {
     defaultConfig {
         // Opt-in identity for firmware with a package-name HOME allowlist; see docs/devices/xiaomi-mitv-aetp0-dofus.md.
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
-        minSdk 26
+        // 23 (Android 6) for boxes such as the MXQ Pro S905X. Framework calls newer than 23 sit behind SDK_INT
+        // checks, and the java.time extras (festival, race weekend, sunrise sky) need Android 8. No library
+        // desugaring: it adds 11 KB (minimal) to 220 KB (java.time) to an APK that has to stay under 460 KB.
+        minSdk 23
         targetSdk 34
         versionCode 7
         versionName '2.6'
