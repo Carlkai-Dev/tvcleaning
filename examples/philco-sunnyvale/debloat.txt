@@ -1,0 +1,26 @@
+# Philco Android TV — device sunnyvale
+# Android TV 14, build UKNV.260821.001
+# Fingerprint: Philco/SW5_Philco/sunnyvale:14/UKNV.260821.001/16143353:user/release-keys
+#
+
+com.google.android.tvlauncher
+com.smartdevice.recommendation
+fusion.android.tv.demo
+com.google.android.play.games
+com.google.android.partnersetup
+com.google.android.backdrop
+com.android.dreams.basic
+com.google.android.feedback
+com.google.android.syncadapters.calendar
+com.google.android.marvin.talkback
+com.google.android.tts
+com.Smartdevice.emanual
+com.google.android.katniss
+com.netflix.ninja
+com.android.ondevicepersonalization.services
+com.android.federatedcompute.services
+com.android.adservices.api
+com.android.health.connect.backuprestore
+com.android.healthconnect.controller
+com.android.nearby.halfsheet
+com.android.htmlviewer
