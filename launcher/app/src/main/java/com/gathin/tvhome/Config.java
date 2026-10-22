@@ -39,6 +39,9 @@ final class Config {
     static final String SETTINGS_NAME = "launcher_settings";
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
+    static final String SHOW_STATS_KEY = "show_stats";
+    /** On-TV choice: {@code "mb"} or {@code "gb"} (default). */
+    static final String STATS_MEMORY_UNIT_KEY = "stats_memory_unit";
     private static final String THEME_REVISION_NAME = "theme_revision";
     private static final String THEME_SIGNATURE_KEY = "theme_signature";
 
@@ -100,8 +103,10 @@ final class Config {
     final boolean focusOvershoot;
     final String vpnApp;
     final boolean showHomeSettingsShortcut;
-    /** One line under the clock: CPU, free memory, free storage. Off unless config or a theme turns it on. */
+    /** One line under the clock: CPU, free memory, free storage. Off unless config, a theme, or on-TV settings turn it on. */
     final boolean showStats;
+    /** Stats memory as whole MB (true) or GB with one decimal (false). On-TV choice; default GB. */
+    final boolean statsMemoryMb;
     /** App library pill after the last Home row (config.xml app_library). */
     final boolean appLibrary;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
@@ -167,7 +172,7 @@ final class Config {
                    String sourcePanelExtra, boolean coocaaSources, String inputAction,
                    String inputUriScheme, int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean bootToLiveTv, boolean dockTitle, boolean dockRow, boolean reorderButton, boolean showNetworkPill, boolean showInputsPill, boolean iconOnlyButtons, boolean libraryButton, int wifiLabelWidth, boolean alwaysShowNames, boolean wallpaperTrueColor, boolean focusOvershoot, String vpnApp,
-                   boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
+                   boolean showHomeSettingsShortcut, boolean showStats, boolean statsMemoryMb, boolean appLibrary, int backgroundColor, int skyIntensity,
                    int[] settingsKeycodes, boolean settingsKeyPanel, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
                    int wallpaperRotationMinutes, int wallpaperDim, int dockOpacity, String wallpaperOrder, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
@@ -217,6 +222,7 @@ final class Config {
         this.vpnApp = vpnApp;
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
         this.showStats = showStats;
+        this.statsMemoryMb = statsMemoryMb;
         this.appLibrary = appLibrary;
         this.backgroundColor = backgroundColor;
         this.skyIntensity = skyIntensity;
@@ -383,6 +389,8 @@ final class Config {
         if (chosenRows >= 0 && chosenRows <= 3) rowsBelow = chosenRows;
         animations = choices.getBoolean("animations", animations);
         advancedEffects = choices.getBoolean("advanced_effects", advancedEffects);
+        if (choices.contains(SHOW_STATS_KEY)) showStats = choices.getBoolean(SHOW_STATS_KEY, showStats);
+        boolean statsMemoryMb = "mb".equals(choices.getString(STATS_MEMORY_UNIT_KEY, "gb"));
         File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
         if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
         // A theme can also switch the wallpaper off while the file is still there.
@@ -427,7 +435,7 @@ final class Config {
                 packageMap(appBanners), panelService,
                 panelAction, panelExtra, coocaaSources, inputAction, inputUriScheme,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
-                shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv, dockTitle, dockRow, reorderButton, showNetworkPill, showInputsPill, iconOnlyButtons, libraryButton, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot, vpn, homeSettings, showStats, library, background,
+                shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv, dockTitle, dockRow, reorderButton, showNetworkPill, showInputsPill, iconOnlyButtons, libraryButton, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot, vpn, homeSettings, showStats, statsMemoryMb, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied,
                 festival, inputKeycodes, appKeys, stockHomeRedirect, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow,
@@ -474,11 +482,13 @@ final class Config {
             // explicit theme push or reset by the updated tools.
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
-                    .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY);
+                    .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
+                    .remove(SHOW_STATS_KEY).remove(STATS_MEMORY_UNIT_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
                     .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
+                    .remove(SHOW_STATS_KEY).remove(STATS_MEMORY_UNIT_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
     }
