@@ -56,7 +56,8 @@ def destinations(text):
 
 def referenced(root):
     """Repository-relative paths of every file the markdown links to, as posix strings."""
-    root = Path(root)
+    # Resolved like the targets below: on macOS a temp dir under /var is really /private/var.
+    root = Path(root).resolve()
     out = set()
     for page in markdown_files(root):
         for target in destinations(page.read_text(encoding="utf-8", errors="replace")):
