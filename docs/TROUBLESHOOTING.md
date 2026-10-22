@@ -346,6 +346,12 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   `/data/local/tmp` and, when copying them in is refused, writes them through the launcher's
   `ThemeProvider` instead. A launcher installed before that provider existed doesn't have it: run
   `launcher/build-and-install.sh` once, then push the theme again.
+- **A pushed theme is ignored on Android 14** (config, dock order and wallpaper unchanged; `logcat | grep
+  TvHome.Config` shows `EACCES`), seen on a fresh install or after the launcher was reinstalled: a file the
+  shell creates in `Android/data` belongs to the shell and the launcher can't read it. `theme.sh` now writes
+  through the launcher's `ThemeProvider` first, after removing any old copy, so the files belong to the
+  launcher ([#832](https://github.com/Gathin23/cleanyourtv/issues/832)). Pushing the theme again with the
+  current `theme.sh` fixes a set themed with an older one.
 - **Google TV comes back after a few remote presses**, seen on XGIMI (MoGo 3 Pro, Google TV 14). The
   remote's app buttons (YouTube, Netflix, Prime Video), the programmable button, the profile button and power
   all send F keys that the system hands to `com.xgimi.xrmservice/.XgimiGlobalKeyBroadcast` as global keys

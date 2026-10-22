@@ -34,7 +34,8 @@ $uri = "content://$pkg.theme"
 $tmp = '/data/local/tmp/cyt-theme'
 # A file's staging path; wallpapers/a.jpg is staged as $tmp-wallpapers-a.jpg.
 function Stage($name) { "$tmp-$($name -replace '/', '-')" }
-function Put($name) { $t = Stage $name; "cp $t $dir/$name 2>/dev/null || content write --uri $uri/$name < $t; rm -f $t" }
+# Write through the ThemeProvider first so the file belongs to the launcher (Android 14 EACCES, #832); see theme.sh.
+function Put($name) { $t = Stage $name; "rm -f $dir/$name 2>/dev/null; content write --uri $uri/$name < $t 2>/dev/null || cp $t $dir/$name; rm -f $t" }
 function Drop($name) { "rm -f $dir/$name 2>/dev/null; content delete --uri $uri/$name 2>/dev/null" }
 
 if ($Reset) {

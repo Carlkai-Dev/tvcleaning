@@ -34,13 +34,17 @@ tv() { "$PY" -I tv.py "$@"; }
 # clearing it changed nothing and the services stayed crashed: write the list back first, so the clear is a change.
 RESTART="a=\$(settings get secure enabled_accessibility_services); am force-stop $PKG; am start -n $PKG/.MainActivity >/dev/null; case \"\$a\" in *$PKG*) sleep 1; settings put secure enabled_accessibility_services \"\$a\"; settings put secure accessibility_enabled 1; sleep 1; settings put secure enabled_accessibility_services ''; settings put secure accessibility_enabled 0; sleep 1; settings put secure enabled_accessibility_services \"\$a\"; settings put secure accessibility_enabled 1 ;; esac"
 
-# Some firmware (TCL G07, Android 11) locks the shell out of Android/data. Files are staged in
-# /data/local/tmp and copied in, or written through the launcher's ThemeProvider when that is refused.
+# Files are staged in /data/local/tmp and written through the launcher's ThemeProvider, so they belong to the
+# launcher. On Android 14 a file the shell creates in Android/data is owned by the shell and unreadable to the
+# launcher (EACCES), so the theme was silently ignored on a fresh install (#832); the provider can't truncate a
+# shell-owned file either, so remove any old copy first. cp stays as the fallback for a launcher built before
+# the provider existed. Some firmware (TCL G07, Android 11) locks the shell out of Android/data, so rm and cp
+# just fail there and the provider does the work.
 URI=content://$PKG.theme
 TMP=/data/local/tmp/cyt-theme
 # A file's staging path; wallpapers/a.jpg is staged as $TMP-wallpapers-a.jpg.
 stage() { echo "$TMP-${1//\//-}"; }
-put() { echo "cp $(stage "$1") $DIR/$1 2>/dev/null || content write --uri $URI/$1 < $(stage "$1"); rm -f $(stage "$1")"; }
+put() { echo "rm -f $DIR/$1 2>/dev/null; content write --uri $URI/$1 < $(stage "$1") 2>/dev/null || cp $(stage "$1") $DIR/$1; rm -f $(stage "$1")"; }
 del() { echo "rm -f $DIR/$1 2>/dev/null; content delete --uri $URI/$1 2>/dev/null"; }
 
 if [ "${1:-}" = --reset ]; then
