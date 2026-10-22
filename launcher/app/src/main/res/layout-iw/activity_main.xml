@@ -170,7 +170,8 @@
             <LinearLayout
                 android:id="@+id/leftBlock"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
                 android:layout_alignParentEnd="true"
                 android:layout_toEndOf="@+id/topButtons"
                 android:layout_marginStart="16dp"

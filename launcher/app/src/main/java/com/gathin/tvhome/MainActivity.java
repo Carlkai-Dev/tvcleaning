@@ -522,10 +522,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // Where the rows cannot fit even at the smallest tile (3 rows with the title on), the title keeps its
             // room above the dock and the last rows run off the bottom instead of the title drawing over the clock.
             if (MainActivity.this.dockRow && cfg.dockTitle && rowsBelowDock > 0) want = Math.max(want, (int) (AppAdapter.TITLE_ROOM_DP * density));
-            // Slim top bar: the dock sits 48dp (6 x 8) under the buttons instead of at the bottom of the screen,
+            // Slim top bar, with rows below the dock: the dock sits 48dp (6 x 8) under the buttons instead of at the
+            // bottom of the screen (rows_below_dock 0 keeps it at the bottom),
             // and the rows below get the room that frees. Buttons end 6dp above the 48dp header block, so
             // 48 = 6 + the grid's 10dp top margin + 32dp padding.
-            if (MainActivity.this.dockRow && !cfg.dockTitle && !cinematic) want = Math.max(shelfClearance, Math.min(want, (int) (32 * density)));
+            if (MainActivity.this.dockRow && !cfg.dockTitle && !cinematic && rowsBelowDock > 0) want = Math.max(shelfClearance, (int) (AppAdapter.TOP_GAP_DP * density));
             // No dock to push down: the grid starts at the top, with room for the first row's zoom and glass.
             if (!MainActivity.this.dockRow) want = (int) (AppAdapter.TOP_ROOM_DP * density);
             if (grid.getPaddingTop() != want) {
