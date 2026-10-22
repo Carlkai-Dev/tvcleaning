@@ -263,6 +263,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private String dockEditAppKey;
     private AppLibraryDialog appLibrary;
     private boolean libraryFocusPending;
+    /** The footer button focusLibrary() focuses next, once: Launcher settings after a return from it. */
+    private int footerButton = R.id.btnLibrary;
     private RecyclerView.OnScrollListener pendingFocusScroll;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -2068,6 +2070,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     @Override public void onLauncherSettingsRequested() {
+        footerButton = R.id.btnLibrarySettings;
+        libraryFocusPending = true;
         startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
     }
 
@@ -2079,11 +2083,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void focusLibrary() {
         cancelPendingFocusScroll();
+        final int id = footerButton;
+        footerButton = R.id.btnLibrary;
         int position = adapter.appCount();
         if (!adapter.isLibraryAt(position)) return;
         RecyclerView.ViewHolder holder = grid.findViewHolderForAdapterPosition(position);
         if (holder != null) {
-            View button = holder.itemView.findViewById(R.id.btnLibrary);
+            View button = holder.itemView.findViewById(id);
             Rect visible = new Rect();
             if (button.getGlobalVisibleRect(visible) && visible.height() >= button.getHeight()) {
                 if (button.requestFocus()) libraryFocusPending = false;
@@ -2096,7 +2102,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (appLibrary != null || !hasWindowFocus()) return;
                 RecyclerView.ViewHolder footer = grid.findViewHolderForAdapterPosition(adapter.appCount());
                 if (footer != null && adapter.isLibraryAt(adapter.appCount())
-                        && footer.itemView.findViewById(R.id.btnLibrary).requestFocus()) libraryFocusPending = false;
+                        && footer.itemView.findViewById(id).requestFocus()) libraryFocusPending = false;
             });
             return;
         }
@@ -2107,7 +2113,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (pendingFocusScroll != this) return;
                 pendingFocusScroll = null;
                 RecyclerView.ViewHolder footer = rv.findViewHolderForAdapterPosition(position);
-                if (footer != null && footer.itemView.findViewById(R.id.btnLibrary).requestFocus())
+                if (footer != null && footer.itemView.findViewById(id).requestFocus())
                     libraryFocusPending = false;
             }
         };

@@ -22,6 +22,16 @@ subtle tint. Updating an existing app does not mark it as new.
   Right from the final app reaches the library pill; Up returns to the last row.
   Hebrew mirrors the horizontal direction, so Left from the final app reaches it.
 
+## Launcher settings beside the library
+
+Set `"library_launcher_settings": true` in a theme, or the `library_launcher_settings` bool in
+`config.xml`, to put a Launcher settings button right after the App library pill. It is off by
+default and needs `app_library`. Right and Left move between the two buttons, Up returns to the
+last row, and Back from Launcher settings returns to the button. The Settings pill at the top keeps
+opening the TV's own settings.
+
+![App library and Launcher settings at the end of Home](app-library-launcher-settings.jpg)
+
 With `tile_menu` on, holding OK on a Home tile offers Remove from Home as well, next to Move and App info.
 Every checked app can be removed from Home, including the theme’s default apps.
 It stays installed and remains in the library, where one press adds it back.

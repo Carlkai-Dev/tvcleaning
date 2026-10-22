@@ -254,7 +254,8 @@
     <!-- Installed launchable apps, including ordinary Android apps. Also settable in config.json. -->
     <bool name="app_library">false</bool>
     <!-- A Launcher settings button after the App library at the end of Home (app_library must be on too).
-         Off by default; the Settings pill keeps opening the TV's own settings. -->
+         Off by default; a theme can set "library_launcher_settings": true. The Settings pill keeps opening
+         the TV's own settings. -->
     <bool name="library_launcher_settings">false</bool>
 
     <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own

@@ -195,6 +195,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final boolean animations;
     private final boolean advancedEffects;
     private final boolean showLibrary;
+    private final boolean libraryLauncherSettings;
     /** Packages with a leanback entry at the last reload(): their tiles launch with the leanback category. */
     private Set<String> leanbackPackages = new HashSet<>();
     private final boolean showHomeSettings;
@@ -221,6 +222,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.advancedEffects = cfg.animations && cfg.advancedEffects;
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
         this.showLibrary = cfg.appLibrary;
+        this.libraryLauncherSettings = cfg.libraryLauncherSettings;
         this.reducedMotion = cfg.reducedMotion;
         this.focusOvershoot = cfg.focusOvershoot;
         this.rowsBelowDock = cfg.rowsBelowDock;
@@ -369,7 +371,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             View row = LayoutInflater.from(ctx).inflate(R.layout.row_app_library, parent, false);
             View button = row.findViewById(R.id.btnLibrary);
             View settings = row.findViewById(R.id.btnLibrarySettings);
-            boolean withSettings = ctx.getResources().getBoolean(R.bool.library_launcher_settings);
+            boolean withSettings = libraryLauncherSettings;
             settings.setVisibility(withSettings ? View.VISIBLE : View.GONE);
             button.setOnClickListener(v -> listener.onLibraryRequested());
             settings.setOnClickListener(v -> listener.onLauncherSettingsRequested());
