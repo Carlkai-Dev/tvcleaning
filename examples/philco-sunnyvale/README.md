@@ -1,7 +1,5 @@
 # Philco sunnyvale — Android TV 14 — build UKNV.260821.001
 
-# Philco Android TV / CleanYourTV — Package Classification
-
 ## Device Information
 
 - **Brand:** Philco
