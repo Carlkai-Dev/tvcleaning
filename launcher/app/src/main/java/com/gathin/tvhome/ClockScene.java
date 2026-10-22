@@ -1,16 +1,35 @@
 package com.gathin.tvhome;
 
 import android.animation.ArgbEvaluator;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.DynamicDrawableSpan;
+import android.text.style.ImageSpan;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
+import java.io.File;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 /**
  * The clock screensaver's scene (layout dream_clock): the thin clock and date on black over a slow ambient
- * glow. Every minute the clock drifts to a new spot and the glow shifts colour, so nothing burns in.
+ * glow. The clock sits in the bottom right corner and shifts a few pixels every minute, and the glow shifts
+ * colour, so nothing burns in. When the
+ * theme has a wallpaper collection, one of its pictures replaces the glow (a new one every ten minutes), and
+ * under the date the scene shows the weather card's forecast and, the evening before a bin collection, the
+ * bin card's reminder; both read what Home downloaded, nothing here goes online.
  * Shared by ClockDream (the system screensaver) and ClockActivity (Home left idle).
  */
 final class ClockScene {
@@ -26,6 +45,18 @@ final class ClockScene {
     private final Random random = new Random();
     private final View content;
     private final GradientDrawable glow;
+    /** Ticks (minutes) between wallpaper changes. */
+    private static final int WALLPAPER_TICKS = 10;
+    private final Context ctx;
+    private final Config cfg;
+    private final View ambient;
+    private final ImageView wallpaper;
+    private final TextView weather, bins;
+    private TextView credit;
+    private View shade;
+    private final List<File> wallpapers;
+    private int ticks;
+    private File shown;
     private int colorIndex;
     private int glowColor;
 
@@ -33,7 +64,9 @@ final class ClockScene {
         @Override
         public void run() {
             moveClock();
-            shiftGlow();
+            if (wallpapers.isEmpty()) shiftGlow();
+            else if (++ticks % WALLPAPER_TICKS == 0) showWallpaper();
+            updateInfo();
             handler.postDelayed(this, MOVE_MS);
         }
     };
@@ -41,7 +74,9 @@ final class ClockScene {
     /** root is the inflated dream_clock layout. */
     ClockScene(View root) {
         content = root.findViewById(R.id.dreamContent);
-        View ambient = root.findViewById(R.id.dreamAmbient);
+        // Right-aligned text, so the clock, date and lines under it line up against the corner.
+        ((android.widget.LinearLayout) content).setGravity(android.view.Gravity.END);
+        ambient = root.findViewById(R.id.dreamAmbient);
         glow = new GradientDrawable();
         glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
         ambient.setBackground(glow);
@@ -49,6 +84,99 @@ final class ClockScene {
                 glow.setGradientRadius((r - l) * 0.55f));
         colorIndex = random.nextInt(PALETTE.length);
         setGlow(PALETTE[colorIndex]);
+
+        ctx = root.getContext();
+        cfg = Config.load(ctx);
+        wallpaper = root.findViewById(R.id.dreamWallpaper);
+        weather = root.findViewById(R.id.dreamWeather);
+        bins = root.findViewById(R.id.dreamBins);
+        File dir = Config.dir(ctx);
+        // The same collection Home rotates: the season's photos or drawn scenes, else the normal set.
+        wallpapers = dir == null || !cfg.wallpaperEnabled ? Collections.emptyList() : cfg.wallpapers;
+        credit = root.findViewById(R.id.dreamCredit);
+        shade = root.findViewById(R.id.dreamShade);
+        if (!wallpapers.isEmpty()) {
+            ambient.setVisibility(View.GONE);
+            wallpaper.setVisibility(View.VISIBLE);
+            root.findViewById(R.id.dreamShade).setVisibility(View.VISIBLE);
+            showWallpaper();
+        }
+        updateInfo();
+    }
+
+    /** Another picture from the collection, decoded at screen size in 16-bit colour (about 4 MB at 1080p). */
+    private void showWallpaper() {
+        File next = wallpapers.get(random.nextInt(wallpapers.size()));
+        if (wallpapers.size() > 1 && next.equals(shown)) {
+            next = wallpapers.get((wallpapers.indexOf(next) + 1) % wallpapers.size());
+        }
+        BitmapFactory.Options o = new BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(next.getPath(), o);
+        int screen = ctx.getResources().getDisplayMetrics().widthPixels;
+        o.inSampleSize = 1;
+        while (o.outWidth / (o.inSampleSize * 2) >= screen) o.inSampleSize *= 2;
+        o.inJustDecodeBounds = false;
+        o.inPreferredConfig = Bitmap.Config.RGB_565;
+        Bitmap b = BitmapFactory.decodeFile(next.getPath(), o);
+        if (b == null) return;
+        shown = next;
+        String line = PhotoFetch.credit(next);
+        credit.setText(line == null ? "" : line);
+        credit.setVisibility(line == null ? View.GONE : View.VISIBLE);
+        // Downloaded photos get Home's darker photo shade; the theme's drawn scenes keep the lighter one.
+        if (line != null) shade.setBackground(WallpaperPlayer.photoShade());
+        else shade.setBackgroundColor(0x66000000);
+        wallpaper.animate().alpha(0f).setDuration(600).withEndAction(() -> {
+            wallpaper.setImageBitmap(b);
+            wallpaper.animate().alpha(1f).setDuration(1400).start();
+        }).start();
+    }
+
+    /** The forecast for this hour, and tonight's bins, from the files Home keeps. */
+    private void updateInfo() {
+        LocalDateTime now = LocalDateTime.now();
+        Weather.Now w = null;
+        if (cfg.weather) {
+            String json = new Feed("weather", 0).cached(ctx, Weather.url(cfg.latitude, cfg.longitude));
+            if (json != null) w = Weather.at(json, now);
+        }
+        if (w != null) {
+            SpannableStringBuilder t = new SpannableStringBuilder();
+            icon(t, ctx.getDrawable(MainActivity.skyIcon(w.current.sky, w.current.day)).mutate(),
+                    weather.getTextSize() * 1.3f);
+            t.append("  ").append(Weather.degrees(w.current.temp)).append("  ·  ")
+                    .append(MainActivity.skyName(ctx, w.current.sky));
+            weather.setText(t);
+            weather.setVisibility(View.VISIBLE);
+        } else {
+            weather.setVisibility(View.GONE);
+        }
+
+        List<WasteCalendar.Pickup> tonight = cfg.wasteCommune.isEmpty() ? Collections.emptyList()
+                : WasteCalendar.tonight(WasteFetch.cached(ctx, cfg.wasteCommune, cfg.wasteLocality, cfg.wasteStreet), now);
+        if (tonight.isEmpty()) {
+            bins.setVisibility(View.GONE);
+            return;
+        }
+        SpannableStringBuilder t = new SpannableStringBuilder(ctx.getString(R.string.waste_put_out_tonight));
+        for (int i = 0; i < tonight.size(); i++) {
+            WasteCalendar.Pickup p = tonight.get(i);
+            t.append(i == 0 ? "   " : "   +   ");
+            Drawable d = ctx.getDrawable(MainActivity.wasteIconRes(p.kind)).mutate();
+            d.setTint(MainActivity.wasteColor(p.kind));
+            icon(t, d, bins.getTextSize() * 1.3f);
+            t.append(' ').append(MainActivity.wasteName(ctx, p));
+        }
+        bins.setText(t);
+        bins.setVisibility(View.VISIBLE);
+    }
+
+    private static void icon(SpannableStringBuilder b, Drawable d, float size) {
+        d.setBounds(0, 0, Math.round(size), Math.round(size));
+        b.append('￼');
+        b.setSpan(new ImageSpan(d, Build.VERSION.SDK_INT >= 29 ? DynamicDrawableSpan.ALIGN_CENTER
+                : DynamicDrawableSpan.ALIGN_BASELINE), b.length() - 1, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
 
     void start() {
@@ -66,22 +194,30 @@ final class ClockScene {
         content.animate().cancel();
     }
 
+    /** Glides the clock to its next spot in the corner over a few seconds, instead of fading it out and in. */
     private void moveClock() {
-        content.animate().alpha(0f).setDuration(900).withLayer().withEndAction(() -> {
-            placeClock();
-            content.animate().alpha(1f).setDuration(1200).withLayer().start();
-        }).start();
-    }
-
-    /** A random spot that keeps the whole clock on screen, with the glow centred behind it. */
-    private void placeClock() {
-        View parent = (View) content.getParent();
-        int maxX = Math.max(0, parent.getWidth() - content.getWidth());
-        int maxY = Math.max(0, parent.getHeight() - content.getHeight());
-        float x = maxX * (0.1f + 0.8f * random.nextFloat());
-        float y = maxY * (0.1f + 0.8f * random.nextFloat());
+        float x = content.getX(), y = content.getY();
+        placeClock();
+        float nx = content.getX(), ny = content.getY();
         content.setX(x);
         content.setY(y);
+        content.animate().x(nx).y(ny).setDuration(4000).start();
+    }
+
+    /**
+     * The clock's corner: bottom right (bottom left in right-to-left languages), 48dp in from the edges. Each
+     * minute it shifts by up to 10dp within that corner, too little to notice and enough that nothing burns in.
+     */
+    private void placeClock() {
+        View parent = (View) content.getParent();
+        float density = content.getResources().getDisplayMetrics().density;
+        float margin = 48 * density, jitter = 10 * density;
+        boolean rtl = content.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        float x = rtl ? margin + random.nextFloat() * jitter
+                : parent.getWidth() - content.getWidth() - margin - random.nextFloat() * jitter;
+        float y = parent.getHeight() - content.getHeight() - margin - random.nextFloat() * jitter;
+        content.setX(Math.max(0f, x));
+        content.setY(Math.max(0f, y));
         if (parent.getWidth() > 0 && parent.getHeight() > 0) {
             glow.setGradientCenter((x + content.getWidth() / 2f) / parent.getWidth(),
                     (y + content.getHeight() / 2f) / parent.getHeight());

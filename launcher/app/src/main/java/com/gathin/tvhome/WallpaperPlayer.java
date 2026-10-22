@@ -50,6 +50,10 @@ final class WallpaperPlayer {
     /** wallpaper_captions: the shown picture's name from wallpapers/captions.txt; null when off or there are none. */
     private final TextView caption;
     private final Map<String, String> names;
+    private File shownFile;
+    /** Darkens downloaded photos (see updateShade); null when no photo key is set. */
+    private View shade;
+    private Runnable onShown;
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
         this.root = root;
@@ -79,6 +83,14 @@ final class WallpaperPlayer {
         if (config.wallpaperEnabled && !files.isEmpty()) {
             root.addView(image, 0, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            // A shade layer only when downloaded photos can show: they need it (see updateShade), and a full-screen
+            // view is overdraw on 1 GB TVs. The theme's wallpaper_dim is painted into each picture instead.
+            if (!config.unsplashKey.isEmpty()) {
+                shade = new View(context);
+                shade.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+                root.addView(shade, 1, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
             showFirst();
         }
     }
@@ -100,6 +112,8 @@ final class WallpaperPlayer {
                 root.setBackground(null);
                 displayed = first.getName();
                 showCaption(false);
+                shownFile = first;
+                updateShade();
                 if (!displayed.equals(previous)) {
                     preferences.edit().putString("image", displayed)
                             .putLong("changed", System.currentTimeMillis()).apply();
@@ -109,6 +123,32 @@ final class WallpaperPlayer {
             files.remove(first);   // unreadable or over 4K: try another, or keep the plain colour
             first = WallpaperRotation.pick(files, previous, order, random);
         }
+    }
+
+    /**
+     * A downloaded photo (see PhotoFetch) has none of the dark lower third the theme's drawn scenes are painted
+     * with, so it gets {@link #photoShade()}; a drawn scene keeps the theme's plain wallpaper_dim.
+     */
+    private void updateShade() {
+        if (shade == null) return;
+        if (shownFile != null && PhotoFetch.credit(shownFile) != null) shade.setBackground(photoShade());
+        else shade.setBackground(null);   // wallpaper_dim is already painted into the picture
+    }
+
+    /** Darker at the top for the clock, lighter behind the cards, darkest at the bottom for the dock and grid. */
+    static android.graphics.drawable.GradientDrawable photoShade() {
+        return new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0x8C000000, 0x66000000, 0x80000000, 0xD9000000});
+    }
+
+    /** The picture on screen now, or null. */
+    File shown() {
+        return shownFile;
+    }
+
+    /** Runs after each change of picture (not for the first one, which is on screen before this can be set). */
+    void setOnShown(Runnable r) {
+        onShown = r;
     }
 
     void start() {
@@ -154,6 +194,9 @@ final class WallpaperPlayer {
                 show(bitmap);
                 displayed = next.getName();
                 showCaption(true);
+                shownFile = next;
+                updateShade();
+                if (onShown != null) onShown.run();
                 if (!displayed.equals(previous) || changed == 0) {
                     preferences.edit().putString("image", displayed)
                             .putLong("changed", System.currentTimeMillis()).apply();

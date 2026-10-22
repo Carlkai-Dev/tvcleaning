@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.RecyclerView;
 public class DockDecoration extends RecyclerView.ItemDecoration {
 
     private final int dockSize;
+    /** config dock_band: false keeps the dock's spacing but draws no band, so its tiles sit on the wallpaper. */
+    private final boolean drawBand;
     private final float density;
     private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -37,8 +39,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
      * @param evenPadding the band's padding is the gap between the tiles on all four sides (dock_even_padding).
      */
     DockDecoration(int dockSize, float density, boolean translucent, boolean names, int opacity, boolean lightGlass,
-                   boolean evenPadding) {
+                   boolean evenPadding, boolean drawBand) {
         this.dockSize = dockSize;
+        this.drawBand = drawBand;
         this.density = density;
         this.namesRoom = names ? 22 * density : 0;
         this.lightGlass = lightGlass;
@@ -75,6 +78,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
 
     @Override
     public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+        if (!drawBand) return;
         boolean any = false;
         int cardWidth = 0;
         for (int i = 0; i < parent.getChildCount(); i++) {

@@ -97,6 +97,8 @@ final class Config {
     final boolean topMenu;
     /** Direct launcher-settings header action; off by default (launcher_settings_button). */
     final boolean launcherSettingsButton;
+    /** The lighter rounded band behind the dock row (config.xml dock_band); false leaves the tiles on the wallpaper. */
+    final boolean dockBand;
     /** Names under every tile, dimmed until focused (config.xml always_show_names); the dock band grows for them. */
     final boolean alwaysShowNames;
     /** Reorder button in the top bar (config.xml reorder_button); the Settings long-press menu offers it either way. */
@@ -185,6 +187,17 @@ final class Config {
     final boolean handleViewInputs;
     /** Hold OK on a tile opens a menu (Move, Remove from Home, App info) instead of App info (config.xml / theme tile_menu). */
     final boolean tileMenu;
+    /** Bin calendar place (config.xml waste_commune, waste_locality, waste_street, see WasteCalendar); off while the commune is empty. */
+    final String wasteCommune, wasteLocality, wasteStreet;
+    /** Weather card (config.xml weather, weather_place) at latitude/longitude; off without both coordinates. */
+    final boolean weather;
+    final String weatherPlace, latitude, longitude;
+    /** Country for the weather card's holiday line (config.xml holidays_country); empty for none. */
+    final String holidaysCountry;
+    /** Holiday theme (config.xml season, see Season): "auto", "off" or a season's name to force it. */
+    final String season;
+    /** Unsplash Access Key for the daily photo (a theme's "unsplash_key", see PhotoFetch); empty: drawn scenes only. */
+    final String unsplashKey;
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, List<String> libraryApps, String liveTvPackage,
                    String liveTvAction, String liveTvInputId, Map<String, String> launchActions, Map<String, String> appLabels,
@@ -198,7 +211,10 @@ final class Config {
                    Festival festival, int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
-                   boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding) {
+                   boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding,
+                   String wasteCommune, String wasteLocality, String wasteStreet,
+                   boolean weather, String weatherPlace, String latitude, String longitude, String holidaysCountry,
+                   String season, String unsplashKey, boolean dockBand) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -271,6 +287,17 @@ final class Config {
         this.dockEvenPadding = dockEvenPadding;
         this.glowStyle = glowStyle(glowStyle);
         this.wallpaperCaptions = wallpaperCaptions;
+        this.wasteCommune = wasteCommune;
+        this.wasteLocality = wasteLocality;
+        this.wasteStreet = wasteStreet;
+        this.weather = weather;
+        this.weatherPlace = weatherPlace;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.holidaysCountry = holidaysCountry;
+        this.season = season;
+        this.unsplashKey = unsplashKey;
+        this.dockBand = dockBand;
     }
 
     /** A known glow_style, or radial (the default) for anything else. */
@@ -314,6 +341,7 @@ final class Config {
         boolean dockRow = res.getBoolean(R.bool.dock_row);
         boolean topMenu = res.getBoolean(R.bool.top_menu);
         boolean launcherSettingsButton = res.getBoolean(R.bool.launcher_settings_button);
+        boolean dockBand = res.getBoolean(R.bool.dock_band);
         boolean reorderButton = res.getBoolean(R.bool.reorder_button);
         boolean showNetworkPill = res.getBoolean(R.bool.show_network_pill);
         boolean showInputsPill = res.getBoolean(R.bool.show_inputs_pill);
@@ -327,6 +355,16 @@ final class Config {
         boolean wallpaperCaptions = res.getBoolean(R.bool.wallpaper_captions);
         boolean tileMenu = res.getBoolean(R.bool.tile_menu);
         String vpn = res.getString(R.string.vpn_app).trim();
+        String wasteCommune = res.getString(R.string.waste_commune).trim();
+        String wasteLocality = res.getString(R.string.waste_locality).trim();
+        String wasteStreet = res.getString(R.string.waste_street).trim();
+        boolean weather = res.getBoolean(R.bool.weather);
+        String weatherPlace = res.getString(R.string.weather_place).trim();
+        String latitude = res.getString(R.string.latitude).trim();
+        String longitude = res.getString(R.string.longitude).trim();
+        String holidaysCountry = res.getString(R.string.holidays_country).trim();
+        String season = res.getString(R.string.season).trim();
+        String unsplashKey = "";
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         boolean showStats = res.getBoolean(R.bool.show_stats);
         boolean library = res.getBoolean(R.bool.app_library);
@@ -384,6 +422,7 @@ final class Config {
             dockRow = bool(json, "dock_row", dockRow);
             topMenu = bool(json, "top_menu", topMenu);
             launcherSettingsButton = bool(json, "launcher_settings_button", launcherSettingsButton);
+            dockBand = bool(json, "dock_band", dockBand);
             reorderButton = bool(json, "reorder_button", reorderButton);
             showNetworkPill = bool(json, "show_network_pill", showNetworkPill);
             showInputsPill = bool(json, "show_inputs_pill", showInputsPill);
@@ -397,6 +436,15 @@ final class Config {
             wallpaperCaptions = bool(json, "wallpaper_captions", wallpaperCaptions);
             tileMenu = bool(json, "tile_menu", tileMenu);
             vpn = string(json, "vpn_app", vpn);
+            wasteCommune = string(json, "waste_commune", wasteCommune).trim();
+            wasteLocality = string(json, "waste_locality", wasteLocality).trim();
+            wasteStreet = string(json, "waste_street", wasteStreet).trim();
+            weather = bool(json, "weather", weather);
+            weatherPlace = string(json, "weather_place", weatherPlace).trim();
+            holidaysCountry = string(json, "holidays_country", holidaysCountry).trim();
+            season = string(json, "season", season).trim();
+            // Only from a theme pushed to the TV: a key is personal and stays out of config.xml and the repo.
+            unsplashKey = string(json, "unsplash_key", "").trim();
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             showStats = bool(json, "show_stats", showStats);
             library = bool(json, "app_library", library);
@@ -444,7 +492,7 @@ final class Config {
         if (!WallpaperRotation.validOrder(wallpaperOrder)) wallpaperOrder = WallpaperRotation.ORDER_SHUFFLE;
         List<File> wallpapers = new ArrayList<>();
         if (rotationMinutes > 0 && dir != null && wallpaperEnabled) {
-            wallpapers.addAll(WallpaperRotation.images(new File(dir, "wallpapers")));
+            wallpapers.addAll(seasonalWallpapers(dir, Season.pick(season, java.time.LocalDate.now())));
         }
         if (wallpapers.isEmpty() && wallpaper != null) wallpapers.add(wallpaper);
         // An on-TV wallpaper pick overrides the theme: a filename from the wallpapers/
@@ -470,7 +518,11 @@ final class Config {
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied,
                 festival, inputKeycodes, appKeys, stockHomeRedirect, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow,
-                Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding);
+                Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding,
+                wasteCommune, wasteLocality, wasteStreet,
+                weather && coordinate(latitude, 90) && coordinate(longitude, 180), weatherPlace, latitude, longitude,
+                holidaysCountry.matches("[A-Za-z]{2}") ? holidaysCountry.toUpperCase(java.util.Locale.ROOT) : "",
+                season, unsplashKey.matches("[A-Za-z0-9_-]{20,100}") ? unsplashKey : "", dockBand);
     }
 
     /**
@@ -581,6 +633,46 @@ final class Config {
         } catch (Exception e) {
             Log.w(TAG, "ignoring " + file + ": " + e.getMessage());
             return null;
+        }
+    }
+
+    /** A decimal degree within +-{@code limit}: it goes into a URL, so nothing else is let through. */
+    private static boolean coordinate(String s, double limit) {
+        if (!s.matches("-?\\d{1,3}(\\.\\d{1,6})?")) return false;
+        return Math.abs(Double.parseDouble(s)) <= limit;
+    }
+
+    /**
+     * The wallpaper collection for a season (null: the rest of the year). In a holiday period the daily photos
+     * downloaded for it (photos/<season>, see PhotoFetch) take turns with the theme's drawn scenes for it
+     * (wallpapers/<season>), so the drawn Halloween or Christmas scenes still come round; the rest of the year
+     * the photos replace the theme's normal collection (the images directly in wallpapers/) once there are any.
+     */
+    static List<File> seasonalWallpapers(File dir, Season season) {
+        String key = PhotoFetch.folder(season);
+        List<File> photos = WallpaperRotation.images(new File(new File(dir, "photos"), key));
+        if (season == null && !photos.isEmpty()) return photos;
+        File drawnDir = new File(new File(dir, "wallpapers"), key);
+        List<File> drawn = season == null ? Collections.emptyList() : WallpaperRotation.images(drawnDir);
+        // Eid has no drawn set of its own: it shares Ramadan's.
+        if (drawn.isEmpty() && season == Season.EID) {
+            drawn = WallpaperRotation.images(new File(new File(dir, "wallpapers"), PhotoFetch.folder(Season.RAMADAN)));
+        }
+        if (drawn.isEmpty()) return photos.isEmpty() ? WallpaperRotation.images(new File(dir, "wallpapers")) : photos;
+        List<File> both = new ArrayList<>(photos);
+        both.addAll(drawn);
+        return both;
+    }
+
+    /** The weather card's settings, together: Home only builds the card when this exists. */
+    static final class WeatherCard {
+        final String place, latitude, longitude, holidaysCountry;
+
+        WeatherCard(String place, String latitude, String longitude, String holidaysCountry) {
+            this.place = place;
+            this.latitude = latitude;
+            this.longitude = longitude;
+            this.holidaysCountry = holidaysCountry;
         }
     }
 
