@@ -13,8 +13,6 @@ not change protected packages, installation policy, or the default cleanup flow.
 Read [the observed session](references/device-session.md) when the device reports
 `tcl_mt5879_cn`, or when investigating Home reverting at boot, art screensavers,
 empty streaming screenshots, split APKs, or Netflix UI-800-3 (307006).
-Read [private profile handling](references/private-profiles.md) only when the owner
-explicitly asks to reuse a computer's existing proxy configuration on the TV.
 
 ## Establish the target and preserve recovery
 
@@ -56,11 +54,6 @@ explicitly asks to reuse a computer's existing proxy configuration on the TV.
    evidence. Ask for a real remote press. Preserve existing accessibility services
    and original AppOps when inspecting or changing an explicitly requested helper.
    A mobile app reaching login is not proof of D-pad support or playback.
-
-Dynamic launcher backgrounds and custom boot/remote services observed in this
-session are local adaptations, not features of the upstream launcher. The core
-launcher's no-video/no-background-service rule still applies. Do not copy a local
-fork, helper APK or copyrighted landscape video into this repository.
 
 ## Verify and report
 

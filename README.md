@@ -761,7 +761,7 @@ not have to rediscover it. [CONTRIBUTING.md](CONTRIBUTING.md) has the format and
 Contributing through a coding agent? [AGENTS.md](AGENTS.md) gives it the same rules.
 For a scoped TCL/FFALCON configuration record, the optional
 [`tcl-tv-configuration` skill](docs/workflows/tcl-tv-configuration/SKILL.md) covers
-Home/boot acceptance, app compatibility and private-profile handling; it does not change the cleanup prompt.
+Home/boot acceptance and app compatibility; it does not change the cleanup prompt.
 
 | How to help | What it means |
 |---|---|
