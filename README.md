@@ -99,7 +99,7 @@ Anything running **Android TV** or **Google TV**.
 
 Tested lists from contributors, one folder per model in [`examples/`](examples/):
 
-**TCL** 50 · **Xiaomi** 26 · **Sony** 23 · **Philips** 12 · **Hisense** 8 · **Skyworth** 8 · **Amazon Fire TV** 7 ·
+**TCL** 50 · **Xiaomi** 26 · **Sony** 23 · **Philips** 12 · **Hisense** 8 · **Skyworth** 9 · **Amazon Fire TV** 7 ·
 **Thomson** 4 · **Google** 3 · **Panasonic** 3 · **BenQ** 2 · **CHiQ** 2 · **FFalcon** 2 · **Haier** 2 · **Hitachi** 2 ·
 **Kalley** 2 · **Nokia** 2 · **NVIDIA Shield** 2 · **OnePlus** 2 · **onn** 2 · **Redmi** 2 · **Toshiba** 2 · **Vu** 2 ·
 AiPro2K · AIWA · Artel · Caxium · Cecotec · Challenger · Compac · Dialog · EKO · Freebox · Insignia Fire TV · JVC ·
@@ -207,6 +207,7 @@ Anker Nebula, BYINTEK, Epson, Gadnic, JMGO, Portronics, Stellamore, Wanbo and XG
 | Skyworth SWTV-21AE (sunnyvale, MediaTek) | Android TV 14 |
 | Skyworth SWTV-24AE-4K NF (eleonas, MediaTek mt5896), South Africa/Global | Google TV 14 |
 | Skyworth SWTV-24NA-4K NF (eleonas, MediaTek mt5896), US | Google TV 14 |
+| Skyworth HP44H / HP4417-Telecom (Telecom Argentina FlowBox-F2, Amlogic S905X4, 32-bit userspace) | Android TV 14 |
 | Sony BRAVIA 4K AE2 (BRAVIA_AE2, MediaTek MT5897), North America | Google TV 14 |
 | Sony BRAVIA 4K GB (BRAVIA_ATV2_EU, BRAVIA_ATV2) | Android TV 9 |
 | Sony BRAVIA 4K GB (BRAVIA_ATV2_UC, MediaTek mt5891) | Android TV 9 |
