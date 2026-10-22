@@ -287,4 +287,10 @@
          colour washes down from the top edge and fades to black, brightest along the top). The cinematic shelf
          keeps its own glow. Can also be set with "glow_style": "horizon" in a theme's config.json. -->
     <string name="glow_style" translatable="false">radial</string>
+
+    <!-- Memory pill: lists the apps used recently so you can close the ones you pick (or all). Off by default.
+         Needs once: adb shell appops set com.gathin.tvhome GET_USAGE_STATS allow  (see docs/MEMORY.md) -->
+    <bool name="show_memory">false</bool>
+    <!-- Apps the Memory screen never lists, as package names. The launcher itself is always left out. -->
+    <string-array name="memory_protect" />
 </resources>
