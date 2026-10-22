@@ -293,4 +293,9 @@
     <bool name="show_memory">false</bool>
     <!-- Apps the Memory screen never lists, as package names. The launcher itself is always left out. -->
     <string-array name="memory_protect" />
+    <!-- Close apps through the TV's own adb debugging service instead of asking Android politely. For firmware that
+         ignores the request (the pill then frees nothing). Needs USB debugging on in Developer options, and the TV
+         shows "Allow USB debugging?" once, which you accept with "Always allow". It can only run "am force-stop" on
+         ordinary apps (docs/MEMORY.md, "Closing apps through adb"). Off by default. -->
+    <bool name="memory_adb">false</bool>
 </resources>
