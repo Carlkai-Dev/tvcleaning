@@ -186,6 +186,9 @@ final class Config {
     /** Hold OK on a tile opens a menu (Move, Remove from Home, App info) instead of App info (config.xml / theme tile_menu). */
     final boolean tileMenu;
 
+    /** Search (Google Assistant) button in the top bar (config.xml, google_assistant). */
+    final boolean googleAssistant;
+
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, List<String> libraryApps, String liveTvPackage,
                    String liveTvAction, String liveTvInputId, Map<String, String> launchActions, Map<String, String> appLabels,
                    Map<String, String> appBanners, String sourcePanelService, String sourcePanelAction,
@@ -198,7 +201,7 @@ final class Config {
                    Festival festival, int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
-                   boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding) {
+                   boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean googleAssistant) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -271,6 +274,7 @@ final class Config {
         this.dockEvenPadding = dockEvenPadding;
         this.glowStyle = glowStyle(glowStyle);
         this.wallpaperCaptions = wallpaperCaptions;
+        this.googleAssistant = googleAssistant;
     }
 
     /** A known glow_style, or radial (the default) for anything else. */
@@ -348,6 +352,7 @@ final class Config {
         boolean dockEvenPadding = res.getBoolean(R.bool.dock_even_padding);
         String glowStyle = res.getString(R.string.glow_style);
         boolean applied = false;
+        boolean googleAssistant = res.getBoolean(R.bool.google_assistant);
 
         File dir = dir(ctx);
         File file = dir != null ? new File(dir, FILE_NAME) : null;
@@ -417,6 +422,7 @@ final class Config {
             dockGlass = bool(json, "dock_glass", dockGlass);
             dockEvenPadding = bool(json, "dock_even_padding", dockEvenPadding);
             glowStyle = string(json, "glow_style", glowStyle);
+            googleAssistant = bool(json, "google_assistant", googleAssistant);
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -470,7 +476,7 @@ final class Config {
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied,
                 festival, inputKeycodes, appKeys, stockHomeRedirect, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow,
-                Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding);
+                Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding, googleAssistant);
     }
 
     /**

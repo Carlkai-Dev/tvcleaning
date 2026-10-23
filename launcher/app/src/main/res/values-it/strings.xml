@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="search">Cerca</string>
     <string name="inputs">Ingressi</string>
     <string name="settings">Impostazioni</string>
     <string name="choose_input">Ingressi</string>

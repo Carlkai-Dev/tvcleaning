@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="search">Suchen</string>
     <string name="app_name">Home</string>
     <string name="inputs">Quellen</string>
     <string name="wifi">WLAN</string>

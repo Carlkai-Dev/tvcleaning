@@ -102,6 +102,8 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `dock_glass` | bool | The dock band as light frosted glass like the top bar's pills (`false` by default); suits `sky_intensity` or a wallpaper, where the solid band reads as a dark slab |
 | `ambient_glow` | bool | The glow behind the dock in the focused app's colour (`true` by default); `false` keeps only `background_color` or the wallpaper, e.g. for a calm photo background |
 | `app_glow` | bool | The focus highlight glows in the focused app's colour on every tile, as `cinematic_home` does for the dock (`false` by default) |
+| `google_assistant` | bool | Show Google Assistant  (`false` by default) |
+
 
 ## Wallpapers
 
