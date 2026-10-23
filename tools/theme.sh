@@ -98,7 +98,7 @@ if [ "$INSTALL_PICKER" = 1 ]; then
     [[ "$ID" =~ ^[A-Za-z0-9_-]{1,64}$ ]] || { echo "unsupported theme folder name: $ID" >&2; exit 1; }
     CONFIG="$FOLDER/config.json"
     [ -f "$CONFIG" ] || { echo "no config.json in $FOLDER" >&2; exit 1; }
-    "$PY" -I -c 'import json,sys; json.load(open(sys.argv[1]))' "$CONFIG" 2>/dev/null \
+    "$PY" -I -c 'import json,sys; json.load(open(sys.argv[1], encoding="utf-8-sig"))' "$CONFIG" 2>/dev/null \
       || { echo "$CONFIG is not valid JSON" >&2; exit 1; }
     REMOTE="themes/$ID"
     "$PY" -I b64push.py "$CONFIG" "$(stage "$REMOTE/config.json")"
