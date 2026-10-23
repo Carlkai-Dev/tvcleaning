@@ -1,9 +1,11 @@
 # Update the launcher from this computer
 
-`update-launcher.py` checks the latest stable GitHub release on the computer. The TV makes no
-Internet requests and the built APK is refused if it declares `android.permission.INTERNET`.
+`update-launcher.py` selects the highest stable version tag already in your local checkout. It makes
+no GitHub API calls, fetches or clones. The cached Gradle distribution runs directly with `--offline` (so the wrapper cannot download itself); the distribution and
+build dependencies must already be cached. The only network connection is ADB to your TV.
+The built APK is refused if it declares `android.permission.INTERNET`.
 Release tags currently contain source, not prebuilt APKs: the computer builds the source with JDK 17,
-Android SDK 34/build-tools 34.0.0 and the repository's Gradle wrapper. Git, Java and the Android SDK
+Android SDK 34/build-tools 34.0.0 and the Gradle version pinned by the repository's wrapper. Git, Java and the Android SDK
 must already be installed; this script does not install tools, enable debugging or start Shizuku.
 
 Read-only check (no TV connection):
@@ -16,9 +18,14 @@ Update an **already installed** `com.gathin.tvhome`, signed with your original b
 
 ```sh
 TV_HOST=<tv ip> tools/venv/bin/python -I tools/update-launcher.py --install
-# Pin a release for a reproducible run:
+# Pin a locally available tag for a reproducible run:
 TV_HOST=<tv ip> tools/venv/bin/python -I tools/update-launcher.py --install --release v2.7.0 --work-dir work/update-2.7
 ```
+
+Update your checkout and fetch tags separately beforehand if wanted; this tool never does that.
+Use `--checkout /path/to/repo` to select another local checkout. Dirty and untracked files are
+ignored: the selected tag is exported into a fresh directory, leaving your checkout untouched.
+No local stable tags, a missing selected tag or missing cached dependencies stops the update.
 
 Set JAVA_HOME to JDK 17 and ANDROID_HOME to the SDK beforehand. The same Python entry point works on
 Windows (`tools/venv/Scripts/python.exe`); set environment variables in PowerShell with `$env:NAME`.
@@ -39,7 +46,7 @@ may refuse an older version, so the script does not promise an automatic downgra
 
 A release rebuild replaces launcher code. On-TV preferences/config remain, but fork features need
 an explicit trusted local `--patch path/to/customizations.patch` (repeatable). It is applied on a
-fresh release checkout before building; a conflict stops before any TV mutation. Keep patches locally,
+fresh export of the tagged local source before building; a conflict stops before any TV mutation. Keep patches locally,
 review them for the new release and never include credentials or device configuration. There is no
 automatic merge, reset of an existing checkout, unsigned APK download or override of a signing failure.
 The APK permission check also applies to patched builds. Building executes the trusted release's
@@ -47,6 +54,6 @@ Gradle scripts and any patch you explicitly supply, on this computer.
 
 ## Validation
 
-Unit tests cover hostile tags/paths, default read-only behavior, package/signature/version/SDK
+Unit tests cover hostile tags/paths, local tag selection/export, default read-only behavior, package/signature/version/SDK
 mismatches, INTERNET rejection and install-failure handling. Real-TV v2.7.0 validation is recorded
 in the PR, including any local patch used; private configuration is not published.

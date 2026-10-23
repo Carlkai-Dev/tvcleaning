@@ -18,9 +18,38 @@ class ReleaseUpdaterTest(unittest.TestCase):
             with self.assertRaises(ValueError): updater.release_tag(tag)
 
     def test_default_is_host_only_read_only(self):
-        with patch.object(updater, 'latest', return_value='v2.7.0'), patch.object(updater.subprocess, 'run') as run, contextlib.redirect_stdout(io.StringIO()):
+        with patch.object(updater, 'latest', return_value='v2.7.0'), patch.object(updater, 'local_commit', return_value='abc'), patch.object(updater.subprocess, 'run') as run, contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(0, updater.main([]))
             run.assert_not_called()
+
+    def test_newest_local_stable_tag_is_numeric(self):
+        with patch.object(updater, 'run', return_value='v2.9.0\nv2.10.0\nv99.0.0-beta\nother'):
+            self.assertEqual('v2.10.0', updater.latest(Path('.')))
+        with patch.object(updater, 'run', return_value='main\nv3.0.0-rc1'):
+            with self.assertRaisesRegex(ValueError, 'no stable release tags'):
+                updater.latest(Path('.'))
+
+    def test_export_uses_tag_not_dirty_working_tree(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'
+            repo.mkdir()
+            def git(*args):
+                return subprocess.check_output(['git', '-C', str(repo), *args], text=True).strip()
+            git('init', '-q')
+            (repo / 'tracked').write_text('release')
+            git('add', '.')
+            git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'release')
+            git('tag', 'v2.7.0')
+            (repo / 'tracked').write_text('dirty')
+            (repo / 'untracked').write_text('private')
+            destination = Path(tmp) / 'export'
+            updater.export_source(repo, updater.local_commit(repo, 'v2.7.0'), destination)
+            self.assertEqual('release', (destination / 'tracked').read_text())
+            self.assertFalse((destination / 'untracked').exists())
+            self.assertEqual('dirty', (repo / 'tracked').read_text())
+            with self.assertRaises(subprocess.CalledProcessError):
+                updater.local_commit(repo, 'v9.9.9')
 
     def test_rejects_wrong_package_downgrade_sdk_and_key(self):
         good = (updater.PACKAGE, 8, 26)

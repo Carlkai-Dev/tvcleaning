@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Host-side release updater. See update-launcher.md. Default: report latest, no TV changes."""
+"""Host-side release updater. See update-launcher.md. Default: report latest local tag, no TV changes."""
 import argparse
 import datetime
 import hashlib
@@ -9,10 +9,9 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-import urllib.request
+import io
+import tarfile
 
-REPO = "https://github.com/Gathin23/cleanyourtv.git"
-API = "https://api.github.com/repos/Gathin23/cleanyourtv/releases/latest"
 PACKAGE = "com.gathin.tvhome"
 TOOLS = Path(__file__).resolve().parent
 
@@ -27,13 +26,35 @@ def release_tag(value):
     return value
 
 
-def latest():
-    request = urllib.request.Request(API, headers={"User-Agent": "cleanyourtv-host-updater", "Accept": "application/vnd.github+json"})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        data = json.load(response)
-    if data.get("draft") or data.get("prerelease"):
-        raise ValueError("not a stable published release")
-    return release_tag(data["tag_name"])
+def latest(checkout):
+    tags = run(["git", "-C", checkout, "tag", "--list"]).splitlines()
+    stable = [tag for tag in tags if re.fullmatch(r"v\d+\.\d+\.\d+", tag)]
+    if not stable:
+        raise ValueError("no stable release tags in local checkout; fetch tags yourself first")
+    return max(stable, key=lambda tag: tuple(map(int, tag[1:].split("."))))
+
+
+def local_commit(checkout, tag):
+    return run(["git", "-C", checkout, "rev-parse", "--verify", "refs/tags/" + tag + "^{commit}"])
+
+
+def export_source(checkout, commit, destination):
+    # Archive the pinned local commit: no fetch, clone, checkout hooks or working-tree edits.
+    archive = subprocess.check_output(["git", "-C", str(checkout), "archive", "--format=tar", commit])
+    destination.mkdir()
+    with tarfile.open(fileobj=io.BytesIO(archive)) as files:
+        for member in files:
+            relative = Path(member.name)
+            if relative.is_absolute() or ".." in relative.parts or not (member.isdir() or member.isfile()):
+                raise ValueError("unsupported path or link in release archive")
+            target = destination / relative
+            if member.isdir():
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with files.extractfile(member) as src:
+                    target.write_bytes(src.read())
+                target.chmod(member.mode & 0o777)
 
 
 def apk_info(aapt, apk):
@@ -121,12 +142,15 @@ def install(dev, apk, backup, info, signer, aapt):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--release", type=release_tag, help="pin a stable release instead of latest")
+    parser.add_argument("--release", type=release_tag, help="pin a stable tag already present in the local checkout")
     parser.add_argument("--install", action="store_true", help="build on this computer, back up and update the existing TV app")
     parser.add_argument("--work-dir", type=Path, help="new, empty output directory (source, APK and private backup)")
     parser.add_argument("--patch", type=Path, action="append", default=[], help="trusted local customization patch; conflicts stop before installation")
+    parser.add_argument("--checkout", type=Path, default=TOOLS.parent, help="local source checkout (default: this repository)")
     args = parser.parse_args(argv)
-    tag = args.release or latest()
+    checkout = args.checkout.resolve()
+    tag = args.release or latest(checkout)
+    commit = local_commit(checkout, tag)
     print("Release:", tag)
     if not args.install:
         print("Read-only check. Use --install to build and update. No TV connection was made.")
@@ -145,17 +169,25 @@ def main(argv=None):
     workspace = workspace.resolve()
     workspace.mkdir(parents=True, exist_ok=False, mode=0o700)
     source = workspace / "source"
-    subprocess.run(["git", "clone", "--depth", "1", "--branch", tag, "--", REPO, str(source)], check=True)
+    export_source(checkout, commit, source)
     for patch in args.patch:
-        subprocess.run(["git", "-C", str(source), "apply", "--check", str(patch.resolve())], check=True)
-        subprocess.run(["git", "-C", str(source), "apply", str(patch.resolve())], check=True)
+        subprocess.run(["git", "-C", str(source), "apply", "--no-index", "--check", str(patch.resolve())], check=True)
+        subprocess.run(["git", "-C", str(source), "apply", "--no-index", str(patch.resolve())], check=True)
     launcher = source / "launcher"
-    wrapper = launcher / ("gradlew.bat" if os.name == "nt" else "gradlew")
-    command = [str(wrapper)] if os.name == "nt" else ["sh", str(wrapper)]
-    subprocess.run(command + ["--no-daemon", "-p", str(launcher), "testReleaseUnitTest", "lintRelease", "assembleRelease"], check=True)
+    # Invoke the cached distribution directly: gradlew could download it before honoring --offline.
+    properties = (launcher / "gradle/wrapper/gradle-wrapper.properties").read_text(encoding="utf-8")
+    distribution = re.search(r"/((gradle-[0-9.]+)-(?:bin|all))\.zip", properties)
+    if not distribution:
+        raise ValueError("unsupported Gradle wrapper distribution")
+    gradle_home = Path(os.environ.get("GRADLE_USER_HOME", Path.home() / ".gradle"))
+    executables = list((gradle_home / "wrapper/dists" / distribution[1]).glob(
+        "*/" + distribution[2] + "/bin/" + ("gradle.bat" if os.name == "nt" else "gradle")))
+    if len(executables) != 1:
+        raise ValueError("cache the release's Gradle distribution separately before running this offline tool")
+    subprocess.run([str(executables[0]), "--offline", "--no-daemon", "-p", str(launcher), "testReleaseUnitTest", "lintRelease", "assembleRelease"], check=True)
     apk = launcher / "app/build/outputs/apk/release/app-release.apk"
     info = apk_info(aapt, apk)
-    (workspace / "build.json").write_text(json.dumps({"release": tag, "commit": run(["git", "-C", source, "rev-parse", "HEAD"]), "patch_sha256": [hashlib.sha256(p.read_bytes()).hexdigest() for p in args.patch], "apk_sha256": hashlib.sha256(apk.read_bytes()).hexdigest()}, indent=2), encoding="utf-8")
+    (workspace / "build.json").write_text(json.dumps({"release": tag, "commit": commit, "patch_sha256": [hashlib.sha256(p.read_bytes()).hexdigest() for p in args.patch], "apk_sha256": hashlib.sha256(apk.read_bytes()).hexdigest()}, indent=2), encoding="utf-8")
     backup = workspace / "backup"
     backup.mkdir(mode=0o700)
     sys.path.insert(0, str(TOOLS))
