@@ -45,7 +45,17 @@ if ($pkgs -contains $setup -and -not $env:FORCE_SETUPWRAITH) {
     $wifi = (& $py -I (Join-Path $repo 'tools\tv.py') 'dumpsys wifi') -join "`n"
     # Be safe: if we cannot read the owners (tv.py failed, timed out, or showed no network at all),
     # do not disable setupwraith, so the TV cannot lose the network it is on.
-    if ($LASTEXITCODE -ne 0 -or $wifi -notmatch 'cname=') {
+    $wifiFailed = $LASTEXITCODE -ne 0
+    # Same as disable.sh: only the network the TV is on matters. Not on Wi-Fi, or the dump looks
+    # different: check every saved network.
+    if ($wifi -match 'mWifiInfo SSID: "([^"]*)"') {
+        $ssid = [regex]::Escape($Matches[1])
+        if ($wifi -match '(?s)Configured networks Begin(.*?)Configured networks End') {
+            $block = ($Matches[1] -split '\n(?=[\s*]*ID: \d+ )') | Where-Object { $_ -match "SSID: `"$ssid`"" } | Select-Object -First 1
+            if ($block -match '(cname=[^ \n]*)') { $wifi = $Matches[1] }
+        }
+    }
+    if ($wifiFailed -or $wifi -notmatch 'cname=') {
         Write-Warning "Skipping ${setup}: could not check which app owns the saved Wi-Fi networks (dumpsys wifi failed or showed none). Try again, or set `$env:FORCE_SETUPWRAITH=1 if the TV uses Ethernet."
         $pkgs = @($pkgs | Where-Object { $_ -ne $setup })
     } elseif ($wifi -match 'cname=[^ ]*setupwraith') {

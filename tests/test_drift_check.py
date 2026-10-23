@@ -306,6 +306,21 @@ class DriftCheckTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn(f"pm disable-user --user 0 {SETUP}", self.sent())
 
+    def test_fix_disables_setupwraith_when_only_another_saved_network_is_its(self):
+        # The TV is on "Home", which the system owns; deleting "Neighbour" does not take it offline.
+        self.write_list([SETUP, "com.example.music"])
+        self.tv(installed=BASE + [SETUP], disabled=["com.example.music", "com.example.store", STOCK],
+                wifi='mWifiInfo SSID: "Home", Supplicant state: COMPLETED\n'
+                     "WifiConfigManager - Configured networks Begin ----\n"
+                     'ID: 0 SSID: "Neighbour" PROVIDER-NAME: null\n'
+                     f" cuid=10031 cname={SETUP}:10031 allowAutojoin=true\n"
+                     '* ID: 1 SSID: "Home" PROVIDER-NAME: null\n'
+                     " cuid=1000 cname=android.uid.system:1000 allowAutojoin=true\n"
+                     "WifiConfigManager - Configured networks End ----\n")
+        result = self.run_check("--fix", str(self.list_path))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"pm disable-user --user 0 {SETUP}", self.sent())
+
     def test_fix_leaves_setupwraith_on_when_the_wifi_cannot_be_read(self):
         self.write_list([SETUP])
         self.tv(installed=BASE + [SETUP], disabled=["com.example.store", STOCK], wifi="")

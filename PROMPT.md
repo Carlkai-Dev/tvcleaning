@@ -126,10 +126,12 @@ Launcher
   takeover worked.
 - Before disabling the stock launcher, check which other apps claim HOME: on Google TV the setup wizard
   (`com.google.android.tungsten.setupwraith`) takes over even after the stock launcher is disabled, and
-  the matching `examples/` header says what to do. Before disabling setupwraith, run
-  `dumpsys wifi | grep -o 'cname=[^ ]*'`: a Wi-Fi network saved during first setup belongs to it, and
-  Android deletes that network the moment it is disabled, which takes the TV off Wi-Fi and ADB. If it
-  does, ask me to forget the network and re-join it in Settings first.
+  the matching `examples/` header says what to do. Before disabling setupwraith, check who owns the
+  Wi-Fi network the TV is on: in `dumpsys wifi`, find the SSID after `mWifiInfo SSID:`, then the
+  `cname=` in that network's block between `Configured networks Begin` and `End`. A network saved
+  during first setup belongs to setupwraith, and Android deletes it the moment setupwraith is
+  disabled, which takes the TV off Wi-Fi and ADB. If the network in use is one of them, ask me to
+  forget it and re-join it in Settings first; other saved networks it owns only get deleted.
 - On a CVTE board (any `com.cvte.*` package), leave its stock launcher (`com.cvte.tv.launcher.*`) enabled
   unless the `examples/` folder for that exact board disables it: make your launcher Home with
   `set-home-activity`, reboot once, and confirm Home and ADB come back before anything else. Don't enable a

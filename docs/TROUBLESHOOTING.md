@@ -276,8 +276,9 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   working, and a restart doesn't bring the network back. Check before disabling it: `tools/tv.py "dumpsys wifi" | grep -o 'cname=[^ ]*'`.
   If it names setupwraith, forget the network and join it again in Settings > Network & Internet (it
   then belongs to `android.uid.system`), or use Ethernet. `tools/disable.sh` skips setupwraith while it
-  owns the network (`FORCE_SETUPWRAITH=1` overrides). Already offline? Rejoin from the TV with its own
-  remote or a USB keyboard, then turn Wireless debugging back on if it was in use. Reconnecting is not
+  owns the network the TV is on (`FORCE_SETUPWRAITH=1` overrides); other saved networks it owns are
+  deleted, but the TV stays online. Not on Wi-Fi, it checks every saved network. Already offline?
+  Rejoin from the TV with its own remote or a USB keyboard, then turn Wireless debugging back on if it was in use. Reconnecting is not
   enough; forget the network first (Xiaomi MiTV-MOSR4, where this also switched USB debugging off).
 - **A reboot on setupwraith's recovery screen factory-reset the TV** (Xiaomi MiTV-MOSR4). Disable
   setupwraith before launcherx. If `mFocusedApp` shows `.RecoveryActivity`, re-enable launcherx

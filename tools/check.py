@@ -141,9 +141,27 @@ def report(list_path, listed, home, back_on, gone, home_drifted, expected=None):
     return 1
 
 
+def wifi_owners(dump):
+    """The apps that own the saved Wi-Fi networks in a `dumpsys wifi` dump, as disable.sh reads them.
+
+    Only the network the TV is on matters, because disabling an app deletes its saved networks and only
+    that one takes the TV offline. Not on Wi-Fi, or the dump looks different: every saved network.
+    """
+    owners = re.findall(r"cname=(\S*)", dump)
+    ssid = re.search(r'mWifiInfo SSID: "([^"]*)"', dump)
+    saved = re.search(r"Configured networks Begin(.*?)Configured networks End", dump, re.S)
+    if ssid and saved:
+        for block in re.split(r"\n(?=[\s*]*ID: \d+ )", saved.group(1)):
+            if f'SSID: "{ssid.group(1)}"' in block:
+                active = re.search(r"cname=(\S*)", block)
+                if active:
+                    return [active.group(1)]
+    return owners
+
+
 def setupwraith_owns_wifi(dev):
-    """Whether the saved Wi-Fi networks belong to setupwraith; None when the TV could not say."""
-    owners = re.findall(r"cname=(\S*)", recovery.shell(dev, "dumpsys wifi"))
+    """Whether the Wi-Fi network in use belongs to setupwraith; None when the TV could not say."""
+    owners = wifi_owners(recovery.shell(dev, "dumpsys wifi"))
     if not owners:
         return None
     return any("setupwraith" in owner for owner in owners)

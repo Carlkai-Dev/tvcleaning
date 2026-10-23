@@ -69,6 +69,37 @@ class SetupwraithGuardTest(unittest.TestCase):
         self.assertNotIn(f"pm disable-user --user 0 {SETUP}", commands)
         self.assertIn("could not check", stderr)
 
+    # Two saved networks, the TV on "Home" (Android starts its line with "* "): only its owner decides.
+    @staticmethod
+    def two_networks(home_owner, other_owner, ssid='"Home"'):
+        return ("printf '%s\\n' "
+                f"'mWifiInfo SSID: {ssid}, BSSID: 02:00:00:00:00:00, Supplicant state: COMPLETED' "
+                "'WifiConfigManager - Configured networks Begin ----' "
+                "'ID: 0 SSID: \"Neighbour\" PROVIDER-NAME: null' "
+                f"' cuid=10031 cname={other_owner} allowAutojoin=true' "
+                "'* ID: 1 SSID: \"Home\" PROVIDER-NAME: null' "
+                f"' cuid=1000 cname={home_owner} allowAutojoin=true' "
+                "'WifiConfigManager - Configured networks End ----' "
+                f"' cuid=10031 cname={other_owner} (network history)'")
+
+    def test_disabled_when_only_another_saved_network_is_its(self):
+        dump = self.two_networks("android.uid.system:1000", f"{SETUP}:10031")
+        commands, _ = self.run_disable(None, dumpsys=dump)
+        self.assertIn(f"pm disable-user --user 0 {SETUP}", commands)
+
+    def test_skipped_when_the_network_in_use_is_its(self):
+        dump = self.two_networks(f"{SETUP}:10031", "android.uid.system:1000")
+        commands, stderr = self.run_disable(None, dumpsys=dump)
+        self.assertNotIn(f"pm disable-user --user 0 {SETUP}", commands)
+        self.assertIn("Skipping", stderr)
+
+    def test_every_network_counts_when_not_on_wifi(self):
+        # "<unknown ssid>" (no quotes) is what an Ethernet or disconnected TV reports
+        dump = self.two_networks("android.uid.system:1000", f"{SETUP}:10031", ssid="<unknown ssid>")
+        commands, stderr = self.run_disable(None, dumpsys=dump)
+        self.assertNotIn(f"pm disable-user --user 0 {SETUP}", commands)
+        self.assertIn("Skipping", stderr)
+
     def test_force(self):
         commands, _ = self.run_disable(f"{SETUP}:10031", {"FORCE_SETUPWRAITH": "1"})
         self.assertIn(f"pm disable-user --user 0 {SETUP}", commands)

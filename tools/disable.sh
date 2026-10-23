@@ -61,12 +61,25 @@ fi
 # moment setupwraith is disabled: the TV drops off Wi-Fi, and ADB and the phone remote go with it.
 # Skip it until the network has been forgotten and re-joined in Settings (it then belongs to
 # android.uid.system). FORCE_SETUPWRAITH=1 disables it anyway, e.g. on Ethernet.
+# Only the network the TV is on matters: other saved networks setupwraith owns are deleted too, but
+# the TV stays online. Not on Wi-Fi, or the dump looks different: check every saved network.
 SETUP=com.google.android.tungsten.setupwraith
 if printf '%s\n' "$PKGS" | grep -x "$SETUP" >/dev/null && [ -z "${FORCE_SETUPWRAITH:-}" ]; then
   # Be safe: if we cannot read the owners (tv.py failed, timed out, or showed no network at all),
   # do not disable setupwraith, so the TV cannot lose the network it is on.
   WIFI="$("$PY" -I tools/tv.py "dumpsys wifi")" || WIFI=""
   OWNERS="$(printf '%s\n' "$WIFI" | grep -o 'cname=[^ ]*' || true)"
+  # awk reads to the end instead of exiting early, so pipefail never sees a SIGPIPE'd printf.
+  SSID="$(printf '%s\n' "$WIFI" | awk '!s && match($0, /mWifiInfo SSID: "[^"]*"/) {
+    s = substr($0, RSTART + 17, RLENGTH - 18); print s }')"
+  if [ -n "$SSID" ]; then
+    ACTIVE="$(printf '%s\n' "$WIFI" | SSID="$SSID" awk '
+      /Configured networks Begin/ { on = 1; next }
+      /Configured networks End/ { on = 0 }
+      on && /^[[:space:]*]*ID: [0-9]+ / { mine = index($0, "SSID: \"" ENVIRON["SSID"] "\"") > 0 }
+      on && mine && !found && match($0, /cname=[^ ]*/) { found = 1; print substr($0, RSTART, RLENGTH) }')"
+    [ -n "$ACTIVE" ] && OWNERS="$ACTIVE"
+  fi
   if [ -z "$OWNERS" ]; then
     echo "Skipping $SETUP: could not check which app owns the saved Wi-Fi networks (dumpsys wifi failed" >&2
     echo "or showed none). Try again, or set FORCE_SETUPWRAITH=1 if the TV uses Ethernet." >&2
