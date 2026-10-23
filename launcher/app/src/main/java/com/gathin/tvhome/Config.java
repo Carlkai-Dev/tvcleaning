@@ -126,10 +126,10 @@ final class Config {
     final boolean showHomeSettingsShortcut;
     /** One line under the clock: CPU, free memory, free storage. Off unless config or a theme turns it on. */
     final boolean showStats;
-    /** Home's layout (a theme's "layout"): {@link #LAYOUT_GRID}, today's tiles, or {@link #LAYOUT_HONEYCOMB}. */
+    /** Home's layout (a theme's "layout"): {@link #LAYOUT_GRID}, today's tiles, {@link #LAYOUT_HONEYCOMB} or {@link #LAYOUT_WORDS}. */
     final String layout;
 
-    static final String LAYOUT_GRID = "grid", LAYOUT_HONEYCOMB = "honeycomb";
+    static final String LAYOUT_GRID = "grid", LAYOUT_HONEYCOMB = "honeycomb", LAYOUT_WORDS = "words";
     /** App library pill after the last Home row (config.xml app_library). */
     final boolean appLibrary;
     /** OK directly toggles Home membership in the library (app_library_selection). */
@@ -310,7 +310,9 @@ final class Config {
 
     /** A known layout, or grid (the default) for anything else. */
     static String layout(String value) {
-        return value != null && LAYOUT_HONEYCOMB.equalsIgnoreCase(value.trim()) ? LAYOUT_HONEYCOMB : LAYOUT_GRID;
+        String v = value == null ? "" : value.trim();
+        if (LAYOUT_HONEYCOMB.equalsIgnoreCase(v)) return LAYOUT_HONEYCOMB;
+        return LAYOUT_WORDS.equalsIgnoreCase(v) ? LAYOUT_WORDS : LAYOUT_GRID;
     }
 
     /** A known glow_style, or radial (the default) for anything else. */
