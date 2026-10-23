@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Power theme mode icon (kids), a 24-unit line glyph tinted with the mode's colour in WelcomeActivity. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M12 21a9 9 0 1 0 0-18a9 9 0 1 0 0 18M8.5 14a4 4 0 0 0 7 0M9 9.5h0.01M15 9.5h0.01" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.6"
+        android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+</vector>

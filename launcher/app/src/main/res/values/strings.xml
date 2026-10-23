@@ -147,12 +147,12 @@
     <string name="last_opened">Last opened %1$s</string>
 
     <!-- Power theme's welcome (WelcomeActivity): the greeting when the TV comes on, with greeting_name as %1$s. -->
-    <string name="power_hello_morning">Good morning.</string>
-    <string name="power_hello_morning_name">Good morning, %1$s.</string>
-    <string name="power_hello_afternoon">Good afternoon.</string>
-    <string name="power_hello_afternoon_name">Good afternoon, %1$s.</string>
-    <string name="power_hello_evening">Good evening.</string>
-    <string name="power_hello_evening_name">Good evening, %1$s.</string>
+    <string name="power_hello_morning">Good morning</string>
+    <string name="power_hello_morning_name">Good morning, %1$s</string>
+    <string name="power_hello_afternoon">Good afternoon</string>
+    <string name="power_hello_afternoon_name">Good afternoon, %1$s</string>
+    <string name="power_hello_evening">Good evening</string>
+    <string name="power_hello_evening_name">Good evening, %1$s</string>
     <string name="power_hello_night">Still up?</string>
     <string name="power_hello_night_name">Still up, %1$s?</string>
     <string name="power_question_morning">How are you starting the day?</string>
@@ -164,7 +164,8 @@
     <string name="power_pick_question">What are you in the mood for?</string>
     <!-- Tag on the card suggested for this hour; shown in capitals. -->
     <string name="power_suggested">SUGGESTED</string>
-    <!-- %1$s is the suggested mood, e.g. "Relaxed"; %2$s is power_hint. -->
-    <string name="power_auto">%1$s starts by itself in 10 seconds  ·  %2$s</string>
+    <!-- Countdown before the welcome starts the suggested mood: %1$s is the mood ("Relaxed"), %2$d the seconds left.
+         It ends with a separator because power_hint follows on the same line. -->
+    <string name="power_auto">Starting %1$s in %2$d s  ·</string>
     <string name="power_hint">Arrows to choose · OK to start · Back keeps the last mode</string>
 </resources>
