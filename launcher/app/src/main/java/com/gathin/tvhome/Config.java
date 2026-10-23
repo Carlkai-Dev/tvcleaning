@@ -43,6 +43,8 @@ final class Config {
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
+    /** Home's layout chosen in Launcher settings; it wins over the theme's "layout" until Follow theme. */
+    static final String LAYOUT_CHOICE_KEY = "layout";
     /**
      * Counts the changes made in Launcher settings. Home remembers the count it was built with and rebuilds on
      * resume when it differs, however the settings were left (see MainActivity#onResume).
@@ -492,6 +494,7 @@ final class Config {
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         int chosenRows = choices.getInt(ROWS_BELOW_DOCK_KEY, rowsBelow);
         if (chosenRows >= 0 && chosenRows <= 3) rowsBelow = chosenRows;
+        layout = chosenLayout(choices.getString(LAYOUT_CHOICE_KEY, null), layout);
         animations = choices.getBoolean("animations", animations);
         advancedEffects = choices.getBoolean("advanced_effects", advancedEffects);
         File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
@@ -581,13 +584,21 @@ final class Config {
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
                     .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
-                    .remove(DOCK_OPACITY_KEY);
+                    .remove(DOCK_OPACITY_KEY).remove(LAYOUT_CHOICE_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
-                    .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY).remove(DOCK_OPACITY_KEY)
+                    .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY).remove(DOCK_OPACITY_KEY).remove(LAYOUT_CHOICE_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
+    }
+
+    /** The layout chosen in Launcher settings, or the theme's when none (or an unknown one) is saved. */
+    static String chosenLayout(String chosen, String theme) {
+        String v = chosen == null ? "" : chosen.trim();
+        boolean known = LAYOUT_GRID.equalsIgnoreCase(v) || LAYOUT_HONEYCOMB.equalsIgnoreCase(v)
+                || LAYOUT_WORDS.equalsIgnoreCase(v);
+        return known ? layout(v) : theme;
     }
 
     /** The dock band opacity chosen in Launcher settings, or the theme's when none (or an out-of-range one) is saved. */

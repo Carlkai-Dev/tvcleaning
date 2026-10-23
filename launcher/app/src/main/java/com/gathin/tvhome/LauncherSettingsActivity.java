@@ -19,6 +19,9 @@ import java.util.List;
 public final class LauncherSettingsActivity extends Activity {
     static final String EXTRA_REORDER = "com.gathin.tvhome.extra.REORDER_FROM_SETTINGS";
     private SharedPreferences choices;
+    private static final String[] LAYOUTS = {Config.LAYOUT_GRID, Config.LAYOUT_HONEYCOMB, Config.LAYOUT_WORDS};
+    private final TextView[] layoutChoices = new TextView[LAYOUTS.length];
+    private TextView moodChoice;
     private final TextView[] columnChoices = new TextView[4];
     private final TextView[] rowChoices = new TextView[4];
     private static final int[] DOCK_OPACITIES = {100, 70, 50, 30};
@@ -27,6 +30,7 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
+    private String layout;
     private int columns;
     private int rowsBelowDock;
     private int dockOpacity;
@@ -45,12 +49,29 @@ public final class LauncherSettingsActivity extends Activity {
             setResult(RESULT_OK, new Intent().putExtra(EXTRA_REORDER, true));
             finish();
         });
+        layout = config.layout;
         columns = config.columns;
         rowsBelowDock = config.rowsBelowDock;
         dockOpacity = config.dockOpacity;
         animations = config.animations;
         advancedEffects = config.animations && config.advancedEffects;
 
+        int[] layoutIds = {R.id.layoutGrid, R.id.layoutHoneycomb, R.id.layoutWords};
+        for (int i = 0; i < layoutIds.length; i++) {
+            final String value = LAYOUTS[i];
+            layoutChoices[i] = findViewById(layoutIds[i]);
+            layoutChoices[i].setOnClickListener(v -> {
+                if (value.equals(layout)) return;
+                layout = value;
+                choices.edit().putString(Config.LAYOUT_CHOICE_KEY, value).apply();
+                changed();
+                refresh();
+            });
+        }
+        // A Power theme's mode is picked on the welcome screen; this row opens it as a picker.
+        moodChoice = findViewById(R.id.moodChoice);
+        moodChoice.setOnClickListener(v -> open(new Intent(this, WelcomeActivity.class)
+                .putExtra(WelcomeActivity.EXTRA_PICKER, true)));
         int[] ids = {R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7};
         for (int i = 0; i < ids.length; i++) {
             final int value = i + 4;
@@ -123,8 +144,9 @@ public final class LauncherSettingsActivity extends Activity {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).commit();
+                    .remove(Config.DOCK_OPACITY_KEY).remove(Config.LAYOUT_CHOICE_KEY).commit();
             Config current = Config.load(this);
+            layout = current.layout;
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
             dockOpacity = current.dockOpacity;
@@ -141,7 +163,24 @@ public final class LauncherSettingsActivity extends Activity {
                 open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
         refresh();
         if (config.launcherSettingsButton) reorderChoice.requestFocus();
-        else columnChoices[Math.max(0, Math.min(columns - 4, 3))].requestFocus();
+        else layoutChoices[Math.max(0, java.util.Arrays.asList(LAYOUTS).indexOf(layout))].requestFocus();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // The mode picker may have changed the mood while it was open.
+        PowerTheme power = Config.load(this).power;
+        moodChoice.setVisibility(power.on() ? View.VISIBLE : View.GONE);
+        if (power.on()) moodChoice.setText(getString(R.string.mood_state, mood(power, PowerTheme.chosen(this))));
+    }
+
+    /** The chosen mode's mood, or the first mode's when none is chosen yet (or the theme dropped it). */
+    static String mood(PowerTheme power, String chosen) {
+        for (PowerTheme.Mode mode : power.modes) {
+            if (mode.id.equals(chosen)) return mode.mood;
+        }
+        return power.modes.get(0).mood;
     }
 
     private void reverseRow(TextView[] views) {
@@ -212,6 +251,9 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     private void refresh() {
+        for (int i = 0; i < layoutChoices.length; i++) {
+            layoutChoices[i].setSelected(LAYOUTS[i].equals(layout));
+        }
         for (int i = 0; i < columnChoices.length; i++) {
             columnChoices[i].setSelected(columns == i + 4);
         }
@@ -238,7 +280,8 @@ public final class LauncherSettingsActivity extends Activity {
     private boolean hasOnTvChoices() {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
-                || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY);
+                || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
+                || choices.contains(Config.LAYOUT_CHOICE_KEY);
     }
 
     private void open(Intent intent) {
