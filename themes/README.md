@@ -6,11 +6,8 @@ launcher's dock, layout and look on the TV without rebuilding the APK: the launc
 Choices made in Launcher settings take priority until you choose Follow theme. Pushing a theme or
 using `tools/theme.sh --reset` also clears those on-TV column and motion choices.
 
-```bash
-TV_HOST=192.168.1.50 tools/theme.sh themes/aurora          # push a theme and restart Home
-TV_HOST=192.168.1.50 tools/theme.sh --reset                # back to the built-in config.xml
-powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 themes\aurora
-```
+Pick a theme from the table, then follow [Install a theme](#install-a-theme) below: it says which
+device each step happens on, what to open, and what you should see.
 
 | Theme | What it does | Screenshot |
 |---|---|---|
@@ -24,6 +21,119 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 
 Every theme folder has a `screenshot.jpg` of Home with that theme on a real TV. `tools/theme.sh` never
 pushes it; it is only here so you can see a theme before you try it.
+
+## Install a theme
+
+A theme changes only this repo's launcher (`com.gathin.tvhome`). If the TV still shows its own home
+screen, install the launcher first with the [Quick start](../README.md#quick-start); a theme has nothing
+to change until then.
+
+### Before you start
+
+- **A computer**: Windows, macOS or Linux. A phone will not do: the push runs a Python script.
+- **The TV and the computer on the same network**: the same Wi-Fi, or the same router by cable. A guest
+  network, a VPN on the computer, or a router with "AP isolation" or "client isolation" keeps them apart.
+- **Python 3** on the computer. Check with `python3 --version` (Windows: `python --version`). If it is
+  missing, get it from [python.org](https://www.python.org/downloads/); on Windows tick "Add python.exe
+  to PATH" in the installer.
+- **This repo** on the computer: `git clone https://github.com/Gathin23/cleanyourtv`, or Code → Download
+  ZIP on GitHub and unzip it. If you installed the launcher from this computer, you already have it.
+
+### Step 1, on the TV: let the computer connect
+
+1. Settings → Device Preferences → About → press OK on **Build** seven times, until it says you are a
+   developer. Skip this if Developer options is already there.
+2. Back → Developer options → **USB debugging** on. If there is a **Network debugging** or **ADB
+   debugging** toggle, turn that on too. (These are off if you closed ADB after installing the launcher,
+   as the README asks: turn them on again for the push.)
+3. Note the TV's **IP address**: Settings → Network & Internet → your network, or Device Preferences →
+   About → Status. It looks like `192.168.1.50`.
+
+Menu names differ a little between brands; the settings are usually under one of these.
+Keep the TV on and awake for the next steps.
+
+### Step 2, on the computer: open a terminal in the repo folder
+
+| | macOS and Linux | Windows |
+|---|---|---|
+| Open | **Terminal** | **PowerShell** (Start → type PowerShell). Not Command Prompt. |
+| Go to the folder | `cd ~/cleanyourtv` | `cd $HOME\cleanyourtv` |
+| First time only | `python3 -m venv tools/venv && tools/venv/bin/pip install -r tools/requirements.txt` | `python -m venv tools\venv; tools\venv\Scripts\python.exe -m pip install -r tools\requirements.txt` |
+
+Use the path where you cloned or unzipped the repo: it is the folder with `README.md`, `themes/` and
+`tools/` in it. Every command below runs from there, in the same terminal window.
+
+### Step 3, on the computer: check the connection
+
+Put your TV's IP address in place of `192.168.1.50`.
+
+macOS and Linux:
+
+```bash
+export TV_HOST=192.168.1.50
+tools/venv/bin/python -I tools/tv.py --probe
+tools/venv/bin/python -I tools/tv.py 'pm path com.gathin.tvhome'
+```
+
+Windows:
+
+```powershell
+$env:TV_HOST = '192.168.1.50'
+tools\venv\Scripts\python.exe -I tools\tv.py --probe
+tools\venv\Scripts\python.exe -I tools\tv.py 'pm path com.gathin.tvhome'
+```
+
+- The first time, the TV asks **"Allow USB debugging?"**. Look at the TV, tick **Always allow from this
+  computer** and choose **Allow**. The computer waits up to two minutes for it.
+- `--probe` then prints the TV's model and Android version.
+- `pm path` prints a line starting with `package:`. If it prints nothing, the launcher is not installed:
+  do the [Quick start](../README.md#quick-start) first.
+
+### Step 4, on the computer: push the theme
+
+Replace `aurora` with the folder name of the theme you picked from the table.
+
+| | Push a theme | Go back to the built-in look |
+|---|---|---|
+| macOS and Linux | `tools/theme.sh themes/aurora` | `tools/theme.sh --reset` |
+| Windows | `powershell -ExecutionPolicy Bypass -File tools\theme.ps1 themes\aurora` | `powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -Reset` |
+
+The script reads `TV_HOST` from Step 3, so run it in the same terminal window (or pass
+`TV_HOST=192.168.1.50` in front on macOS and Linux, `-TvHost 192.168.1.50` on Windows).
+
+It ends with `Theme aurora is on the TV.` and Home restarts on the TV by itself a few seconds later.
+Themes with wallpapers take longer, since each picture is uploaded first. Look at the TV to check it.
+
+- One theme is on the TV at a time: pushing another replaces it, with nothing to reset in between.
+- Pushing a theme also clears the column, motion and wallpaper choices made in Launcher settings, so the
+  theme shows as it was made.
+
+### Step 5, on the TV: close the connection again
+
+The theme stays when debugging is off. Network ADB is unencrypted, so switch it off when you are done:
+
+1. Developer options → **USB debugging** and **Network/ADB debugging** off, and revoke the USB debugging
+   authorisations.
+2. Reboot the TV, then on the computer run `tools/venv/bin/python -I tools/adb-closed.py 192.168.1.50`
+   (Windows: `tools\venv\Scripts\python.exe -I tools\adb-closed.py 192.168.1.50`). It must say the port
+   is closed.
+
+To change themes later, start again from Step 1; Step 2's first-time setup is not needed again.
+
+### If something goes wrong
+
+| What you see | What to do |
+|---|---|
+| `--probe` waits and then fails with a timeout, "connection refused" or "no route to host" | Check the IP address again (it can change after the router restarts), that both are on the same network (Before you start), that debugging is on (Step 1), and that the TV is awake. |
+| "Allow USB debugging?" never shows | Wake the TV and watch the screen while `--probe` runs. If there is a Network or ADB debugging toggle, it must be on as well. |
+| `Set TV_HOST to your TV's IP address` | You opened a new terminal window: run the `export` or `$env:TV_HOST` line from Step 3 again. |
+| `run: python3 -m venv ...` | The first-time setup in Step 2 has not run in this folder. |
+| `no config.json in ...` | The theme name is misspelt, or the terminal is not in the repo folder. Use the folder name from the table, after `themes/`. |
+| Windows: "running scripts is disabled on this system" | Use the full `powershell -ExecutionPolicy Bypass -File ...` line from Step 4, not `tools\theme.ps1` on its own. |
+| macOS or Linux: `Permission denied` | Run it as `bash tools/theme.sh themes/aurora`. |
+| It says the theme is on the TV, but Home looks the same | Press Home on the remote. If the TV's own home screen shows, the launcher is not Home: see the [Quick start](../README.md#quick-start). |
+
+More fixes are in [docs/TROUBLESHOOTING.md](../docs/TROUBLESHOOTING.md).
 
 ## Keys
 
