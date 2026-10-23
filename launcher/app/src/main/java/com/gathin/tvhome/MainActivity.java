@@ -467,6 +467,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 shamsiDate.setTextSize(14f);
                 shamsiDate.setTextColor(date.getCurrentTextColor());
                 shamsiDate.setLetterSpacing(0f);
+                shamsiDate.setTransformationMethod(new JewishDate.CompactQuotes());
                 date.setLetterSpacing(0f);
             }
             date.setTextSize(hebrewDate ? 14f : 11f);

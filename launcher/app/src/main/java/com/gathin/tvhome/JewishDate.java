@@ -95,6 +95,35 @@ final class JewishDate {
         return gregorian + "', " + hebrew.replace("'", "''") + "'";
     }
 
+    /** Keep the proper Hebrew punctuation, but trim its font's oversized side bearings. */
+    static final class CompactQuotes extends android.text.method.SingleLineTransformationMethod {
+        @Override public CharSequence getTransformation(CharSequence source, android.view.View view) {
+            CharSequence text = super.getTransformation(source, view);
+            if (text == null) return null;
+            android.text.SpannableString result = new android.text.SpannableString(text);
+            for (int i = 0; i < text.length(); i++) {
+                if (text.charAt(i) == '״') result.setSpan(new Quote(), i, i + 1,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            return result;
+        }
+    }
+
+    private static final class Quote extends android.text.style.ReplacementSpan {
+        private final android.graphics.Rect bounds = new android.graphics.Rect();
+
+        @Override public int getSize(android.graphics.Paint paint, CharSequence text, int start, int end,
+                android.graphics.Paint.FontMetricsInt metrics) {
+            paint.getTextBounds(text.toString(), start, end, bounds);
+            return bounds.width();
+        }
+
+        @Override public void draw(android.graphics.Canvas canvas, CharSequence text, int start, int end,
+                float x, int top, int y, int bottom, android.graphics.Paint paint) {
+            canvas.drawText(text, start, end, x - bounds.left, y, paint);
+        }
+    }
+
     /** Omit only a year's thousands prefix; preserve day 5 and Adar I/II markers. */
     static String withoutMillennium(String text) {
         return text.replaceFirst(" [א-ט]׳(?=[א-ת׳״]+$)", " ");

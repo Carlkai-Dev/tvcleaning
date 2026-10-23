@@ -46,6 +46,10 @@ final class ClockScene {
         content = root.findViewById(R.id.dreamContent);
         date = root.findViewById(R.id.dreamDate);
         jewishDate = Config.load(root.getContext()).jewishDate;
+        String language = java.util.Locale.getDefault().getLanguage();
+        if (jewishDate != null && jewishDate.showDate
+                && ("he".equals(language) || "iw".equals(language)))
+            date.setTransformationMethod(new JewishDate.CompactQuotes());
         View ambient = root.findViewById(R.id.dreamAmbient);
         glow = new GradientDrawable();
         glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
