@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 
 final class OnlineWallpaperDownloader {
     private static final String TAG = "TvHome.OnlineWallpaper";
-    private static final long INTERVAL_MINUTES = 5;
+    private static final long INTERVAL_MINUTES = 1;
     private final File directory;
     private final Consumer<File> callback;
     private ScheduledExecutorService executor;
