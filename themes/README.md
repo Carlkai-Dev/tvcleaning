@@ -120,6 +120,12 @@ Power theme: modes, and a welcome that asks for the mood when the TV comes on, a
 `power_theme`, `power_welcome` and `modes`, documented in [docs/power-theme.md](../docs/power-theme.md). They join
 this table once they have a screenshot from a real TV in `docs/switches.md`.
 
+Layout: `"layout": "honeycomb"` in a theme's `config.json` replaces the dock and tile grid with round app icons in a
+hex-packed field, the focused one large in the middle and the rest shrinking towards the edges, the dock apps nearest
+the middle. Left and Right move along a row, Up and Down zigzag to the next row, OK opens and holding OK opens the tile
+menu or App info; reorder and the dock edit stay with the grid. `"grid"`, the default, keeps today's Home. The key
+joins this table, and config.xml, once it has a screenshot from a real TV in docs/switches.md.
+
 ## Wallpapers
 
 `wallpaper.jpg` is drawn full screen behind the launcher, centre-cropped. Keep it dark, 1920×1080 and
