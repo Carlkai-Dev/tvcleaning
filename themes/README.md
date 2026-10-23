@@ -119,8 +119,10 @@ A new key needs one there in the same pull request.
 Layout: `"layout": "honeycomb"` in a theme's `config.json` replaces the dock and tile grid with round app icons in a
 hex-packed field, the focused one large in the middle and the rest shrinking towards the edges, the dock apps nearest
 the middle. Left and Right move along a row, Up and Down zigzag to the next row, OK opens and holding OK opens the tile
-menu or App info; reorder and the dock edit stay with the grid. `"grid"`, the default, keeps today's Home. The key
-joins this table, and config.xml, once it has a screenshot from a real TV in docs/switches.md.
+menu or App info; reorder and the dock edit stay with the grid. `"layout": "words"` is the lightest Home, for weak
+TVs: no icons, only the app names in large type down the left, the focused one at full size and its colour washing in
+from the right; Up and Down move. `"grid"`, the default, keeps today's Home. The key joins this table, and config.xml,
+once it has a screenshot from a real TV in docs/switches.md.
 
 ## Wallpapers
 

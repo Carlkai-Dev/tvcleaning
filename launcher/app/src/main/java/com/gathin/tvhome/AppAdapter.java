@@ -208,7 +208,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final boolean tileMenu;
     /** Tile names and bundled banners that replace the app's own (config.xml, app_labels and app_banners). */
     private final Map<String, String> appLabels, appBanners;
-    /** layout honeycomb: every tile keeps its icon and no banner, since HoneycombView draws round icons only. */
+    /** layout honeycomb or words: every tile keeps its icon (drawn, or sampled for its colour) and loads no banner. */
     private final boolean iconsOnly;
     private final List<Entry> items = new ArrayList<>();
 
@@ -235,7 +235,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.tileMenu = cfg.tileMenu;
         this.appLabels = cfg.appLabels;
         this.appBanners = cfg.appBanners;
-        this.iconsOnly = Config.LAYOUT_HONEYCOMB.equals(cfg.layout);
+        this.iconsOnly = !Config.LAYOUT_GRID.equals(cfg.layout);
         // Tiles keep their identity across reload(), so a focused tile stays on its app instead of
         // its view being rebound to whatever app now sits in that slot.
         setHasStableIds(true);
@@ -474,7 +474,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
-    /** Opens the app at a position, as a click on its tile does (HoneycombView). */
+    /** Opens the app at a position, as a click on its tile does (AppFieldView). */
     void launchAt(int position) {
         if (position >= 0 && position < items.size()) launch(items.get(position));
     }
@@ -624,7 +624,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return position >= 0 && position < items.size() && items.get(position).kind == Entry.EMPTY;
     }
 
-    /** The app's icon (only loaded for tiles without a banner, or for every tile with layout honeycomb). */
+    /** The app's icon (only loaded for tiles without a banner, or for every tile with a layout other than the grid). */
     Drawable iconAt(int position) {
         return position >= 0 && position < items.size() ? items.get(position).icon : null;
     }
