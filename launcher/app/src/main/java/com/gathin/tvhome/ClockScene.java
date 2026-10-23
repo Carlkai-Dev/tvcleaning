@@ -26,12 +26,15 @@ final class ClockScene {
     private final Random random = new Random();
     private final View content;
     private final GradientDrawable glow;
+    private final android.widget.TextClock date;
+    private final JewishDate jewishDate;
     private int colorIndex;
     private int glowColor;
 
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
+            updateDate();
             moveClock();
             shiftGlow();
             handler.postDelayed(this, MOVE_MS);
@@ -41,6 +44,8 @@ final class ClockScene {
     /** root is the inflated dream_clock layout. */
     ClockScene(View root) {
         content = root.findViewById(R.id.dreamContent);
+        date = root.findViewById(R.id.dreamDate);
+        jewishDate = Config.load(root.getContext()).jewishDate;
         View ambient = root.findViewById(R.id.dreamAmbient);
         glow = new GradientDrawable();
         glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
@@ -52,6 +57,7 @@ final class ClockScene {
     }
 
     void start() {
+        updateDate();
         content.setAlpha(0f);
         content.post(() -> {
             placeClock();
@@ -59,6 +65,16 @@ final class ClockScene {
         });
         handler.removeCallbacks(tick);
         handler.postDelayed(tick, MOVE_MS);
+    }
+
+    private void updateDate() {
+        if (jewishDate == null || !jewishDate.showDate) return;
+        java.time.LocalDate day = jewishDate.day(java.time.ZonedDateTime.now());
+        String format = date.getResources().getString(R.string.date_format);
+        if (day != null) format = JewishDate.screensaverFormat(format,
+                JewishDate.text(day, java.util.Locale.getDefault()));
+        date.setFormat12Hour(format);
+        date.setFormat24Hour(format);
     }
 
     void stop() {
