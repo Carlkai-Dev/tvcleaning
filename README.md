@@ -94,6 +94,21 @@ phoning home, no apps you never asked for.
 | ![Moving a tile: held OK, chose Move, the tile is picked up and the others dim](docs/tile-move.jpg) | ![The App library: installed apps, one press adds an app back to Home](docs/app-library.jpg) |
 | *With `tile_menu`, hold OK on a tile, Move: arrows carry it, Back puts it down* | *App library: one press puts a removed app back on Home* |
 
+### Futuristic System Widget & TV Cleaner Suite
+
+A sleek Apple TV-style system widget and complete maintenance suite:
+
+| | |
+|---|---|
+| ![Futuristic widget showing real-time RAM and free SSD storage](docs/feature-home-widget.png) | ![System Manager glass panel with 1-click RAM boost and cache cleaners](docs/feature-system-manager.png) |
+| *Futuristic System Widget: Live RAM % & Free Storage* | *System Manager: 1-Click RAM boost & storage manager* |
+| ![1-Click RAM Boost reduces memory usage from 63% down to 44%](docs/feature-ram-boost.png) | ![Instant 1-click clear cache toast confirmation](docs/feature-cache-cleared.png) |
+| *RAM Boost: 172 MB freed, dropping usage to 44%* | *Instant 1-Click Clear Cache: No settings redirect* |
+| ![Select app to clean interactive list](docs/feature-app-picker.png) | ![Per-app clean options: clear cache, clear data, force stop](docs/feature-app-actions.png) |
+| *Select app to clean: Interactive app picker* | *Per-app actions: Clear cache, clear data, force stop* |
+| ![Tile context menu on hold OK: move, force stop, clear cache, remove from home](docs/feature-tile-menu.png) | ![Bluetooth menu showing active connection status and pairing](docs/feature-bluetooth-menu.png) |
+| *Tile context menu: Move, force stop, instant clear cache* | *Bluetooth: Active connected status & quick pairing* |
+
 ## Supported TVs
 
 Anything running **Android TV** or **Google TV**.
