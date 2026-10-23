@@ -57,6 +57,7 @@ TV_HOST=192.168.1.50 tools/theme.sh themes/power
 {
   "power_theme": true,
   "power_welcome": "boot",
+  "launcher_settings_button": true,
   "modes": [
     {
       "id": "entertain", "name": "Entertain", "mood": "Just chilling", "line": "A bit of everything",
