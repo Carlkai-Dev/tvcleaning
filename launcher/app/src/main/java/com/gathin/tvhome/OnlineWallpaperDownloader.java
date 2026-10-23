@@ -39,7 +39,7 @@ final class OnlineWallpaperDownloader {
             if (!directory.isDirectory() && !directory.mkdirs()) return;
 
             connection = (HttpURLConnection)
-                    new URL("https://picsum.photos/1920/1080").openConnection();
+                    new URL("https://www.sourcesplash.com/i/random?q=nature&w=1920&h=1080").openConnection();
             connection.setInstanceFollowRedirects(true);
             connection.setConnectTimeout(20000);
             connection.setReadTimeout(30000);
