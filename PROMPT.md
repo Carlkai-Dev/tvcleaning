@@ -94,7 +94,10 @@ Debloat
   it and you cannot tell which.
 - After the last batch, reboot once and compare `pm list packages -d` with what you disabled: some
   firmware re-enables packages at every boot from its own list (TCL Android 9 does this for its user
-  center). Note those in the list header instead of disabling them again after each boot.
+  center). Note those in the list header instead of disabling them again after each boot. If Home is
+  black after a reboot, now or after the launcher handover, run `logcat -d | grep RecoveryActivity`:
+  the setup wizard starting as Home means the firmware re-enabled it, and disabling it again only
+  lasts until the next boot.
 - Offer me ad-blocking DNS as an optional extra: on Android 9 and newer, Private DNS set to an
   ad-blocking resolver (`settings put global private_dns_specifier dns.adguard-dns.com`, then
   `settings put global private_dns_mode hostname`). Tell me it doesn't block YouTube ads, check an app
