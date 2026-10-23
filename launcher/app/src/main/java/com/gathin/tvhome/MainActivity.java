@@ -618,6 +618,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             libraryFromTopBar = true;   // closing it goes back to this button, not to the pill after the last row
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
+        View btnPower = findViewById(R.id.btnPower);
+        btnPower.setOnClickListener(v -> showPowerPrompt());
+        btnPower.setVisibility(cfg.powerButton ? View.VISIBLE : View.GONE);
         iconOnlyButtons = cfg.iconOnlyButtons;
         topMenu = cfg.topMenu;
         wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
@@ -666,8 +669,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 return true;
             }
             int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
-            int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
-            int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
+            int lastButton = btnPower.getVisibility() == View.VISIBLE ? R.id.btnPower : R.id.btnSettings;
+            int leftButton = rtlMenuBar ? lastButton : firstButton;
+            int rightButton = rtlMenuBar ? firstButton : lastButton;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
@@ -676,8 +680,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
+        btnPower.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings}) {
+            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings, btnPower}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(reducedMotion ? Motion.REDUCED_MS : 160).start());
@@ -3101,6 +3106,37 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cardPrompt = dialog;
         dialog.show();
         keep.requestFocus();
+    }
+
+    /**
+     * The power button's prompt, in the module card prompt's panel: Restart hands over to Android's power menu
+     * (PowerMenuService), Cancel and Back close it. With the service off, Restart opens Accessibility settings instead.
+     */
+    private void showPowerPrompt() {
+        View panel = getLayoutInflater().inflate(R.layout.dialog_card_prompt, root, false);
+        ((TextView) panel.findViewById(R.id.title)).setText(R.string.power_title);
+        for (int id : new int[]{R.id.body, R.id.names, R.id.hint, R.id.identity}) panel.findViewById(id).setVisibility(View.GONE);
+        TextView cancel = panel.findViewById(R.id.btnKeep);
+        TextView restart = panel.findViewById(R.id.btnShow);
+        cancel.setText(android.R.string.cancel);
+        restart.setText(R.string.power_restart);
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(panel);
+        Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            w.setLayout((int) (440 * density), ViewGroup.LayoutParams.WRAP_CONTENT);
+            w.setDimAmount(0.6f);
+        }
+        cancel.setOnClickListener(v -> dialog.dismiss());
+        restart.setOnClickListener(v -> {
+            dialog.dismiss();
+            if (!PowerMenuService.restart()) open(systemIntent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        });
+        dialog.setOnDismissListener(d -> findViewById(R.id.btnPower).requestFocus());
+        dialog.show();
+        cancel.requestFocus();
     }
 
     /** Writes the owner's decision and rebuilds the tiles; focus is left where it is. */

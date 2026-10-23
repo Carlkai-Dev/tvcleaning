@@ -65,4 +65,6 @@
         <item quantity="other">%1$d Apps</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="power_title">Fernseher neu starten?</string>
+    <string name="power_restart">Neu starten</string>
 </resources>

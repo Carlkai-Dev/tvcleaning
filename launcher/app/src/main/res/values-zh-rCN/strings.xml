@@ -63,4 +63,6 @@
         <item quantity="other">%1$d 个应用</item>
     </plurals>
     <string name="greeting_with_name">%1$s，%2$s</string>
+    <string name="power_title">要重新启动电视吗？</string>
+    <string name="power_restart">重新启动</string>
 </resources>

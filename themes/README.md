@@ -54,6 +54,7 @@ A new key needs one there in the same pull request.
 | `dock_title` | bool | The focused dock app's name in large type above the dock (`true`); `false` keeps only the glow |
 | `dock_row` | bool | The dock as its own row with a band (`true`); `false` makes the dock apps the first tiles of one plain grid |
 | `reorder_button` | bool | A reorder button in the top bar (`false` by default); reordering is always in the Settings button's long-press menu |
+| `power_button` | bool | A power button at the right end of the top bar (`false` by default). OK asks whether to restart the TV; Restart has the launcher's Power menu accessibility service open Android's power menu and press its Restart item, since an app cannot reboot the TV itself. The service reads window content only for a few seconds after Restart. Turn it on once: `settings put secure enabled_accessibility_services com.gathin.tvhome/.PowerMenuService` and `settings put secure accessibility_enabled 1` |
 | `show_network_pill` | bool | The Wi-Fi/Ethernet pill in the top bar (`true` by default); `false` hides it |
 | `show_inputs_pill` | bool | The Inputs pill in the top bar, shown when the TV has inputs (`true` by default); `false` hides it; what the remote's Input button does is unchanged |
 | `icon_only_buttons` | bool | Wi-Fi and Settings as round icon buttons; Inputs keeps its label (`false` by default) |

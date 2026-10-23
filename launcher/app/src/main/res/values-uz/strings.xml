@@ -105,4 +105,6 @@
     <string name="race_live">%1$s · jonli</string>
     <string name="race_finished">Marra</string>
     <string name="last_opened">Oxirgi marta ochilgan: %1$s</string>
+    <string name="power_title">Televizor qayta ishga tushirilsinmi?</string>
+    <string name="power_restart">Qayta ishga tushirish</string>
 </resources>

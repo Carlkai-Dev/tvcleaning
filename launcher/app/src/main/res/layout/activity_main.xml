@@ -343,6 +343,14 @@
                     android:text="@string/settings"
                     android:drawableStart="@drawable/ic_settings"
                     android:nextFocusDown="@+id/grid" />
+
+                <TextView
+                    android:id="@+id/btnPower"
+                    style="@style/TopButtonIcon"
+                    android:visibility="gone"
+                    android:contentDescription="@string/power_restart"
+                    android:drawableStart="@drawable/ic_power"
+                    android:nextFocusDown="@+id/grid" />
             </LinearLayout>
         </RelativeLayout>
 

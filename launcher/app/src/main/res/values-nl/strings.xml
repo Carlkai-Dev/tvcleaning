@@ -106,4 +106,6 @@
     <string name="race_live">%1$s · live</string>
     <string name="race_finished">Geblokte vlag</string>
     <string name="last_opened">Laatst geopend %1$s</string>
+    <string name="power_title">Tv opnieuw opstarten?</string>
+    <string name="power_restart">Opnieuw opstarten</string>
 </resources>

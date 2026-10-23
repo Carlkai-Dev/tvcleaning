@@ -105,4 +105,6 @@
     <string name="race_live">%1$s · direkte</string>
     <string name="race_finished">Målgang</string>
     <string name="last_opened">Sist åpnet %1$s</string>
+    <string name="power_title">Vil du starte TV-en på nytt?</string>
+    <string name="power_restart">Start på nytt</string>
 </resources>
