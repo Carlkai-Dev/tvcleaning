@@ -168,4 +168,11 @@
          It ends with a separator because power_hint follows on the same line. -->
     <string name="power_auto">Starting %1$s in %2$d s  ·</string>
     <string name="power_hint">Arrows to choose · OK to start · Back keeps the last mode</string>
+    <!-- Launcher settings: Home's layout, which wins over the theme's "layout" until Follow theme. -->
+    <string name="home_layout_label">Home layout</string>
+    <string name="layout_grid">Grid</string>
+    <string name="layout_honeycomb">Honeycomb</string>
+    <string name="layout_words">Big words</string>
+    <!-- Launcher settings, only with a Power theme: %1$s is the current mode's mood, e.g. "Relaxed". OK opens the mode picker. -->
+    <string name="mood_state">Mood: %1$s</string>
 </resources>

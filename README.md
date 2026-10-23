@@ -521,6 +521,9 @@ and a wallpaper.
   straight away with `launcher_settings_button`. The launcher's own page has these rows, top to bottom:
   - **Reorder apps**, only with `launcher_settings_button`: OK picks an app up, the arrows move it, Back
     places it, and Back again finishes.
+  - **Home layout**: **Grid** (the tiles), **Honeycomb** (round icons in a hex field, like a watch) or **Big
+    words** (large app names). It wins over the theme's `layout` until Follow theme.
+  - **Mood**, only with a Power theme: shows the current mode's mood, and OK opens the mode picker.
   - **Apps per row** 4, 5, 6 or 7; **Rows below dock** 0 to 3, how many rows of tiles stay visible under the
     dock band; **Dock band opacity** 100%, 70%, 50% or 30%. The last two only do anything while the dock is
     its own row (`dock_row`, on by default).
