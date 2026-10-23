@@ -318,6 +318,10 @@
          They leave the grid. Missing apps are skipped. Can also be set with "top_bar_apps" in a theme. -->
     <string-array name="top_bar_apps" translatable="false">
     </string-array>
+    <!-- The network name as a plain line above the Inputs and Settings pills instead of a pill of its own: not
+         focusable, so the D-pad skips it, and the row of buttons gets shorter. Off by default; a theme can set
+         "network_text": true. Ignored with top_menu. -->
+    <bool name="network_text">false</bool>
     <!-- The Inputs pill in the top bar, shown when the TV has inputs to list. false hides it for good; what the
          remote's Input button does is unchanged. Can also be set with "show_inputs_pill" in a theme. -->
     <bool name="show_inputs_pill">true</bool>

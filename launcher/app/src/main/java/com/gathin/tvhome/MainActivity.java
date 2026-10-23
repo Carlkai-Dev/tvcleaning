@@ -737,7 +737,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         addTopBarApps(cfg.topBarApps, cfg.launchActions);
         iconOnlyButtons = cfg.iconOnlyButtons;
         topMenu = cfg.topMenu;
-        wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
+        boolean networkText = cfg.networkText && !cfg.topMenu;
+        wifiIconOnly = !networkText && iconOnlyButtons && cfg.wifiLabelWidth <= 0;
         if (cfg.wifiStatusColor) {
             wifiPlainTint = btnWifi.getCompoundDrawableTintList();
             wifiOnlineTint = getColorStateList(R.color.pill_icon_online);
@@ -765,11 +766,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             topButtons.setGravity(Gravity.CENTER_VERTICAL);
         }
         if (iconOnlyButtons) {
-            if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
-            else makeIconOnly(btnWifi);
+            if (networkText) {
+                // The name stays readable as text.
+            } else if (cfg.wifiLabelWidth > 0) {
+                btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
+            } else {
+                makeIconOnly(btnWifi);
+            }
             makeIconOnly((TextView) btnSettings);
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
+        if (networkText) networkAsText();
         btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;
@@ -2309,6 +2316,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ((LinearLayout.LayoutParams) clockRow.getLayoutParams()).gravity = Gravity.RIGHT;
         }
         clockColumn.addView(column, clockColumn.indexOfChild(clockRow) + 1, lp);
+    }
+
+    /**
+     * network_text: the network name moves out of the row of pills to a plain line above it, aligned with the row's
+     * end. It is no longer focusable, so the D-pad and the row's edge keys skip it; the network callbacks keep
+     * updating the same view.
+     */
+    private void networkAsText() {
+        LinearLayout row = findViewById(R.id.topButtons);
+        row.removeView(btnWifi);
+        btnWifi.setBackground(null);
+        btnWifi.setFocusable(false);
+        btnWifi.setClickable(false);
+        btnWifi.setLongClickable(false);
+        btnWifi.setPadding(0, 0, 0, 0);
+        btnWifi.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        btnWifi.setAlpha(0.75f);
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.addRule(RelativeLayout.ABOVE, R.id.topButtons);
+        lp.addRule(RelativeLayout.ALIGN_PARENT_END);
+        lp.bottomMargin = Math.round(8 * density);
+        lp.setMarginEnd(Math.round(6 * density));
+        ((ViewGroup) row.getParent()).addView(btnWifi, lp);
     }
 
     /** The first top-bar button after Inputs that is shown, in bar order (top_bar_apps, the network pill, ...); Settings is always there. */
