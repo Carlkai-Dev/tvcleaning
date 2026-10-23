@@ -24,7 +24,11 @@ com.android.tv.feedbackconsent
 
 # Preloaded services
 com.seraphic.media.tv.interactive.app
+com.google.android.apps.tv.dreamx           # ambient mode screensaver
+com.apps.scast                              # likely screen mirroring
 com.apps.wifihotspot
+com.mk.tv.meeting.service
+com.apps.esticker3
 com.android.printspooler
 
 # Broadcast tuner apps not used here (DTMB, ISDB, ATSC)
@@ -40,6 +44,7 @@ com.realtek.kara
 com.apps.mk.gameui
 com.apps.puresound
 com.apps.usbmediaplayer
+com.wbd.stream                              # Max, off by choice
 
 # Stock home and setup. Disable launcherx only after the new launcher is installed and running.
 # setupwraith is included here; on most Google TV sets its RecoveryActivity takes Home once
