@@ -228,6 +228,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static LocalDate lastPetalShower;
     /** boot_to_live_tv: open the Live TV app on the first Home of each boot. */
     private boolean bootToLiveTv;
+    /** Power theme (config.json power_theme and modes): the welcome at power-on and the colour keys. */
+    private PowerTheme power = PowerTheme.NONE;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
     private Set<String> hiddenApps = Collections.emptySet();
     private List<Cards.Card> cards = Collections.emptyList();
@@ -374,6 +376,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         liveTvPkg = cfg.liveTvPackage;
         idleClockMs = cfg.homeIdleClockMinutes * MINUTE_MS;
         bootToLiveTv = cfg.bootToLiveTv;
+        power = cfg.power;
         liveTvAction = cfg.liveTvAction;
         liveTvInputId = cfg.liveTvInputId;
         appLibraryEnabled = cfg.appLibrary;
@@ -839,6 +842,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 break;
         }
         if (openLiveTvAfterBoot()) return;
+        // Power theme: greet and ask for the mood on the first Home after power-on (or of the day). Home finishes
+        // resuming underneath; a chosen mode moves the settings count, so the next onResume rebuilds with it.
+        if (power.on() && power.welcomeDue(this)) {
+            PowerTheme.markWelcomed(this);
+            startActivity(new Intent(this, WelcomeActivity.class));
+        }
         updateGreeting();
         updateRace();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
@@ -1128,6 +1137,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (handleSettingsKey(event)) return true;
+        if (handlePowerKey(event)) return true;
         if (tileMenuEnabled && !reordering && openPopup == null && cardPrompt == null
                 && event.getKeyCode() == KeyEvent.KEYCODE_MENU) {
             int position = focusedTilePosition();
@@ -2554,6 +2564,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
+    }
+
+    /**
+     * Power theme: a colour key bound to a mode switches to it and rebuilds Home; any other colour key opens the
+     * mode picker. Without power_theme, or while reordering or a popup is open, the keys pass through untouched.
+     */
+    private boolean handlePowerKey(KeyEvent event) {
+        if (!power.on() || reordering || openPopup != null || cardPrompt != null) return false;
+        String colour = PowerTheme.colourKey(event.getKeyCode());
+        if (colour == null) return false;
+        if (event.getAction() != KeyEvent.ACTION_UP || event.isCanceled()) return true;
+        PowerTheme.Mode mode = power.forKey(colour);
+        if (mode == null) {
+            startActivity(new Intent(this, WelcomeActivity.class).putExtra(WelcomeActivity.EXTRA_PICKER, true));
+        } else if (!mode.id.equals(PowerTheme.chosen(this))) {
+            PowerTheme.choose(this, mode.id);
+            settingsRevision = settingsRevision();
+            recreate();
+        }
+        return true;
     }
 
     /** boot_to_live_tv: the first time Home comes up after the TV starts, open the Live TV app instead. Once per
