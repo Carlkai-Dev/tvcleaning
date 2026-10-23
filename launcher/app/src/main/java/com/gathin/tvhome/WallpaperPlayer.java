@@ -131,8 +131,11 @@ final class WallpaperPlayer {
         active = true;
         update();
         if (onlineDownloader == null && !files.isEmpty()) {
+            File onlineDirectory = files.get(0).getParentFile();
+            files.removeIf(file -> !file.getName().startsWith("online_")
+                    || !file.getName().endsWith(".jpg"));
             onlineDownloader = new OnlineWallpaperDownloader(
-                    files.get(0).getParentFile(),
+                    onlineDirectory,
                     downloaded -> root.post(() -> {
                         if (closed || !downloaded.isFile()) return;
                         if (!files.contains(downloaded)) files.add(downloaded);
