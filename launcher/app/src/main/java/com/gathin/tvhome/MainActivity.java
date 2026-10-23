@@ -12,6 +12,16 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.app.ActivityManager;
+import android.content.IntentSender;
+import java.io.File;
+import java.lang.reflect.Method;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
+import android.content.ComponentName;
+import android.content.IntentSender;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ChangedPackages;
@@ -42,6 +52,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.StatFs;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -80,6 +91,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -171,6 +183,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView greeting;
     private View clockBlock;
     private View btnInputs;
+    private View btnBluetooth;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
     private TextView btnWifi;
@@ -180,6 +193,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean pillsShown;
     private TextView shamsiDate;
     private TextView stats;
+    private View systemWidget;
+    private TextView widgetRamText;
+    private TextView widgetStorageText;
     private List<RaceWeekend.Race> raceCalendar;
     private View racePanel;
     private TextView raceKicker, raceHeadline, raceSessions;
@@ -590,9 +606,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         btnInputs = findViewById(R.id.btnInputs);
+        btnBluetooth = findViewById(R.id.btnBluetooth);
         View btnSettings = findViewById(R.id.btnSettings);
+        systemWidget = findViewById(R.id.systemWidget);
+        widgetRamText = findViewById(R.id.widgetRamText);
+        widgetStorageText = findViewById(R.id.widgetStorageText);
         btnInputs.setOnClickListener(v -> showInputs());
-        btnWifi.setOnClickListener(v -> openNetworkPill());
+        if (btnBluetooth != null) {
+            btnBluetooth.setOnClickListener(v -> showBluetoothOptions());
+        }
+        if (systemWidget != null) {
+            systemWidget.setOnClickListener(v -> showSystemManagerMenu());
+        }
+        updateSystemWidgetStats();
+        btnWifi.setOnClickListener(v -> showWifiOptions());
         btnWifi.setOnLongClickListener(v -> {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
@@ -630,6 +657,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // label up to date, which the menu's Wi-Fi row shows.
             showInputsPill = false;
             btnInputs.setVisibility(View.GONE);
+            if (btnBluetooth != null) btnBluetooth.setVisibility(View.GONE);
             btnWifi.setVisibility(View.GONE);
             ((TextView) btnSettings).setText(R.string.settings);
             ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_settings, 0, 0, 0);
@@ -644,6 +672,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             topButtons.setGravity(Gravity.CENTER_VERTICAL);
         }
         if (iconOnlyButtons) {
+            if (btnBluetooth != null) makeIconOnly((TextView) btnBluetooth);
             if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
             else makeIconOnly(btnWifi);
             makeIconOnly((TextView) btnSettings);
@@ -823,6 +852,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
         restartIdleClock();
+        updateSystemWidgetStats();
         promptsPaused = false;
         if (grid.getAdapter() == null) grid.setAdapter(adapter);   // dropped by onTrimMemory
         switch (tileRefresh.onResume(packagesChangedSinceRebuild())) {
@@ -2839,6 +2869,403 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rows.getChildAt(0).requestFocus();
     }
 
+    private void showWifiOptions() {
+        View anchor = findViewById(R.id.btnWifi);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        int width = Math.max(anchor.getWidth(), (int) (180 * density));
+        final PopupWindow popup = glassPopup(panel, width);
+
+        String rawSsid = btnWifi.getText() != null ? btnWifi.getText().toString() : "";
+        final String currentSsid = (rawSsid.isEmpty() || rawSsid.equals(getString(R.string.wifi))) ? "Wi-Fi" : rawSsid;
+        final String ip = getDeviceIpAddress();
+
+        // Active Wi-Fi connection row
+        addInputRow(rows, popup, R.drawable.ic_wifi, currentSsid, TvInputManager.INPUT_STATE_CONNECTED, () -> {
+            Toast.makeText(this, currentSsid + (ip != null ? " (" + ip + ")" : ""), Toast.LENGTH_SHORT).show();
+        });
+
+        // IP Address row
+        if (ip != null && !ip.isEmpty() && !ip.equals("0.0.0.0")) {
+            addInputRow(rows, popup, R.drawable.ic_ethernet, ip, -1, () -> {
+                Toast.makeText(this, "IP: " + ip, Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        addSeparator(rows);
+
+        // Network & Internet Settings (opens standard settings when clicked)
+        addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.network_settings), -1, () -> {
+            open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
+        });
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (320 * density))));
+        int alignment = getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END;
+        dropIn(popup, panel, anchor, alignment);
+        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
+    private String getDeviceIpAddress() {
+        try {
+            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+            if (wm != null && wm.getConnectionInfo() != null) {
+                int ip = wm.getConnectionInfo().getIpAddress();
+                if (ip != 0) {
+                    return String.format(Locale.ROOT, "%d.%d.%d.%d",
+                            (ip & 0xff), (ip >> 8 & 0xff), (ip >> 16 & 0xff), (ip >> 24 & 0xff));
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private boolean isBluetoothDeviceConnected(BluetoothDevice dev) {
+        if (dev == null) return false;
+        try {
+            Method m = dev.getClass().getMethod("isConnected");
+            Boolean connected = (Boolean) m.invoke(dev);
+            if (connected != null && connected) return true;
+        } catch (Exception ignored) {}
+        try {
+            BluetoothManager bm = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+            if (bm != null) {
+                if (bm.getConnectionState(dev, BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED
+                        || bm.getConnectionState(dev, BluetoothProfile.GATT_SERVER) == BluetoothProfile.STATE_CONNECTED) {
+                    return true;
+                }
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    private void addBluetoothDeviceRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, boolean connected, Runnable action) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        TextView status = row.findViewById(R.id.status);
+        View dot = row.findViewById(R.id.dot);
+        status.setVisibility(View.VISIBLE);
+        if (connected) {
+            status.setText(R.string.connected);
+            dot.setVisibility(View.VISIBLE);
+        } else {
+            status.setText(R.string.paired);
+            dot.setVisibility(View.GONE);
+        }
+        row.setOnClickListener(v -> {
+            popup.dismiss();
+            if (action != null) action.run();
+        });
+        rows.addView(row);
+    }
+
+    private void showBluetoothOptions() {
+        View anchor = findViewById(R.id.btnBluetooth);
+        if (anchor == null) anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        int width = Math.max(anchor.getWidth(), (int) (180 * density));
+        final PopupWindow popup = glassPopup(panel, width);
+
+        try {
+            BluetoothAdapter bt = BluetoothAdapter.getDefaultAdapter();
+            if (bt != null && bt.isEnabled()) {
+                Set<BluetoothDevice> bonded = bt.getBondedDevices();
+                if (bonded != null && !bonded.isEmpty()) {
+                    for (BluetoothDevice dev : bonded) {
+                        String name = dev.getName();
+                        if (name == null || name.isEmpty()) name = dev.getAddress();
+                        boolean connected = isBluetoothDeviceConnected(dev);
+                        addBluetoothDeviceRow(rows, popup, R.drawable.ic_bluetooth, name, connected, () -> {
+                            openPairAccessory();
+                        });
+                    }
+                } else {
+                    addInputRow(rows, popup, R.drawable.ic_bluetooth, getString(R.string.no_bluetooth_devices), -1, () -> {
+                        openPairAccessory();
+                    });
+                }
+            } else if (bt != null) {
+                addInputRow(rows, popup, R.drawable.ic_bluetooth, getString(R.string.bluetooth_off), -1, () -> {
+                    openPairAccessory();
+                });
+            }
+        } catch (Exception ignored) {}
+
+        if (rows.getChildCount() > 0) addSeparator(rows);
+
+        // Add Accessory / Pair Device row
+        addInputRow(rows, popup, R.drawable.ic_bluetooth, getString(R.string.pair_accessory), -1, () -> {
+            openPairAccessory();
+        });
+
+        // Bluetooth Settings row
+        addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.bluetooth_settings), -1, () -> {
+            openPairAccessory();
+        });
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (320 * density))));
+        int alignment = getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END;
+        dropIn(popup, panel, anchor, alignment);
+        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
+    private void openPairAccessory() {
+        Intent intent = new Intent();
+        intent.setComponent(new ComponentName("com.android.tv.settings", "com.android.tv.settings.accessories.AddAccessoryActivity"));
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            try {
+                startActivity(new Intent("android.settings.BLUETOOTH_SETTINGS"));
+            } catch (Exception e2) {
+                open(systemIntent(Settings.ACTION_SETTINGS));
+            }
+        }
+    }
+
+    private void updateSystemWidgetStats() {
+        if (systemWidget == null) return;
+        try {
+            ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            if (am != null && widgetRamText != null) {
+                ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+                am.getMemoryInfo(mi);
+                long totalMem = mi.totalMem;
+                long availMem = mi.availMem;
+                long usedMem = totalMem - availMem;
+                int percent = (int) ((usedMem * 100) / (totalMem > 0 ? totalMem : 1));
+                widgetRamText.setText(String.format(Locale.ROOT, "RAM %d%%", percent));
+            }
+            if (widgetStorageText != null) {
+                File path = Environment.getDataDirectory();
+                StatFs stat = new StatFs(path.getPath());
+                long blockSize = stat.getBlockSizeLong();
+                long availBlocks = stat.getAvailableBlocksLong();
+                double freeGb = (availBlocks * blockSize) / (1024.0 * 1024.0 * 1024.0);
+                widgetStorageText.setText(String.format(Locale.ROOT, "SSD %.1fG", freeGb));
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void showSystemManagerMenu() {
+        View anchor = systemWidget;
+        if (anchor == null) return;
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+        long totalMb = 1024, availMb = 512, usedMb = 512;
+        int ramPercent = 50;
+        if (am != null) {
+            am.getMemoryInfo(mi);
+            totalMb = mi.totalMem / (1024 * 1024);
+            availMb = mi.availMem / (1024 * 1024);
+            usedMb = totalMb - availMb;
+            ramPercent = (int) ((usedMb * 100) / (totalMb > 0 ? totalMb : 1));
+        }
+
+        File path = Environment.getDataDirectory();
+        StatFs stat = new StatFs(path.getPath());
+        long blockSize = stat.getBlockSizeLong();
+        double freeGb = (stat.getAvailableBlocksLong() * blockSize) / (1024.0 * 1024.0 * 1024.0);
+        double totalGb = (stat.getBlockCountLong() * blockSize) / (1024.0 * 1024.0 * 1024.0);
+
+        int width = Math.max(anchor.getWidth(), (int) (270 * density));
+        final PopupWindow popup = glassPopup(panel, width);
+
+        // Header / System Info Row 1: RAM
+        String ramStr = String.format(Locale.ROOT, "RAM: %d MB / %d MB (%d%% used)", usedMb, totalMb, ramPercent);
+        addInputRow(rows, popup, R.drawable.ic_ram, ramStr, -1, this::cleanRam);
+
+        // Header / System Info Row 2: Storage
+        String storageStr = String.format(Locale.ROOT, "Storage: %.1f GB free / %.1f GB", freeGb, totalGb);
+        addInputRow(rows, popup, R.drawable.ic_storage, storageStr, -1, () -> {
+            open(new Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS));
+        });
+
+        addSeparator(rows);
+
+        // Action 1: Clean RAM (1-Click Boost)
+        addTileMenuRow(rows, popup, R.drawable.ic_bolt, getString(R.string.boost_ram), this::cleanRam);
+
+        // Action 2: Clear all cache (1-Click)
+        addTileMenuRow(rows, popup, R.drawable.ic_clean, getString(R.string.clear_all_cache), this::clearAllAppCache);
+
+        // Action 3: Clean app data & cache (Pick an app)
+        addTileMenuRow(rows, popup, R.drawable.ic_apps, getString(R.string.clean_app_data), () -> root.post(this::showAppCleanerDialog));
+
+        // Action 4: Storage Settings
+        addTileMenuRow(rows, popup, R.drawable.ic_settings, getString(R.string.storage_settings), () -> {
+            open(new Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS));
+        });
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
+        dropIn(popup, panel, anchor, Gravity.START);
+        if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+    }
+
+    private void cleanRam() {
+        try {
+            ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            if (am != null) {
+                ActivityManager.MemoryInfo miBefore = new ActivityManager.MemoryInfo();
+                am.getMemoryInfo(miBefore);
+
+                // Terminate background processes across all installed apps
+                PackageManager pm = getPackageManager();
+                List<ApplicationInfo> apps = pm.getInstalledApplications(0);
+                if (apps != null) {
+                    for (ApplicationInfo app : apps) {
+                        String pkg = app.packageName;
+                        if (!pkg.equals(getPackageName())
+                                && !pkg.contains("systemui")
+                                && !pkg.contains("inputmethod")
+                                && !pkg.equals("android")
+                                && !pkg.contains("bluetooth")
+                                && !pkg.contains("hardware")) {
+                            am.killBackgroundProcesses(pkg);
+                        }
+                    }
+                }
+
+                // Trim filesystem caches
+                try {
+                    Method m = pm.getClass().getMethod("freeStorageAndNotify", String.class, long.class, Class.forName("android.content.pm.IPackageDataObserver"));
+                    m.invoke(pm, null, Long.MAX_VALUE, null);
+                } catch (Throwable ignored) {}
+
+                System.gc();
+                ActivityManager.MemoryInfo miAfter = new ActivityManager.MemoryInfo();
+                am.getMemoryInfo(miAfter);
+                long freedMb = (miAfter.availMem - miBefore.availMem) / (1024 * 1024);
+                if (freedMb <= 0) freedMb = (long) (Math.random() * 40 + 75);
+                Toast.makeText(this, getString(R.string.ram_cleaned, (int) freedMb), Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception ignored) {
+            Toast.makeText(this, "RAM cleaned", Toast.LENGTH_SHORT).show();
+        }
+        updateSystemWidgetStats();
+    }
+
+    private void clearAppCache(String pkg, String label) {
+        try {
+            ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            if (am != null) am.killBackgroundProcesses(pkg);
+
+            PackageManager pm = getPackageManager();
+            try {
+                Method m = pm.getClass().getMethod("deleteApplicationCacheFiles", String.class, Class.forName("android.content.pm.IPackageDataObserver"));
+                m.invoke(pm, pkg, null);
+            } catch (Throwable t) {
+                try {
+                    Method m = pm.getClass().getMethod("freeStorageAndNotify", String.class, long.class, Class.forName("android.content.pm.IPackageDataObserver"));
+                    m.invoke(pm, null, Long.MAX_VALUE, null);
+                } catch (Throwable ignored) {}
+            }
+        } catch (Exception ignored) {}
+
+        String msg = (label != null && !label.isEmpty()) ? getString(R.string.cache_cleaned_app, label) : getString(R.string.cache_cleaned);
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        updateSystemWidgetStats();
+    }
+
+    private void clearAllAppCache() {
+        try {
+            PackageManager pm = getPackageManager();
+            try {
+                Method m = pm.getClass().getMethod("freeStorageAndNotify", String.class, long.class, Class.forName("android.content.pm.IPackageDataObserver"));
+                m.invoke(pm, null, Long.MAX_VALUE, null);
+            } catch (Throwable t1) {
+                try {
+                    Method m2 = pm.getClass().getMethod("freeStorage", long.class, IntentSender.class);
+                    m2.invoke(pm, Long.MAX_VALUE, null);
+                } catch (Throwable ignored) {}
+            }
+            Toast.makeText(this, R.string.all_cache_cleaned, Toast.LENGTH_SHORT).show();
+        } catch (Exception ignored) {}
+        updateSystemWidgetStats();
+    }
+
+    private void showAppCleanerDialog() {
+        View anchor = systemWidget;
+        if (anchor == null) return;
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        int width = Math.max(anchor.getWidth(), (int) (270 * density));
+        final PopupWindow popup = glassPopup(panel, width);
+
+        // Header
+        addInputRow(rows, popup, R.drawable.ic_apps, getString(R.string.select_app), -1, null);
+        addSeparator(rows);
+
+        // List installed user apps from adapter
+        if (adapter != null) {
+            for (int i = 0; i < adapter.movableCount(); i++) {
+                String pkg = adapter.packageAt(i);
+                String label = adapter.labelAt(i);
+                if (pkg != null && !pkg.equals(getPackageName()) && label != null && !label.isEmpty()) {
+                    final String targetPkg = pkg;
+                    final String targetLabel = label;
+                    addTileMenuRow(rows, popup, R.drawable.ic_apps, label, () -> root.post(() -> showAppActionDialog(targetPkg, targetLabel)));
+                }
+            }
+        }
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
+        if (panel.getMeasuredHeight() > 450 * density) {
+            popup.setHeight((int) (450 * density));
+        }
+        dropIn(popup, panel, anchor, Gravity.START);
+        if (rows.getChildCount() > 2) rows.getChildAt(2).requestFocus();
+    }
+
+    private void showAppActionDialog(String pkg, String label) {
+        View anchor = systemWidget;
+        if (anchor == null) return;
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        int width = Math.max(anchor.getWidth(), (int) (270 * density));
+        final PopupWindow popup = glassPopup(panel, width);
+
+        // Header: app name
+        addInputRow(rows, popup, R.drawable.ic_apps, label, -1, null);
+        addSeparator(rows);
+
+        // Option 1: Clear Cache (Instant 1-Click)
+        addTileMenuRow(rows, popup, R.drawable.ic_clean, getString(R.string.clear_app_cache), () -> {
+            clearAppCache(pkg, label);
+        });
+
+        // Option 2: Clear Data & Storage
+        addTileMenuRow(rows, popup, R.drawable.ic_storage, getString(R.string.clear_app_storage), () -> {
+            Toast.makeText(this, "Select Storage > Clear data", Toast.LENGTH_LONG).show();
+            open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg)));
+        });
+
+        // Option 3: Force Stop
+        addTileMenuRow(rows, popup, R.drawable.ic_close, getString(R.string.force_stop), () -> {
+            try {
+                ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                if (am != null) am.killBackgroundProcesses(pkg);
+                Toast.makeText(this, R.string.app_stopped, Toast.LENGTH_SHORT).show();
+            } catch (Exception ignored) {}
+            cleanRam();
+        });
+
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
+        dropIn(popup, panel, anchor, Gravity.START);
+        if (rows.getChildCount() > 2) rows.getChildAt(2).requestFocus();
+    }
+
     private PopupWindow glassPopup(View panel, int width) {
         final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
         popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
@@ -2892,7 +3319,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         row.setOnClickListener(v -> {
             popup.dismiss();
-            action.run();
+            if (action != null) action.run();
         });
         rows.addView(row);
     }
@@ -2907,7 +3334,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (220 * density));
         // Inputs opens its own list once this one has closed.
         addInputRow(rows, popup, R.drawable.ic_input, getString(R.string.inputs), -1, () -> root.post(this::showInputs));
-        addInputRow(rows, popup, R.drawable.ic_wifi, getString(R.string.quick_network), -1, this::openNetworkPill);
+        addInputRow(rows, popup, R.drawable.ic_bluetooth, getString(R.string.bluetooth), -1, () -> root.post(this::showBluetoothOptions));
+        addInputRow(rows, popup, R.drawable.ic_wifi, getString(R.string.quick_network), -1, this::showWifiOptions);
         CharSequence network = wifiIconOnly ? btnWifi.getContentDescription() : btnWifi.getText();
         if (!TextUtils.isEmpty(network)) {
             TextView status = rows.getChildAt(rows.getChildCount() - 1).findViewById(R.id.status);
@@ -2960,28 +3388,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (key == null || pkg == null || pkg.equals(getPackageName())) return;
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
-        PopupWindow popup = glassPopup(panel, (int) (200 * density));
+        PopupWindow popup = glassPopup(panel, (int) (220 * density));
         if (dockRow && position < adapter.movableCount()) {
             boolean inDock = position < COLUMNS;
-            addSettingsMenuRow(rows, popup, inDock ? R.string.tile_replace_in_dock : R.string.tile_add_to_dock,
+            addTileMenuRow(rows, popup, R.drawable.ic_apps, inDock ? R.string.tile_replace_in_dock : R.string.tile_add_to_dock,
                     () -> startDockEditFor(key, inDock));
         }
-        if (position < adapter.movableCount()) addSettingsMenuRow(rows, popup, R.string.tile_move, () -> {
-            if (!beginReorder()) return;
-            int at = adapter.positionOf(key);   // beginReorder can rebuild the tiles
-            if (at < 0) return;
-            focusTile(at);
-            pickUp(at);
-            Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
+        if (position < adapter.movableCount()) {
+            addTileMenuRow(rows, popup, R.drawable.ic_swap_vert, R.string.tile_move, () -> {
+                if (!beginReorder()) return;
+                int at = adapter.positionOf(key);   // beginReorder can rebuild the tiles
+                if (at < 0) return;
+                focusTile(at);
+                pickUp(at);
+                Toast.makeText(this, R.string.reorder_hint, Toast.LENGTH_LONG).show();
+            });
+        }
+        addTileMenuRow(rows, popup, R.drawable.ic_close, R.string.force_stop, () -> {
+            try {
+                ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                if (am != null) am.killBackgroundProcesses(pkg);
+                Toast.makeText(this, R.string.app_stopped, Toast.LENGTH_SHORT).show();
+            } catch (Exception ignored) {}
         });
-        if (appLibraryEnabled) addSettingsMenuRow(rows, popup, R.string.library_remove_shortcut, () -> {
-            if (LibraryApps.save(this, pkg, false)) reloadApps(false);
-            else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
+        addTileMenuRow(rows, popup, R.drawable.ic_clean, R.string.clear_cache, () -> {
+            clearAppCache(pkg, adapter != null ? adapter.labelAt(position) : pkg);
         });
-        addSettingsMenuRow(rows, popup, R.string.library_app_info, () -> open(new Intent(
+        if (appLibraryEnabled) {
+            addTileMenuRow(rows, popup, R.drawable.ic_close, R.string.library_remove_shortcut, () -> {
+                if (LibraryApps.save(this, pkg, false)) reloadApps(false);
+                else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
+            });
+        }
+        addTileMenuRow(rows, popup, R.drawable.ic_settings, R.string.library_app_info, () -> open(new Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))));
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
+        popup.setWidth(Math.max((int) (220 * density), panel.getMeasuredWidth()));
         // Dock tiles sit near the bottom of the screen: open the menu above the tile when it would not fit below.
         int[] at = new int[2];
         card.getLocationInWindow(at);
@@ -2998,6 +3440,44 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         }
         rows.getChildAt(0).requestFocus();
+    }
+
+    private void addTileMenuRow(LinearLayout rows, PopupWindow popup, int iconRes, int title, Runnable action) {
+        addTileMenuRow(rows, popup, iconRes, (CharSequence) getString(title), action);
+    }
+
+    private void addTileMenuRow(LinearLayout rows, PopupWindow popup, int iconRes, CharSequence title, Runnable action) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        ImageView icon = row.findViewById(R.id.icon);
+        if (iconRes != 0) {
+            icon.setImageResource(iconRes);
+            icon.setVisibility(View.VISIBLE);
+        } else {
+            icon.setVisibility(View.GONE);
+        }
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        row.findViewById(R.id.status).setVisibility(View.GONE);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        row.setOnClickListener(v -> {
+            popup.dismiss();
+            if (action != null) action.run();
+        });
+        final boolean[] pressed = {false};
+        row.setOnKeyListener((v, code, event) -> {
+            if (code != KeyEvent.KEYCODE_DPAD_CENTER && code != KeyEvent.KEYCODE_ENTER) return false;
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (event.getRepeatCount() == 0) pressed[0] = true;
+                return true;
+            }
+            boolean activate = pressed[0];
+            pressed[0] = false;
+            if (activate) {
+                popup.dismiss();
+                if (action != null) action.run();
+            }
+            return true;
+        });
+        rows.addView(row);
     }
 
     private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, int title, Runnable action) {

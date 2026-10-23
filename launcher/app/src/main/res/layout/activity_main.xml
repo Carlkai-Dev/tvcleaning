@@ -266,11 +266,82 @@
                             android:format12Hour="@string/date_format_home"
                             android:format24Hour="@string/date_format_home"
                             android:textColor="#A6FFFFFF"
-                            android:textSize="14sp"
+                            android:textSize="13sp"
                             android:fontFamily="@string/font_regular"
-                            android:letterSpacing="0.14"
+                            android:letterSpacing="0.04"
                             android:textAllCaps="true" />
                     </LinearLayout>
+                </LinearLayout>
+
+                <!-- Futuristic System Widget -->
+                <LinearLayout
+                    android:id="@+id/systemWidget"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:layout_marginTop="6dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="12dp"
+                    android:background="@drawable/widget_bg"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:nextFocusDown="@+id/grid"
+                    android:nextFocusRight="@+id/btnInputs">
+
+                    <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_ram"
+                        android:tint="@drawable/pill_text"
+                        android:duplicateParentState="true"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:id="@+id/widgetRamText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textSize="11sp"
+                        android:fontFamily="@string/font_medium"
+                        android:textColor="@drawable/pill_text"
+                        android:duplicateParentState="true"
+                        android:text="RAM" />
+
+                    <!-- Divider -->
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="12dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="#4D00E5FF" />
+
+                    <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_storage"
+                        android:tint="@drawable/pill_text"
+                        android:duplicateParentState="true"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:id="@+id/widgetStorageText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:textSize="11sp"
+                        android:fontFamily="@string/font_medium"
+                        android:textColor="@drawable/pill_text"
+                        android:duplicateParentState="true"
+                        android:text="Storage" />
+
+                    <ImageView
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_marginStart="8dp"
+                        android:src="@drawable/ic_bolt"
+                        android:tint="#00E5FF"
+                        android:contentDescription="@null" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -313,9 +384,16 @@
                     android:nextFocusDown="@+id/grid" />
 
                 <TextView
+                    android:id="@+id/btnBluetooth"
+                    style="@style/TopButton"
+                    android:text="@string/bluetooth"
+                    android:drawableStart="@drawable/ic_bluetooth"
+                    android:nextFocusDown="@+id/grid" />
+
+                <TextView
                     android:id="@+id/btnWifi"
                     style="@style/TopButton"
-                    android:maxWidth="180dp"
+                    android:maxWidth="130dp"
                     android:singleLine="true"
                     android:ellipsize="end"
                     android:text="@string/wifi"
