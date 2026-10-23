@@ -318,6 +318,15 @@
          They leave the grid. Missing apps are skipped. Can also be set with "top_bar_apps" in a theme. -->
     <string-array name="top_bar_apps" translatable="false">
     </string-array>
+    <!-- Where the sound goes, as a line above the top buttons: a Bluetooth device's name, wired headphones, the HDMI
+         ARC/eARC receiver or the TV speakers, updated when one connects or disconnects. Apps cannot ask Android
+         where media is routed, so it follows Android's media priority over what is connected; a TV set to its own
+         speakers in Sound settings with an ARC receiver still plugged in reads as the receiver. Off by default; a
+         theme can set "show_audio_output": true. -->
+    <bool name="show_audio_output">false</bool>
+    <!-- What that line calls an HDMI ARC/eARC receiver, e.g. "Soundbar"; Android does not give apps its name.
+         Empty: "HDMI ARC". A theme can set "arc_output_name". -->
+    <string name="arc_output_name" translatable="false"></string>
     <!-- The Inputs pill in the top bar, shown when the TV has inputs to list. false hides it for good; what the
          remote's Input button does is unchanged. Can also be set with "show_inputs_pill" in a theme. -->
     <bool name="show_inputs_pill">true</bool>

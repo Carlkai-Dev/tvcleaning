@@ -16,6 +16,9 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ChangedPackages;
 import android.content.res.ColorStateList;
+import android.media.AudioDeviceCallback;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -299,6 +302,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView.OnScrollListener pendingFocusScroll;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    /** show_audio_output: the line naming where the sound goes, kept current by audioDevices; null when off. */
+    private TextView audioLine;
+    private AudioDeviceCallback audioDevices;
+    private String arcOutputName = "";
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
     private final ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
         @Override
@@ -770,6 +777,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             makeIconOnly((TextView) btnSettings);
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
+        if (cfg.showAudioOutput) showAudioOutputLine(cfg.arcOutputName);
         btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;
@@ -1214,6 +1222,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onDestroy() {
         super.onDestroy();
         unregisterReceiver(packageReceiver);
+        if (audioDevices != null) getSystemService(AudioManager.class).unregisterAudioDeviceCallback(audioDevices);
         wallpaperPlayer.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
@@ -2309,6 +2318,64 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ((LinearLayout.LayoutParams) clockRow.getLayoutParams()).gravity = Gravity.RIGHT;
         }
         clockColumn.addView(column, clockColumn.indexOfChild(clockRow) + 1, lp);
+    }
+
+    /**
+     * show_audio_output: a plain line above the top buttons naming where the sound goes (AudioOutput), updated by an
+     * AudioDeviceCallback when an output connects or disconnects. Where the network name is already a line of its
+     * own there (network_text), it goes on that line, to its left.
+     */
+    private void showAudioOutputLine(String arcName) {
+        arcOutputName = arcName;
+        LinearLayout row = findViewById(R.id.topButtons);
+        ViewGroup header = (ViewGroup) row.getParent();
+        audioLine = new TextView(this);
+        audioLine.setSingleLine(true);
+        audioLine.setEllipsize(TextUtils.TruncateAt.END);
+        audioLine.setMaxWidth(Math.round(320 * density));
+        audioLine.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        audioLine.setTextColor(0xB3FFFFFF);
+        audioLine.setTypeface(((TextView) btnInputs).getTypeface());
+        audioLine.setFocusable(false);
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        if (btnWifi.getParent() == header) {
+            lp.addRule(RelativeLayout.START_OF, R.id.btnWifi);
+            lp.addRule(RelativeLayout.ALIGN_BASELINE, R.id.btnWifi);
+            lp.setMarginEnd(Math.round(28 * density));
+        } else {
+            lp.addRule(RelativeLayout.ABOVE, R.id.topButtons);
+            lp.addRule(RelativeLayout.ALIGN_PARENT_END);
+            lp.bottomMargin = Math.round(8 * density);
+            lp.setMarginEnd(Math.round(6 * density));
+        }
+        header.addView(audioLine, lp);
+        audioDevices = new AudioDeviceCallback() {
+            @Override
+            public void onAudioDevicesAdded(AudioDeviceInfo[] added) {
+                updateAudioOutput();
+            }
+
+            @Override
+            public void onAudioDevicesRemoved(AudioDeviceInfo[] removed) {
+                updateAudioOutput();
+            }
+        };
+        // Android calls back at once with the outputs already connected, which fills the line.
+        getSystemService(AudioManager.class).registerAudioDeviceCallback(audioDevices, handler);
+    }
+
+    private void updateAudioOutput() {
+        AudioDeviceInfo[] devices = getSystemService(AudioManager.class).getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+        int[] types = new int[devices.length];
+        for (int i = 0; i < devices.length; i++) types[i] = devices[i].getType();
+        int at = AudioOutput.pick(types);
+        int kind = at < 0 ? AudioOutput.SPEAKERS : AudioOutput.kind(types[at]);
+        CharSequence name = kind == AudioOutput.BLUETOOTH ? devices[at].getProductName() : null;
+        if (!TextUtils.isEmpty(name)) audioLine.setText(name.toString().trim());
+        else if (kind == AudioOutput.ARC && !arcOutputName.isEmpty()) audioLine.setText(arcOutputName);
+        else audioLine.setText(kind == AudioOutput.ARC ? R.string.audio_arc
+                : kind == AudioOutput.SPEAKERS ? R.string.audio_speakers : R.string.audio_headphones);
     }
 
     /** The first top-bar button after Inputs that is shown, in bar order (top_bar_apps, the network pill, ...); Settings is always there. */

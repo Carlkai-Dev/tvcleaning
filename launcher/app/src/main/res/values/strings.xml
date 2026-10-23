@@ -3,6 +3,10 @@
     <string name="app_name">Home</string>
     <string name="inputs">Inputs</string>
     <string name="wifi">Wi-Fi</string>
+    <!-- show_audio_output: where the sound goes, when the output has no name of its own -->
+    <string name="audio_speakers">TV speakers</string>
+    <string name="audio_arc">HDMI ARC</string>
+    <string name="audio_headphones">Headphones</string>
     <string name="settings">Settings</string>
     <string name="choose_input">Inputs</string>
     <string name="connected">Connected</string>
