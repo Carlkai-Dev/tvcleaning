@@ -48,8 +48,8 @@ Bạn cần một máy tính nối cùng mạng với TV và một trợ lý l�
 [Gemini CLI](https://github.com/google-gemini/gemini-cli).
 
 Chỉ có điện thoại Android, không có máy tính? Dùng một app cộng đồng làm việc này qua Wi-Fi:
-[CleanTV của VGS](https://vgs.zone/cleantv) (tiếng Việt, cài được cả launcher này) hoặc
-[Clean Your TV app](https://cleanyour.tv/app) của [@udhaykumarbala](https://github.com/udhaykumarbala).
+[Clean Your TV app](https://cleanyour.tv/app) của [@udhaykumarbala](https://github.com/udhaykumarbala) hoặc
+[CleanTV của VGS](https://github.com/vgscity/vgs-cleantv) (tiếng Việt, cài được bản launcher riêng của app).
 
 | Bước | Làm gì |
 |---|---|

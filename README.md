@@ -56,7 +56,7 @@ before touching anything you might use.
 | You have | Do this |
 |---|---|
 | **A computer** | Use the prompt with a coding assistant: the three steps below. |
-| **Only an Android phone** | Use the community-built [Clean Your TV app](https://cleanyour.tv/app) by [@udhaykumarbala](https://github.com/udhaykumarbala): connect, analyse, clean, in about five minutes. No laptop, no coding agent. In Vietnamese or English, [CleanTV by VGS](https://github.com/vgscity/vgs-cleantv) does the same and can also install this launcher. |
+| **Only an Android phone** | Use the community-built [Clean Your TV app](https://cleanyour.tv/app) by [@udhaykumarbala](https://github.com/udhaykumarbala): connect, analyse, clean, in about five minutes. No laptop, no coding agent. In Vietnamese or English, [CleanTV by VGS](https://github.com/vgscity/vgs-cleantv) does the same and can install its own build of this launcher. |
 
 With a computer, you need it on the same Wi-Fi as the TV and a coding assistant with shell access.
 
@@ -707,8 +707,8 @@ for Android that does the same cleanup over Wi-Fi: it connects to the TV, shows 
 point, and only switches apps off, so everything can be put back. It's community-built.
 
 [CleanTV by VGS](https://github.com/vgscity/vgs-cleantv) is another free, open-source phone app built on this
-repo's lists, in Vietnamese and English: same backup-first cleanup, and it can also install this launcher with
-weather and a schedule-and-PIN kids lock.
+repo's lists, in Vietnamese and English: same backup-first cleanup, and it can install its own build of this
+launcher.
 
 </details>
 
