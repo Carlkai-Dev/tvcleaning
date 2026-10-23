@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -59,10 +60,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         /** Hold OK on a tile: the activity shows the tile menu (move, remove from Home, app info). */
         void onTileLongPress(int position, View card);
         void onLibraryUp();
+        void onInputRequested(String inputId);
     }
 
     static final class Entry {
-        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3;
+        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3, INPUT = 4;
 
         final int kind;
         final String label;
@@ -74,12 +76,17 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final String name;
         /** Ambient glow colour; 0 until sampled from the banner, or the card's accent from the start. */
         int ambient;
+        final String inputId;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
-            this(APP, label, component, banner, icon, null, 0);
+            this(APP, label, component, banner, icon, null, 0, null);
         }
 
         Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent) {
+            this(kind, label, component, banner, icon, caption, accent, null);
+        }
+
+        Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent, String inputId) {
             this.kind = kind;
             this.label = label;
             this.component = component;
@@ -88,6 +95,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             this.icon = icon;
             this.name = caption == null ? label : label + " \u00B7 " + caption;
             this.ambient = accent;
+            this.inputId = inputId;
         }
     }
 
@@ -208,6 +216,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final boolean tileMenu;
     /** Tile names and bundled banners that replace the app's own (config.xml, app_labels and app_banners). */
     private final Map<String, String> appLabels, appBanners;
+    private final List<String> homeInputTiles;
     private final List<Entry> items = new ArrayList<>();
 
     AppAdapter(Context ctx, TileListener listener, int dockSize, Config cfg) {
@@ -218,6 +227,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.fillDock = cfg.fillDock;
         this.hidden = new HashSet<>(cfg.hiddenApps);
         this.libraryPreload = new HashSet<>(cfg.libraryApps);
+        this.homeInputTiles = cfg.homeInputTiles;
         this.animations = cfg.animations;
         this.advancedEffects = cfg.animations && cfg.advancedEffects;
         this.showHomeSettings = cfg.showHomeSettingsShortcut;
@@ -292,11 +302,22 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 fresh.add(new Entry(label, component, banner, icon));
             }
         }
+        for (String tileDef : homeInputTiles) {
+            int eq = tileDef.indexOf('=');
+            if (eq <= 0) continue;
+            String hw = tileDef.substring(0, eq).trim();
+            String title = tileDef.substring(eq + 1).trim();
+            if (hidden.contains(hw)) continue;
+            Drawable banner = ctx.getDrawable(R.drawable.banner_hdmi);
+            Drawable icon = ctx.getDrawable(R.drawable.ic_input);
+            ComponentName comp = new ComponentName(ctx.getPackageName(), "input." + hw.toLowerCase(Locale.ROOT));
+            fresh.add(new Entry(Entry.INPUT, title, comp, banner, icon, null, 0xFF1E40AF, hw));
+        }
         Collections.sort(fresh, (a, b) -> {
             // The owner's own order first; tiles it does not know (new installs) follow by the rule below.
             int saved = Order.compare(savedRanks, a.component.flattenToShortString(), b.component.flattenToShortString());
             if (saved != 0) return saved;
-            int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
+            int fa = favouriteRank(a), fb = favouriteRank(b);
             if (fa >= 0 || fb >= 0) {
                 if (fa < 0) return 1;
                 if (fb < 0) return -1;
@@ -469,6 +490,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
     private void launch(Entry e) {
+        if (e.kind == Entry.INPUT) {
+            listener.onInputRequested(e.inputId);
+            return;
+        }
         if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -505,6 +530,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     int appCount() { return items.size(); }
 
+    boolean isInputAt(int position) {
+        return position >= 0 && position < items.size() && items.get(position).kind == Entry.INPUT;
+    }
+
     boolean isLibraryAt(int position) { return showLibrary && position == items.size(); }
 
     @Override public int getItemViewType(int position) { return isLibraryAt(position) ? 1 : 0; }
@@ -525,12 +554,24 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         savedDocked = docked;
     }
 
+    private int favouriteRank(Entry e) {
+        if (e.kind == Entry.INPUT && e.inputId != null) {
+            int idx = favourites.indexOf(e.inputId);
+            if (idx >= 0) return idx;
+            idx = favourites.indexOf(e.component.getClassName());
+            if (idx >= 0) return idx;
+        }
+        int idx = favourites.indexOf(e.pkg);
+        if (idx >= 0) return idx;
+        return favourites.indexOf(e.component.flattenToShortString());
+    }
+
     /**
      * A tile in the dock: one of the first savedDocked tiles of the saved order when one was recorded, so an app
      * the owner moved into the dock stays there (#499); else a dock_apps entry.
      */
     private boolean isDocked(Entry e) {
-        if (savedDocked < 0) return favourites.contains(e.pkg);
+        if (savedDocked < 0) return favouriteRank(e) >= 0;
         Integer rank = savedRanks.get(e.component.flattenToShortString());
         return rank != null && rank < savedDocked;
     }
