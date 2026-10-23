@@ -16,12 +16,6 @@ com.realtek.leanbacklauncher.partnercustomizer
 com.google.android.partnersetup
 android.autoinstalls.config.google.gtvpai   # Play partner auto-installs
 
-# Android privacy / ads / personalization services
-com.android.adservices.api
-com.android.federatedcompute.services
-com.android.ondevicepersonalization.services
-com.android.tv.feedbackconsent
-
 # Preloaded services
 com.seraphic.media.tv.interactive.app
 com.google.android.apps.tv.dreamx           # ambient mode screensaver
