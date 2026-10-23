@@ -47,6 +47,10 @@ Bạn cần một máy tính nối cùng mạng với TV và một trợ lý l�
 [Claude Code](https://claude.com/product/claude-code), [Codex](https://github.com/openai/codex) hoặc
 [Gemini CLI](https://github.com/google-gemini/gemini-cli).
 
+Chỉ có điện thoại Android, không có máy tính? Dùng một app cộng đồng làm việc này qua Wi-Fi:
+[CleanTV của VGS](https://vgs.zone/cleantv) (tiếng Việt, cài được cả launcher này) hoặc
+[Clean Your TV app](https://cleanyour.tv/app) của [@udhaykumarbala](https://github.com/udhaykumarbala).
+
 | Bước | Làm gì |
 |---|---|
 | 1. Trên TV | Vào **Cài đặt → Hệ thống (hoặc Tuỳ chọn thiết bị) → Giới thiệu**, bấm OK bảy lần vào mục **Bản dựng / Build**, quay lại mở **Tuỳ chọn nhà phát triển** và bật **USB debugging**. Nếu có thêm công tắc gỡ lỗi mạng / ADB thì bật luôn. Tên menu khác nhau tuỳ máy. |
