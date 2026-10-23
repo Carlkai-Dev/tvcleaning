@@ -5,6 +5,7 @@
 -->
 <resources>
 
+  
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
         <item>com.netflix.ninja</item>
