@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-/** layout from a theme: honeycomb by name, grid (today's Home) for anything else. */
+/** layout from a theme: honeycomb or words by name, grid (today's Home) for anything else. */
 public class LayoutKeyTest {
 
     @Test
@@ -14,10 +14,17 @@ public class LayoutKeyTest {
     }
 
     @Test
+    public void wordsByNameAnyCase() {
+        assertEquals(Config.LAYOUT_WORDS, Config.layout("words"));
+        assertEquals(Config.LAYOUT_WORDS, Config.layout(" WORDS "));
+    }
+
+    @Test
     public void anythingElseIsTheGrid() {
         assertEquals(Config.LAYOUT_GRID, Config.layout("grid"));
         assertEquals(Config.LAYOUT_GRID, Config.layout(""));
         assertEquals(Config.LAYOUT_GRID, Config.layout(null));
         assertEquals(Config.LAYOUT_GRID, Config.layout("bento"));
+        assertEquals(Config.LAYOUT_GRID, Config.layout("big words"));
     }
 }
