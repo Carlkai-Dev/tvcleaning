@@ -1,12 +1,28 @@
 {
   "dock_apps": [
-    "com.google.android.youtube.tv",
     "com.netflix.ninja",
     "com.amazon.amazonvideo.livingroom",
-    "in.startv.hotstar",
-    "com.sonyliv",
-    "com.graymatrix.did"
+    "io.gh.reisxd.tizentube.cobalt",
+    "com.nuvio.tv",
+    "in.startv.hotstar"
   ],
   "live_tv_package": "com.heytap.tv.livetv",
-  "columns": 6
+  "columns": 6,
+  "icon_only_buttons": true,
+  "icon_only_inputs": true,
+  "cinematic_home": false,
+  "cinematic_dots": false,
+  "ambient_glow": false,
+  "dock_glass": true,
+  "fade_rows": true,
+  "reorder_button": true,
+  "launcher_settings_button": false,
+  "wifi_status_color": true,
+  "focus_overshoot": false,
+  "home_idle_clock_minutes": 5,
+  "wallpaper": true,
+  "wallpaper_true_color": true,
+  "wallpaper_rotation_minutes": 1,
+  "wallpaper_order": "shuffle",
+  "wallpaper_dim": 20
 }
