@@ -28,6 +28,7 @@ the core bigger or change how it behaves. You install an add-on only if you want
 | [Ad Blocking](ad-blocking/) | Your Pi-hole (6 or 5) or AdGuard Home on the TV: today's queries and blocked share, and one OK to pause blocking for five minutes | [@maxhayim](https://github.com/maxhayim) | MOKA R8G (Android 14) | `INTERNET` (your blocker only) | <img src="ad-blocking/screenshot.jpg" width="240" alt="Ad Blocking on a TV"> |
 | [World Clock](world-clock/) | One to six offline clocks with dates, UTC offsets and day differences; city search and D-pad controls | [@SaviorOneZero](https://github.com/SaviorOneZero) | Samsung C71KW-200 / AT&T Osprey (Android TV 11) | None | <img src="world-clock/screenshot.jpg" width="240" alt="World Clock on a TV"> |
 | [Flock](flock/) | An interactive flocking simulation using separation, alignment and cohesion, controlled with the TV remote | CleanYourTV contributors | TCL 32S5K (Android TV 14) | None | <img src="flock/screenshot.jpg" width="240" alt="Flock on TCL Android TV"> |
+| [Kids Mode](kids-mode/) | A kids' screen with only the apps you choose (YouTube Kids, Scholastic and similar start on it); Home, Settings and other apps lead back to it until a grown-up gives the PIN or password | [@maxhayim](https://github.com/maxhayim) | MOKA R8G (Android 14) | home app, accessibility (which app is in front, only while on) | <img src="kids-mode/screenshot.jpg" width="240" alt="Kids Mode on a TV"> |
 
 A widget, an info tile, a storage or smart-home card: if it can live as its own small app, it can live
 here. See the rules below.
