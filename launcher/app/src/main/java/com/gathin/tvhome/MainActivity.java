@@ -132,6 +132,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private AppAdapter adapter;
     private RecyclerView grid;
+    /** layout honeycomb: drawn in the grid's place, which stays hidden; null with the grid (the default). */
+    private HoneycombView honeycomb;
     private FrameLayout root;
     private WallpaperPlayer wallpaperPlayer;
     private GlassView glass;
@@ -228,6 +230,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static LocalDate lastPetalShower;
     /** boot_to_live_tv: open the Live TV app on the first Home of each boot. */
     private boolean bootToLiveTv;
+    /** Power theme (config.json power_theme and modes): the welcome at power-on and the colour keys. */
+    private PowerTheme power = PowerTheme.NONE;
     /** hidden_apps as the adapter sees them (config.xml or a theme's config.json): a hidden app gets no card either. */
     private Set<String> hiddenApps = Collections.emptySet();
     private List<Cards.Card> cards = Collections.emptyList();
@@ -374,6 +378,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         liveTvPkg = cfg.liveTvPackage;
         idleClockMs = cfg.homeIdleClockMinutes * MINUTE_MS;
         bootToLiveTv = cfg.bootToLiveTv;
+        power = cfg.power;
         liveTvAction = cfg.liveTvAction;
         liveTvInputId = cfg.liveTvInputId;
         appLibraryEnabled = cfg.appLibrary;
@@ -524,6 +529,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Order savedOrder = Order.load(Order.file(this));
         adapter.setSavedOrder(Order.ranks(savedOrder, dockApps), Order.docked(savedOrder, dockApps));
         grid.setAdapter(adapter);
+        if (Config.LAYOUT_HONEYCOMB.equals(cfg.layout)) setUpHoneycomb();
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
         // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
@@ -609,7 +615,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
-        btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
+        btnReorder.setVisibility(cfg.reorderButton && honeycomb == null ? View.VISIBLE : View.GONE);
         if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
         showInputsPill = cfg.showInputsPill;
         btnLibraryTop = findViewById(R.id.btnLibraryTop);
@@ -662,7 +668,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                 // Back to the dock tile Up came from, not wherever the focus finder lands.
-                focusTile(lastFocused % COLUMNS);
+                focusTile(honeycomb != null ? lastFocused : lastFocused % COLUMNS);
                 return true;
             }
             int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
@@ -839,6 +845,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 break;
         }
         if (openLiveTvAfterBoot()) return;
+        // Power theme: greet and ask for the mood on the first Home after power-on (or of the day). Home finishes
+        // resuming underneath; a chosen mode moves the settings count, so the next onResume rebuilds with it.
+        if (power.on() && power.welcomeDue(this)) {
+            PowerTheme.markWelcomed(this);
+            startActivity(new Intent(this, WelcomeActivity.class));
+        }
         updateGreeting();
         updateRace();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
@@ -1128,6 +1140,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (handleSettingsKey(event)) return true;
+        if (handlePowerKey(event)) return true;
         if (tileMenuEnabled && !reordering && openPopup == null && cardPrompt == null
                 && event.getKeyCode() == KeyEvent.KEYCODE_MENU) {
             int position = focusedTilePosition();
@@ -1205,7 +1218,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** The start shared by reorder and edit-dock mode. False when there is nothing to move. */
     private boolean beginReorder() {
-        if (adapter.movableCount() < 2) return false;
+        if (honeycomb != null || adapter.movableCount() < 2) return false;   // reorder is the grid's
         // Before the reload below: once it has dropped the empty slots, the dock row also shows grid apps.
         dockInSession = new HashSet<>();
         dockedAtStart = adapter.dockFilled();
@@ -1555,6 +1568,31 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             revealRect.set(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
             grid.requestChildRectangleOnScreen(item, revealRect, reducedMotion);
         }
+    }
+
+    /**
+     * layout honeycomb: the field goes where the grid was and the grid stays hidden. The adapter still loads, orders
+     * and launches the tiles; the field takes them again after every reload or clear.
+     */
+    private void setUpHoneycomb() {
+        honeycomb = new HoneycombView(this, this::onHoneycombFocused, animations && !reducedMotion);
+        ViewGroup frame = (ViewGroup) grid.getParent();
+        frame.addView(honeycomb, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        grid.setVisibility(View.GONE);
+        adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onChanged() {
+                honeycomb.setApps(adapter);
+            }
+        });
+    }
+
+    /** The honeycomb's focus moved: remember the app, as onTileFocused does, and show its glow (no glass, no top shelf). */
+    private void onHoneycombFocused(int position) {
+        lastFocused = position;
+        lastFocusedKey = adapter.keyAt(position);
+        showGlowOnly(position);
     }
 
     /** Refits the glass to the focused holder once the grid layout and tile dimensions settle. */
@@ -2144,6 +2182,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void focusLibrary() {
         cancelPendingFocusScroll();
+        if (honeycomb != null) {   // no library pill after the last row: back to the app
+            focusTile(lastFocused);
+            return;
+        }
         int position = adapter.appCount();
         if (!adapter.isLibraryAt(position)) return;
         RecyclerView.ViewHolder holder = grid.findViewHolderForAdapterPosition(position);
@@ -2197,6 +2239,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return;
         }
         final int pos = adapter.focusablePosition(Math.max(0, Math.min(position, adapter.appCount() - 1)));
+        if (honeycomb != null) {
+            // Already focused (back from an app): focusPosition reports the app itself, so the glow comes back.
+            honeycomb.focusPosition(pos);
+            if (!honeycomb.isFocused()) honeycomb.requestFocus();
+            return;
+        }
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
         if (vh != null) {
             View card = vh.itemView.findViewById(R.id.card);
@@ -2554,6 +2602,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         }
         btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
+    }
+
+    /**
+     * Power theme: a colour key bound to a mode switches to it and rebuilds Home; any other colour key opens the
+     * mode picker. Without power_theme, or while reordering or a popup is open, the keys pass through untouched.
+     */
+    private boolean handlePowerKey(KeyEvent event) {
+        if (!power.on() || reordering || openPopup != null || cardPrompt != null) return false;
+        String colour = PowerTheme.colourKey(event.getKeyCode());
+        if (colour == null) return false;
+        if (event.getAction() != KeyEvent.ACTION_UP || event.isCanceled()) return true;
+        PowerTheme.Mode mode = power.forKey(colour);
+        if (mode == null) {
+            startActivity(new Intent(this, WelcomeActivity.class).putExtra(WelcomeActivity.EXTRA_PICKER, true));
+        } else if (!mode.id.equals(PowerTheme.chosen(this))) {
+            PowerTheme.choose(this, mode.id);
+            settingsRevision = settingsRevision();
+            recreate();
+        }
+        return true;
     }
 
     /** boot_to_live_tv: the first time Home comes up after the TV starts, open the Live TV app instead. Once per
@@ -2961,12 +3029,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
-        if (dockRow && position < adapter.movableCount()) {
+        if (honeycomb == null && dockRow && position < adapter.movableCount()) {
             boolean inDock = position < COLUMNS;
             addSettingsMenuRow(rows, popup, inDock ? R.string.tile_replace_in_dock : R.string.tile_add_to_dock,
                     () -> startDockEditFor(key, inDock));
         }
-        if (position < adapter.movableCount()) addSettingsMenuRow(rows, popup, R.string.tile_move, () -> {
+        if (honeycomb == null && position < adapter.movableCount()) addSettingsMenuRow(rows, popup, R.string.tile_move, () -> {
             if (!beginReorder()) return;
             int at = adapter.positionOf(key);   // beginReorder can rebuild the tiles
             if (at < 0) return;

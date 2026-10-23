@@ -149,6 +149,14 @@
         </service>
 
         <!-- The same clock, started by Home itself after home_idle_clock_minutes without input. -->
+        <!-- Power theme's welcome and mode picker; only started when a theme has power_theme and modes. -->
+        <activity
+            android:name=".WelcomeActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
         <activity
             android:name=".ClockActivity"
             android:exported="false"
