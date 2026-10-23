@@ -275,6 +275,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean appLibrarySelection;
     private boolean libraryFocusPending;
     private RecyclerView.OnScrollListener pendingFocusScroll;
+    /** Favorites: packages the user starred, loaded from favorites.txt and refreshed on every add/remove. */
+    private Set<String> favoritePackages = new HashSet<>();
+    /** The container that wraps the favorites heading and horizontal row (gone when no favorites). */
+    private View favoritesSection;
+    /** The horizontal favorites RecyclerView. */
+    private RecyclerView favoritesRow;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     /** Refreshes the network pill when the connection changes: at boot Wi-Fi often connects after Home is shown. */
@@ -497,7 +503,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ((GridLayoutManager) grid.getLayoutManager()).setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
             @Override public int getSpanSize(int position) { return adapter != null && adapter.isLibraryAt(position) ? COLUMNS : 1; }
         });
-        grid.setHasFixedSize(true);
         grid.setItemAnimator(null);
         // Tiles that scroll out while one is carried come back from the view cache without a rebind; set their
         // dimming again whenever one attaches, so none stays dim after the drop.
@@ -524,6 +529,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         Order savedOrder = Order.load(Order.file(this));
         adapter.setSavedOrder(Order.ranks(savedOrder, dockApps), Order.docked(savedOrder, dockApps));
         grid.setAdapter(adapter);
+
+        // Favorites section: a horizontal row of starred apps above the main grid.
+        favoritesSection = findViewById(R.id.favoritesSection);
+        favoritesRow = findViewById(R.id.favoritesRow);
+        favoritesRow.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(
+                this, androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL, rtlAppGrid));
+        favoritesRow.setItemAnimator(null);
+        favoritePackages = Favorites.load(this);
+        reloadFavorites();
 
         // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
         // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
@@ -900,6 +914,127 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         reloadApps(animate, true);
     }
 
+    /**
+     * Reloads the favorites set from disk and refreshes the horizontal favorites row.
+     * Safe to call at any time from the main thread; skips silently if the views are not yet inflated.
+     */
+    private void reloadFavorites() {
+        if (favoritesSection == null || favoritesRow == null || adapter == null) return;
+        favoritePackages = Favorites.load(this);
+        // The main adapter is also the source of truth for installed, visible apps and their tile data.
+        List<FavoriteTile> tiles = new ArrayList<>();
+        for (String pkg : new java.util.TreeSet<>(favoritePackages)) {
+            int position = -1;
+            for (int i = 0; i < adapter.appCount(); i++) {
+                if (pkg.equals(adapter.packageAt(i)) && adapter.isFavoriteEligibleAt(i)) {
+                    position = i;
+                    break;
+                }
+            }
+            if (position < 0) continue;
+            tiles.add(new FavoriteTile(pkg, adapter.labelAt(position),
+                    copyDrawable(adapter.bannerAt(position)), copyDrawable(adapter.iconAt(position))));
+        }
+        favoritesSection.setVisibility(tiles.isEmpty() ? View.GONE : View.VISIBLE);
+        favoritesRow.setAdapter(new FavoritesAdapter(tiles));
+    }
+
+    private Drawable copyDrawable(Drawable drawable) {
+        if (drawable == null || drawable.getConstantState() == null) return drawable;
+        return drawable.getConstantState().newDrawable(getResources()).mutate();
+    }
+
+    private static final class FavoriteTile {
+        final String pkg;
+        final String label;
+        final Drawable banner;
+        final Drawable icon;
+
+        FavoriteTile(String pkg, String label, Drawable banner, Drawable icon) {
+            this.pkg = pkg;
+            this.label = label;
+            this.banner = banner;
+            this.icon = icon;
+        }
+    }
+
+    private final class FavoritesAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
+        private final List<FavoriteTile> tiles;
+
+        FavoritesAdapter(List<FavoriteTile> tiles) {
+            this.tiles = tiles;
+        }
+
+        @NonNull
+        @Override
+        public AppAdapter.Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View item = getLayoutInflater().inflate(R.layout.item_app, parent, false);
+            int width = Math.round(AppAdapter.DESIGN_W_DP * density);
+            RecyclerView.LayoutParams layoutParams = new RecyclerView.LayoutParams(
+                    width, ViewGroup.LayoutParams.WRAP_CONTENT);
+            layoutParams.setMarginEnd(Math.round(12 * density));
+            item.setLayoutParams(layoutParams);
+            AppAdapter.Holder holder = new AppAdapter.Holder(item, null, animations, advancedEffects,
+                    reducedMotion, 0.65f, focusOvershoot, () -> {
+                        hideGlass();
+                        hideHero();
+                    });
+            holder.card.setOnKeyListener((view, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    firstTopButton().requestFocus();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    if (adapter.appCount() > 0) focusTile(0);
+                    return true;
+                }
+                return false;
+            });
+            return holder;
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull AppAdapter.Holder holder, int position) {
+            FavoriteTile tile = tiles.get(position);
+            holder.card.setVisibility(View.VISIBLE);
+            holder.card.setFocusable(true);
+            holder.name.setText(tile.label);
+            holder.name.setVisibility(View.VISIBLE);
+            holder.name.setAlpha(holder.card.isFocused() ? 1f : 0.65f);
+            holder.card.setBackground(holder.cardBackground);
+            if (tile.banner != null) {
+                holder.banner.setImageDrawable(tile.banner);
+                holder.banner.setVisibility(View.VISIBLE);
+                holder.icon.setVisibility(View.GONE);
+                holder.label.setVisibility(View.GONE);
+            } else {
+                holder.banner.setImageDrawable(null);
+                holder.banner.setVisibility(View.GONE);
+                holder.icon.setImageDrawable(tile.icon);
+                holder.icon.setVisibility(View.VISIBLE);
+                holder.label.setText(tile.label);
+                holder.label.setVisibility(View.VISIBLE);
+            }
+            holder.card.setOnClickListener(v -> adapter.launchPackage(tile.pkg));
+            holder.card.setOnLongClickListener(v -> {
+                if (tileMenuEnabled) {
+                    int currentPosition = adapter.positionOfPackage(tile.pkg);
+                    if (currentPosition >= 0) onTileLongPress(currentPosition, v);
+                } else {
+                    open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:" + tile.pkg)));
+                }
+                return true;
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return tiles.size();
+        }
+    }
+
     /** @param rebuild false keeps the tiles as they are and only puts focus back (TileRefresh.Action.REFOCUS). */
     private void reloadApps(boolean animate, boolean rebuild) {
         reloadApps(animate, rebuild, true);
@@ -983,6 +1118,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cards = moduleCards ? CardFeature.run(() -> Cards.discover(this, hiddenApps,
                 () -> Cards.load(Cards.storeFile(this)), leanback), none) : none;
         adapter.reload(cards.isEmpty() ? none : CardFeature.run(() -> Cards.shown(cards), none), leanback);
+        reloadFavorites();
         lastFocusedKey = returnKey;
         lastFocused = returnSlot;
         packageSequence = currentPackageSequence(packageSequence);
@@ -2978,6 +3114,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (LibraryApps.save(this, pkg, false)) reloadApps(false);
             else Toast.makeText(this, R.string.library_save_failed, Toast.LENGTH_LONG).show();
         });
+        // Favorites: show Add or Remove depending on current state.
+        boolean isFavorite = favoritePackages.contains(pkg);
+        if (isFavorite) {
+            addSettingsMenuRow(rows, popup, R.string.favorite_remove, () -> {
+                if (Favorites.save(this, pkg, false)) reloadFavorites();
+                else Toast.makeText(this, R.string.card_not_saved, Toast.LENGTH_SHORT).show();
+            });
+        } else {
+            addSettingsMenuRow(rows, popup, R.string.favorite_add, () -> {
+                if (Favorites.save(this, pkg, true)) reloadFavorites();
+                else Toast.makeText(this, R.string.card_not_saved, Toast.LENGTH_SHORT).show();
+            });
+        }
         addSettingsMenuRow(rows, popup, R.string.library_app_info, () -> open(new Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg))));
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);

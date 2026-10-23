@@ -108,4 +108,8 @@
     <string name="race_live">%1$s · ao vivo</string>
     <string name="race_finished">Bandeira quadriculada</string>
     <string name="last_opened">Aberto %1$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">Favoritos</string>
+    <string name="favorite_add">Adicionar aos favoritos</string>
+    <string name="favorite_remove">Remover dos favoritos</string>
 </resources>

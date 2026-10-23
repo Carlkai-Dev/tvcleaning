@@ -103,4 +103,8 @@
     <string name="race_live">%1$s · en directe</string>
     <string name="race_finished">Bandera de quadres</string>
     <string name="last_opened">Obert per últim cop: %1$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">Preferits</string>
+    <string name="favorite_add">Afegeix a Preferits</string>
+    <string name="favorite_remove">Suprimeix dels preferits</string>
 </resources>

@@ -106,4 +106,8 @@
     <string name="race_live">%1$s · en directo</string>
     <string name="race_finished">Bandera a cuadros</string>
     <string name="last_opened">Abierta por última vez %1$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">Favoritos</string>
+    <string name="favorite_add">Añadir a Favoritos</string>
+    <string name="favorite_remove">Quitar de Favoritos</string>
 </resources>

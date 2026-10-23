@@ -92,4 +92,8 @@
         <item quantity="other">%1$d تطبيق</item>
     </plurals>
     <string name="greeting_with_name">%1$s، %2$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">المفضلة</string>
+    <string name="favorite_add">إضافة إلى المفضلة</string>
+    <string name="favorite_remove">إزالة من المفضلة</string>
 </resources>

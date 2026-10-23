@@ -105,4 +105,8 @@
     <string name="race_live">%1$s · jonli</string>
     <string name="race_finished">Marra</string>
     <string name="last_opened">Oxirgi marta ochilgan: %1$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">Sevimlilar</string>
+    <string name="favorite_add">Sevimlilarga qo‘shish</string>
+    <string name="favorite_remove">Sevimlilardan olib tashlash</string>
 </resources>

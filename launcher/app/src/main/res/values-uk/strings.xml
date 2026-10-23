@@ -144,4 +144,8 @@
     <!-- Cinematic top shelf (cinematic_home): the line under the focused dock app's name; %1$s is when it was
          last opened, e.g. "5 minutes ago" or "yesterday, 9:40 pm". -->
     <string name="last_opened">Востаннє відкрито %1$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">Обране</string>
+    <string name="favorite_add">Додати в обране</string>
+    <string name="favorite_remove">Вилучити з обраного</string>
 </resources>

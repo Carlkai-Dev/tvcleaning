@@ -63,4 +63,8 @@
         <item quantity="other">%1$d 个应用</item>
     </plurals>
     <string name="greeting_with_name">%1$s，%2$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">收藏</string>
+    <string name="favorite_add">添加到收藏</string>
+    <string name="favorite_remove">从收藏中移除</string>
 </resources>

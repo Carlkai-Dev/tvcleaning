@@ -62,4 +62,8 @@
         <item quantity="other">%1$d แอป</item>
     </plurals>
     <string name="greeting_with_name">%1$s %2$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">รายการโปรด</string>
+    <string name="favorite_add">เพิ่มในรายการโปรด</string>
+    <string name="favorite_remove">นำออกจากรายการโปรด</string>
 </resources>

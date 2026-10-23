@@ -88,4 +88,8 @@
         <item quantity="other">%1$d applications</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">Favoris</string>
+    <string name="favorite_add">Ajouter aux favoris</string>
+    <string name="favorite_remove">Retirer des favoris</string>
 </resources>

@@ -104,4 +104,8 @@
     <string name="race_live">%1$s · langsung</string>
     <string name="race_finished">Bendera finis</string>
     <string name="last_opened">Terakhir dibuka %1$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">Favorit</string>
+    <string name="favorite_add">Tambahkan ke Favorit</string>
+    <string name="favorite_remove">Hapus dari Favorit</string>
 </resources>

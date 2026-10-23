@@ -70,4 +70,8 @@
         <item quantity="other">%1$d aplikacija</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">Omiljene aplikacije</string>
+    <string name="favorite_add">Dodaj u omiljene</string>
+    <string name="favorite_remove">Ukloni iz omiljenih</string>
 </resources>

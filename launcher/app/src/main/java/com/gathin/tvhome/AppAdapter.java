@@ -510,8 +510,21 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     @Override public int getItemViewType(int position) { return isLibraryAt(position) ? 1 : 0; }
 
     boolean containsPackage(String pkg) {
-        for (Entry entry : items) if (entry.pkg.equals(pkg)) return true;
-        return false;
+        return positionOfPackage(pkg) >= 0;
+    }
+
+    int positionOfPackage(String pkg) {
+        if (pkg == null) return -1;
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i).pkg.equals(pkg)) return i;
+        }
+        return -1;
+    }
+
+    boolean isFavoriteEligibleAt(int position) {
+        if (position < 0 || position >= items.size()) return false;
+        int kind = items.get(position).kind;
+        return kind != Entry.HOME_SETTINGS && kind != Entry.EMPTY;
     }
 
     @Override
@@ -611,6 +624,23 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return e.banner != null ? e.banner : e.icon;
     }
 
+    Drawable bannerAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position).banner : null;
+    }
+
+    Drawable iconAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position).icon : null;
+    }
+
+    void launchPackage(String pkg) {
+        for (Entry entry : items) {
+            if (entry.pkg.equals(pkg) && entry.kind != Entry.HOME_SETTINGS && entry.kind != Entry.EMPTY) {
+                launch(entry);
+                return;
+            }
+        }
+    }
+
     float focusScale() {
         return !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
     }
@@ -687,9 +717,15 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         /** Alpha of the name while the tile is not focused (always_show_names). */
         final float restNameAlpha;
         final boolean overshoot;
+        final Runnable focusCallback;
 
         Holder(View v, TileListener listener, boolean animations, boolean advancedEffects,
                boolean reducedMotion, float restNameAlpha, boolean overshoot) {
+            this(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, overshoot, null);
+        }
+
+        Holder(View v, TileListener listener, boolean animations, boolean advancedEffects,
+               boolean reducedMotion, float restNameAlpha, boolean overshoot, Runnable focusCallback) {
             super(v);
             card = v.findViewById(R.id.card);
             cardBackground = card.getBackground();
@@ -702,6 +738,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             this.reducedMotion = reducedMotion;
             this.restNameAlpha = restNameAlpha;
             this.overshoot = overshoot;
+            this.focusCallback = focusCallback;
 
             final float density = v.getResources().getDisplayMetrics().density;
             card.setOutlineProvider(new ViewOutlineProvider() {
@@ -770,6 +807,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
                     listener.onTileFocused(pos, view);
                 }
+                if (focused && focusCallback != null) focusCallback.run();
             });
         }
     }

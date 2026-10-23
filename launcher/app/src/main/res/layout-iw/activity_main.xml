@@ -320,23 +320,20 @@
                     android:id="@+id/btnSettings"
                     style="@style/TopButton"
                     android:text="@string/settings"
-                    android:drawableStart="@drawable/ic_settings"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_settings" />
 
                 <TextView
                     android:id="@+id/btnLibraryTop"
                     style="@style/TopButtonIcon"
                     android:visibility="gone"
                     android:contentDescription="@string/app_library"
-                    android:drawableStart="@drawable/ic_apps"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_apps" />
 
                 <TextView
                     android:id="@+id/btnReorder"
                     style="@style/TopButtonIcon"
                     android:contentDescription="@string/reorder"
-                    android:drawableStart="@drawable/ic_swap_vert"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_swap_vert" />
 
                 <TextView
                     android:id="@+id/btnWifi"
@@ -345,17 +342,55 @@
                     android:singleLine="true"
                     android:ellipsize="end"
                     android:text="@string/wifi"
-                    android:drawableStart="@drawable/ic_wifi"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_wifi" />
 
                 <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
                     android:text="@string/inputs"
-                    android:drawableStart="@drawable/ic_input"
-                    android:nextFocusDown="@+id/grid" />
+                    android:drawableStart="@drawable/ic_input" />
             </LinearLayout>
         </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/favoritesSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <TextView
+                android:id="@+id/favoritesLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="6dp"
+                android:text="@string/favorites"
+                android:textColor="#8CFFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="@string/font_medium"
+                android:letterSpacing="0.22"
+                android:textAllCaps="true"
+                android:focusable="false"
+                android:importantForAccessibility="no" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/favoritesRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="0dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="10dp"
+                android:clipToPadding="false"
+                android:clipChildren="false"
+                android:overScrollMode="never"
+                android:scrollbars="none"
+                android:nextFocusDown="@+id/grid"
+                android:nextFocusUp="@+id/btnSettings" />
+        </LinearLayout>
 
         <!-- The wrapper clips at the grid's edge; the grid itself must not clip so scaled tiles can overflow their cells. -->
         <FrameLayout

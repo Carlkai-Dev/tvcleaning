@@ -93,4 +93,8 @@
     <string name="tile_add_to_dock">Lisää telakkaan</string>
     <string name="tile_replace_in_dock">Korvaa toisella sovelluksella</string>
     <string name="dock_edit_pick_place">Valitse telakan paikka tälle sovellukselle ja paina OK. Takaisin peruuttaa.</string>
+    <!-- App Favorites: section heading and long-press tile-menu actions. -->
+    <string name="favorites">Suosikit</string>
+    <string name="favorite_add">Lisää suosikkeihin</string>
+    <string name="favorite_remove">Poista suosikeista</string>
 </resources>
