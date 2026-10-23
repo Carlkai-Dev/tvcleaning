@@ -231,6 +231,6 @@ With greetings enabled, priority is: an explicit festival-theme greeting, todayâ
 a holiday beginning the following Hebrew day (holiday eve), Shabbat, then the normal time-of-day greeting.
 Shabbat follows the same sunset-based date: Friday sunset through Saturday sunset (approximate display,
 not Havdalah timing). Holiday-eve greetings use the upcoming holidayâ€™s wording. The optional date pair
-uses the same 14sp regular font and letter spacing on both lines, with a 6dp downward offset.
+uses the same 14sp regular font with no added letter spacing on both lines, with a 6dp downward offset.
 
 The clock screensaver also shows the Gregorian date followed by a comma, a space and the Hebrew date when `hebrew_date` is enabled. Both Home dates share their font, size and color.
