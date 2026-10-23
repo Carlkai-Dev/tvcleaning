@@ -50,7 +50,8 @@ com.wbd.stream                              # Max, off by choice
 # setupwraith is included here; on most Google TV sets its RecoveryActivity takes Home once
 # launcherx is off and can crash-loop system_server (docs/TROUBLESHOOTING.md).
 # The install script checks where Home lands and rolls back; if needed, forget and re-join Wi-Fi
-# first (it owns the network). Disabling setupwraith also disables Google Assistant "Hey Google".
+# first (it owns the network). Disabling setupwraith also disables Google Assistant "Hey Google"
+# and turns off casting.
 com.google.android.apps.tv.launcherx
 com.google.android.tungsten.setupwraith
 
