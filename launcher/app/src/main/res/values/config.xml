@@ -17,10 +17,12 @@
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
-        <item>com.netflix.ninja</item>
-        <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.apple.atve.androidtv.appletv</item>
+        <item>com.disney.disneyplus</item>
+        <item>com.wbd.stream</item>
         <item>com.google.android.youtube.tv</item>
-        <item>in.startv.hotstar</item>
+        <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.univision.prendetv</item>
     </string-array>
     <!-- With fewer dock_apps than columns (or a dock app that is not installed), the free dock slots take
          the first grid apps, so the dock never shows a gap. false leaves them empty (#162); a theme can
@@ -41,12 +43,6 @@
          "boot_to_live_tv": true in a theme's config.json. -->
     <bool name="boot_to_live_tv">false</bool>
 
-    <!-- An "Open on start" row in Launcher settings: pick any app on the TV, and the first time Home comes up
-         after the TV starts it opens that app instead. Once per boot, like boot_to_live_tv (which wins when
-         both are set); Home after that stays Home, and an app that is gone or disabled leaves Home on screen.
-         Off by default; a theme can set "open_on_start_choice": true. -->
-    <bool name="open_on_start_choice">false</bool>
-
     <!-- Some TVs give their Live TV app no leanback entry point at all, so `live_tv_package` above
          resolves to nothing (TCL Android TV 9 on China-market sets is one). This action is then sent
          to that package instead, and the app starts normally. Leave empty to omit. -->
@@ -56,9 +52,7 @@
          a TV with separate antenna, cable and satellite tuners. It opens that input's channel
          collection, restricted to live_tv_package. Empty keeps automatic selection and its existing
          OEM passthrough route. If the ID is absent or the app cannot handle the collection, open
-         the Live TV app normally instead of selecting a different input. A wrong but registered ID
-         can open the app's tuner setup screen instead; that is not detected as a fallback condition.
-         Use a verified input ID, or leave this empty. See docs/devices/haam-r4.md. -->
+         the Live TV app normally instead of selecting a different input. See docs/devices/haam-r4.md. -->
     <string name="live_tv_input_id" translatable="false"></string>
 
     <!-- Tiles that open a screen of the app instead of its start screen: "package=action", sent to that package.
@@ -69,10 +63,26 @@
 
     <!-- A tile's name instead of the app's own: "package=Name". It also shows above the dock. -->
     <string-array name="app_labels">
+        <!-- My System TV: short names for the TV's own apps (Hisense packages; absent apps are skipped). -->
+        <item>com.vt.tv.mediacenter=Fotos</item>
+        <item>com.android.tv.settings=Ajustes</item>
+        <item>com.vt.tv.mobiledeviceconnectiontips=Proyectar</item>
+        <item>com.vt.tv.tvcenter=TV en vivo</item>
+        <item>com.google.android.play.games=Juegos</item>
+        <item>com.android.vending=Tienda</item>
+        <item>com.google.android.youtube.tvmusic=Música</item>
     </string-array>
     <!-- A tile's artwork instead of the app's banner: "package=drawable", a banner_* drawable bundled with the
          launcher (res/drawable). banner_tv is a magenta field with the Live TV glyph. -->
     <string-array name="app_banners">
+        <!-- My System TV: its own tile art (res/drawable-nodpi). Your own art can replace it: README, "Personaliza". -->
+        <item>com.vt.tv.mediacenter=banner_fotos</item>
+        <item>com.android.tv.settings=banner_ajustes</item>
+        <item>com.vt.tv.mobiledeviceconnectiontips=banner_airplay</item>
+        <item>com.vt.tv.tvcenter=banner_livetv</item>
+        <item>com.google.android.play.games=banner_arcade</item>
+        <item>com.android.vending=banner_appstore</item>
+        <item>com.google.android.youtube.tvmusic=banner_musica</item>
     </string-array>
 
     <!-- TVs with no TvInputManager have no HDMI list to read, but their own source-selection panel
@@ -108,18 +118,6 @@
          stops filtering, which brings repeat back at the price of the remote buttons below doing nothing. -->
     <bool name="key_filter">true</bool>
 
-    <!-- With key_filter on, true makes HomeKeyService and InputKeyService stop filtering keys while a game
-         controller is connected, so games see its buttons (Steam Link with an Xbox controller on a TCL G07
-         did not). The price: the remote buttons below do nothing until the controller disconnects. A voice
-         remote that reports a joystick does not count. A theme can set it ("gamepad_passthrough"). -->
-    <bool name="gamepad_passthrough">false</bool>
-
-    <!-- With key_filter on, the key helpers swallow Volume Up/Down and repeat a held one themselves. For firmware
-         that applies a volume key before the filter and again when the helper hands it back, so one tap moves two
-         steps (TCL G03 / BeyondTV4 on Android 11, #1100); a swallowed key gets no auto-repeat from Android, hence
-         the helper's own. Leave it off where a tap is one step. A theme can set it ("consume_volume_keys"). -->
-    <bool name="consume_volume_keys">false</bool>
-
     <!-- Vendor source numbers for the Inputs menu, "HW<n>=<number>" by the framework input id's last part
          (`tools/tv.py 'dumpsys tv_input'` lists them). A mapped input opens by sending input_action with the
          number as the int extra "input"; "HW<n>=-" leaves a port the board reports but the set does not have
@@ -136,6 +134,7 @@
          evdev MSC_SCAN there, which is not always the scanCode the framework reports, so a number that takes
          nothing is no proof the press never arrived. Leave empty to omit. -->
     <integer-array name="settings_key_scancodes">
+        <item>598</item>
     </integer-array>
     <!-- The same by Android keycode, for buttons whose scancode is shared. TCL Google TV remotes send their
          Settings button as keycode 83 (KEYCODE_NOTIFICATION, which the stock Google TV home turned into its quick
@@ -149,7 +148,7 @@
     <!-- What those Settings buttons open: false, the TV's Settings; true, a small glass panel at the top right
          with TV settings, Display, Network, Apps (re-enable an app) and Launcher settings, over whatever is on screen.
          Both keys can also be set from a theme's config.json ("settings_key_keycodes": [83]). -->
-    <bool name="settings_key_panel">false</bool>
+    <bool name="settings_key_panel">true</bool>
 
     <!-- A force stop of the launcher (Settings, a cleaner app, am force-stop) takes HomeKeyService and InputKeyService
          off the enabled list. true: Home puts the helpers that were running back when it starts; one turned off in
@@ -181,14 +180,14 @@
          EV_KEY code, in hex). A scancode entry wins over a keycode. In place of a package, "input:<input id>"
          switches to that TV input, e.g. scan:227:input:com.tcl.tvinput/.passthroughinput.TvPassThroughService/HW1413744640
          for HDMI 3 on a TCL Smart TV Pro; the ids are in `tools/tv.py 'dumpsys tv_input'` (hdmi_port=N under
-         TvInputHardwareInfo). An action word in place of a package runs that action instead: back, home, recents,
-         mute (toggles the sound, with the TV's volume bar), sleep (standby, Android 9 and later), screensaver (the
-         one chosen in the TV's settings, or the launcher's clock), settings or wifi; e.g. KEYCODE_PROG_YELLOW:mute
-         and hold:KEYCODE_PROG_YELLOW:sleep. Prefix an entry with "hold:" for the same button's long press:
+         TvInputHardwareInfo). Prefix an entry with "hold:" for the same button's long press:
          "hold:KEYCODE_BUTTON_8:org.xbmc.kodi" opens Kodi when held for half a second, while the unprefixed entry
          still opens on a tap; "hold:scan:490:..." works for scancodes. A key with only a hold entry does nothing
          on a tap. A listed app that is not installed leaves the button doing nothing. Leave empty to omit. -->
     <string-array name="app_keys" translatable="false">
+        <item>190:com.google.android.youtube.tv</item>
+        <item>scan:419:com.apple.atve.androidtv.appletv</item>
+        <item>scan:557:com.wbd.stream</item>
     </string-array>
 
     <!-- Package of the stock launcher, for TVs whose firmware turns it back on after it was disabled. XGIMI's
@@ -200,16 +199,9 @@
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->
     <bool name="shamsi_date">false</bool>
-    <!-- Lunisolar (Vietnamese / Chinese) date under the date; config.json lunar_date, lunar_utc_offset (7 or 8, default by locale). -->
-    <bool name="lunar_date">false</bool>
 
     <!-- A name after the greeting: "Mr. Trịnh" shows GOOD MORNING, MR. TRỊNH. Empty: the greeting alone. -->
     <string name="greeting_name" translatable="false"></string>
-    <!-- The greeting above the clock ("Good evening"). false hides it. Can also be set with "show_greeting" in a theme. -->
-    <bool name="show_greeting">true</bool>
-    <!-- The date and the line between the clock and the date in the clock's full white instead of dimmed. Can also be
-         set with "header_white" in a theme. -->
-    <bool name="header_white">false</bool>
     <!-- Optional VPN app the network pill opens (hold the pill for Wi-Fi settings), e.g. the package of the
          VPN you use. Empty: the pill opens Wi-Fi settings. The green VPN badge shows for any VPN either way;
          with an app set here, a red "VPN off" badge also shows while no VPN is up. -->
@@ -228,13 +220,6 @@
          through it. false (the default) keeps the solid near-black band, or the cinematic shelf's dark glass. Can
          also be set with "dock_glass": true in a theme's config.json. -->
     <bool name="dock_glass">false</bool>
-    <!-- Every app in one row: the dock apps first, the rest after them, and the row scrolls sideways when focus
-         reaches its edge. No grid below; rows_below_dock is ignored. Needs dock_row. Can also be set with
-         "single_row" in a theme. -->
-    <bool name="single_row">false</bool>
-    <!-- With single_row, the band runs behind every app in the row, apps installed later included, instead of
-         the dock apps only. Can also be set with "dock_band_all" in a theme. -->
-    <bool name="dock_band_all">false</bool>
     <!-- The dock band's padding equals the gap between its tiles on all four sides (as far as the grid's edges leave room),
          so its corners are concentric with the tiles' and the spacing reads even. false (the default) keeps the fixed
          14dp above and below, up to 22dp at the sides and 26dp corners. Can also be set with "dock_even_padding": true in a theme's config.json. -->
@@ -247,14 +232,6 @@
     <bool name="icon_only_buttons">false</bool>
     <!-- The Inputs pill as a round icon button too (the label moves to the talkback description). -->
     <bool name="icon_only_inputs">false</bool>
-    <!-- true colours the Wi-Fi pill's icon green while the TV is online and leaves it white while it is not (dark on
-         the focused pill either way), so the connection shows at a glance, also as an icon-only button. Can also be
-         set with "wifi_status_color": true in a theme's config.json. -->
-    <bool name="wifi_status_color">false</bool>
-    <!-- With wifi_status_color: the icon orange while the TV is connected but Android has not reached the internet
-         through it (a hotel or holiday-park Wi-Fi waiting for its login page) and red while it is offline, instead
-         of white for both. Can also be set with "wifi_status_warnings": true in a theme's config.json. -->
-    <bool name="wifi_status_warnings">false</bool>
     <!-- The app library as a round button in the top bar, beside Settings (app_library must be on too). -->
     <bool name="library_button">false</bool>
     <!-- With icon_only_buttons: keep the network name on the Wi-Fi pill up to this width in dp, cut with an ellipsis.
@@ -264,10 +241,6 @@
     <!-- The Wi-Fi/Ethernet pill in the top bar. false hides it (on Android 14 with Location off it can
          only say "Wi-Fi", not the network name). Can also be set with "show_network_pill" in a theme. -->
     <bool name="show_network_pill">true</bool>
-    <!-- Apps shown as round buttons with their own logo in the top bar, left of the network pill, in this order.
-         They leave the grid. Missing apps are skipped. Can also be set with "top_bar_apps" in a theme. -->
-    <string-array name="top_bar_apps" translatable="false">
-    </string-array>
     <!-- The Inputs pill in the top bar, shown when the TV has inputs to list. false hides it for good; what the
          remote's Input button does is unchanged. Can also be set with "show_inputs_pill" in a theme. -->
     <bool name="show_inputs_pill">true</bool>
@@ -281,13 +254,6 @@
          pictures in wallpapers/ ("01-dusk.jpg<TAB>Dusk over the peaks", one per line). A picture without a line
          shows no name. Can also be set with "wallpaper_captions": true in a theme's config.json. -->
     <bool name="wallpaper_captions">false</bool>
-    <!-- Rotating wallpapers grouped by the time of day, as JSON: {"morning": [file names], "evening": [...],
-         "night": [...]}. While set, the rotation picks only from the group that fits now: morning from sunrise to
-         noon, evening until half an hour after sunset, night the rest, with the sun at latitude and longitude (07:00
-         and 18:30 without them). It moves to the new group as soon as the time of day changes. A missing or empty
-         group falls back to the whole collection; empty rotates through every picture. A theme can set
-         "wallpaper_moods" as an object. -->
-    <string name="wallpaper_moods" translatable="false"></string>
     <!-- Hold OK on a tile opens a small menu: Move (picks the tile up for reordering), Remove from Home (only with
          app_library) and App info. false keeps the old behaviour: holding OK opens the app's App info page.
          Can also be set with "tile_menu": true in a theme's config.json. -->
@@ -303,7 +269,7 @@
 
     <!-- Tiles per row in the grid; the dock always has this many slots. Tiles are 180dp wide at 4 columns and
          shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
-    <integer name="columns">4</integer>
+    <integer name="columns">5</integer>
 
     <!-- Basic motion is on; advanced effects are opt-in in the launcher's own Settings screen. -->
     <bool name="animations">true</bool>
@@ -315,12 +281,6 @@
 
     <!-- Installed launchable apps, including ordinary Android apps. Also settable in config.json. -->
     <bool name="app_library">false</bool>
-    <!-- Every app tile is its icon on a card tinted from that icon, name only under the focused tile,
-         instead of each app's own banner. Off by default; a theme can set "uniform_tiles": true. -->
-    <bool name="uniform_tiles">false</bool>
-    <!-- Optional direct Home picker in the app library: OK toggles the checkmark, checked apps first.
-         Off by default; a theme can set "app_library_selection": true (also needs app_library). -->
-    <bool name="app_library_selection">false</bool>
 
     <!-- Apps pre-seeded into the App library's "added" set at startup (config.xml library_apps, or a theme's
          config.json). They show on Home as if the owner had added them in the App library UI, and stay
@@ -366,20 +326,7 @@
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position
          dots, the focus glow takes the app's colour and the dock band turns translucent. false keeps the plain
          shelf. Can also be set with "cinematic_home": true in a theme's config.json. -->
-    <bool name="cinematic_home">false</bool>
-    <!-- With cinematic_home, false leaves out the dock position dots under the app's name, for a quieter shelf. Can
-         also be set with "cinematic_dots": false in a theme's config.json. -->
-    <bool name="cinematic_dots">true</bool>
-    <!-- With cinematic_home, true keeps the focus highlight white on the dock instead of the focused app's colour,
-         for wallpapers and banners that clash with it; app_glow still colours every tile. Can also be set with
-         "cinematic_white_focus": true in a theme's config.json. -->
-    <bool name="cinematic_white_focus">false</bool>
-    <!-- With cinematic_home, how much of a wallpaper the shelf covers: cinematic_scrim is the strength of the dark
-         scrim that keeps the name readable (0 to 100 percent, 100 as before) and cinematic_art the opacity of the
-         app's softened artwork (0 to 100, 50 as before; 0 leaves the wallpaper uncovered). Lower values let a
-         theme's wallpaper show through. A theme can set "cinematic_scrim" and "cinematic_art". -->
-    <integer name="cinematic_scrim">100</integer>
-    <integer name="cinematic_art">50</integer>
+    <bool name="cinematic_home">true</bool>
 
     <!-- The glow behind the dock in the focused app's colour (red for YouTube, blue for Prime Video). false keeps
          only background_color or the wallpaper behind everything. Can also be set with "ambient_glow": false in a
@@ -388,30 +335,39 @@
     <!-- The focus highlight glows in the focused app's colour on every tile, as the cinematic shelf does for the
          dock, without cinematic_home. Can also be set with "app_glow": true in a theme's config.json. -->
     <bool name="app_glow">false</bool>
-    <!-- The rows fade out as they scroll up under the clock, instead of being cut off at a hard line (TopFade).
-         The grid then draws into a hardware layer, about 6 MB of graphics memory at 1080p, so it is off by default.
-         Can also be set with "fade_rows": true in a theme's config.json. -->
-    <bool name="fade_rows">false</bool>
     <!-- Minutes Home may sit untouched before it shows the clock screensaver (ClockActivity); 0 turns it off.
          Unlike the system screensaver this never starts over live TV or an app, which matters on TVs whose
          Live TV window does not keep the screen on (CVTE): there the system screensaver would start in the
          middle of a programme. Can also be set with "home_idle_clock_minutes": 10 in a theme's config.json. -->
     <integer name="home_idle_clock_minutes">0</integer>
-    <!-- The clock screensaver (Home idle clock and the system screensaver) over Home's wallpaper instead of black with
-         a coloured glow. The clock still moves every minute. Can also be set with "clock_wallpaper" in a theme. -->
-    <bool name="clock_wallpaper">false</bool>
-    <!-- How dark that wallpaper is behind the clock, 0 to 90 %. Can also be set with "clock_wallpaper_dim". -->
-    <integer name="clock_wallpaper_dim">50</integer>
-    <!-- The clock screensaver's slow coloured glow behind the clock. false leaves the clock and date alone on plain black
-         (OLED panels); they still move every minute. Ignored while clock_wallpaper shows a picture. Can also be set
-         with "clock_glow" in a theme. -->
-    <bool name="clock_glow">true</bool>
     <!-- Shape of the glow behind the focused app, in its colour: radial (a soft glow, the default) or horizon (the
          colour washes down from the top edge and fades to black, brightest along the top). The cinematic shelf
          keeps its own glow. Can also be set with "glow_style": "horizon" in a theme's config.json. -->
     <string name="glow_style" translatable="false">radial</string>
-    <!-- The focus highlight's look: glass (the default: a translucent slab with a bright top sheen, a crisp rim and a
-         faint outer glow), rim (the crisp rim alone, no sheen, fill or glow, for a quiet focus over a wallpaper) or
-         halo (the rim with a lighter outer glow). Can also be set with "glass_style": "rim" in a theme's config.json. -->
-    <string name="glass_style" translatable="false">glass</string>
+
+    <!-- My System TV's design, ported from its HTML prototype. -->
+    <!-- Header: Wi-Fi icon before a sentence-case greeting, the day name over the date, and a weather line. -->
+    <bool name="modern_header">true</bool>
+    <!-- Weather line under the clock, from Open-Meteo (no key; only these coordinates are sent), every 30 minutes. -->
+    <bool name="weather">true</bool>
+    <string name="weather_label" translatable="false">Ciudad de México</string>
+    <string name="weather_latitude" translatable="false">19.43</string>
+    <string name="weather_longitude" translatable="false">-99.13</string>
+    <!-- The sky gets stars and a moon at night, a sun by day, and slowly drifting clouds. -->
+    <bool name="sky_scene">true</bool>
+    <!-- After moving along the dock, the focused app's picture from the theme's backdrops/<package>.jpg fills the
+         screen; Home, the top bar and the rows below go back to the sky. -->
+    <!-- My System TV: off while the video backgrounds are in use; the apps' content now feeds AppContent only. -->
+    <bool name="app_backdrops">false</bool>
+    <!-- A round search button in the top bar (Google Assistant search). -->
+    <bool name="search_button">true</bool>
+    <!-- The top bar's Settings button opens the quick panel (Control Center) instead of the TV's Settings. -->
+    <bool name="settings_button_panel">true</bool>
+    <!-- A light sweep across a tile when it takes focus. -->
+    <bool name="focus_shine">true</bool>
+    <!-- An "Inicio" tile first in the dock: focusing it shows the clean sky, with no app picture. -->
+    <bool name="home_tile">true</bool>
+    <!-- Up from the dock to the top bar hides the dock and the rows below it, leaving a clean sky; Down brings
+         them back. -->
+    <bool name="clean_on_top_bar">true</bool>
 </resources>

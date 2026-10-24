@@ -8,6 +8,15 @@
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- My System TV only: the header's weather line (Weather, Open-Meteo). Nothing else goes online. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- My System TV: read what the apps publish to the programme guide (AppContent), their "Continue watching"
+         (watch next) and channel rows. Since Android 11 TvProvider only lets a caller read other apps' rows marked
+         searchable with READ_TV_LISTINGS, a runtime permission ("TV listings"); READ_EPG_DATA alone saw nothing. -->
+    <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
+    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
+    <!-- The Control Center's Bluetooth row reads whether Bluetooth is on (Android 11 and older need this). -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
          runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
@@ -25,6 +34,8 @@
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
+        <!-- AppContent reads the programme guide's provider. -->
+        <provider android:authorities="android.media.tv" />
         <!-- The standard settings handlers, so package visibility doesn't hide them and send the pills to a vendor fallback by mistake. -->
         <intent>
             <action android:name="android.settings.SETTINGS" />
@@ -37,11 +48,6 @@
         </intent>
         <intent>
             <action android:name="android.settings.MANAGE_APPLICATIONS_SETTINGS" />
-        </intent>
-        <!-- The tile menu and the app library offer App info only where this resolves (SystemSettings.appInfo). -->
-        <intent>
-            <action android:name="android.settings.APPLICATION_DETAILS_SETTINGS" />
-            <data android:scheme="package" />
         </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -121,9 +127,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <!-- Remote Settings button panel (settings_key_panel); own task so the app behind stays put.
-             No screenOrientation: a translucent activity may not request one on Android 8.0 (API 26),
-             which throws IllegalStateException in onCreate (#1122); a TV is landscape anyway. -->
+        <!-- Remote Settings button panel (settings_key_panel); own task so the app behind stays put. -->
         <activity
             android:name=".QuickSettingsActivity"
             android:exported="false"
@@ -131,6 +135,7 @@
             android:launchMode="singleTop"
             android:excludeFromRecents="true"
             android:noHistory="true"
+            android:screenOrientation="landscape"
             android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
         <activity
             android:name=".HomeSettingsActivity"
@@ -154,22 +159,6 @@
                 android:resource="@xml/home_key_service" />
         </service>
 
-        <!-- market://launch?id=<package>: package-name app launches from the Android TV Remote service
-             (Home Assistant android_tv_remote), normally served by the stock launcher. -->
-        <activity
-            android:name=".AppLaunchActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:noHistory="true"
-            android:theme="@android:style/Theme.NoDisplay">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="market" android:host="launch" />
-            </intent-filter>
-        </activity>
-
         <!-- The same clock, started by Home itself after home_idle_clock_minutes without input. -->
         <activity
             android:name=".ClockActivity"
@@ -177,16 +166,6 @@
             android:excludeFromRecents="true"
             android:noHistory="true"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
-
-        <!-- stock_home_redirect at boot: HomeKeyService opens this invisible activity once, so the screen behind
-             it sends a window event when it closes (HomeKeyService.probeAtBoot). -->
-        <activity
-            android:name=".ProbeActivity"
-            android:exported="false"
-            android:excludeFromRecents="true"
-            android:noHistory="true"
-            android:taskAffinity=""
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <!-- Screensaver: pick it in Settings, or `settings put secure screensaver_components
              com.gathin.tvhome/.ClockDream` over adb. -->

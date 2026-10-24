@@ -21,6 +21,5 @@ as MemFree + Buffers + Cached, bounded by MemTotal. Missing/invalid values are o
 
 ## Validation
 
-Tested on a **Sony KD-50X85J running Android TV 12**.
-
+Real Android TV 12 hardware; the owner's model and configuration are withheld for privacy.
 6 JVM tests, lintRelease and release build passed. On real hardware verified both RAM ratios, storage, Hebrew direction, module-card recognition and stopping the worker on Back.
