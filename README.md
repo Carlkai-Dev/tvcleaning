@@ -1,3 +1,65 @@
+# tv-launcher: CleanYourTV for the Acer ATV R1
+
+A fork of [Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv), set up for one family TV: an Acer 32"
+that Android reports as `ATV R1` (SCBC R1, Realtek, Android 11, 1.5 GB RAM, 720p), in Mumbai. The debloat and
+the launcher are upstream's; this branch adds a home screen and screensaver built for two parents who talk to
+Google Assistant more than they type.
+
+| Home | Screensaver |
+|---|---|
+| ![Home: greeting, big clock, tithi line, weather and air quality, search pill, Apps panel over a daytime scene](docs/acer-atv-r1/home.jpg) | ![Screensaver: clock, date and weather centred over a daytime scene](docs/acer-atv-r1/screensaver.jpg) |
+
+## What this fork adds
+
+| Feature | What it does | Where |
+|---|---|---|
+| Greeting | "Good morning / afternoon / evening, VAG"; "Happy Diwali, VAG" on festival days, in gold | `MainActivity.updateGreeting`, `greeting_name` in the theme |
+| Indian festivals | Diwali, Holi, Dussehra, Navratri (9 days), Ganesh Chaturthi, Raksha Bandhan, Janmashtami, Makar Sankranti, Gudi Padwa, Eid, Christmas, New Year. Dates for 2026 to 2028 | `IndianFestivals.java` |
+| Moon and tithi | "Waxing gibbous · Shukla Navami" under the date, worked out on the TV from the sun and moon (no network) | `Panchang.java` |
+| Weather and air quality | Sky, temperature and US AQI for Mumbai from [Open-Meteo](https://open-meteo.com) (ICON model, no key). An advice line at AQI 150 and up. At most one fetch every 30 minutes, only while Home is on screen; hidden when offline | `HomeWeather.java`, `weather_city`, `latitude`, `longitude` in `config.xml` |
+| Search pill | "Movies, music or apps" with a mic, top right. Opens Google Assistant, same as the remote's mic button | `btnSearch` in `activity_main.xml` |
+| Apps panel | The frosted dock gets an "Apps" title and a "1-6 / 12" counter for the focused row | `DockDecoration.java` |
+| Bigger text | Greeting 20sp, clock 84sp, date and tithi 16 to 18sp, no all-caps: readable from the sofa at 720p | `activity_main.xml` |
+| Afternoon artwork | A fourth `wallpaper_moods` group: morning, afternoon (noon to an hour before sunset), evening (golden hour to dusk), night. Themes without an afternoon group behave as before | `WallpaperMood.java` |
+| Daytime scenes | 4 bright scenes (noon coast, green valley, palm beach, clear lake) drawn from code like upstream's 14 | `tools/day_scenes.py` |
+| Scenic screensaver | The clock screensaver shows the theme's artwork for the time of day, with clock, date and weather centred. Without wallpapers it is upstream's drifting glow | `ClockScene.java`, `dream_clock.xml` |
+| Theme | Dock of Hotstar, JioCinema, Aaj Tak, YouTube, Netflix, Prime Video; 18 scenes at 720p grouped by time of day; 35% dim; frosted dock | `themes/vag/` |
+
+## Install on the TV
+
+Same as upstream, with this branch and theme:
+
+```bash
+TV_HOST=<tv ip> launcher/build-and-install.sh
+TV_HOST=<tv ip> tools/theme.sh themes/vag
+# make the scenic clock the screensaver (undo: put back the value it printed before)
+adb shell settings get secure screensaver_components
+adb shell settings put secure screensaver_components com.gathin.tvhome/.ClockDream
+```
+
+For another city, change `weather_city`, `latitude` and `longitude` in `launcher/app/src/main/res/values/config.xml`.
+Empty `weather_city` turns weather off and the launcher makes no network calls.
+
+## How it differs from upstream
+
+- **Network:** upstream's launcher has no `INTERNET` permission. This one asks for it for the weather only: two
+  small requests every 30 minutes, closed right after.
+- **Greeting hours:** no "Good night". "Good morning" until noon, "Good afternoon" until 17:00, "Good evening" until
+  midnight.
+- **Festival table runs out after 2028.** Christmas and New Year keep working; extend `IndianFestivals.java` for
+  the lunar ones.
+
+## Memory on this TV
+
+Measured with `dumpsys meminfo`. The home screen's own memory (private dirty) is 13.2 MB, the same as upstream's
+launcher with the same artwork, so the additions cost about nothing; full-screen artwork is what costs memory
+over a plain background. PSS swings between 28 and 35 MB on this TV because shared system libraries are counted
+in it. The stock Google home used 91 MB.
+
+---
+
+*Upstream README follows.*
+
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads. Strip the bloatware from any Android TV or Google TV over Wi-Fi and replace the ad-filled home screen with a clean launcher that looks like an Apple TV. No root, no cable, nothing uninstalled, and a one-line restore." width="800"></a>
 </p>
