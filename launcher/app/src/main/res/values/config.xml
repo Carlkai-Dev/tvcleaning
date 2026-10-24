@@ -366,7 +366,7 @@
     <!-- A light sweep across a tile when it takes focus. -->
     <bool name="focus_shine">true</bool>
     <!-- An "Inicio" tile first in the dock: focusing it shows the clean sky, with no app picture. -->
-    <bool name="home_tile">true</bool>
+    <bool name="home_tile">false</bool>
     <!-- Up from the dock to the top bar hides the dock and the rows below it, leaving a clean sky; Down brings
          them back. -->
     <bool name="clean_on_top_bar">true</bool>
