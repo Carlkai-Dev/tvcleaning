@@ -24,14 +24,13 @@ drawable ic_launcher
 drawable menu_btn_bg
 drawable progress_bar
 drawable tile_bg
+id banner_bg
 id banner_desc
 id banner_dots
 id banner_flipper
 id banner_frame
 id banner_label
-id banner_loading
 id banner_title
-id banner_webview
 id btn_add_site
 id btn_back_page
 id btn_forward
@@ -62,7 +61,7 @@ string add_site_ok
 string add_site_title
 string add_site_url_hint
 string app_name
-string banner_preview
+string banner_open
 string blocked_popup
 string hint_remote
 string home_subtitle

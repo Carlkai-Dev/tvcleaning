@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Static banner slide — no WebView preview (avoids background page loads). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clipChildren="true"
     android:clipToPadding="true">
 
-    <WebView
-        android:id="@+id/banner_webview"
+    <View
+        android:id="@+id/banner_bg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:focusable="false"
-        android:focusableInTouchMode="false" />
+        android:focusable="false" />
 
     <View
         android:layout_width="match_parent"
@@ -56,11 +56,4 @@
             android:textColor="@color/text_secondary"
             android:textSize="14sp" />
     </LinearLayout>
-
-    <ProgressBar
-        android:id="@+id/banner_loading"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_gravity="center"
-        android:indeterminate="true" />
 </FrameLayout>

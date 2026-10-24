@@ -1,10 +1,8 @@
 package com.patilweb.streambrowser;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,27 +10,21 @@ import android.os.Looper;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+/**
+ * Stream TV home: site carousel + tiles. Banner is a lightweight colour card only — websites are
+ * never loaded until the user opens a site (preview WebViews caused TV hangs).
+ */
 public class HomeActivity extends Activity {
 
     public static final String EXTRA_URL = "url";
@@ -44,10 +36,7 @@ public class HomeActivity extends Activity {
 
     private SiteStore store;
     private List<Site> sites = new ArrayList<>();
-    private final List<WebView> bannerWebViews = new ArrayList<>();
-    private final List<ProgressBar> bannerLoaders = new ArrayList<>();
     private final List<View> dots = new ArrayList<>();
-    private final Set<Integer> loadedSlides = new HashSet<>();
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private ViewFlipper flipper;
@@ -110,14 +99,11 @@ public class HomeActivity extends Activity {
     }
 
     private void rebuildUi() {
-        destroyBanners();
         sites = store.allVisible();
         currentIndex = 0;
-        loadedSlides.clear();
         setupCarousel();
         setupDots();
         setupTiles();
-        if (!sites.isEmpty()) ensureSlideLoaded(0);
         scheduleCarousel();
     }
 
@@ -191,9 +177,7 @@ public class HomeActivity extends Activity {
                 }
                 dialog.dismiss();
                 rebuildUi();
-                if (!sites.isEmpty()) {
-                    showSlide(sites.size() - 1, false);
-                }
+                if (!sites.isEmpty()) showSlide(sites.size() - 1, false);
             });
             url.requestFocus();
         });
@@ -214,97 +198,28 @@ public class HomeActivity extends Activity {
     }
 
     private void setupCarousel() {
+        handler.removeCallbacks(advanceCarousel);
         flipper.removeAllViews();
-        bannerWebViews.clear();
-        bannerLoaders.clear();
         LayoutInflater inflater = LayoutInflater.from(this);
         for (Site site : sites) {
             View slide = inflater.inflate(R.layout.item_banner_slide, flipper, false);
+            View bg = slide.findViewById(R.id.banner_bg);
             TextView label = slide.findViewById(R.id.banner_label);
             TextView title = slide.findViewById(R.id.banner_title);
             TextView desc = slide.findViewById(R.id.banner_desc);
-            ProgressBar loading = slide.findViewById(R.id.banner_loading);
-            WebView web = slide.findViewById(R.id.banner_webview);
 
-            label.setText(R.string.banner_preview);
+            GradientDrawable fill = new GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    new int[]{site.accentColor, 0xFF0B0D12, 0xFF050608});
+            bg.setBackground(fill);
+            label.setText(R.string.banner_open);
             title.setText(site.title);
             desc.setText(site.description);
-            configurePreviewWebView(web, site, loading);
-            bannerWebViews.add(web);
-            bannerLoaders.add(loading);
             flipper.addView(slide);
         }
         flipper.setInAnimation(this, android.R.anim.fade_in);
         flipper.setOutAnimation(this, android.R.anim.fade_out);
         if (flipper.getChildCount() > 0) flipper.setDisplayedChild(0);
-    }
-
-    @SuppressLint("SetJavaScriptEnabled")
-    private void configurePreviewWebView(WebView web, Site site, ProgressBar loading) {
-        WebSettings s = web.getSettings();
-        s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);
-        s.setMediaPlaybackRequiresUserGesture(true);
-        s.setLoadWithOverviewMode(true);
-        s.setUseWideViewPort(true);
-        s.setSupportZoom(false);
-        s.setBuiltInZoomControls(false);
-        s.setDisplayZoomControls(false);
-        s.setSupportMultipleWindows(false);
-        s.setJavaScriptCanOpenWindowsAutomatically(false);
-        s.setAllowFileAccess(false);
-        s.setLoadsImagesAutomatically(true);
-        s.setUserAgentString(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                        + "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-        web.setInitialScale(42);
-        web.setVerticalScrollBarEnabled(false);
-        web.setHorizontalScrollBarEnabled(false);
-        web.setOnTouchListener((v, event) -> true);
-        web.setTag(site);
-
-        web.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return true;
-            }
-
-            @Override
-            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                if (AdBlocker.shouldBlock(request)) {
-                    return AdBlocker.emptyResponse();
-                }
-                return super.shouldInterceptRequest(view, request);
-            }
-
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                loading.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                loading.setVisibility(View.GONE);
-                Site s = (Site) view.getTag();
-                view.evaluateJavascript(AdBlocker.cleanupScript(s != null && s.aggressiveAdBlock), null);
-                view.evaluateJavascript(
-                        "(function(){try{"
-                                + "document.documentElement.style.overflow='hidden';"
-                                + "document.body.style.overflow='hidden';"
-                                + "window.scrollTo(0,0);"
-                                + "}catch(e){}})();",
-                        null);
-            }
-        });
-        web.setWebChromeClient(new WebChromeClient());
-    }
-
-    private void ensureSlideLoaded(int index) {
-        if (index < 0 || index >= sites.size() || loadedSlides.contains(index)) return;
-        loadedSlides.add(index);
-        WebView web = bannerWebViews.get(index);
-        bannerLoaders.get(index).setVisibility(View.VISIBLE);
-        web.loadUrl(sites.get(index).url);
     }
 
     private void setupDots() {
@@ -326,9 +241,6 @@ public class HomeActivity extends Activity {
     private void showSlide(int index, boolean animate) {
         if (index < 0 || index >= flipper.getChildCount()) return;
         currentIndex = index;
-        ensureSlideLoaded(index);
-        if (sites.size() > 1) ensureSlideLoaded((index + 1) % sites.size());
-
         if (!animate) {
             flipper.setInAnimation(null);
             flipper.setOutAnimation(null);
@@ -341,11 +253,6 @@ public class HomeActivity extends Activity {
         for (int i = 0; i < dots.size(); i++) {
             ((ImageView) dots.get(i)).setImageResource(
                     i == index ? R.drawable.dot_active : R.drawable.dot_inactive);
-        }
-        for (int i = 0; i < bannerWebViews.size(); i++) {
-            WebView w = bannerWebViews.get(i);
-            if (i == index) w.onResume();
-            else w.onPause();
         }
     }
 
@@ -364,36 +271,21 @@ public class HomeActivity extends Activity {
         startActivity(i);
     }
 
-    private void destroyBanners() {
-        handler.removeCallbacks(advanceCarousel);
-        for (WebView w : bannerWebViews) {
-            w.stopLoading();
-            ViewGroup parent = (ViewGroup) w.getParent();
-            if (parent != null) parent.removeView(w);
-            w.destroy();
-        }
-        bannerWebViews.clear();
-        bannerLoaders.clear();
-        if (flipper != null) flipper.removeAllViews();
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
-        if (!bannerWebViews.isEmpty()) showSlide(currentIndex, false);
         scheduleCarousel();
     }
 
     @Override
     protected void onPause() {
         handler.removeCallbacks(advanceCarousel);
-        for (WebView w : bannerWebViews) w.onPause();
         super.onPause();
     }
 
     @Override
     protected void onDestroy() {
-        destroyBanners();
+        handler.removeCallbacks(advanceCarousel);
         super.onDestroy();
     }
 }

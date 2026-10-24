@@ -2,8 +2,8 @@
 <resources>
     <string name="app_name">Stream TV</string>
     <string name="home_title">Stream TV</string>
-    <string name="home_subtitle">Live previews · Pick a site · Back exits</string>
-    <string name="banner_preview">PREVIEW</string>
+    <string name="home_subtitle">Pick a site · OK opens · Back exits</string>
+    <string name="banner_open">OPEN</string>
     <string name="site_tbcpl">TBCPL</string>
     <string name="site_tbcpl_desc">Streaming directory</string>
     <string name="site_kartoons">Kartoons</string>
