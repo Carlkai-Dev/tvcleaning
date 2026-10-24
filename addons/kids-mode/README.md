@@ -101,8 +101,7 @@ normal launcher on this TV is a build of this repo's `launcher/` under its own p
 
 The launcher was in front 0.3 s after Kids Mode started, with nothing of Kids Mode on screen.
 
-**Uninstalling Kids Mode leaves a working Home.** Right after `pm uninstall -k io.github.maxhayim.kidsmode` (on this TV it removed the
-app's data too, as a plain uninstall does),
+**Uninstalling Kids Mode leaves a working Home.** Right after `pm uninstall -k io.github.maxhayim.kidsmode`,
 `cmd package resolve-activity -a android.intent.action.MAIN -c android.intent.category.HOME` gave
 `com.hmam.tvhome/.HomeActivity`, the Home key went there, and a cold reboot went from `FallbackHome` straight to
 the launcher. Android also took the guard off the enabled accessibility services, so nothing is left behind.
