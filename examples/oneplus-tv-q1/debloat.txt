@@ -1,0 +1,48 @@
+# OnePlus TV Q1 / Q1 Pro (model Oneplus_Dosa_IN, codename Dosa), Android TV 11 (API 30), firmware RTM5.220609.299
+# MediaTek MT5887, armeabi-v7a, UI at 1920x1080, ~2.5 GB RAM, India. Classic Android TV home, not Google TV.
+# Stock launcher: com.google.android.tvlauncher. Live TV app: com.oneplus.tv.android.livetv.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/oneplus-tv-q1/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/oneplus-tv-q1/debloat.txt
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Kept on purpose: the HDMI/tuner stack (com.oneplus.tv.android.livetv, com.mediatek.tvinput,
+# com.mediatek.tvinputservice.arbitratorservice, com.oneplus.tv.android.support), the remote service
+# (com.oneplus.tv.remote), the hot keys (com.mediatek.hotkey.dispatcher, which handles the Input key),
+# Google Assistant (com.google.android.katniss), firmware updates (com.oneplus.tv.systemupgrade,
+# com.heytap.oprcupgradeservice), Play Store and Play Services.
+# With launcher/ as Home (live_tv_package com.oneplus.tv.android.livetv), Home, Input, Netflix,
+# YouTube, Prime Video and the Assistant mic on the remote work without InputKeyService or HomeKeyService.
+# USB debugging opens port 5555, and stays open across reboots until switched off.
+# Reboot-checked: nothing came back enabled. AdGuard Private DNS validates.
+
+# Telemetry and background services
+com.google.android.feedback                  # Google feedback reporter
+com.heytap.mcs                               # HeyTap push messaging and telemetry
+com.google.android.syncadapters.calendar      # Background calendar synchronization
+com.android.providers.calendar                # Calendar content provider
+com.google.android.boot.appsplashscreen       # Boot splash screen animator
+com.oneplus.oobe.tv                          # OnePlus out-of-box setup leftovers
+
+# Recommendations, OnePlus extras, auto-installs
+android.autoinstalls.config.OnePlus          # OnePlus Play auto-installs configuration
+com.oneplus.tv.launcher                      # OxygenPlay content page
+com.google.android.tvrecommendations         # Stock home recommendation rows
+com.google.android.leanbacklauncher.partnercustomizer # Sponsored partner channels
+com.oneplus.tv.userguide                     # Built-in user guide
+com.oneplus.tv.imagewall                     # Image wall screensaver bloat
+com.google.android.play.games                # Google Play Games TV stub
+
+# Stock launcher (replaced by launcher/ as Home)
+com.google.android.tvlauncher                # Stock Android TV home
+
+# Casting, mirroring and OnePlus extras (off by choice; comment in if needed)
+# com.google.android.apps.mediashell         # Chromecast built-in
+# com.heytap.optvmiracastservice             # Miracast screen mirroring
+# com.heytap.ars.sink                        # OnePlus "TV Mirror" screen sharing
+# oneplus.smarthome                          # OnePlus smart home control
+# net.oneplus.weather                        # Weather app
+# com.heytap.tv.filebrowser                  # USB file browser
+# com.heytap.tv.camera                       # TV Camera app
+# com.oneplus.dlna                           # DLNA receiver
+# com.oneplus.tv.btspeaker                   # Bluetooth speaker mode

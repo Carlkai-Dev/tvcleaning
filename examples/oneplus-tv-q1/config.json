@@ -1,0 +1,12 @@
+{
+  "dock_apps": [
+    "app.wuplay.androidtv",
+    "com.netflix.ninja",
+    "io.gh.reisxd.tizentube.cobalt",
+    "in.startv.hotstar",
+    "com.google.android.youtube.tv",
+    "com.amazon.amazonvideo.livingroom"
+  ],
+  "live_tv_package": "com.oneplus.tv.android.livetv",
+  "columns": 6
+}
