@@ -46,6 +46,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.os.UserManager;
 import android.provider.Settings;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -95,6 +96,10 @@ import java.util.Set;
  * tvOS style home: black, a pinned dock row, an app grid, and one glass highlight that springs between tiles.
  */
 public class MainActivity extends Activity implements AppAdapter.TileListener {
+
+    /** This instance only draws the locked Home; normal UI is initialized by a new instance after unlock. */
+    private boolean directBoot;
+    private BroadcastReceiver unlockReceiver;
 
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
     /** Sent by QuickSettingsActivity: open Launcher settings from here so Home rebuilds when they close. */
@@ -372,6 +377,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        directBoot = !getSystemService(UserManager.class).isUserUnlocked();
+        if (directBoot) {
+            showLockedHome();
+            return;
+        }
         setContentView(R.layout.activity_main);
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
@@ -817,6 +827,50 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
+     * Some firmware needs a drawn HOME before it can finish unlocking the user. Do not load Config or inflate
+     * the normal UI here: theme files, preferences, tile order and card consent all live in credential-protected
+     * storage. Keeping this screen storage-free also avoids moving or overwriting an existing user's settings.
+     */
+    private void showLockedHome() {
+        TextView home = new TextView(this);
+        home.setText(R.string.app_name);
+        home.setTextSize(24);
+        home.setTextColor(Color.WHITE);
+        home.setGravity(Gravity.CENTER);
+        home.setBackgroundColor(Color.BLACK);
+        setContentView(home);
+
+        unlockReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Intent.ACTION_USER_UNLOCKED.equals(intent.getAction())) recreateAfterUnlock();
+            }
+        };
+        IntentFilter filter = new IntentFilter(Intent.ACTION_USER_UNLOCKED);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(unlockReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(unlockReceiver, filter);
+        }
+        // As in HomeKeyService, catch an unlock between the initial check and receiver registration.
+        recreateAfterUnlock();
+    }
+
+    private void recreateAfterUnlock() {
+        if (unlockReceiver == null || isFinishing() || isDestroyed()
+                || !getSystemService(UserManager.class).isUserUnlocked()) return;
+        stopWaitingForUnlock();   // Only one recreation, even if onResume and the broadcast both notice it.
+        // directBoot stays true on this instance: its normal UI was never initialized, even during teardown.
+        recreate();
+    }
+
+    private void stopWaitingForUnlock() {
+        if (unlockReceiver == null) return;
+        unregisterReceiver(unlockReceiver);
+        unlockReceiver = null;
+    }
+
+    /**
      * handle_view_inputs: switch InputsRequestActivity, the VIEW_INPUTS handler, on or off. It is disabled in the
      * manifest, so a TV with its own input picker never sees it; only the sets that need it turn it on. Written
      * only when the state differs, so an ordinary start does not touch the package manager.
@@ -876,6 +930,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        if (directBoot) return;   // onResume checks for unlock; no settings, inputs or tiles exist yet.
         if (openLauncherSettingsIfAsked(intent)) return;
         if (openInputsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;
@@ -894,6 +949,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onStart() {
         super.onStart();
+        if (directBoot) return;
         stopped = false;
         started = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -908,6 +964,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        if (directBoot) {
+            recreateAfterUnlock();
+            return;
+        }
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
             recreate();
@@ -976,6 +1036,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (directBoot) return;
         if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
                 && data != null && data.getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) {
             getIntent().putExtra(LauncherSettingsActivity.EXTRA_REORDER, true);
@@ -1108,6 +1169,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onUserInteraction() {
         super.onUserInteraction();
+        if (directBoot) return;
         restartIdleClock();
     }
 
@@ -1119,6 +1181,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        if (directBoot) return;
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
@@ -1139,6 +1202,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onStop() {
         super.onStop();
+        if (directBoot) return;
         started = false;
         unregisterReceiver(timeReceiver);
         handler.removeCallbacks(clockCheck);
@@ -1154,6 +1218,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onTrimMemory(int level) {
         super.onTrimMemory(level);
+        if (directBoot) return;
         // RUNNING_LOW and CRITICAL also arrive while Home is visible when an accessibility service keeps the
         // process in the foreground; never blank the screen the owner is looking at.
         if (!MemoryTrimPolicy.shouldRelease(level, started)) return;
@@ -1171,6 +1236,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        if (directBoot) return;
         if (hasFocus) {
             startPendingSettingsReorder();
             if (libraryFocusPending && appLibrary == null) focusLibrary();
@@ -1181,6 +1247,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopWaitingForUnlock();
+        if (directBoot) return;
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
@@ -1224,6 +1292,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        if (directBoot) return super.dispatchKeyEvent(event);
         if (handleSettingsKey(event)) return true;
         if (tileMenuEnabled && !reordering && openPopup == null && cardPrompt == null
                 && event.getKeyCode() == KeyEvent.KEYCODE_MENU) {

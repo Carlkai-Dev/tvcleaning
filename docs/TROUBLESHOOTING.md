@@ -331,6 +331,13 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   When it keeps naming the stock launcher, the set is debloat-only until someone runs these two checks on
   that exact board (Thomson 40FG2S14W, Expressluck `nagata`, Android TV 14 `UKNV.260317.001`,
   [notes](devices/thomson-40fg2s14w.md)).
+- **Hisense 55E5Q-PRO stays in `BOOTING` after stock Home is disabled** (Android 11,
+  `02.02.70.01`, [#1436](https://github.com/Gathin23/cleanyourtv/issues/1436)). Home must start before
+  user unlock, then load saved settings and themes after `ACTION_USER_UNLOCKED`. Before handover,
+  check that `cmd package query-activities --brief --query-flags 0x00080000 -a android.intent.action.MAIN -c android.intent.category.HOME`
+  lists the replacement. To recover, re-enable `com.jamdeo.tv.vod` and open
+  `com.jamdeo.tv.vod/com.ju.main.launcher.LauncherActivity`. After upgrading, check a cold boot and
+  saved settings. The firmware may resume its last HDMI input; Home should remain accessible.
 - **Stuck on the boot animation after the launcher change, ADB gone** (JVC LT-43N7115, CVTE
   `TP.SK706S.PC822`, Android 11, [#741](https://github.com/Gathin23/cleanyourtv/discussions/741)): the stock
   launcher `com.cvte.tv.launcher.space` was disabled and a remote-key helper enabled before one reboot.
