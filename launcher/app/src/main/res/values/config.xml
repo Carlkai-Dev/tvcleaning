@@ -367,4 +367,9 @@
          a theme can set "focus_anticipation": true. -->
     <bool name="focus_anticipation">false</bool>
 
+    <!-- Apple Glass multi-layer glass material. 1 = original single-layer glass (default); 2 = an additional angled
+         fill layer, a diagonal specular strip and a corner radial glow for a deeper material look.
+         Can also be set with "glass_depth_layers": 2 in a theme's config.json. -->
+    <integer name="glass_depth_layers">1</integer>
+
 </resources>

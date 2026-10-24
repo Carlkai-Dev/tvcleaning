@@ -208,6 +208,8 @@ final class Config {
     final boolean tileMenu;
     /** Tile briefly squashes before expanding on focus for an Apple-quality coiling feel (focus_anticipation). */
     final boolean focusAnticipation;
+    /** Apple Glass multi-layer glass material depth (glass_depth_layers, 1 or 2); 1 = original. */
+    final int glassDepthLayers;
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, List<String> libraryApps, String liveTvPackage,
                    String liveTvAction, String liveTvInputId, Map<String, String> launchActions, Map<String, String> appLabels,
@@ -223,7 +225,7 @@ final class Config {
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough,
-                   boolean focusAnticipation) {
+                   boolean focusAnticipation, int glassDepthLayers) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -303,6 +305,7 @@ final class Config {
         this.cinematicScrim = cinematicScrim;
         this.wallpaperMoods = wallpaperMoods;
         this.gamepadPassthrough = gamepadPassthrough;
+        this.glassDepthLayers = Math.max(1, Math.min(2, glassDepthLayers));
         this.focusAnticipation = focusAnticipation;
         this.glowStyle = glowStyle(glowStyle);
         this.wallpaperCaptions = wallpaperCaptions;
@@ -392,6 +395,7 @@ final class Config {
         Map<String, Set<String>> wallpaperMoods = moods(res.getString(R.string.wallpaper_moods));
         String glowStyle = res.getString(R.string.glow_style);
         boolean focusAnticipation = res.getBoolean(R.bool.focus_anticipation);
+        int glassDepthLayers = res.getInteger(R.integer.glass_depth_layers);
         boolean applied = false;
 
         File dir = dir(ctx);
@@ -473,6 +477,7 @@ final class Config {
             if (moods != null) wallpaperMoods = moods(moods);
             glowStyle = string(json, "glow_style", glowStyle);
             focusAnticipation = bool(json, "focus_anticipation", focusAnticipation);
+            glassDepthLayers = integer(json, "glass_depth_layers", glassDepthLayers, 1, 2);
         }
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
@@ -527,7 +532,7 @@ final class Config {
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied,
                 festival, inputKeycodes, appKeys, stockHomeRedirect, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow, fadeRows,
                 Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, gamepadPassthrough,
-                focusAnticipation);
+                focusAnticipation, Math.max(1, Math.min(2, glassDepthLayers)));
     }
 
     /**

@@ -117,6 +117,7 @@ A new key needs one there in the same pull request.
 | `ambient_glow` | bool | The glow behind the dock in the focused app's colour (`true` by default); `false` keeps only `background_color` or the wallpaper, e.g. for a calm photo background |
 | `app_glow` | bool | The focus highlight glows in the focused app's colour on every tile, as `cinematic_home` does for the dock (`false` by default) |
 | `fade_rows` | bool | The rows fade out as they scroll up under the clock instead of being cut off at a hard line; the wallpaper or sky shows through. The grid then draws into a hardware layer (about 6 MB of graphics memory at 1080p) (`false` by default) |
+| `glass_depth_layers` | 1 or 2 | Glass material depth for the focus highlight: `1` is the original single-layer glass (default); `2` adds an angled fill layer, a diagonal specular strip and a corner radial glow for an Apple Glass multi-layer material look. Needs `animations` on |
 | `focus_anticipation` | bool | The focused tile briefly squashes to 0.96× before springing to its focus size, giving a physical coiling-and-release feel. Only active when `animations` and `advanced_effects` are both on; `false` by default |
 
 ## Wallpapers
