@@ -117,7 +117,7 @@ Tested lists from contributors, one folder per model in [`examples/`](examples/)
 **Hitachi** 2 · **Kalley** 2 · **Motorola** 2 · **Nokia** 2 · **NVIDIA Shield** 2 · **onn** 2 · **RCA** 2 · **Redmi** 2 ·
 **Sankey** 2 · **SHARP** 2 · **Toshiba** 2 · **Vu** 2 ·
 Acer · AiPro2K · AIWA · Artel · Caxium · Cecotec · Challenger · Compac · Dialog · EKO · Freebox · Grundig ·
-Insignia Fire TV · JVC · Karbonn · Kogan · Lumio · Master-G · MTC · Noblex · OK. · PEAQ · Polytron · PRISM+ · RockTek ·
+Insignia Fire TV · JVC · Karbonn · Kogan · Letv · Lumio · Master-G · MTC · Noblex · OK. · PEAQ · Polytron · PRISM+ · RockTek ·
 SANYO · Sber · Super General · Tele System · TiVo · Tornado · Turkcell · Verizon · Vidda · Vision ·
 Anker Nebula, BYINTEK, Epson, Formovie, Gadnic, HOTACK, JMGO, Magcubic, Portronics, Stellamore, Wanbo and XGIMI projectors
 
@@ -188,6 +188,7 @@ Anker Nebula, BYINTEK, Epson, Formovie, Gadnic, HOTACK, JMGO, Magcubic, Portroni
 | Karbonn SWTV-20AE (Skyworth OEM, SW4H, MediaTek), India | Android TV 10 |
 | Kogan Google TV (Changhong CHiQ AI PONT, GTVU65KG, dangni, MediaTek mt5867), Australia | Google TV 14 |
 | KTC 4K Smart TV (device hongkong, MediaTek), Taiwan | Google TV 14 |
+| Letv X3-65 (retail label X65-168CQ, board guava, MStar 6A928), China | Android 5.0.1 / EUI |
 | Liberton LTV 24H01AT (Liberton, built by Changhong, device redwood), Ukraine | Android TV 11 |
 | Lumio Vision 7 55" (KTC ODM, Realtek, khardi, KTC_LUMIO_4K_EU_23GV1), India | Google TV 14 |
 | Magcubic HY300 Pro projector (rk3566_rgo, device adt3, Askey) | Android 11 |

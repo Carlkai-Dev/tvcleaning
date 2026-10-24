@@ -1,0 +1,65 @@
+# Letv X3-65 (retail label X65-168CQ, board guava, MStar 6A928), China, Android 5.0.1 (API 21), EUI
+# Build V2301RCN02C080080B06141S. Owner-confirmed 2026-10-24, two reboots verified.
+# Stock home: com.stv.deskplatform (declares HOME with the custom action com.stv.launcher.action.start).
+# Live TV / tuner: com.letv.android.tv.letvlive (hidden here at the owner's choice - it is also the
+# boot auto-play video engine; hiding it removes the desktop's 首页 tab).
+#
+# MECHANISM: pm hide, NOT pm disable-user. This firmware refuses disable-user with
+# SecurityException (shell lacks CHANGE_COMPONENT_ENABLED_STATE), so tools/disable.sh does not
+# apply. Apply with:
+#   TV_HOST=<ip> tools/venv/Scripts/python.exe tools/tv.py --batch < examples/letv-x3-65/hide-all.txt
+# Undo:
+#   TV_HOST=<ip> tools/venv/Scripts/python.exe tools/tv.py --batch < examples/letv-x3-65/unhide-all.txt
+#
+# NEVER HIDE (verified on the TV):
+#   com.stv.deskplatform   HOME (verified owner of the launcher process)
+#   com.stv.appdaemon      critical boot path - hiding it doubles boot time and breaks the
+#                          launch chain (stuck at logo). Its InstallBroadcastReceiver is
+#                          neutralised anyway once stvpush + cdeapk are hidden.
+#   com.stv.commonservice / com.stv.systemcontrol / com.stv.globalsetting
+#   com.stv.signalsourcemanager (HDMI/AV inputs) / com.stv.miracast (cast) / com.stv.voice
+#   com.stv.lekey / com.stv.smartControl / com.stv.systemupgrade (OTA)
+#   com.stv.t2.account / com.stv.helper.* / com.stv.litemode / com.stv.guider / com.stv.openni
+#   com.stv.net.misc / com.stv.es / com.stv.orbe / com.letv.combine / com.letv.tvos.intermodal
+#   com.letv.unityplayer (unknown-purpose background; deferred)
+#   all com.android.* / android
+#
+# Kept apps at owner's request: com.github.tvbox.osc.tk (TVBox), o.k (FongMi TV)
+#
+# Firmware-level leftovers that ADB cannot remove (needs root):
+#   - 15 s boot video ad: /tvconfig/video.ts, read-only ext4 partition
+#   - CIBN 播控认证 splash at every boot (firmware/desktop layer)
+#   - desktop tabs (精选 remains as an empty shell; 首页 disappears with letvlive hidden)
+
+# --- ads / silent install / telemetry ---
+com.stv.bootadmanager          # boot + shutdown + JD/Ali shopping + screensaver ads (one package)
+com.stv.stvpush                # push service, holds INSTALL_PACKAGES
+com.stv.cdeapk                 # cloud APK delivery (CDE)
+com.stv.reportService          # telemetry
+com.stv.reportlog              # telemetry logs
+com.stv.macscanner             # scans + reports device MACs on network connect
+com.stv.lap.alitvbuy           # Ali TV shopping, location + overlay
+com.le.lepay.tv                # LeTV payment, boot receiver
+com.kuyun.identifer            # kuyun ad-analytics device identifier
+com.kuyun.stv.androidtv        # kuyun analytics
+com.kuyun.common.androidtv     # kuyun/CIBN plugin host (auth splash survived hiding it; see README)
+com.lap.devicescanner          # device scanner
+sina.mobile.tianqitongstv      # Sina weather, boot receiver
+
+# --- content engines / promo overlays ---
+com.letv.android.tv.letvlive   # 乐见 video engine; hiding it removes the boot auto-play and the 首页 tab
+com.stv.screenflyter           # 飞屏: draws the full-screen movie promos (NOT casting; miracast kept)
+
+# --- preloaded streaming/apps the owner does not use (keeps TVBox + o.k/FongMi) ---
+com.cibn.tv                    # Youku TV (CIBN 酷喵)
+com.gitvvideo.letv             # 银河爱奇艺 (GITV)
+com.iptv.ylhb                  # operator IPTV client
+com.newtv.sport                # 未来电视 sports
+com.tvos.store.music           # LeTV music store
+com.dangbei.dbmusic.letv.tab   # 当贝音乐
+com.letv.lekids                # kids mode
+com.stv.android.videochat      # video chat (camera models)
+
+# --- identified and hidden at owner's request ---
+com.letv.leso                  # 万象搜索 (label verified in APK)
+com.stv.ucenter                # 乐范 user center (label verified in APK)
