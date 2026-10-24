@@ -28,7 +28,9 @@ for ID in gg-sunset gg-night sequoia noche utah; do
     F="$SRC/$ID.$EXT"
     [ -f "$F" ] || continue
     echo "enviando $ID.$EXT ($(du -h "$F" | cut -f1))..."
-    tv --push "$F" "$TMP-$ID.$EXT" >/dev/null
+    # b64push, no tv --push: el envío "sync" de adb_shell se cuelga con archivos de varios MB (visto en la TV box
+    # Xiaomi S 3.ª gen, Android 14). b64push manda trozos por la shell y comprueba el md5 al final.
+    "$PY" -I b64push.py "$F" "$TMP-$ID.$EXT" | tail -n 1
     tv "rm -f $DIR/videos/$ID.$EXT 2>/dev/null; { o=\$(content write --uri $URI/videos/$ID.$EXT < $TMP-$ID.$EXT 2>&1) && case \"\$o\" in *'Unsupported operation'*) false ;; esac; } || cp $TMP-$ID.$EXT $DIR/videos/$ID.$EXT; rm -f $TMP-$ID.$EXT" >/dev/null
     [ "$EXT" = mp4 ] && N=$((N + 1))
   done
