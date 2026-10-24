@@ -504,9 +504,13 @@ the fallback if the TV opens Google TV separately. This does not change the syst
 disable the stock launcher. The receiver is disabled unless both keys are explicitly on.
 On a TCL C6K Pro (Google TV 14, G08), boot logs showed Google TV's boot dispatcher continuing to
 open its Home activity after CleanYourTV had already been requested, so that early launch could lose
-the foreground race. HomeKeyService now waits 1.8 seconds before its direct boot launch and delays
-stock-Home redirects by 700 ms, retrying at most three times while stock-Home window events continue.
-The retries stop when a non-stock window event arrives; this is bounded event handling, not polling.
+the foreground race. HomeKeyService waits 1.8 seconds before its direct boot launch. On a physical
+Home press, HomeKeyService handles a short `KEYCODE_HOME` directly when TCL delivers that event,
+opening CleanYourTV after 250 ms while leaving long presses to the system. If TCL starts its stock
+Home separately, the window-event fallback requests CleanYourTV immediately and retries after 700
+ms, at most three times while stock-Home window events continue. This fallback cannot prevent a
+Google TV frame when firmware launches its Home first. Retries stop when a non-stock window event
+arrives; this is bounded event handling, not polling.
 Rebinding briefly reconnects every accessibility service in the saved list. On TCL firmware, also
 grant the `AUTO_START` app-op so Android allows the accessibility service to bind while CleanYourTV
 is not running. Set both keys to true in the active theme or matching `config.xml` values, grant

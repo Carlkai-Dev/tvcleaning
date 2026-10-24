@@ -39,7 +39,8 @@ import java.util.Set;
  */
 public class HomeKeyService extends AccessibilityService {
     private static final long BOOT_HOME_LAUNCH_DELAY_MS = 1800;
-    private static final long STOCK_HOME_REDIRECT_DELAY_MS = 700;
+    private static final long HOME_KEY_LAUNCH_DELAY_MS = 250;
+    private static final long STOCK_HOME_REDIRECT_RETRY_DELAY_MS = 700;
     private static final int MAX_STOCK_HOME_REDIRECT_ATTEMPTS = 3;
 
     /** restore_key_services was on when the config was read: this helper is noted for ServiceRepair. */
@@ -60,6 +61,7 @@ public class HomeKeyService extends AccessibilityService {
     /** The stock launcher's HOME activities (stock_home_redirect), disabled ones included. */
     private final Set<String> stockHome = new HashSet<>();
     private boolean bootLauncherRedirected;
+    private boolean homeLongPress;
     private final Handler launchHandler = new Handler(Looper.getMainLooper());
     private Runnable pendingBootHomeLaunch;
     private Runnable pendingStockHomeRedirect;
@@ -208,6 +210,10 @@ public class HomeKeyService extends AccessibilityService {
     }
 
     private void scheduleStockHomeRedirect() {
+        scheduleStockHomeRedirect(0);
+    }
+
+    private void scheduleStockHomeRedirect(long delayMs) {
         if (pendingStockHomeRedirect != null
                 || stockHomeRedirectAttempts >= MAX_STOCK_HOME_REDIRECT_ATTEMPTS) return;
         pendingStockHomeRedirect = () -> {
@@ -223,10 +229,14 @@ public class HomeKeyService extends AccessibilityService {
                 }
             }
             if (stockHomeRedirectAttempts < MAX_STOCK_HOME_REDIRECT_ATTEMPTS) {
-                scheduleStockHomeRedirect();
+                scheduleStockHomeRedirect(STOCK_HOME_REDIRECT_RETRY_DELAY_MS);
             }
         };
-        launchHandler.postDelayed(pendingStockHomeRedirect, STOCK_HOME_REDIRECT_DELAY_MS);
+        if (delayMs == 0) {
+            launchHandler.post(pendingStockHomeRedirect);
+        } else {
+            launchHandler.postDelayed(pendingStockHomeRedirect, delayMs);
+        }
     }
 
     private void cancelStockHomeRedirect() {
@@ -276,6 +286,10 @@ public class HomeKeyService extends AccessibilityService {
         }
         if (RemoteKeys.handle(this, event, appKeys.get(event.getKeyCode()),
                 holdAppKeys.get(event.getKeyCode()))) return true;
+        if (event.getKeyCode() == KeyEvent.KEYCODE_HOME && !stockHome.isEmpty()) {
+            redirectHomeKey(event);
+            return false;
+        }
         if (event.getKeyCode() != KeyEvent.KEYCODE_ALL_APPS) return false;
         if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
             Intent home = new Intent(Intent.ACTION_MAIN)
@@ -285,6 +299,20 @@ public class HomeKeyService extends AccessibilityService {
             startActivity(home);
         }
         return true;
+    }
+
+    private void redirectHomeKey(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            homeLongPress = event.getRepeatCount() > 0;
+        } else if (event.getAction() == KeyEvent.ACTION_UP) {
+            if (!event.isCanceled() && !homeLongPress) {
+                launchHandler.postDelayed(() -> {
+                    Log.i("TvHomeKeyService", "Opening CleanYourTV after the physical Home key");
+                    openLauncher();
+                }, HOME_KEY_LAUNCH_DELAY_MS);
+            }
+            homeLongPress = false;
+        }
     }
 
     /** Unbound by Android: the user turned the helper off, so Home doesn't put it back (ServiceRepair). */

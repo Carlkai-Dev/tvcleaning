@@ -54,7 +54,9 @@ remains unverified: those scripts change Home and disable the recognized stock l
 The current HomeKeyService handles `KEYCODE_ALL_APPS`, which is not the same as a standard
 `KEYCODE_HOME`. The G08's Google TV launcher continues to receive the physical Home press despite
 the stored HOME role. The repository already has a fallback for this case: `stock_home_redirect`
-asks HomeKeyService to return to CleanYourTV whenever the stock launcher's Home activity appears.
+lets HomeKeyService handle a short physical `KEYCODE_HOME` directly when the service receives it,
+while leaving long presses alone; its window-event redirect remains the fallback if TCL launches
+the stock Home separately.
 The C6K Pro build config points this setting to `com.google.android.apps.tv.launcherx`.
 
 The helper is not enabled by the installer. Before any helper test, confirm ADB is available and
@@ -89,18 +91,22 @@ about 2.1 seconds from Google's Home activity start to CleanYourTV's activity st
 window drawn about 5 seconds after Google's Home start; this is one run, not a multi-boot benchmark.
 Later logs exposed a race: the boot dispatcher continued starting Google's `HomeActivity` after
 CleanYourTV's first request, and that request arrived before Google's Home window finished drawing.
-The launch path now waits 1.8 seconds before its direct boot request and the accessibility redirect
-waits 700 ms, with up to three bounded retries while a stock-Home window remains active. This is
-intended to reassert CleanYourTV after TCL finishes its own startup sequence. On the updated build,
+The launch path now waits 1.8 seconds before its direct boot request. A short physical Home press is
+handled directly by HomeKeyService when TCL delivers `KEYCODE_HOME`; it opens CleanYourTV 250 ms
+after key-up and leaves long presses to the system. If TCL separately opens its stock Home, the
+window-event fallback requests CleanYourTV immediately, then retries after 700 ms up to three times
+while stock-Home window events continue. The boot redirect uses the same immediate first request and
+bounded retries to reassert CleanYourTV after TCL finishes its own startup sequence. After the
+updated build was installed, the owner reported that Google TV appeared on the first presses but
+subsequent physical Home presses opened only CleanYourTV; the device log confirmed the direct Home
+key handler ran. This is one test session, not a guarantee across all boots. On this build,
 a cold reboot with Google TV enabled brought CleanYourTV to the foreground automatically; the
 retained activity log showed Google's Home start at 16:31:28.918 and CleanYourTV at 16:31:37.016
 (about 8.1 seconds later). CleanYourTV was still foreground when checked, and no further Google Home
 launch appeared in the captured startup log. This is one cold-boot test, not a guarantee after every
 long power-off. The HOME role remains CleanYourTV, and neither Google TV nor `setupwraith` was
-disabled. The
-physical Home button was not retested after this reboot; do not disable the stock launcher unless it
-is separately confirmed after reboot. A successful `set-home-activity` response or HOME role holder
-alone is not proof.
+disabled. Do not disable the stock launcher unless it is separately confirmed after reboot. A
+successful `set-home-activity` response or HOME role holder alone is not proof.
 
 To opt in, set both booleans to `true` in the active theme or corresponding `config.xml` values and
 install with `-LaunchHomeAfterBoot` (Windows) or `LAUNCH_HOME_AFTER_BOOT=1` (Bash). That explicitly

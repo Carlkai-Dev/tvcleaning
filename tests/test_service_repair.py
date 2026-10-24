@@ -39,9 +39,16 @@ class TestServiceRepairWiring(unittest.TestCase):
         self.assertNotIn("performGlobalAction(GLOBAL_ACTION_HOME)", HOME_SERVICE)
         self.assertIn("AccessibilityEvent.TYPE_WINDOWS_CHANGED", HOME_SERVICE)
         self.assertIn("BOOT_HOME_LAUNCH_DELAY_MS = 1800", HOME_SERVICE)
-        self.assertIn("STOCK_HOME_REDIRECT_DELAY_MS = 700", HOME_SERVICE)
+        self.assertIn("STOCK_HOME_REDIRECT_RETRY_DELAY_MS = 700", HOME_SERVICE)
         self.assertIn("MAX_STOCK_HOME_REDIRECT_ATTEMPTS = 3", HOME_SERVICE)
         self.assertIn("scheduleStockHomeRedirect();", HOME_SERVICE)
+        self.assertIn("scheduleStockHomeRedirect(0);", HOME_SERVICE)
+        self.assertIn("launchHandler.post(pendingStockHomeRedirect);", HOME_SERVICE)
+        self.assertIn("scheduleStockHomeRedirect(STOCK_HOME_REDIRECT_RETRY_DELAY_MS);", HOME_SERVICE)
+        self.assertIn("event.getKeyCode() == KeyEvent.KEYCODE_HOME && !stockHome.isEmpty()", HOME_SERVICE)
+        self.assertIn("HOME_KEY_LAUNCH_DELAY_MS = 250", HOME_SERVICE)
+        self.assertIn("homeLongPress = event.getRepeatCount() > 0", HOME_SERVICE)
+        self.assertIn("redirectHomeKey(event);", HOME_SERVICE)
 
     def test_tcl_rebind_requires_permission_and_previous_helper_record(self):
         self.assertIn("Manifest.permission.WRITE_SECURE_SETTINGS", SERVICE_REPAIR)
