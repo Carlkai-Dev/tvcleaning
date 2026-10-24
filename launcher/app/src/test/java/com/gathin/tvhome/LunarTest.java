@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
@@ -53,6 +54,30 @@ public class LunarTest {
         assertArrayEquals(new int[]{1, 1, 2007, 0}, Lunar.fromSolar(17, 2, 2007, 7));
         assertArrayEquals(new int[]{30, 12, 2006, 0}, Lunar.fromSolar(17, 2, 2007, 8));
         assertArrayEquals(new int[]{1, 1, 2007, 0}, Lunar.fromSolar(18, 2, 2007, 8));
+    }
+
+    @Test
+    public void yearNames() {
+        assertEquals("Ất Tỵ", VI_STEMS[Lunar.stem(2025)] + " " + VI_BRANCHES[Lunar.branch(2025)]);
+        assertEquals("Bính Ngọ", VI_STEMS[Lunar.stem(2026)] + " " + VI_BRANCHES[Lunar.branch(2026)]);
+        assertEquals("Giáp Tý", VI_STEMS[Lunar.stem(1984)] + " " + VI_BRANCHES[Lunar.branch(1984)]);
+    }
+
+    @Test
+    public void vietnameseText() {
+        // The patterns of res/values-vi/lunar.xml.
+        assertEquals("Âm lịch 13/9 · Bính Ngọ", vi(Lunar.fromSolar(22, 10, 2026, 7)));
+        assertEquals("Âm lịch 29/12 · Ất Tỵ", vi(Lunar.fromSolar(16, 2, 2026, 7)));
+        assertEquals("Âm lịch 1/1 · Bính Ngọ", vi(Lunar.fromSolar(17, 2, 2026, 7)));
+        assertEquals("Âm lịch 1/2 nhuận · Quý Mão", vi(Lunar.fromSolar(22, 3, 2023, 7)));
+        assertEquals("Âm lịch 1/6 nhuận · Ất Tỵ", vi(Lunar.fromSolar(25, 7, 2025, 7)));
+    }
+
+    private static final String[] VI_STEMS = {"Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"};
+    private static final String[] VI_BRANCHES = {"Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"};
+
+    private static String vi(int[] l) {
+        return Lunar.format(l, "Âm lịch %1$d/%2$s · %3$s", "%1$d nhuận", "%1$s %2$s", VI_STEMS, VI_BRANCHES);
     }
 
     @Test

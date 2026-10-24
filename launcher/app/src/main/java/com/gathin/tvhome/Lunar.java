@@ -26,11 +26,26 @@ final class Lunar {
     static String today(Resources res, int utcOffset) {
         Calendar c = Calendar.getInstance();
         int[] l = fromSolar(c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.MONTH) + 1, c.get(Calendar.YEAR), utcOffset);
-        String month = l[3] == 1 ? res.getString(R.string.lunar_month_leap, l[1]) : String.valueOf(l[1]);
-        String[] stems = res.getStringArray(R.array.lunar_stems);
-        String[] branches = res.getStringArray(R.array.lunar_branches);
-        String year = res.getString(R.string.lunar_year, stems[Math.floorMod(l[2] + 6, 10)], branches[Math.floorMod(l[2] + 8, 12)]);
-        return res.getString(R.string.lunar_date_format, l[0], month, year);
+        return format(l, res.getString(R.string.lunar_date_format), res.getString(R.string.lunar_month_leap),
+                res.getString(R.string.lunar_year), res.getStringArray(R.array.lunar_stems),
+                res.getStringArray(R.array.lunar_branches));
+    }
+
+    /** {day, month, year, leap} as text, e.g. "Âm lịch 13/9 · Bính Ngọ"; the patterns are the lunar_* strings. */
+    static String format(int[] l, String dateFormat, String leapFormat, String yearFormat, String[] stems, String[] branches) {
+        String month = l[3] == 1 ? String.format(Locale.getDefault(), leapFormat, l[1]) : String.valueOf(l[1]);
+        String year = String.format(Locale.getDefault(), yearFormat, stems[stem(l[2])], branches[branch(l[2])]);
+        return String.format(Locale.getDefault(), dateFormat, l[0], month, year);
+    }
+
+    /** Index of a lunar year's heavenly stem (0 Giáp ... 9 Quý): 1984 was Giáp Tý. */
+    static int stem(int lunarYear) {
+        return Math.floorMod(lunarYear + 6, 10);
+    }
+
+    /** Index of a lunar year's earthly branch (0 Tý ... 11 Hợi). */
+    static int branch(int lunarYear) {
+        return Math.floorMod(lunarYear + 8, 12);
     }
 
     /** Gregorian date to {day, month, year, leap (1 = leap month)} of the lunar calendar at UTC+tz. */
