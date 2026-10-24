@@ -79,7 +79,7 @@
     <string name="library_remove_shortcut">Usuń z ekranu głównego</string>
     <string name="library_open">Otwórz</string>
     <string name="library_app_info">Informacje o aplikacji</string>
-    <string name="app_off">Wyłącz %1$s</string>
+    <string name="app_off">Wstrzymaj %1$s</string>
     <string name="app_details">Szczegóły aplikacji</string>
     <string name="library_save_failed">Nie udało się zapisać skrótu</string>
     <string name="library_recent">Nowa · Dodaj do ekranu głównego</string>

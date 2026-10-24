@@ -206,7 +206,7 @@ final class Config {
     final boolean handleViewInputs;
     /** Hold OK on a tile opens a menu (Move, Remove from Home, App info) instead of App info (config.xml / theme tile_menu). */
     final boolean tileMenu;
-    /** Hold OK on these packages opens Off and App details (config.xml app_off_packages). */
+    /** Hold OK on these packages opens Pause and App details (config.xml app_off_packages). */
     final List<String> appOffPackages;
 
     private Config(List<String> dockApps, boolean fillDock, List<String> hiddenApps, List<String> libraryApps, String liveTvPackage,

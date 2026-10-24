@@ -88,7 +88,7 @@
     <string name="library_remove_shortcut">Hapus dari Beranda</string>
     <string name="library_open">Buka</string>
     <string name="library_app_info">Info aplikasi</string>
-    <string name="app_off">Matikan %1$s</string>
+    <string name="app_off">Jeda %1$s</string>
     <string name="app_details">Detail aplikasi</string>
     <string name="library_save_failed">Tidak dapat menyimpan pintasan</string>
     <string name="library_recent">Baru · Tambah ke Beranda</string>

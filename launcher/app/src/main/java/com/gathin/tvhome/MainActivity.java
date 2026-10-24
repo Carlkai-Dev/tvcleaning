@@ -218,7 +218,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean reducedMotion;
     /** config.xml dock_row: the first row is a separate dock (band, parked low, top shelf) rather than plain grid. */
     private boolean dockRow;
-    /** Packages whose long-press menu is Off and App details (config.xml, app_off_packages). */
+    /** Packages whose long-press menu is Pause and App details (config.xml, app_off_packages). */
     private Set<String> appOffPackages = Collections.emptySet();
     /** The highlight springs past its target (config.xml, focus_overshoot); false goes straight there. */
     private boolean focusOvershoot;
@@ -2997,7 +2997,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } catch (PackageManager.NameNotFoundException ignored) {
             }
             String name = label;
-            if (MediaPlaying.started(this)) {
+            if (MediaPlaying.forPackage(this, pkg)) {
                 addSettingsMenuRow(rows, popup, getString(R.string.app_off, name), () -> stopAppPlayback(pkg));
             }
             addSettingsMenuRow(rows, popup, R.string.app_details, () -> open(new Intent(
@@ -3044,8 +3044,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     /**
-     * Pause this app. A pause key goes to whoever is playing, and taking audio focus makes that
-     * app release the sound.
+     * Pause this app. Shown only when this package is in front or holds the media-key session,
+     * so the pause key and the audio focus land on it.
      */
     private void stopAppPlayback(String pkg) {
         AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
