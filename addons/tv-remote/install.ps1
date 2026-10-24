@@ -61,6 +61,8 @@ if ($RelayUrl) {
     Write-Host "Relay: $RelayUrl (saved on the TV; a new one only needs this script again, no rebuild)."
     $r = Tv "am broadcast -n $pkg/.RelayReceiver --es url '$RelayUrl'"
     if (-not ($r -match 'result=0')) { Write-Warning "the TV refused the relay address $RelayUrl" }
+} else {
+    Write-Host "No -RelayUrl: the TV keeps the relay it had, or with none runs in LAN mode (phones on the same Wi-Fi only; see the README)."
 }
 Tv "am start -n $pkg/.MainActivity >/dev/null; echo opened"
 Write-Host 'Installed. TV Remote is open on the TV: scan the QR code with your phone. Press Home and answer Show card for the card.'

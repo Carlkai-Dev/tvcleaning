@@ -312,6 +312,8 @@ final class LocalServer {
         final AtomicBoolean frameBusy = new AtomicBoolean();
         volatile boolean auth, live, closed;
         volatile int fps = 2;
+        /** When the last picture went to this phone: one that asked for fewer a second gets fewer. */
+        volatile long lastFrameAt;
 
         Phone(Socket socket, OutputStream out, String id) {
             this.socket = socket;
@@ -332,13 +334,15 @@ final class LocalServer {
             send(LanHttp.frame(0x1, m.toString().getBytes(StandardCharsets.UTF_8)));
         }
 
-        boolean wantsFrame() {
-            return auth && live && !closed && !frameBusy.get();
+        boolean wantsFrame(long now) {
+            // A little early is fine: the capture's own clock decides the rate, this only thins it out.
+            return auth && live && !closed && !frameBusy.get() && now - lastFrameAt >= 900 / fps;
         }
 
-        /** Dropped when the last one is still going out. */
-        void sendFrame(byte[] frame) {
-            if (!auth || !live || closed || !frameBusy.compareAndSet(false, true)) return;
+        /** Dropped when the last one is still going out, or this phone asked for fewer. */
+        void sendFrame(byte[] frame, long now) {
+            if (!wantsFrame(now) || !frameBusy.compareAndSet(false, true)) return;
+            lastFrameAt = now;
             try {
                 writer.execute(() -> {
                     try {
@@ -481,7 +485,8 @@ final class LocalServer {
 
     /** Some phone here is watching and ready for the next picture. */
     static boolean canSendFrame() {
-        for (Phone p : phones) if (p.wantsFrame()) return true;
+        long now = android.os.SystemClock.elapsedRealtime();
+        for (Phone p : phones) if (p.wantsFrame(now)) return true;
         return false;
     }
 
@@ -489,7 +494,8 @@ final class LocalServer {
     static void sendFrame(byte[] jpeg) {
         if (phones.isEmpty()) return;
         byte[] f = LanHttp.frame(0x2, jpeg);
-        for (Phone p : phones) p.sendFrame(f);
+        long now = android.os.SystemClock.elapsedRealtime();
+        for (Phone p : phones) p.sendFrame(f, now);
     }
 
     static void liveError(String why) {

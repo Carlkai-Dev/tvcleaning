@@ -2,7 +2,8 @@
 
 A remote for the TV on your phone that works from anywhere, home or away, through a small relay you deploy
 to your own Cloudflare account. There is no app to download on the phone: you scan a QR code on the TV and
-get an installable web app (Add to Home Screen) with notifications. For the [Clean Your TV](../../README.md)
+get an installable web app (Add to Home Screen) with notifications. Before you set up a relay it works on
+the same Wi-Fi as the TV ([LAN mode](#no-relay-yet-lan-mode)). For the [Clean Your TV](../../README.md)
 launcher it declares a [module card](../../docs/modules.md): once you answer **Show card** its tile reads
 "TV Remote" with an orange glow. On any other Android TV home it is an ordinary app.
 
@@ -16,7 +17,7 @@ launcher, and it uses the same relay and phone page.
 
 | On the phone | What happens on the TV |
 |---|---|
-| **Live control** | A live view of the screen (about 2 pictures a second, 640 px wide), the D-pad with OK (hold it for the long press), Back, Home and Menu, volume, mute and channel up/down, and a keyboard that types into the text field selected on the TV. |
+| **Live control** | A live view of the screen (about 2 pictures a second through the relay, up to 30 in LAN mode; 640 px wide; full screen), the D-pad with OK (hold it for the long press), Back, Home and Menu, volume, mute and channel up/down, and a keyboard that types into the text field selected on the TV. |
 | **Message** | Your text, large in the middle of the screen over whatever is playing, until someone presses OK or Back (or you clear it). |
 | **Lock** | "This TV is locked" with a PIN pad. It comes back to the front if someone leaves it with Home, and after a reboot. The PIN unlocks, or Unlock on the phone. |
 | **Lock timer** | Locks the TV after 1 to 720 minutes, with a countdown in a small pill in the corner of the screen. |
@@ -59,6 +60,24 @@ itself, on its own address.
 On the TV, a foreground service (`RemoteService`, a minimal notification) holds the connection. It starts when
 you open the card and at boot.
 
+## No relay yet? LAN mode
+
+With no relay address on the TV, the card's QR code points at the TV itself:
+`http://<TV's address>:8781/#<id>.<key>`. The TV serves the same phone page and answers the same commands
+(`LocalServer`, plain HTTP on port 8781), so everything above works from a phone **on the same Wi-Fi**, with
+the live view up to 30 pictures a second. What you give up:
+
+- **Same Wi-Fi only.** Away from home the page can't reach the TV. If the TV's address changes (a new network,
+  the router hands out another one), the card shows a new code; scan it again.
+- **No notifications.** Web Push needs the relay (and HTTPS); the page says so.
+- **On iPhone, Add to Home Screen is a plain shortcut** (no app of its own over http), and it opens the TV's
+  address it was added from.
+
+The server answers only private addresses (10.x, 172.16-31.x, 192.168.x, link-local, loopback) and every
+command needs the phone key from the QR code, as with the relay; **New code** revokes LAN phones too. To move
+to the relay later, deploy it and run install.sh again with `RELAY_URL=…`: the QR code becomes the relay's link
+(the LAN server keeps answering phones that open the TV's address).
+
 ## Setup
 
 You need a Cloudflare account (the free plan is fine), and JDK 17 with Android SDK platform 34 to build, as for
@@ -87,6 +106,7 @@ the launcher.
    ```
 
    (Windows: `addons\tv-remote\install.ps1 -TvHost <tv ip> -RelayUrl https://tv-remote.<your-subdomain>.workers.dev`.)
+   Without `RELAY_URL` the TV starts in [LAN mode](#no-relay-yet-lan-mode).
    It installs the APK (building it first if needed), saves the relay's address on the TV and grants what the
    features need, saying what each is for (see Permissions). To move to another relay later, run it again with
    the new address; no rebuild. (`./gradlew assembleRelease -PrelayUrl=…` still builds the address in, as a
@@ -101,16 +121,18 @@ the launcher.
 from the phone. Press Home and answer **Show card** for the card; change the answer later by holding OK on
 Settings, then Module cards.
 
-The JVM tests (PIN hashing, the QR encoder against segno, Screen time's counting, the relay address check) run
-with `./gradlew testReleaseUnitTest`. The release build is signed with the debug key so
+The JVM tests (PIN hashing, the QR encoder against segno, Screen time's counting, the relay address check, LAN
+mode's request limits, pairing check and WebSocket frames, and the page assets the build makes) run with
+`./gradlew testReleaseUnitTest`. The phone page, its icons and font are not copied into the app: the build
+generates them from `relay/src` into the APK's assets, so the relay and LAN mode serve the same page. The release build is signed with the debug key so
 it installs over ADB like the launcher. Uninstall with `TV_HOST=<tv ip> addons/tv-remote/install.sh --uninstall`.
 
 ## Permissions
 
 | Permission | Why |
 |---|---|
-| Internet (`INTERNET`) | The WebSocket to your relay, and Sony IP control on the TV's own address (127.0.0.1 or its LAN address). Nothing else is contacted. |
-| Foreground service (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`) | `RemoteService` keeps the relay connection, the lock and the lock timer alive while other apps are in front. Its notification is at the lowest importance. |
+| Internet (`INTERNET`) | The WebSocket to your relay, Sony IP control on the TV's own address (127.0.0.1 or its LAN address), and LAN mode's page on TCP port 8781, which answers only private addresses on the home network. Nothing else is contacted. |
+| Foreground service (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`) | `RemoteService` keeps the relay connection (or LAN mode's server), the lock and the lock timer alive while other apps are in front. Its notification is at the lowest importance. |
 | Foreground service, media projection (`FOREGROUND_SERVICE_MEDIA_PROJECTION`) | `LiveService` holds the screen capture for the live view. It runs only while a paired phone has the live view open and stops 3 s after the last one closes it. |
 | Start at boot (`RECEIVE_BOOT_COMPLETED`) | To connect again after a reboot or an update, and to put the lock screen back if the TV was locked. |
 | Display over other apps (`SYSTEM_ALERT_WINDOW`) | The lock timer's countdown pill (`TYPE_APPLICATION_OVERLAY`), and opening the message, the lock screen and the screen-capture request while another app is in front (Android only lets an app start screens from the background with this). Granted by install.sh, since many TVs hide the setting. Without it the timer shows a toast instead and messages and the lock may not come to the front. |
@@ -160,6 +182,9 @@ is a port of that code; as an add-on it is still to be checked on that TV (and t
 3. The live view starts without a prompt and stops 3 s after the phone closes it.
 4. Screen time, the keyboard in a search field, Back/Home, ADB on/off, set_psk with a wrong and a right key,
    standby and wake.
+5. LAN mode (no relay address): the card shows `http://<TV address>:8781/…` and "On this Wi-Fi only"; the page
+   loads on a phone on the same Wi-Fi, pairs, runs commands, follows lock changes, and the live view runs
+   smoothly and stops when closed; New code drops the LAN phone.
 
 ## Maintainer
 

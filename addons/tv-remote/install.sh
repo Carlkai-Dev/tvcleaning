@@ -52,6 +52,8 @@ tv "appops set $PKG AUTO_START allow 2>/dev/null; appops set $PKG APP_AUTO_START
 if [ -n "${RELAY_URL:-}" ]; then
   echo "Relay: $RELAY_URL (saved on the TV; a new one only needs this script again, no rebuild)."
   tv "am broadcast -n $PKG/.RelayReceiver --es url '$RELAY_URL'" | grep -q "result=0" || echo "WARNING: the TV refused the relay address $RELAY_URL" >&2
+else
+  echo "No RELAY_URL: the TV keeps the relay it had, or with none runs in LAN mode (phones on the same Wi-Fi only; see the README)."
 fi
 tv "am start -n $PKG/.MainActivity >/dev/null; echo opened"
 echo "Installed. TV Remote is open on the TV: scan the QR code with your phone. Press Home and answer Show card for the card."
