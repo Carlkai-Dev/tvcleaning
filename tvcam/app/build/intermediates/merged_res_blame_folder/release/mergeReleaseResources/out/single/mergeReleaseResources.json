@@ -1,0 +1,98 @@
+[
+    {
+        "merged": "com.patilweb.tvcam.app-release-10:/layout_pip_overlay.xml.flat",
+        "source": "com.patilweb.tvcam.app-main-11:/layout/pip_overlay.xml"
+    },
+    {
+        "merged": "com.patilweb.tvcam.app-release-10:/layout_activity_settings.xml.flat",
+        "source": "com.patilweb.tvcam.app-main-11:/layout/activity_settings.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable-xhdpi_banner.png.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable-xhdpi\\banner.png"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable-xhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable-xhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_activity_player.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\activity_player.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_btn_bg.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\btn_bg.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable-hdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable-hdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_item_clip.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\item_clip.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_floating_pip.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\floating_pip.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_pip_overlay.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\pip_overlay.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_pip_frame.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\pip_frame.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_rec_dot.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\rec_dot.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\xml_module_card.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\xml\\module_card.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_activity_settings.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\activity_settings.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_banner.png.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\banner.png"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_pip_position_grid.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\pip_position_grid.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_ic_launcher.png.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable-mdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable-mdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable-xxxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable-xxxhdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_activity_gallery.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\activity_gallery.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_clip_item_bg.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\clip_item_bg.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_panel_bg.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\panel_bg.xml"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable-xxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable-xxhdpi\\ic_launcher.png"
+    }
+]

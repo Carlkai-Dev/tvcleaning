@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:padding="28dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_title"
+                android:textColor="@color/text_primary"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnBack"
+                android:layout_width="120dp"
+                android:layout_height="48dp"
+                android:text="@string/back"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/btn_bg"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="@string/settings_storage"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <Spinner
+            android:id="@+id/spinStorage"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_bg"
+            android:focusable="true"
+            android:spinnerMode="dropdown" />
+
+        <TextView
+            android:id="@+id/storagePathLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:fontFamily="monospace" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/settings_segment"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <Spinner
+            android:id="@+id/spinSegment"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_bg"
+            android:focusable="true"
+            android:spinnerMode="dropdown" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/settings_retain"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <Spinner
+            android:id="@+id/spinRetain"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_bg"
+            android:focusable="true"
+            android:spinnerMode="dropdown" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/settings_motion"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <Spinner
+            android:id="@+id/spinMotion"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_bg"
+            android:focusable="true"
+            android:spinnerMode="dropdown" />
+
+        <CheckBox
+            android:id="@+id/chkAudio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/settings_audio"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:focusable="true"
+            android:padding="12dp" />
+
+        <CheckBox
+            android:id="@+id/chkOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_overlay"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:focusable="true"
+            android:padding="12dp" />
+
+        <CheckBox
+            android:id="@+id/chkPip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_pip"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:focusable="true"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/btnOverlayPerm"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_pip_overlay_perm"
+            android:textAllCaps="false"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/btn_bg"
+            android:focusable="true" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/settings_pip_size"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <Spinner
+            android:id="@+id/spinPipSize"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_bg"
+            android:focusable="true"
+            android:spinnerMode="dropdown" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/settings_pip_position"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/pipPosLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/accent_soft"
+            android:textSize="16sp" />
+
+        <include
+            layout="@layout/pip_position_grid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" />
+
+        <CheckBox
+            android:id="@+id/chkBoot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_autostart"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:focusable="true"
+            android:padding="12dp" />
+    </LinearLayout>
+</ScrollView>

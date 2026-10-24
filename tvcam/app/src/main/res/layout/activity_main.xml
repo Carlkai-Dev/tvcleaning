@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <TextureView
+        android:id="@+id/preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="horizontal"
+        android:padding="18dp"
+        android:gravity="center_vertical"
+        android:background="@drawable/panel_bg"
+        android:layout_margin="16dp">
+
+        <View
+            android:id="@+id/recDot"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:background="@drawable/rec_dot"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/statusBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:text="@string/status_live"
+            android:textColor="@color/accent_soft"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:id="@+id/cameraLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:text="LifeCam HD-3000"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/clockLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp"
+            android:fontFamily="monospace" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/messageLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:padding="20dp"
+        android:background="@drawable/panel_bg"
+        android:textColor="@color/text_primary"
+        android:textSize="18sp"
+        android:visibility="gone" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:scrollbars="none"
+        android:padding="16dp"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:id="@+id/controlBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/panel_bg"
+            android:padding="12dp"
+            android:gravity="center_vertical">
+
+            <Button
+                android:id="@+id/btnRecord"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:text="@string/btn_record"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/btn_bg"
+                android:focusable="true"
+                android:nextFocusRight="@id/btnLoop" />
+
+            <Button
+                android:id="@+id/btnLoop"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="10dp"
+                android:text="@string/btn_loop"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/btn_bg"
+                android:focusable="true"
+                android:nextFocusLeft="@id/btnRecord"
+                android:nextFocusRight="@id/btnMotion" />
+
+            <Button
+                android:id="@+id/btnMotion"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="10dp"
+                android:text="@string/btn_motion"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/btn_bg"
+                android:focusable="true"
+                android:nextFocusLeft="@id/btnLoop"
+                android:nextFocusRight="@id/btnSnap" />
+
+            <Button
+                android:id="@+id/btnSnap"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="10dp"
+                android:text="@string/btn_snap"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/btn_bg"
+                android:focusable="true"
+                android:nextFocusLeft="@id/btnMotion"
+                android:nextFocusRight="@id/btnGallery" />
+
+            <Button
+                android:id="@+id/btnGallery"
+                android:layout_width="120dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="10dp"
+                android:text="@string/btn_gallery"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/btn_bg"
+                android:focusable="true"
+                android:nextFocusLeft="@id/btnSnap"
+                android:nextFocusRight="@id/btnSettings" />
+
+            <Button
+                android:id="@+id/btnSettings"
+                android:layout_width="120dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="10dp"
+                android:text="@string/btn_settings"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/btn_bg"
+                android:focusable="true"
+                android:nextFocusLeft="@id/btnGallery"
+                android:nextFocusRight="@id/btnPip" />
+
+            <Button
+                android:id="@+id/btnPip"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="10dp"
+                android:text="@string/btn_pip"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/btn_bg"
+                android:focusable="true"
+                android:nextFocusLeft="@id/btnSettings" />
+        </LinearLayout>
+    </HorizontalScrollView>
+</FrameLayout>

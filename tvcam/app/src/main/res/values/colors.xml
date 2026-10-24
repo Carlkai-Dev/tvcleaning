@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0B121C</color>
+    <color name="bg_elevated">#151E2B</color>
+    <color name="bg_panel">#CC0B121C</color>
+    <color name="text_primary">#F2F4F8</color>
+    <color name="text_secondary">#9AA3B2</color>
+    <color name="accent">#DC3232</color>
+    <color name="accent_soft">#3DDC97</color>
+    <color name="rec_red">#FF2D2D</color>
+    <color name="focus_ring">#FFFFFF</color>
+    <color name="overlay">#99000000</color>
+</resources>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pipRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/pip_frame"
+    android:padding="4dp"
+    android:elevation="24dp"
+    android:clickable="false"
+    android:focusable="false">
+
+    <ImageView
+        android:id="@+id/pipImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="@string/pip_live" />
+
+    <TextView
+        android:id="@+id/pipBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="6dp"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:background="#99000000"
+        android:text="@string/pip_live"
+        android:textColor="@color/accent_soft"
+        android:textSize="11sp"
+        android:textStyle="bold" />
+</FrameLayout>

@@ -1,0 +1,2 @@
+https://github.com/yuliskov/SmartTube/releases/download/32.68s/SmartTube_stable_32.68_arm64-v8a.apk
+SmartTube_stable_32.68_arm64-v8a.apk
