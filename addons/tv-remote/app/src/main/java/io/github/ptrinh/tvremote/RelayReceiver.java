@@ -21,7 +21,7 @@ public class RelayReceiver extends BroadcastReceiver {
             return;
         }
         context.getSharedPreferences(Relay.PREFS, Context.MODE_PRIVATE).edit().putString(Relay.KEY, url).commit();
-        RemoteRelay.setBase(url);
+        RemoteRelay.setBase(context, url);
         setResultCode(0);
         setResultData("relay " + url);
     }

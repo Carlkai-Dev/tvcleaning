@@ -43,6 +43,71 @@ android {
     }
 }
 
+// LAN mode: the TV serves the phone page itself (LocalServer), the same page the relay serves. It is made
+// from relay/src at build time into build/generated, so relay/src stays the only copy: page.html (the PAGE
+// template literal of page.js), sw.js, the icons (icons.js) and the font (font.js), base64 decoded.
+abstract class PageAssets extends DefaultTask {
+    @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract DirectoryProperty getRelaySrc()
+
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDir()
+
+    /** The body of `export const NAME = `...`;` in a module: no `${` or backtick or backslash may be inside. */
+    static String literal(String js, String name) {
+        String start = 'export const ' + name + ' = `'
+        int a = js.indexOf(start)
+        int b = js.lastIndexOf('`;')
+        if (a < 0 || b <= a) throw new GradleException("no template literal $name")
+        String body = js.substring(a + start.length(), b)
+        if (body.contains('`') || body.contains('${') || body.contains('\\')) {
+            throw new GradleException("$name has a backtick, \${ or a backslash: copy it with care")
+        }
+        return body
+    }
+
+    static byte[] base64(String js, String name) {
+        def m = js =~ ('export const ' + name + ' = "([A-Za-z0-9+/=]+)"')
+        if (!m.find()) throw new GradleException("no base64 constant $name")
+        return Base64.decoder.decode(m.group(1))
+    }
+
+    @TaskAction
+    void run() {
+        File src = relaySrc.get().asFile
+        File out = outputDir.get().asFile
+        out.deleteDir()
+        out.mkdirs()
+        new File(out, 'page.html').setText(literal(new File(src, 'page.js').getText('UTF-8'), 'PAGE'), 'UTF-8')
+        new File(out, 'sw.js').setText(literal(new File(src, 'sw.js').getText('UTF-8'), 'SW'), 'UTF-8')
+        String icons = new File(src, 'icons.js').getText('UTF-8')
+        new File(out, 'icon-192.png').bytes = base64(icons, 'ICON192')
+        new File(out, 'icon-512.png').bytes = base64(icons, 'ICON512')
+        new File(out, 'apple-touch-icon.png').bytes = base64(icons, 'APPLE180')
+        new File(out, 'outfit.ttf').bytes = base64(new File(src, 'font.js').getText('UTF-8'), 'OUTFIT')
+    }
+}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def gen = tasks.register(variant.name + 'PageAssets', PageAssets) {
+            relaySrc = file('../relay/src')
+        }
+        variant.sources.assets.addGeneratedSourceDirectory(gen, { it.outputDir })
+    }
+}
+
+// PageAssetsTest checks what the task made (testReleaseUnitTest: releasePageAssets).
+tasks.withType(Test).configureEach { t ->
+    def variant = t.name.replaceFirst(/^test/, '').replaceFirst(/UnitTest$/, '')
+    def gen = tasks.named(variant.uncapitalize() + 'PageAssets', PageAssets)
+    def dir = gen.flatMap { it.outputDir }
+    dependsOn gen
+    inputs.dir(dir).withPropertyName('pageAssets').withPathSensitivity(PathSensitivity.RELATIVE)
+    doFirst { systemProperty 'pageAssets', dir.get().asFile.absolutePath }
+}
+
 dependencies {
     // No libraries in the APK. Test only: plain JVM tests in src/test.
     testImplementation 'junit:junit:4.13.2'

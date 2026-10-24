@@ -30,8 +30,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**
- * The card's screen: the pairing QR code (the relay's phone page with #<TV id>.<phone key>), whether the
- * relay is online, New code (a new phone key: phones paired before stop working) and Hide code for when
+ * The card's screen: the pairing QR code (the relay's phone page with #<TV id>.<phone key>; with no relay,
+ * LAN mode's page on this TV, http://<TV's address>:8781/#<TV id>.<phone key>), whether the relay is online, New code (a new phone key: phones paired before stop working) and Hide code for when
  * guests are watching; showing it again asks for the PIN, if one is set. Below, what install.sh granted.
  * Opening it also starts {@link RemoteService}. In the tvOS style: black, a warm glow, glass buttons that
  * turn white when focused.
@@ -66,6 +66,7 @@ public class MainActivity extends Activity {
         RemoteService.start(this);
         TvLock.start(this);
         RemoteRelay.start(this, Relay.url(this));
+        LocalServer.start(this);
 
         FrameLayout root = new FrameLayout(this);
         GradientDrawable glow = new GradientDrawable();
@@ -142,15 +143,8 @@ public class MainActivity extends Activity {
         row.addView(qrCard, qp);
 
         setContentView(root);
-        if (Relay.url(this).isEmpty()) {
-            hint.setText(R.string.card_no_relay);
-            qrCard.setVisibility(View.GONE);
-            buttons.setVisibility(View.GONE);
-            statusRow.setVisibility(View.GONE);
-        } else {
-            drawQr();
-            newCode.requestFocus();
-        }
+        drawQr();
+        newCode.requestFocus();
     }
 
     @Override
@@ -188,11 +182,16 @@ public class MainActivity extends Activity {
         askPin(getString(R.string.pin_show_code), show);
     }
 
+    /**
+     * The relay's link, or LAN mode's on this TV's current address (checked every second while the card is
+     * open, so a new address after a network change gives a new code).
+     */
     private void drawQr() {
-        if (Relay.url(this).isEmpty()) return;
+        boolean relay = !Relay.url(this).isEmpty();
+        String ip = relay ? null : LocalServer.lanAddress();
         boolean h = hidden();
         hideButton.setText(h ? R.string.show_code : R.string.hide_code);
-        hint.setText(h ? R.string.card_hidden_hint : R.string.card_hint);
+        hint.setText(h ? R.string.card_hidden_hint : relay ? R.string.card_hint : ip != null ? R.string.card_lan_hint : R.string.card_lan_no_network);
         qr.setVisibility(h ? View.INVISIBLE : View.VISIBLE);
         qrHidden.setVisibility(h ? View.VISIBLE : View.GONE);
         if (h) {
@@ -200,8 +199,12 @@ public class MainActivity extends Activity {
             shownUrl = null;
             return;
         }
-        String url = RemoteRelay.phoneUrl(this);
-        if (url != null && !url.equals(shownUrl)) {
+        String url = relay ? RemoteRelay.phoneUrl(this) : ip != null ? RemoteRelay.lanUrl(this, ip) : null;
+        qr.setVisibility(url != null ? View.VISIBLE : View.INVISIBLE);
+        if (url == null) {
+            shownUrl = null;
+            qr.setImageBitmap(null);
+        } else if (!url.equals(shownUrl)) {
             qr.setImageBitmap(qrBitmap(url));
             shownUrl = url;
         }
@@ -244,9 +247,10 @@ public class MainActivity extends Activity {
     // ---- status ------------------------------------------------------------------------------------
 
     private void drawStatus() {
-        if (Relay.url(this).isEmpty()) return;
-        boolean on = RemoteRelay.online();
-        status.setText(on ? R.string.status_online : R.string.status_connecting);
+        boolean relay = !Relay.url(this).isEmpty();
+        boolean on = relay ? RemoteRelay.online() : LocalServer.running();
+        status.setText(relay ? (on ? R.string.status_online : R.string.status_connecting)
+                : on ? R.string.status_lan : R.string.status_lan_starting);
         GradientDrawable dot = new GradientDrawable();
         dot.setShape(GradientDrawable.OVAL);
         dot.setColor(on ? 0xFF30D158 : 0xFFFF9F0A);

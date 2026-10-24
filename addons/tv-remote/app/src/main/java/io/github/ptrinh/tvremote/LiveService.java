@@ -30,7 +30,9 @@ import java.nio.ByteBuffer;
 
 /**
  * The phone remote's live view: mirrors the screen into a small ImageReader and sends a JPEG through
- * {@link RemoteRelay} a couple of times a second while someone watches. Started by {@link LiveCapture}
+ * {@link RemoteRelay} a couple of times a second (at most 5) while someone watches through the relay, and to
+ * {@link LocalServer}'s viewers on the Wi-Fi at up to 30 a second. Frames never queue: a destination that is
+ * still sending the last one (or an encoder that is behind) skips the picture. Started by {@link LiveCapture}
  * (Android needs a foreground service of type mediaProjection to hold the capture); stops by itself three
  * seconds after the last viewer leaves, and whenever the system ends the capture (screen off, say).
  * DRM video, HDMI and the tuner come out black: Android keeps secure layers out of every capture.
@@ -42,12 +44,16 @@ public class LiveService extends Service {
     private static final String CHANNEL = "live";
     private static final int WIDTH = 640;
     private static final int QUALITY = 60;
+    /** Smaller pictures when the LAN asks for more than 5 a second. */
+    private static final int QUALITY_FAST = 55;
+    private static final int MAX_RELAY_FPS = 5;
+    private static final int MAX_LAN_FPS = 30;
     /** A few seconds after the last viewer leaves (a tab switch and back keeps it): Android's red capture icon goes too. */
     private static final long IDLE_STOP_MS = 3_000L;
 
     private static final Handler main = new Handler(Looper.getMainLooper());
-    private static volatile boolean wanted;
-    private static volatile long intervalMs = 500;
+    private static volatile boolean wanted, relayOn, lanOn;
+    private static volatile long relayIntervalMs = 500, lanIntervalMs = 500;
     private static volatile LiveService running;
     private static volatile boolean starting;
     private static Context app;
@@ -56,12 +62,28 @@ public class LiveService extends Service {
     private VirtualDisplay display;
     private ImageReader reader;
     private HandlerThread thread;
-    private long lastFrame;
+    private long lastRelay, lastLan;
 
-    /** Someone opened (or closed) the live view; fps 1 to 5. Main thread or any. */
-    static void setWanted(Context ctx, boolean on, int fps) {
+    /** The relay says whether its phones watch (fps 1 to 5). Main thread. */
+    static void setRelayWanted(Context ctx, boolean on, int fps) {
+        if (ctx == null) return;
+        relayIntervalMs = 1000L / Math.max(1, Math.min(MAX_RELAY_FPS, fps));
+        relayOn = on;
+        update(ctx);
+    }
+
+    /** LocalServer says whether a phone on the Wi-Fi watches (the fastest one's fps, 1 to 30). Main thread. */
+    static void setLanWanted(Context ctx, boolean on, int fps) {
+        if (ctx == null) return;
+        lanIntervalMs = 1000L / Math.max(1, Math.min(MAX_LAN_FPS, fps));
+        lanOn = on;
+        update(ctx);
+    }
+
+    /** The capture runs while either the relay's phones or the LAN's want it. */
+    private static void update(Context ctx) {
         app = ctx.getApplicationContext();
-        intervalMs = 1000L / Math.max(1, Math.min(5, fps));
+        boolean on = relayOn || lanOn;
         wanted = on;
         main.removeCallbacks(IDLE_STOP);
         if (!on) {
@@ -90,6 +112,7 @@ public class LiveService extends Service {
     static void failed(String why) {
         starting = false;
         RemoteRelay.liveError(why);
+        LocalServer.liveError(why);
     }
 
     @Override
@@ -143,8 +166,10 @@ public class LiveService extends Service {
             img = r.acquireLatestImage();
             if (img == null) return;
             long now = SystemClock.elapsedRealtime();
-            if (!wanted || now - lastFrame < intervalMs || !RemoteRelay.canSendFrame()) return;
-            lastFrame = now;
+            if (!wanted) return;
+            boolean toRelay = relayOn && now - lastRelay >= relayIntervalMs && RemoteRelay.canSendFrame();
+            boolean toLan = lanOn && now - lastLan >= lanIntervalMs && LocalServer.canSendFrame();
+            if (!toRelay && !toLan) return;
             Image.Plane p = img.getPlanes()[0];
             ByteBuffer buf = p.getBuffer();
             int rowPx = p.getRowStride() / p.getPixelStride();
@@ -152,9 +177,18 @@ public class LiveService extends Service {
             scratch.copyPixelsFromBuffer(buf);
             Bitmap out = rowPx == w ? scratch : Bitmap.createBitmap(scratch, 0, 0, w, h);
             jpeg.reset();
-            out.compress(Bitmap.CompressFormat.JPEG, QUALITY, jpeg);
+            out.compress(Bitmap.CompressFormat.JPEG, toLan && lanIntervalMs < 1000 / MAX_RELAY_FPS ? QUALITY_FAST : QUALITY, jpeg);
             if (out != scratch) out.recycle();
-            RemoteRelay.sendFrame(jpeg.toByteArray());
+            byte[] picture = jpeg.toByteArray();
+            // Times from when the picture was taken: a slow encode lowers the rate instead of piling up.
+            if (toRelay) {
+                lastRelay = now;
+                RemoteRelay.sendFrame(picture);
+            }
+            if (toLan) {
+                lastLan = now;
+                LocalServer.sendFrame(picture);
+            }
         } catch (Exception e) {
             Log.w(TAG, "frame failed: " + e);
         } finally {

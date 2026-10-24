@@ -45,7 +45,8 @@ import javax.net.ssl.SSLSocketFactory;
  *
  * One daemon thread for the socket, reconnecting with backoff; a ping every 45 s keeps it open through
  * NATs (the relay answers without waking up), and silence for 100 s or the screen coming on reconnects.
- * Off when there is no relay address (Relay.url: set by install.sh, or built in with -PrelayUrl). Ported from the launcher fork
+ * Off when there is no relay address (Relay.url: set by install.sh, or built in with -PrelayUrl); then the phone
+ * talks to {@link LocalServer} on the same Wi-Fi, which runs commands through {@link #execute} too. Ported from the launcher fork
  * (github.com/ptrinh/tvhome-remote), where it is built into Home.
  */
 final class RemoteRelay {
@@ -78,26 +79,29 @@ final class RemoteRelay {
     private RemoteRelay() {
     }
 
-    /** A new relay address (install.sh): used from the next connection, which starts now. */
-    static void setBase(String url) {
-        if (thread == null) return;   // not running yet: Relay.url gives it when the service starts
+    /**
+     * A new relay address (install.sh): used from the next connection, which starts now. In LAN mode (no
+     * relay until now) the connection starts; the LAN server keeps running beside it.
+     */
+    static void setBase(Context ctx, String url) {
+        if (thread == null) {
+            start(ctx, url);
+            return;
+        }
         base = url;
         kick();
     }
 
-    /** Starts the connection once per process; nothing when the relay address is empty. */
-    static synchronized void start(Context ctx, String relay) {
-        if (relay == null || relay.trim().isEmpty() || thread != null) return;
+    /**
+     * Once per process, with or without a relay: the keys, the lock, and the screen and network receivers that
+     * both the relay connection and the LAN server ({@link LocalServer}) need.
+     */
+    static synchronized void init(Context ctx) {
+        if (app != null) return;
         app = ctx.getApplicationContext();
-        base = relay.trim().replaceAll("/+$", "");
         keys(app);
         TvLock.start(app);
         startedAt = android.os.SystemClock.elapsedRealtime();
-        Thread t = new Thread(RemoteRelay::loop, "remote-relay");
-        t.setDaemon(true);
-        t.setPriority(Thread.MIN_PRIORITY);
-        thread = t;
-        t.start();
         // Back from standby the old socket is usually dead: reconnect at once instead of waiting it out
         // (the new hello says the TV is on). Going off, tell the relay first: the socket may not survive.
         try {
@@ -110,20 +114,36 @@ final class RemoteRelay {
                 cm.registerDefaultNetworkCallback(new android.net.ConnectivityManager.NetworkCallback() {
                     @Override
                     public void onAvailable(android.net.Network network) {
-                        if (!online && android.os.SystemClock.elapsedRealtime() - startedAt > 5000) kick();
+                        if (base != null && !online && android.os.SystemClock.elapsedRealtime() - startedAt > 5000) kick();
                     }
                 });
             }
             app.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context c, Intent i) {
-                    if (Intent.ACTION_SCREEN_OFF.equals(i.getAction())) event("off");
-                    else kick();
+                    if (Intent.ACTION_SCREEN_OFF.equals(i.getAction())) {
+                        event("off");
+                        return;
+                    }
+                    LocalServer.status("on");
+                    if (base != null) kick();
                 }
             }, screenOnOff);
         } catch (Exception e) {
             Log.w(TAG, "no screen-on receiver: " + e);
         }
+    }
+
+    /** Starts the relay connection once per process; nothing when the relay address is empty. */
+    static synchronized void start(Context ctx, String relay) {
+        init(ctx);
+        if (relay == null || relay.trim().isEmpty() || thread != null) return;
+        base = relay.trim().replaceAll("/+$", "");
+        Thread t = new Thread(RemoteRelay::loop, "remote-relay");
+        t.setDaemon(true);
+        t.setPriority(Thread.MIN_PRIORITY);
+        thread = t;
+        t.start();
     }
 
     static boolean enabled() {
@@ -141,10 +161,26 @@ final class RemoteRelay {
         return base + "/#" + p.getString(PREF_ID, "") + "." + p.getString(PREF_PHONE_KEY, "");
     }
 
-    /** A new phone key: phones paired with the old one stop working. */
+    /** LAN mode's link: the TV's own page, http://<ip>:<port>/#<TV id>.<phone key>. */
+    static String lanUrl(Context ctx, String ip) {
+        SharedPreferences p = keys(ctx);
+        return "http://" + ip + ":" + LocalServer.PORT + "/#" + p.getString(PREF_ID, "") + "." + p.getString(PREF_PHONE_KEY, "");
+    }
+
+    static String id(Context ctx) {
+        return keys(ctx).getString(PREF_ID, "");
+    }
+
+    /** The SHA-256 (hex) of the current phone key: what the relay keeps, and what LocalServer checks. */
+    static String phoneHash(Context ctx) {
+        return LanHttp.sha256(keys(ctx).getString(PREF_PHONE_KEY, ""));
+    }
+
+    /** A new phone key: phones paired with the old one stop working (the relay's and the LAN's). */
     static void newPhoneKey(Context ctx) {
-        prefs(ctx).edit().putString(PREF_PHONE_KEY, random(16)).apply();
-        work.execute(RemoteRelay::hello);
+        prefs(ctx).edit().putString(PREF_PHONE_KEY, random(16)).commit();
+        LocalServer.keyChanged();
+        if (base != null) work.execute(RemoteRelay::hello);
     }
 
     // ---- connection --------------------------------------------------------------------------------
@@ -161,6 +197,8 @@ final class RemoteRelay {
                 if (online) backoff = 2000;
                 online = false;
                 closeQuietly();
+                // The relay's viewers are gone with the socket; its next hello says again who watches.
+                main.post(() -> LiveService.setRelayWanted(app, false, 2));
             }
             try {
                 Thread.sleep(backoff);
@@ -289,19 +327,23 @@ final class RemoteRelay {
         }
     }
 
+    /** The TV's name in Settings, else its model. */
+    static String tvName() {
+        String name = null;
+        try {
+            name = Settings.Global.getString(app.getContentResolver(), "device_name");
+        } catch (Exception ignored) {
+            // Model name below.
+        }
+        return name == null || name.isEmpty() ? Build.MODEL : name;
+    }
+
     private static void hello() {
         try {
             SharedPreferences p = keys(app);
-            String name = null;
-            try {
-                name = Settings.Global.getString(app.getContentResolver(), "device_name");
-            } catch (Exception ignored) {
-                // Model name below.
-            }
-            if (name == null || name.isEmpty()) name = Build.MODEL;
             JSONObject m = new JSONObject()
                     .put("t", "hello")
-                    .put("name", name)
+                    .put("name", tvName())
                     .put("v", BuildConfig.VERSION_NAME)
                     .put("phones", new JSONArray().put(sha256(p.getString(PREF_PHONE_KEY, ""))))
                     .put("power", interactive() ? "on" : "off")
@@ -314,7 +356,9 @@ final class RemoteRelay {
 
     /** Power ("on"/"off", or null to leave it) and the lock state, for the phone pages and notifications. */
     static void event(String power) {
-        if (app == null || base == null) return;
+        if (app == null) return;
+        LocalServer.status(power);
+        if (base == null) return;
         work.execute(() -> {
             try {
                 JSONObject m = new JSONObject().put("t", "event").put("state", TvLock.state(app));
@@ -330,21 +374,32 @@ final class RemoteRelay {
 
     private static final java.util.concurrent.atomic.AtomicBoolean frameInFlight = new java.util.concurrent.atomic.AtomicBoolean();
 
+    private static final ExecutorService frames = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "remote-frames");
+        t.setDaemon(true);
+        return t;
+    });
+
     /** Connected and the last frame is out: a slow link drops frames instead of queueing them. */
     static boolean canSendFrame() {
         return online && !frameInFlight.get();
     }
 
-    /** One JPEG of the screen, as a binary message the relay hands to the watching phones. */
+    /**
+     * One JPEG of the screen, as a binary message the relay hands to the watching phones. Sent on a thread of
+     * its own, so a slow relay never holds up the capture (or the LAN viewers); one frame at a time.
+     */
     static void sendFrame(byte[] jpeg) {
         if (!frameInFlight.compareAndSet(false, true)) return;
-        try {
-            frame(0x2, jpeg);
-        } catch (IOException e) {
-            Log.i(TAG, "frame not sent: " + e);
-        } finally {
-            frameInFlight.set(false);
-        }
+        frames.execute(() -> {
+            try {
+                frame(0x2, jpeg);
+            } catch (IOException e) {
+                Log.i(TAG, "frame not sent: " + e);
+            } finally {
+                frameInFlight.set(false);
+            }
+        });
     }
 
     static void liveError(String why) {
@@ -358,7 +413,7 @@ final class RemoteRelay {
         });
     }
 
-    private static boolean interactive() {
+    static boolean interactive() {
         android.os.PowerManager pm = app.getSystemService(android.os.PowerManager.class);
         return pm == null || pm.isInteractive();
     }
@@ -405,7 +460,7 @@ final class RemoteRelay {
             // A phone opened or closed the live view (the relay counts the viewers).
             final boolean on = m.optBoolean("on");
             final int fps = m.optInt("fps", 2);
-            main.post(() -> LiveService.setWanted(app, on, fps));
+            main.post(() -> LiveService.setRelayWanted(app, on, fps));
             return;
         }
         if (!"cmd".equals(m.optString("t"))) return;
@@ -414,22 +469,8 @@ final class RemoteRelay {
         final String arg = m.optString("text", "");
         final JSONObject args = m.optJSONObject("args") != null ? m.optJSONObject("args") : new JSONObject();
         work.execute(() -> {
-            boolean ok = true;
-            String msg;
-            JSONObject out = new JSONObject();
             try {
-                msg = run(cmd, arg, args, out);
-            } catch (SonyIp.Failed f) {
-                ok = false;
-                msg = f.getMessage();
-            } catch (Exception e) {
-                ok = false;
-                msg = "The TV could not do that: " + e.getMessage();
-            }
-            try {
-                JSONObject ack = new JSONObject().put("t", "ack").put("n", n).put("ok", ok).put("msg", msg)
-                        .put("state", TvLock.state(app));
-                if (out.has("data")) ack.put("data", out.get("data"));
+                JSONObject ack = execute(cmd, arg, args).put("t", "ack").put("n", n);
                 String json = ack.toString();
                 if (json.length() > MAX_FRAME - 64) {
                     // Too large for one frame: say so instead of dropping the answer.
@@ -442,6 +483,38 @@ final class RemoteRelay {
                 Log.w(TAG, "ack failed: " + e);
             }
         });
+    }
+
+    /**
+     * Runs one command and answers {ok, msg, state, data?}: the relay socket and the LAN server
+     * ({@link LocalServer}) both come here. Blocking: on the work thread (see {@link #ask}).
+     */
+    static JSONObject execute(String cmd, String arg, JSONObject args) throws Exception {
+        boolean ok = true;
+        String msg;
+        JSONObject out = new JSONObject();
+        try {
+            msg = run(cmd, arg, args, out);
+        } catch (SonyIp.Failed f) {
+            ok = false;
+            msg = f.getMessage();
+        } catch (Exception e) {
+            ok = false;
+            msg = "The TV could not do that: " + e.getMessage();
+        }
+        JSONObject ack = new JSONObject().put("ok", ok).put("msg", msg).put("state", TvLock.state(app));
+        if (out.has("data")) ack.put("data", out.get("data"));
+        return ack;
+    }
+
+    /** {@link #execute} on the work thread, one command at a time whichever way it came; null after ms. */
+    static JSONObject ask(String cmd, String arg, JSONObject args, long ms) throws Exception {
+        java.util.concurrent.Future<JSONObject> f = work.submit(() -> execute(cmd, arg, args));
+        try {
+            return f.get(ms, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (java.util.concurrent.TimeoutException e) {
+            return null;
+        }
     }
 
     /** Every command the TV knows, for the phone page to check before it offers a feature. */

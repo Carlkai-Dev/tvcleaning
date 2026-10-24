@@ -4,12 +4,15 @@
     <string name="key_service_label">TV Remote keyboard</string>
     <string name="key_service_description">Lets the paired phone type into the text field that is selected on the TV, press Back or Home, and put the TV to sleep. It looks for the text field only when the phone types.</string>
     <string name="remote_channel">Phone remote</string>
-    <string name="remote_notification">Connected to your phone remote relay</string>
+    <string name="remote_notification">Phone remote is on</string>
     <string name="live_channel">Live view for the phone remote</string>
 
     <string name="card_hint">Scan with your phone\'s camera and open the link, then Add to Home Screen. It works from anywhere.</string>
     <string name="card_hidden_hint">The code is hidden. Show it to pair another phone.</string>
-    <string name="card_no_relay">No relay address in this build.\n\nDeploy relay/ to your Cloudflare account (npx wrangler deploy), then build with\n./gradlew assembleRelease -PrelayUrl=https://tv-remote.&lt;you&gt;.workers.dev\nand install again. The README has the steps.</string>
+    <string name="card_lan_hint">Scan with a phone on the same Wi-Fi as this TV and open the link.\n\nSet up a relay for use from anywhere and notifications: see the README.</string>
+    <string name="card_lan_no_network">This TV is not on a network. Connect it to Wi-Fi or Ethernet for the phone to reach it.</string>
+    <string name="status_lan">On this Wi-Fi only (no relay)</string>
+    <string name="status_lan_starting">Starting…</string>
     <string name="status_online">Relay online</string>
     <string name="status_connecting">Connecting to the relay…</string>
     <string name="new_code">New code</string>

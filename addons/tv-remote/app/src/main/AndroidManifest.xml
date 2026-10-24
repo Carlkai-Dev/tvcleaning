@@ -5,7 +5,8 @@
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
-    <!-- The WebSocket to your relay, and Sony IP control on the TV itself (127.0.0.1 / the TV's own address). -->
+    <!-- The WebSocket to your relay, Sony IP control on the TV itself (127.0.0.1 / the TV's own address), and
+         LAN mode's page on port 8781 for phones on the same Wi-Fi (LocalServer). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- RemoteService holds the relay connection; LiveService holds the screen capture for the live view. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -98,7 +99,7 @@
             android:foregroundServiceType="specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Keeps the connection to the owner's own phone-remote relay open, so the TV answers the paired phone" />
+                android:value="Keeps the connection to the owner's own phone-remote relay open, or the phone remote's page on the home network, so the TV answers the paired phone" />
         </service>
 
         <!-- Keyboard from the phone (types into the focused text field), Back/Home and standby without IP control. -->
