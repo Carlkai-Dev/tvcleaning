@@ -12,3 +12,5 @@ Cambios de este fork:
 | Nombres de los fondos | Cascada, Cueva verde, En la oscuridad, Capa roja y Entre llamas. |
 
 El tema personal (nombre, ciudad) y los videos viven en el PC, no en este repositorio.
+| Estilo Pixel | Mosaicos de sistema (Inicio, Ajustes, Play Store…) con iconos Material Symbols Rounded (Apache 2.0) sobre colores tonales, y los iconos pequeños con los mismos símbolos. |
+| Google Sans Flex | Reemplaza a Outfit en `res/font/outfit.ttf` (el nombre del archivo se mantiene para no tocar el código). Licencia SIL OFL en `launcher/FONT-LICENSE-GoogleSansFlex-OFL.txt`. |
