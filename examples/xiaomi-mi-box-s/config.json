@@ -1,0 +1,19 @@
+{
+  "dock_apps": [
+    "com.google.android.youtube.tv",
+    "org.courville.nova",
+    "com.ezviz.tv",
+    "com.android.vending"
+  ],
+  "columns": 4,
+  "tile_menu": true,
+  "cinematic_home": true,
+  "cinematic_dots": true,
+  "dock_glass": true,
+  "app_glow": true,
+  "glow_style": "horizon",
+  "advanced_effects": true,
+  "icon_only_buttons": true,
+  "wifi_label_width": 320,
+  "prompt_remote_pairing": true
+}
