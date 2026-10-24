@@ -188,6 +188,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
+    /** Fork de Natalia: theme greeting_text and fondo_rotation_minutes (Config). */
+    private String greetingText = "";
+    private int fondoRotationMinutes;
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
     private String vpnApp;
@@ -476,6 +479,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         showStats = cfg.showStats;
         shamsi = cfg.shamsiDate;
         greetingName = cfg.greetingName;
+        greetingText = cfg.greetingText;
+        fondoRotationMinutes = cfg.fondoRotationMinutes;
         if (shamsi) {
             shamsiDate.setVisibility(View.VISIBLE);
             TextView date = findViewById(R.id.date);
@@ -930,6 +935,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (backdropPkg == null && !background.hasVideo()) skyClouds.start();
         }
         askForTvListings();   // also on the way back: Home is rarely created again
+        rotateFondo();
         applyFondo();   // videos pushed (or removed) while Home was away
         background.video.setAway(false);
         background.video.start();
@@ -2420,8 +2426,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             greeting.setText(festiveGreeting);
             greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
         } else {
-            greeting.setText(greetingName.isEmpty() ? getString(res)
-                    : getString(R.string.greeting_with_name, getString(res), greetingName));
+            String hello = greetingText.isEmpty() ? getString(res) : greetingText;
+            greeting.setText(greetingName.isEmpty() ? hello
+                    : getString(R.string.greeting_with_name, hello, greetingName));
             greeting.setTextColor(greetingColor);
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
@@ -2688,6 +2695,33 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             applyFondo();
         }
     };
+
+    /**
+     * Fork de Natalia (fondo_rotation_minutes): al volver al Inicio, si ya pasó el intervalo, pasa al siguiente
+     * fondo de video. El Cielo dibujado no entra en la rotación.
+     */
+    private void rotateFondo() {
+        if (fondoRotationMinutes <= 0) return;
+        SharedPreferences p = Fondos.prefs(this);
+        long now = System.currentTimeMillis();
+        long changed = p.getLong(FONDO_CHANGED, 0);
+        if (changed == 0) {
+            p.edit().putLong(FONDO_CHANGED, now).apply();
+            return;
+        }
+        if (now - changed < fondoRotationMinutes * 60_000L) return;
+        List<Fondos.Fondo> videos = new ArrayList<>();
+        for (Fondos.Fondo f : Fondos.available(this)) if (f.video != null) videos.add(f);
+        if (videos.size() < 2) return;
+        String current = Fondos.current(this).id;
+        int next = 0;
+        for (int i = 0; i < videos.size(); i++) {
+            if (videos.get(i).id.equals(current)) next = (i + 1) % videos.size();
+        }
+        p.edit().putString(Fondos.KEY, videos.get(next).id).putLong(FONDO_CHANGED, now).apply();
+    }
+
+    private static final String FONDO_CHANGED = "cambiado";
 
     /** Shows the chosen background (Fondos); the clouds move only while Home is up and no app backdrop hides them. */
     private void applyFondo() {

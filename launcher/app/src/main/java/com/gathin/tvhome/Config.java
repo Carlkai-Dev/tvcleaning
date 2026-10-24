@@ -89,6 +89,10 @@ final class Config {
      * weather_longitude, or the same keys in a theme's config.json), so a downloaded APK can be set to any city.
      */
     String weatherLabel, weatherLatitude, weatherLongitude;
+    /** Fork de Natalia: saludo fijo ("Hola") en vez del de la hora del día; vacío deja el original. */
+    String greetingText = "";
+    /** Fork de Natalia: minutos entre un fondo de video y el siguiente; 0 deja el fondo elegido a mano. */
+    int fondoRotationMinutes;
     final boolean moduleCards;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     final boolean reducedMotion;
@@ -483,6 +487,8 @@ final class Config {
             cfg.weatherLabel = string(json, "weather_label", cfg.weatherLabel).trim();
             cfg.weatherLatitude = string(json, "weather_latitude", cfg.weatherLatitude).trim();
             cfg.weatherLongitude = string(json, "weather_longitude", cfg.weatherLongitude).trim();
+            cfg.greetingText = string(json, "greeting_text", "").trim();
+            cfg.fondoRotationMinutes = integer(json, "fondo_rotation_minutes", 0, 0, 1440);
         }
         return cfg;
     }

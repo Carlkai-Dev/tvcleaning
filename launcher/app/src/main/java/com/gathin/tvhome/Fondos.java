@@ -25,11 +25,11 @@ final class Fondos {
 
     /** id, name: the order the picker lists them in. */
     private static final String[][] ALL = {
-            {"gg-sunset", "Atardecer"},
-            {"gg-night", "Puente de noche"},
-            {"sequoia", "Sequoia"},
-            {"noche", "Noche"},
-            {"utah", "Utah"},
+            {"gg-sunset", "Cascada"},
+            {"gg-night", "Cueva verde"},
+            {"sequoia", "En la oscuridad"},
+            {"noche", "Capa roja"},
+            {"utah", "Entre llamas"},
             {SKY, "Cielo"},
     };
 

@@ -6,6 +6,9 @@ import java.util.regex.Pattern;
 /** The files ThemeProvider may write or delete under Config.dir, by the URI's path segments. */
 final class ThemeFiles {
     static final String WALLPAPERS = "wallpapers";
+    /** Fork de Natalia: los fondos de video (Fondos) y sus fotos, enviados por tools/fondos.sh. */
+    static final String VIDEOS = "videos";
+    private static final Pattern VIDEO_FILE = Pattern.compile("[a-z0-9-]+\\.(mp4|jpg)");
     /** The names tools/theme.sh accepts for a collection image, and the types WallpaperRotation reads. */
     private static final Pattern IMAGE = Pattern.compile("[A-Za-z0-9_.-]+\\.(jpg|jpeg|png|webp)",
             Pattern.CASE_INSENSITIVE);
@@ -23,6 +26,9 @@ final class ThemeFiles {
         if (segments.size() == 2 && WALLPAPERS.equals(segments.get(0))
                 && (collectionImage(segments.get(1)) || WallpaperCaptions.FILE_NAME.equals(segments.get(1)))) {
             return WALLPAPERS + "/" + segments.get(1);
+        }
+        if (segments.size() == 2 && VIDEOS.equals(segments.get(0)) && VIDEO_FILE.matcher(segments.get(1)).matches()) {
+            return VIDEOS + "/" + segments.get(1);
         }
         // My System TV (app_backdrops): backdrops/<package>.jpg.
         if (segments.size() == 2 && BACKDROPS.equals(segments.get(0)) && collectionImage(segments.get(1))) {
