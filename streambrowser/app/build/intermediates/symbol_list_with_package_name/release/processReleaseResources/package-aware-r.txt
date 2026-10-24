@@ -55,6 +55,7 @@ drawable banner
 drawable banner_frame
 drawable banner_label_bg
 drawable banner_scrim
+drawable cursor_arrow
 drawable dot_active
 drawable dot_inactive
 drawable ic_launcher
@@ -120,6 +121,7 @@ id banner_frame
 id banner_label
 id banner_title
 id blocking
+id browser_root
 id btn_add_site
 id btn_back_page
 id btn_forward
@@ -128,6 +130,7 @@ id btn_reload
 id chronometer
 id dialog_button
 id forever
+id fullscreen_container
 id icon
 id icon_group
 id info
@@ -161,6 +164,7 @@ id tile_rows
 id tile_title
 id time
 id title
+id tv_cursor
 id webview
 integer status_bar_notification_info_maxnum
 layout activity_browser
