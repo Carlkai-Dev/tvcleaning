@@ -16,7 +16,7 @@ launcher, and it uses the same relay and phone page.
 
 | On the phone | What happens on the TV |
 |---|---|
-| **Live control** | A live view of the screen (about 2 pictures a second, 640 px wide), the D-pad with OK, Back and Home, volume, mute and channel up/down, and a keyboard that types into the text field selected on the TV. |
+| **Live control** | A live view of the screen (about 2 pictures a second, 640 px wide), the D-pad with OK (hold it for the long press), Back, Home and Menu, volume, mute and channel up/down, and a keyboard that types into the text field selected on the TV. |
 | **Message** | Your text, large in the middle of the screen over whatever is playing, until someone presses OK or Back (or you clear it). |
 | **Lock** | "This TV is locked" with a PIN pad. It comes back to the front if someone leaves it with Home, and after a reboot. The PIN unlocks, or Unlock on the phone. |
 | **Lock timer** | Locks the TV after 1 to 720 minutes, with a countdown in a small pill in the corner of the screen. |
@@ -61,10 +61,14 @@ you open the card and at boot.
 
 ## Setup
 
-You need a Cloudflare account (the free plan is fine), Node.js for `wrangler`, and JDK 17 with Android SDK
-platform 34 to build, as for the launcher.
+You need a Cloudflare account (the free plan is fine), and JDK 17 with Android SDK platform 34 to build, as for
+the launcher.
 
-1. **Deploy the relay** to your account:
+1. **Deploy the relay** to your Cloudflare account. The quick way, no Node.js needed:
+
+   [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Gathin23/cleanyourtv/tree/main/addons/tv-remote/relay)
+
+   or from a terminal:
 
    ```bash
    cd addons/tv-remote/relay
@@ -72,26 +76,21 @@ platform 34 to build, as for the launcher.
    npx wrangler deploy        # prints https://tv-remote.<your-subdomain>.workers.dev
    ```
 
-   For notifications, also make VAPID keys: `node make-vapid.mjs`, then `npx wrangler secret put VAPID_PRIVATE`
-   and `npx wrangler secret put VAPID_PUBLIC` (details in [`relay/README.md`](relay/README.md)).
-2. **Build the TV app** with the relay's address:
+   Either way, note the address it gives you. Notifications work out of the box: the relay makes its own VAPID
+   keys the first time a phone switches them on (to bring your own, see [`relay/README.md`](relay/README.md)).
+2. **Build the TV app**: `cd addons/tv-remote && ./gradlew assembleRelease` (Windows: `gradlew.bat
+   assembleRelease`). The APK has no relay address in it, so one build works with any relay.
+3. **Install** it with ADB on, from the repo root, giving it your relay's address:
 
    ```bash
-   cd addons/tv-remote
-   ./gradlew assembleRelease -PrelayUrl=https://tv-remote.<your-subdomain>.workers.dev
+   RELAY_URL=https://tv-remote.<your-subdomain>.workers.dev TV_HOST=<tv ip> addons/tv-remote/install.sh
    ```
 
-   (Windows: `gradlew.bat assembleRelease -PrelayUrl=https://tv-remote.<your-subdomain>.workers.dev`.) Without
-   the property the app builds, but the card only says how to set it.
-3. **Install** it with ADB on, from the repo root:
-
-   ```bash
-   TV_HOST=<tv ip> addons/tv-remote/install.sh
-   ```
-
-   (Windows: `addons\tv-remote\install.ps1 -TvHost <tv ip>`.) It installs the APK you built and grants what
-   the features need, saying what each is for (see Permissions). `RELAY_URL=https://… TV_HOST=<tv ip>
-   addons/tv-remote/install.sh` builds and installs in one go.
+   (Windows: `addons\tv-remote\install.ps1 -TvHost <tv ip> -RelayUrl https://tv-remote.<your-subdomain>.workers.dev`.)
+   It installs the APK (building it first if needed), saves the relay's address on the TV and grants what the
+   features need, saying what each is for (see Permissions). To move to another relay later, run it again with
+   the new address; no rebuild. (`./gradlew assembleRelease -PrelayUrl=…` still builds the address in, as a
+   default the script can override.)
 4. **Open the card** on the TV. It shows the QR code, whether the relay is online, and what install.sh granted.
 5. **Scan the QR code** with the phone's camera and open the link.
 6. **Add to Home Screen** (Safari: Share › Add to Home Screen; Chrome: Install app). On iPhone, notifications
@@ -102,8 +101,8 @@ platform 34 to build, as for the launcher.
 from the phone. Press Home and answer **Show card** for the card; change the answer later by holding OK on
 Settings, then Module cards.
 
-To build only: `./gradlew assembleRelease`; the JVM tests (PIN hashing, the QR encoder against segno, Screen
-time's counting) run with `./gradlew testReleaseUnitTest`. The release build is signed with the debug key so
+The JVM tests (PIN hashing, the QR encoder against segno, Screen time's counting, the relay address check) run
+with `./gradlew testReleaseUnitTest`. The release build is signed with the debug key so
 it installs over ADB like the launcher. Uninstall with `TV_HOST=<tv ip> addons/tv-remote/install.sh --uninstall`.
 
 ## Permissions

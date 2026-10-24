@@ -123,5 +123,10 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <!-- install.sh sets the relay's address with am broadcast; only holders of DUMP (ADB's shell) can. -->
+        <receiver
+            android:name=".RelayReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
     </application>
 </manifest>

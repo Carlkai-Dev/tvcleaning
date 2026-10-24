@@ -1,6 +1,6 @@
 # Windows version of install.sh: install TV Remote on the TV and give it what it needs.
 #
-# Usage: addons\tv-remote\install.ps1 -TvHost 192.168.1.50 -RelayUrl https://tv-remote.<you>.workers.dev   # build, then install
+# Usage: addons\tv-remote\install.ps1 -TvHost 192.168.1.50 -RelayUrl https://tv-remote.<you>.workers.dev   # install, point it at your relay
 #        addons\tv-remote\install.ps1 -TvHost 192.168.1.50      # install the APK built earlier (see the README)
 #        addons\tv-remote\install.ps1 -TvHost 192.168.1.50 -Uninstall
 param(
@@ -27,19 +27,19 @@ if ($Uninstall) {
     exit 0
 }
 
-if ($RelayUrl) {
+if (-not (Test-Path $apk)) {
     Push-Location $here
     # javac notes go to stderr, which Windows PowerShell 5.1 turns into errors under 'Stop'.
     $ErrorActionPreference = 'Continue'
     try {
-        & .\gradlew.bat assembleRelease "-PrelayUrl=$RelayUrl" -q
+        & .\gradlew.bat assembleRelease -q
     } finally {
         Pop-Location
     }
     if ($LASTEXITCODE) { throw 'build failed (JDK 17 and Android SDK 34 needed)' }
     $ErrorActionPreference = 'Stop'
 }
-if (-not (Test-Path $apk)) { throw 'no APK: build it with gradlew.bat assembleRelease -PrelayUrl=https://tv-remote.<you>.workers.dev, or pass -RelayUrl' }
+if (-not (Test-Path $apk)) { throw 'no APK: build it with gradlew.bat assembleRelease' }
 
 & $py -I (Join-Path $tools 'b64push.py') $apk /data/local/tmp/tvremote.apk | Out-Null
 if ($LASTEXITCODE) { throw 'sending the APK failed; run this again' }
@@ -57,5 +57,10 @@ Write-Host 'Accessibility service (TV Remote keyboard): typing from the phone, B
 Tv ('s=$(settings get secure enabled_accessibility_services); case :$s: in *:SVC:*) ;; *) if [ -z $s ] || [ $s = null ]; then s=SVC; else s=$s:SVC; fi; settings put secure enabled_accessibility_services $s;; esac; settings put secure accessibility_enabled 1'.Replace('SVC', $svc))
 # TCL's auto-start gate (the op doesn't exist elsewhere), so the connection comes back after a reboot.
 Tv "appops set $pkg AUTO_START allow 2>/dev/null; appops set $pkg APP_AUTO_START allow 2>/dev/null; appops write-settings 2>/dev/null; true" | Out-Null
+if ($RelayUrl) {
+    Write-Host "Relay: $RelayUrl (saved on the TV; a new one only needs this script again, no rebuild)."
+    $r = Tv "am broadcast -n $pkg/.RelayReceiver --es url '$RelayUrl'"
+    if (-not ($r -match 'result=0')) { Write-Warning "the TV refused the relay address $RelayUrl" }
+}
 Tv "am start -n $pkg/.MainActivity >/dev/null; echo opened"
 Write-Host 'Installed. TV Remote is open on the TV: scan the QR code with your phone. Press Home and answer Show card for the card.'

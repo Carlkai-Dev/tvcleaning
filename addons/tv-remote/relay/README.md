@@ -21,9 +21,11 @@ is enough for a household.
 - **Live view**: a phone opening the live view makes the relay tell the TV `{t:"live", on, fps}`; the TV sends
   JPEG frames as binary messages, which the relay hands to the watching phones only.
 - **Live status**: phones open `/phone?id=…` and send `{t:"auth", key}`; the relay pushes
-  `{t:"status", online, power, state, name, lastSeen}` whenever something changes.
-- **Notifications** (optional): Web Push with your own VAPID keys, made by `node make-vapid.mjs` and stored as
-  the Worker secrets `VAPID_PRIVATE` and `VAPID_PUBLIC`. "On" when the TV says hello, "off" on its screen-off
+  `{t:"status", online, power, state, name, lastSeen}` whenever something changes. A TV that drops off still
+  counts as online for 15 s (a Wi-Fi blip reconnects within seconds); lastSeen is its latest keep-alive.
+- **Notifications**: Web Push. The relay makes its own VAPID key pair the first time it needs one and keeps it in
+  a Durable Object no request can reach; to bring your own instead, `node make-vapid.mjs` prints a pair to store as
+  the Worker secrets `VAPID_PRIVATE` and `VAPID_PUBLIC`, which then win. "On" when the TV says hello, "off" on its screen-off
   event or after two minutes without a connection. On iPhone only from the Home Screen app. Set `VAPID_SUBJECT`
   in `wrangler.jsonc` to a `mailto:` address of yours if you like (push services may use it to reach you).
 - **Power**: screen off/on, standby and wake use the TV's Sony IP control (Settings › Network & Internet ›

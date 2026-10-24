@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
         d = getResources().getDisplayMetrics().density;
         RemoteService.start(this);
         TvLock.start(this);
-        RemoteRelay.start(this, BuildConfig.RELAY_URL);
+        RemoteRelay.start(this, Relay.url(this));
 
         FrameLayout root = new FrameLayout(this);
         GradientDrawable glow = new GradientDrawable();
@@ -142,7 +142,7 @@ public class MainActivity extends Activity {
         row.addView(qrCard, qp);
 
         setContentView(root);
-        if (BuildConfig.RELAY_URL.isEmpty()) {
+        if (Relay.url(this).isEmpty()) {
             hint.setText(R.string.card_no_relay);
             qrCard.setVisibility(View.GONE);
             buttons.setVisibility(View.GONE);
@@ -189,7 +189,7 @@ public class MainActivity extends Activity {
     }
 
     private void drawQr() {
-        if (BuildConfig.RELAY_URL.isEmpty()) return;
+        if (Relay.url(this).isEmpty()) return;
         boolean h = hidden();
         hideButton.setText(h ? R.string.show_code : R.string.hide_code);
         hint.setText(h ? R.string.card_hidden_hint : R.string.card_hint);
@@ -244,7 +244,7 @@ public class MainActivity extends Activity {
     // ---- status ------------------------------------------------------------------------------------
 
     private void drawStatus() {
-        if (BuildConfig.RELAY_URL.isEmpty()) return;
+        if (Relay.url(this).isEmpty()) return;
         boolean on = RemoteRelay.online();
         status.setText(on ? R.string.status_online : R.string.status_connecting);
         GradientDrawable dot = new GradientDrawable();

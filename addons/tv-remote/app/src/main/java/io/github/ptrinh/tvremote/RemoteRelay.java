@@ -45,7 +45,7 @@ import javax.net.ssl.SSLSocketFactory;
  *
  * One daemon thread for the socket, reconnecting with backoff; a ping every 45 s keeps it open through
  * NATs (the relay answers without waking up), and silence for 100 s or the screen coming on reconnects.
- * Off when the build has no relay address (BuildConfig.RELAY_URL). Ported from the launcher fork
+ * Off when there is no relay address (Relay.url: set by install.sh, or built in with -PrelayUrl). Ported from the launcher fork
  * (github.com/ptrinh/tvhome-remote), where it is built into Home.
  */
 final class RemoteRelay {
@@ -57,13 +57,15 @@ final class RemoteRelay {
     static final String PREF_PSK = "sony_psk";
     private static final int PING_MS = 45_000;
     private static final int READ_TIMEOUT_MS = 100_000;
-    private static final long MAX_BACKOFF_MS = 120_000;
+    /** A Wi-Fi blip fails a few attempts in a row (no route, no DNS): keep the wait short so it comes back soon. */
+    private static final long MAX_BACKOFF_MS = 30_000;
     private static final int MAX_FRAME = 64 * 1024;
 
     private static volatile String base;
     private static volatile Thread thread;
     private static volatile Socket socket;
     private static volatile boolean online;
+    private static volatile long startedAt;
     private static Context app;
     private static final Object writeLock = new Object();
     private static final ExecutorService work = Executors.newSingleThreadExecutor(r -> {
@@ -76,6 +78,13 @@ final class RemoteRelay {
     private RemoteRelay() {
     }
 
+    /** A new relay address (install.sh): used from the next connection, which starts now. */
+    static void setBase(String url) {
+        if (thread == null) return;   // not running yet: Relay.url gives it when the service starts
+        base = url;
+        kick();
+    }
+
     /** Starts the connection once per process; nothing when the relay address is empty. */
     static synchronized void start(Context ctx, String relay) {
         if (relay == null || relay.trim().isEmpty() || thread != null) return;
@@ -83,6 +92,7 @@ final class RemoteRelay {
         base = relay.trim().replaceAll("/+$", "");
         keys(app);
         TvLock.start(app);
+        startedAt = android.os.SystemClock.elapsedRealtime();
         Thread t = new Thread(RemoteRelay::loop, "remote-relay");
         t.setDaemon(true);
         t.setPriority(Thread.MIN_PRIORITY);
@@ -93,6 +103,17 @@ final class RemoteRelay {
         try {
             IntentFilter screenOnOff = new IntentFilter(Intent.ACTION_SCREEN_ON);
             screenOnOff.addAction(Intent.ACTION_SCREEN_OFF);
+            // The network coming back (after a Wi-Fi blip or a change of network): connect now rather than at
+            // the end of the backoff. Android calls this once at registration too, during the first connect.
+            android.net.ConnectivityManager cm = app.getSystemService(android.net.ConnectivityManager.class);
+            if (cm != null) {
+                cm.registerDefaultNetworkCallback(new android.net.ConnectivityManager.NetworkCallback() {
+                    @Override
+                    public void onAvailable(android.net.Network network) {
+                        if (!online && android.os.SystemClock.elapsedRealtime() - startedAt > 5000) kick();
+                    }
+                });
+            }
             app.registerReceiver(new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context c, Intent i) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install TV Remote on the TV and give it what it needs, saying what each grant is for.
 #
-#   RELAY_URL=https://tv-remote.<you>.workers.dev TV_HOST=<tv ip> addons/tv-remote/install.sh   # build, then install
+#   RELAY_URL=https://tv-remote.<you>.workers.dev TV_HOST=<tv ip> addons/tv-remote/install.sh   # install, point it at your relay
 #   TV_HOST=<tv ip> addons/tv-remote/install.sh                 # install the APK you built with -PrelayUrl
 #   TV_HOST=<tv ip> addons/tv-remote/install.sh --uninstall
 set -euo pipefail
@@ -23,13 +23,13 @@ if [ "${1:-}" = --uninstall ]; then
   exit 0
 fi
 
-if [ -n "${RELAY_URL:-}" ]; then
+if [ ! -f "$APK" ]; then
   [ -f "$HERE/local.properties" ] || { [ -n "${ANDROID_HOME:-}" ] && echo "sdk.dir=$ANDROID_HOME" > "$HERE/local.properties"; } || true
   if [ -n "${JAVA_HOME:-}" ]; then export PATH="$JAVA_HOME/bin:$PATH"; fi
-  (cd "$HERE" && ./gradlew assembleRelease -PrelayUrl="$RELAY_URL" -q --console=plain) \
+  (cd "$HERE" && ./gradlew assembleRelease -q --console=plain) \
     || { echo "build failed (JDK 17 and Android SDK 34 needed)" >&2; exit 1; }
 fi
-[ -f "$APK" ] || { echo "no APK: build it first (cd addons/tv-remote && ./gradlew assembleRelease -PrelayUrl=https://tv-remote.<you>.workers.dev), or set RELAY_URL" >&2; exit 1; }
+[ -f "$APK" ] || { echo "no APK: build it first (cd addons/tv-remote && ./gradlew assembleRelease)" >&2; exit 1; }
 
 "$PY" -I "$TOOLS/b64push.py" "$APK" /data/local/tmp/tvremote.apk >/dev/null
 OUT=$(tv 'pm install -r /data/local/tmp/tvremote.apk; rm -f /data/local/tmp/tvremote.apk')
@@ -49,5 +49,9 @@ echo "Accessibility service (TV Remote keyboard): typing from the phone, Back/Ho
 tv "s=\$(settings get secure enabled_accessibility_services); case :\$s: in *:$SVC:*) ;; *) if [ -z \$s ] || [ \$s = null ]; then s=$SVC; else s=\$s:$SVC; fi; settings put secure enabled_accessibility_services \$s;; esac; settings put secure accessibility_enabled 1"
 # TCL's auto-start gate (the op doesn't exist elsewhere), so the connection comes back after a reboot.
 tv "appops set $PKG AUTO_START allow 2>/dev/null; appops set $PKG APP_AUTO_START allow 2>/dev/null; appops write-settings 2>/dev/null; true" >/dev/null
+if [ -n "${RELAY_URL:-}" ]; then
+  echo "Relay: $RELAY_URL (saved on the TV; a new one only needs this script again, no rebuild)."
+  tv "am broadcast -n $PKG/.RelayReceiver --es url '$RELAY_URL'" | grep -q "result=0" || echo "WARNING: the TV refused the relay address $RELAY_URL" >&2
+fi
 tv "am start -n $PKG/.MainActivity >/dev/null; echo opened"
 echo "Installed. TV Remote is open on the TV: scan the QR code with your phone. Press Home and answer Show card for the card."

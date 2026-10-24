@@ -15,14 +15,14 @@ import android.util.Log;
  * Keeps the process, and with it the relay connection ({@link RemoteRelay}), the lock and the lock timer
  * ({@link TvLock}), alive while other apps are in front. A foreground service with a minimal notification
  * (importance min: no sound, no icon in the status area). Started by the card and at boot; with no relay
- * address in the build there is nothing to hold, and it stops.
+ * relay address (Relay.url) there is nothing to hold, and it stops.
  */
 public class RemoteService extends Service {
     private static final String CHANNEL = "remote";
     private static final int ID = 1;
 
     static void start(Context ctx) {
-        if (BuildConfig.RELAY_URL.isEmpty()) return;
+        if (Relay.url(ctx).isEmpty()) return;
         try {
             ctx.startForegroundService(new Intent(ctx, RemoteService.class));
         } catch (Exception e) {
@@ -36,11 +36,11 @@ public class RemoteService extends Service {
         Notification n = notification();
         if (Build.VERSION.SDK_INT >= 34) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
         else startForeground(ID, n);
-        if (BuildConfig.RELAY_URL.isEmpty()) {
+        if (Relay.url(this).isEmpty()) {
             stopSelf();
             return START_NOT_STICKY;
         }
-        RemoteRelay.start(this, BuildConfig.RELAY_URL);
+        RemoteRelay.start(this, Relay.url(this));
         TvLock.start(this);
         return START_STICKY;
     }
