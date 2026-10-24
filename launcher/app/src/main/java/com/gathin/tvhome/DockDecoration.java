@@ -169,8 +169,18 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         int total = a instanceof AppAdapter ? ((AppAdapter) a).appCount() : a == null ? 0 : a.getItemCount();
         View f = parent.getFocusedChild();
         int pos = f == null ? 0 : Math.max(0, parent.getChildAdapterPosition(f));
-        return rowRange(pos, dockSize, total);
+        int row = Math.min(pos, Math.max(0, total - 1)) / dockSize;
+        // onDraw runs every frame of a focus or scroll animation: build the text only when it changes.
+        if (row != counterRow || total != counterTotal) {
+            counterRow = row;
+            counterTotal = total;
+            counterText = rowRange(pos, dockSize, total);
+        }
+        return counterText;
     }
+
+    private int counterRow = -1, counterTotal = -1;
+    private String counterText = "";
 
     static String rowRange(int focused, int columns, int total) {
         int first = Math.min(focused, Math.max(0, total - 1)) / columns * columns;

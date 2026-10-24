@@ -2339,6 +2339,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 weatherBlock.setVisibility(View.GONE);
                 return;
             }
+            // Asked every minute, it mostly repeats the last reading: setText would lay the block out again for nothing.
+            if (weatherBlock.getVisibility() == View.VISIBLE && lines[0].contentEquals(weatherSky.getText())
+                    && lines[1].contentEquals(weatherTemp.getText()) && lines[2].contentEquals(weatherAdvice.getText())) {
+                return;
+            }
             weatherSky.setText(lines[0]);
             weatherTemp.setText(lines[1]);
             weatherAdvice.setText(lines[2]);

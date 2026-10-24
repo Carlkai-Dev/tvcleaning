@@ -150,6 +150,11 @@ final class WallpaperPlayer {
         active = false;
         closed = true;
         decoder.shutdownNow();
+        // Give the picture's GPU memory back now rather than at the next GC: the screensaver closes its player while
+        // Home, in the same process, keeps running.
+        image.setImageDrawable(null);
+        if (current != null) current.recycle();
+        current = null;
     }
 
     void update() {

@@ -147,6 +147,8 @@ final class HomeWeather {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setConnectTimeout(TIMEOUT_MS);
         connection.setReadTimeout(TIMEOUT_MS);
+        // The next request is 30 minutes away: don't keep the TLS socket in the pool for 5 of them.
+        connection.setRequestProperty("Connection", "close");
         try (InputStream in = connection.getInputStream()) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             byte[] buffer = new byte[4096];
