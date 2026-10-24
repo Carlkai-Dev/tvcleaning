@@ -414,4 +414,8 @@
          faint outer glow), rim (the crisp rim alone, no sheen, fill or glow, for a quiet focus over a wallpaper) or
          halo (the rim with a lighter outer glow). Can also be set with "glass_style": "rim" in a theme's config.json. -->
     <string name="glass_style" translatable="false">glass</string>
+    <!-- Prompts to pair a remote if no physical external remote or keyboard is detected on launch,
+         by starting the device remote pairing wizard (REPAIR_REMOTE or CONNECT_INPUT). Off (false) by
+         default. Can also be set with "prompt_remote_pairing": true in a theme's config.json. -->
+    <bool name="prompt_remote_pairing">false</bool>
 </resources>
