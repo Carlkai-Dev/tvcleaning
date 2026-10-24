@@ -209,6 +209,7 @@ Anker Nebula, BYINTEK, Epson, Formovie, Gadnic, HOTACK, JMGO, Magcubic, Portroni
 | OK. AI PONT (Changhong, ikebukuro, MediaTek), Italy | Android TV 11 |
 | OnePlus TV (C00, Cebu, MediaTek m7632), India | Android TV 10 |
 | OnePlus TV (D00, Dubai) | Google TV 14 |
+| OnePlus TV Q1 / Q1 Pro (55 Q1, Dosa, MediaTek MT5887), India | Android TV 11 |
 | OnePlus Y1 43" (Y Series, shibuya) | Android TV 11 |
 | onn 4K Streaming Box (2023, Walmart; YOC, Amlogic), US | Google TV 14 |
 | onn. 4K Plus Streaming (2025, Walmart; coffey, Amlogic S905X5M), US | Google TV 14 |
@@ -428,13 +429,12 @@ tools/theme.sh themes/aurora                                 # push a theme; --r
 | [`tools/adb-closed.py`](tools/adb-closed.py) | Checks that the TV's network ADB port is closed once debugging is off: exits 0 when nothing answers, 1 while it is still open, 2 when the check itself could not run. No `nc` needed. |
 | [`tools/privacy.py`](tools/privacy.py) | Audits the TV for voice, ACR and telemetry candidates and prints the evidence for each; `--write` turns the findings into a list `disable.sh` and `restore.sh` already understand. |
 | [`tools/theme.sh`](tools/theme.sh) | Push a folder from [`themes/`](themes/) to the launcher and restart Home. |
-| [`tools/manage.py`](tools/manage.py) | List every add-on, theme and switch with its screenshot, see what is on the TV, and install, update or remove one by running its creator's own script. |
 | [`tools/bench.py`](tools/bench.py) | Measures the launcher that answers HOME: key latency, how far the focus moved, janky frames, cold start, return to Home, and the idle CPU and PSS it costs. Changes nothing on the TV and writes the raw per-key numbers to JSON; no extra install. |
 | [`tools/trace.py`](tools/trace.py), [`trace_report.py`](tools/trace_report.py) | Records Perfetto traces of the launcher (return to Home, cold start, D-pad) and reports where its time goes, per run and before against after. Optional: needs [`requirements-perf.txt`](tools/requirements-perf.txt). [Guide](tools/trace.md). |
 | [`tools/flamechart.py`](tools/flamechart.py) | Draws a before/after flame chart from those traces, for a pull request: one lane per thread on a shared time scale, the work a change targets in magenta with its total. Optional, like the trace tools. [Guide](tools/flamechart.md). |
 | [`tools/screendiff.py`](tools/screendiff.py) | Compares a before and an after screenshot pixel by pixel, leaving out the clock or anything you mask, and writes the pair with your Wi-Fi name blurred. Optional, like the trace tools. [Guide](tools/screendiff.md). |
 | [`tools/race_calendar.py`](tools/race_calendar.py) | Writes this season's F1 calendar into a theme for race-weekend mode, from the free Jolpica API. |
-| [`launcher/build-and-install.sh`](launcher/build-and-install.sh) | Builds a shrunk release (about 497 KB), installs it, switches Home, and rolls back if Home does not land on it. |
+| [`launcher/build-and-install.sh`](launcher/build-and-install.sh) | Builds a shrunk release (about 477 KB), installs it, switches Home, and rolls back if Home does not land on it. |
 
 The scripts never leave the TV without a Home app: they only disable a stock launcher they recognise,
 and skip the Home app in a list until another launcher answers HOME. Details below.
@@ -506,7 +506,7 @@ apps), which is why the report names that loss per package instead of calling it
 
 ## The launcher
 
-A small native home screen for Android TV: **about 497 KB**, plain Java, built for TVs with 1 GB of RAM.
+A small native home screen for Android TV: **about 477 KB**, plain Java, built for TVs with 1 GB of RAM.
 No blur, no video, no network permission, no background services.
 
 The **TV** needs Android 8.0 (API 26) or newer: `minSdk` is a compile-time floor in
@@ -561,8 +561,6 @@ and a wallpaper.
     Follow theme, or push the theme again.
   - **Animations** on or off, and **Advanced effects** (tile lift, icon zoom and smooth ambient-colour
     transitions; they may use more memory) once animations are on.
-  - **Open on start**, only with `open_on_start_choice`: Off, or an app that opens instead of Home the first
-    time Home comes up after the TV starts. Once per boot, so Home and Back still reach the launcher.
   - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
     clears them too.
   - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings
@@ -620,8 +618,6 @@ tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.Clock
   (`app_keys` and `input_key_keycodes`, in config.xml or a theme; `HOME_KEY_SERVICE=1` reads `app_keys` too).
 - A `hold:` prefix on an `app_keys` entry gives that button a second app: a normal press opens the
   unprefixed app, holding for half a second opens the hold one (by keycode or `hold:scan:...`).
-- In place of an app, an `app_keys` entry can name an action: `back`, `home`, `recents`, `mute`, `sleep`,
-  `screensaver`, `settings` or `wifi`, so a spare colour button can mute the TV or, held, put it in standby.
 - `HOME_KEY_SERVICE=1` also fixes sticks whose Home key sends ALL_APPS, and opens Settings from the remote's
   **gear** button, even one Android does not map (scancodes or keycodes in config.xml).
 - With `settings_key_panel` the gear opens a [small quick settings panel](docs/quick-settings-panel.jpg)
@@ -709,9 +705,8 @@ and says so.
 It runs the same safety checks as `tools/disable.sh` before it disables anything, since an update is
 the moment they matter again: it leaves setupwraith on while the saved Wi-Fi network belongs to it
 (`FORCE_SETUPWRAITH=1` on Ethernet), leaves the packages under the HDMI/AV inputs on
-(`TVINPUT_ALLOW=1` if you really want them off), leaves on the apps the TV opens its inputs and
-Settings with (`HANDLERS_ALLOW=1`), and never takes Home to a vendor `FallbackHome` or a factory-test
-app.
+(`TVINPUT_ALLOW=1` if you really want them off), and never takes Home to a vendor `FallbackHome` or
+a factory-test app.
 Each package it leaves on comes with the reason and exits 1, because the TV is not back to the list
 until you deal with that one by hand.
 
