@@ -488,6 +488,43 @@ that list. With `restore_key_services` on (`config.xml` or a theme) and `WRITE_S
 (`RESTORE_KEY_SERVICES=1` at install, `-RestoreKeyServices` on Windows), Home puts the helpers that were
 running back on the list the next time it starts; a helper turned off in Settings stays off.
 
+Some TCL firmware leaves the helper in `enabled_accessibility_services` after reboot but resets the
+global `accessibility_enabled` switch to `0`, so Android does not bind it. With the same explicit
+`restore_key_services` opt-in and permission grant, the next CleanYourTV start briefly clears and
+restores the saved service list, then enables accessibility. This reconnects every accessibility
+service in that saved list for about a second, not just CleanYourTV's helpers. The exact list is saved
+before the change and a pending repair is retried the next time CleanYourTV starts if it is interrupted.
+The TCL rebind runs only while the previously recorded helper is still present in that list; if an
+owner removed it, the repair does not add it back. It does not enable a helper the owner never enabled.
+The optional `launch_home_after_boot` key also enables a boot receiver, only when
+`restore_key_services` is true and `stock_home_redirect` names the stock Home package. After boot it
+rebinds the recorded HomeKeyService, then asks that accessibility service to open CleanYourTV
+directly, avoiding a second HOME handoff through Google TV. The existing stock-home redirect remains
+the fallback if the TV opens Google TV separately. This does not change the system Home role or
+disable the stock launcher. The receiver is disabled unless both keys are explicitly on.
+On a TCL C6K Pro (Google TV 14, G08), boot logs showed Google TV's boot dispatcher continuing to
+open its Home activity after CleanYourTV had already been requested, so that early launch could lose
+the foreground race. HomeKeyService now waits 1.8 seconds before its direct boot launch and delays
+stock-Home redirects by 700 ms, retrying at most three times while stock-Home window events continue.
+The retries stop when a non-stock window event arrives; this is bounded event handling, not polling.
+Rebinding briefly reconnects every accessibility service in the saved list. On TCL firmware, also
+grant the `AUTO_START` app-op so Android allows the accessibility service to bind while CleanYourTV
+is not running. Set both keys to true in the active theme or matching `config.xml` values, grant
+`WRITE_SECURE_SETTINGS` and `AUTO_START` using the installer's explicit `-LaunchHomeAfterBoot` /
+`LAUNCH_HOME_AFTER_BOOT=1` option. It runs `appops write-settings` because some TCL firmware does
+not persist an `AUTO_START` change otherwise; still confirm `appops get` after reboot, as firmware
+may impose additional restrictions. Enable/toggle the desired helper once in Accessibility so
+CleanYourTV can record it. The installer does not enable the helper. The automatic boot path still
+needs verification on each target firmware. On a TCL C6K Pro (Google TV 14, G08), the first reboot
+left Google TV in front because TCL had reset `AUTO_START` to `ignore` and logged denials for both
+the accessibility service and boot receiver. After saving the one-package app-op change with
+`appops write-settings`, the next reboot opened CleanYourTV, left `accessibility_enabled=1`, and
+showed HomeKeyService under Bound services; `AUTO_START` remained `allow`. Google TV still starts
+first, then CleanYourTV takes over a few seconds later. The HOME role remains CleanYourTV. If
+`accessibility_enabled=1` but the service is still unbound, this repair does not apply; diagnose the
+firmware binding denial (for example, TCL `AUTO_START` app-op messages) rather than broadly changing
+app-ops or the enabled-services list.
+
 - **Enabled** means the component is in that user's colon-separated list (the class may be written in
   full, `com.gathin.tvhome/com.gathin.tvhome.HomeKeyService`). Match the whole component.
 - **Bound** means it appears under that user's `Bound services` section of the dump (`services` on older
@@ -531,10 +568,11 @@ Settings > Apps) Android removes the launcher's services from the enabled list, 
 when the launcher starts again (seen on a TCL 55C715, Android TV 9). Enable them again the same way you did
 the first time, and avoid force-stopping the launcher while testing.
 
-Enabled but never bound points at a firmware restriction on auto-starting sideloaded services (some TCL
-builds log `OP_AUTO_START` denials). Look at `logcat` for the binding failure before changing settings,
-and do not rewrite the enabled-services list or grant app-ops as a blanket fix. On a TCL 55S470G (Google
-TV 12) the line is `[TclAppBoot] ... calleeComponent = 'com.gathin.tvhome/.HomeKeyService', bootType =
+Enabled but never bound can point at a firmware restriction on auto-starting sideloaded services (some TCL
+builds log `OP_AUTO_START` denials). Look at `logcat` for the binding failure before changing settings.
+The saved-list rebind above is only for the distinct case where `accessibility_enabled=0`; do not rewrite
+the enabled-services list or grant app-ops as a blanket fix. On a TCL 55S470G (Google TV 12) the line is
+`[TclAppBoot] ... calleeComponent = 'com.gathin.tvhome/.HomeKeyService', bootType =
 'bind_service', isAllow = 'false', reason = 'callee_does't_have_OP_AUTO_START_permission.'`, and
 `appops get com.gathin.tvhome` shows `APP_AUTO_START: ignore`. Allowing that one op for the launcher only
 and saving it (`appops set com.gathin.tvhome APP_AUTO_START allow; appops write-settings`) made the service

@@ -386,6 +386,7 @@ tools/theme.sh themes/aurora                                 # push a theme; --r
 | [`tools/flamechart.py`](tools/flamechart.py) | Draws a before/after flame chart from those traces, for a pull request: one lane per thread on a shared time scale, the work a change targets in magenta with its total. Optional, like the trace tools. [Guide](tools/flamechart.md). |
 | [`tools/race_calendar.py`](tools/race_calendar.py) | Writes this season's F1 calendar into a theme for race-weekend mode, from the free Jolpica API. |
 | [`launcher/build-and-install.sh`](launcher/build-and-install.sh) | Builds a shrunk release (about 471 KB), installs it, switches Home, and rolls back if Home does not land on it. |
+| [`launcher/build-and-install-no-home.ps1`](launcher/build-and-install-no-home.ps1), [`build-and-install-no-home.sh`](launcher/build-and-install-no-home.sh) | Builds and installs the launcher APK without changing the HOME role or stock-launcher state; optional `-RestoreKeyServices` / `RESTORE_KEY_SERVICES=1` grants the permission for that explicitly opted-in feature. |
 
 The scripts never leave the TV without a Home app: they only disable a stock launcher they recognise,
 and skip the Home app in a list until another launcher answers HOME. Details below.
@@ -399,6 +400,9 @@ else is needed:
 ```powershell
 python -m venv tools\venv; tools\venv\Scripts\python.exe -m pip install -r tools\requirements.txt
 powershell -ExecutionPolicy Bypass -File launcher\build-and-install.ps1 -TvHost 192.168.1.50
+powershell -ExecutionPolicy Bypass -File launcher\build-and-install-no-home.ps1 -TvHost 192.168.1.50
+# Only if restore_key_services is enabled in config.xml or a theme:
+powershell -ExecutionPolicy Bypass -File launcher\build-and-install-no-home.ps1 -TvHost 192.168.1.50 -RestoreKeyServices
 powershell -ExecutionPolicy Bypass -File tools\disable.ps1 -TvHost 192.168.1.50 examples\xiaomi-mi-tv-4a\debloat.txt
 ```
 

@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import android.annotation.SuppressLint;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.ActivityNotFoundException;
@@ -7,10 +8,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.UserManager;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.Toast;
@@ -25,14 +30,17 @@ import java.util.Set;
  * (Xiaomi sticks and boxes). Android TV 9 routes that key only to the system-image launcher, so once
  * the stock launcher is disabled the button does nothing. Every other key passes through untouched.
  *
- * With stock_home_redirect set, it also sends the stock launcher's home screen back here, for firmware that turns
- * that launcher on again after it was disabled (XGIMI's xrmservice does, on its own remote keys).
+ * With stock_home_redirect set, it also sends the stock launcher's home screen back here, including when firmware
+ * continues its own Home startup after this launcher has already opened.
  *
  * Enable over adb:
  *   settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService
  *   settings put secure accessibility_enabled 1
  */
 public class HomeKeyService extends AccessibilityService {
+    private static final long BOOT_HOME_LAUNCH_DELAY_MS = 1800;
+    private static final long STOCK_HOME_REDIRECT_DELAY_MS = 700;
+    private static final int MAX_STOCK_HOME_REDIRECT_ATTEMPTS = 3;
 
     /** restore_key_services was on when the config was read: this helper is noted for ServiceRepair. */
     private boolean repairRecord;
@@ -48,8 +56,14 @@ public class HomeKeyService extends AccessibilityService {
 
     /** Waits for the user to unlock when Android binds this service at boot; null once the config is read. */
     private BroadcastReceiver unlockReceiver;
+    private BroadcastReceiver bootHomeReceiver;
     /** The stock launcher's HOME activities (stock_home_redirect), disabled ones included. */
     private final Set<String> stockHome = new HashSet<>();
+    private boolean bootLauncherRedirected;
+    private final Handler launchHandler = new Handler(Looper.getMainLooper());
+    private Runnable pendingBootHomeLaunch;
+    private Runnable pendingStockHomeRedirect;
+    private int stockHomeRedirectAttempts;
 
     @Override
     protected void onServiceConnected() {
@@ -87,6 +101,12 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     public void onDestroy() {
         stopWaitingForUnlock();
+        cancelBootHomeLaunch();
+        cancelStockHomeRedirect();
+        if (bootHomeReceiver != null) {
+            unregisterReceiver(bootHomeReceiver);
+            bootHomeReceiver = null;
+        }
         super.onDestroy();
     }
 
@@ -103,20 +123,130 @@ public class HomeKeyService extends AccessibilityService {
         appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
         RemoteKeys.applyKeyFilter(this, config.keyFilter);
         stockHome.clear();
+        cancelStockHomeRedirect();
+        bootLauncherRedirected = false;
         if (!config.stockHomeRedirect.isEmpty()) {
             Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setPackage(config.stockHomeRedirect);
             for (ResolveInfo ri : getPackageManager().queryIntentActivities(home, PackageManager.MATCH_DISABLED_COMPONENTS)) {
                 stockHome.add(ri.activityInfo.name);
             }
         }
-        // home_key_service.xml subscribes to no events, so the redirect asks for window changes only when it is on.
+        // Watch for a stock Home window as soon as it appears, rather than waiting for it to finish drawing.
         AccessibilityServiceInfo info = getServiceInfo();
         if (info != null && !stockHome.isEmpty()) {
-            info.eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
+            info.eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED | AccessibilityEvent.TYPE_WINDOWS_CHANGED;
             setServiceInfo(info);
         }
         holdAppKeys = RemoteKeys.parseHoldAppKeys(config.appKeys);
         holdAppScancodes = RemoteKeys.parseHoldAppScancodes(config.appKeys);
+        configureBootHome(config);
+    }
+
+    private void configureBootHome(Config config) {
+        if (!config.restoreKeyServices || !config.launchHomeAfterBoot) {
+            cancelBootHomeLaunch();
+            if (bootHomeReceiver != null) {
+                unregisterReceiver(bootHomeReceiver);
+                bootHomeReceiver = null;
+            }
+            return;
+        }
+        if (bootHomeReceiver == null) {
+            bootHomeReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    launchHomeAfterBoot();
+                }
+            };
+            IntentFilter filter = new IntentFilter(BootHomeReceiver.ACTION_SERVICE_READY);
+            registerBootHomeReceiver(filter);
+        }
+        scheduleBootHomeLaunch();
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    private void registerBootHomeReceiver(IntentFilter filter) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(bootHomeReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(bootHomeReceiver, filter);
+        }
+    }
+
+    private void launchHomeAfterBoot() {
+        if (!BootHomeReceiver.isPending(this)) return;
+        if (bootLauncherRedirected) {
+            if (!BootHomeReceiver.clearPending(this)) {
+                Log.e("TvHomeKeyService", "Launcher was opened after boot, but pending state could not be cleared");
+            }
+            return;
+        }
+        scheduleBootHomeLaunch();
+    }
+
+    private void scheduleBootHomeLaunch() {
+        if (!BootHomeReceiver.isPending(this) || pendingBootHomeLaunch != null) return;
+        pendingBootHomeLaunch = () -> {
+            pendingBootHomeLaunch = null;
+            if (!BootHomeReceiver.isPending(this) || bootLauncherRedirected) return;
+            if (!openLauncher()) {
+                Log.e("TvHomeKeyService", "Could not open the launcher after boot; leaving pending state for recovery");
+                return;
+            }
+            bootLauncherRedirected = true;
+            if (!BootHomeReceiver.clearPending(this)) {
+                Log.e("TvHomeKeyService", "Launcher was opened after boot, but pending state could not be cleared");
+            }
+        };
+        launchHandler.postDelayed(pendingBootHomeLaunch, BOOT_HOME_LAUNCH_DELAY_MS);
+    }
+
+    private void cancelBootHomeLaunch() {
+        if (pendingBootHomeLaunch == null) return;
+        launchHandler.removeCallbacks(pendingBootHomeLaunch);
+        pendingBootHomeLaunch = null;
+    }
+
+    private void scheduleStockHomeRedirect() {
+        if (pendingStockHomeRedirect != null
+                || stockHomeRedirectAttempts >= MAX_STOCK_HOME_REDIRECT_ATTEMPTS) return;
+        pendingStockHomeRedirect = () -> {
+            pendingStockHomeRedirect = null;
+            stockHomeRedirectAttempts++;
+            if (openLauncher()) {
+                Log.i("TvHomeKeyService", "Requested CleanYourTV after stock Home appeared (attempt "
+                        + stockHomeRedirectAttempts + ")");
+                bootLauncherRedirected = true;
+                cancelBootHomeLaunch();
+                if (BootHomeReceiver.isPending(this) && !BootHomeReceiver.clearPending(this)) {
+                    Log.e("TvHomeKeyService", "Launcher was redirected after boot, but pending state could not be cleared");
+                }
+            }
+            if (stockHomeRedirectAttempts < MAX_STOCK_HOME_REDIRECT_ATTEMPTS) {
+                scheduleStockHomeRedirect();
+            }
+        };
+        launchHandler.postDelayed(pendingStockHomeRedirect, STOCK_HOME_REDIRECT_DELAY_MS);
+    }
+
+    private void cancelStockHomeRedirect() {
+        if (pendingStockHomeRedirect != null) {
+            launchHandler.removeCallbacks(pendingStockHomeRedirect);
+            pendingStockHomeRedirect = null;
+        }
+        stockHomeRedirectAttempts = 0;
+    }
+
+    private boolean openLauncher() {
+        Intent launcher = new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        try {
+            startActivity(launcher);
+        } catch (ActivityNotFoundException | SecurityException failure) {
+            Log.e("TvHomeKeyService", "Could not open the launcher after boot", failure);
+            return false;
+        }
+        return true;
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -166,13 +296,17 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        // stock_home_redirect: the firmware turned the stock launcher back on and its home screen came up.
-        if (stockHome.isEmpty() || event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
-        CharSequence cls = event.getClassName();
-        if (cls != null && stockHome.contains(cls.toString())) {
-            startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setPackage(getPackageName())
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED));
+        int type = event.getEventType();
+        if (stockHome.isEmpty() || (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                && type != AccessibilityEvent.TYPE_WINDOWS_CHANGED)) return;
+        CharSequence className = event.getClassName();
+        if (className == null) return;
+        boolean stockWindow = stockHome.contains(className.toString());
+        if (!stockWindow) {
+            cancelStockHomeRedirect();
+            return;
         }
+        scheduleStockHomeRedirect();
     }
 
     @Override
