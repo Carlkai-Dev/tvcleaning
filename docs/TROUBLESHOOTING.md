@@ -338,7 +338,6 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   lists the replacement. To recover, re-enable `com.jamdeo.tv.vod` and open
   `com.jamdeo.tv.vod/com.ju.main.launcher.LauncherActivity`. After upgrading, check a cold boot and
   saved settings. The firmware may resume its last HDMI input; Home should remain accessible.
-  [Home screenshot](hisense-55e5q-pro-direct-boot.jpg).
 - **Stuck on the boot animation after the launcher change, ADB gone** (JVC LT-43N7115, CVTE
   `TP.SK706S.PC822`, Android 11, [#741](https://github.com/Gathin23/cleanyourtv/discussions/741)): the stock
   launcher `com.cvte.tv.launcher.space` was disabled and a remote-key helper enabled before one reboot.
