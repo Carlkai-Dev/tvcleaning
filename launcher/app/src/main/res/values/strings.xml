@@ -55,6 +55,10 @@
     <string name="wallpaper_applied">Wallpaper changed</string>
     <string name="wallpaper_theme_default">Theme default</string>
     <string name="animations_state">Animations: %1$s</string>
+    <string name="uniform_tiles_state">Uniform icons: %1$s</string>
+    <string name="scenes_state">Scene wallpapers: %1$s</string>
+    <string name="sky_state">Time-of-day sky: %1$s</string>
+    <string name="dock_glass_state">Glass dock: %1$s</string>
     <string name="advanced_effects">Advanced effects</string>
     <string name="advanced_effects_state">Advanced effects: %1$s</string>
     <string name="advanced_effects_warning">Adds a lifted tile, icon zoom and smooth colour transitions. May increase memory use; the actual difference depends on your TV.</string>

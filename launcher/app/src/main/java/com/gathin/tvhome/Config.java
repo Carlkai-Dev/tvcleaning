@@ -40,6 +40,11 @@ final class Config {
     static final String FILE_NAME = "config.json";
     static final String WALLPAPER_NAME = "wallpaper.jpg";
     static final String SETTINGS_NAME = "launcher_settings";
+    /** On-TV switches in Launcher settings. Absent means the theme or config.xml decides. */
+    static final String UNIFORM_TILES_KEY = "uniform_tiles";
+    static final String DOCK_GLASS_KEY = "dock_glass";
+    static final String SKY_ON_KEY = "sky_on";
+    static final String SCENES_KEY = "scenes_on";
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
@@ -128,6 +133,8 @@ final class Config {
     final boolean appLibrary;
     /** OK directly toggles Home membership in the library (app_library_selection). */
     final boolean appLibrarySelection;
+    /** Icon on a card tinted from that icon, instead of the app's banner (config.xml uniform_tiles). */
+    final boolean uniformTiles;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
     final int backgroundColor;
     /** Time-of-day backdrop, 0 to 100 (config.xml, sky_intensity); 0 keeps the plain background. */
@@ -213,7 +220,8 @@ final class Config {
                    String sourcePanelExtra, boolean coocaaSources, String inputAction,
                    String inputUriScheme, int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean bootToLiveTv, boolean dockTitle, boolean dockRow, boolean topMenu, boolean launcherSettingsButton, boolean reorderButton, boolean showNetworkPill, boolean showInputsPill, boolean iconOnlyButtons, boolean iconOnlyInputs, boolean libraryButton, int wifiLabelWidth, boolean alwaysShowNames, boolean wallpaperTrueColor, boolean focusOvershoot, String vpnApp,
-                   boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, boolean appLibrarySelection, int backgroundColor, int skyIntensity,
+                   boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, boolean appLibrarySelection,
+                   boolean uniformTiles, int backgroundColor, int skyIntensity,
                    int[] settingsKeycodes, boolean settingsKeyPanel, boolean restoreKeyServices, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
                    int wallpaperRotationMinutes, int wallpaperDim, int dockOpacity, String wallpaperOrder, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
@@ -271,6 +279,7 @@ final class Config {
         this.showStats = showStats;
         this.appLibrary = appLibrary;
         this.appLibrarySelection = appLibrarySelection;
+        this.uniformTiles = uniformTiles;
         this.backgroundColor = backgroundColor;
         this.skyIntensity = skyIntensity;
         this.settingsKeycodes = settingsKeycodes;
@@ -362,6 +371,7 @@ final class Config {
         boolean showStats = res.getBoolean(R.bool.show_stats);
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
+        boolean uniformTiles = res.getBoolean(R.bool.uniform_tiles);
         int background = 0xFF000000;
         int skyIntensity = res.getInteger(R.integer.sky_intensity);
         int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
@@ -441,6 +451,7 @@ final class Config {
             showStats = bool(json, "show_stats", showStats);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
+            uniformTiles = bool(json, "uniform_tiles", uniformTiles);
             background = color(json, "background_color", background);
             skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
             settingsKeycodes = intArray(json, "settings_key_keycodes", settingsKeycodes);
@@ -508,6 +519,25 @@ final class Config {
             wallpaper = chosen.isEmpty() ? null : chosen.get(0);
             wallpaperEnabled = !chosen.isEmpty();
         }
+        // Switches in Launcher settings win over the theme. Absent means the theme decides.
+        if (choices.contains(UNIFORM_TILES_KEY)) uniformTiles = choices.getBoolean(UNIFORM_TILES_KEY, false);
+        if (choices.contains(DOCK_GLASS_KEY)) dockGlass = choices.getBoolean(DOCK_GLASS_KEY, false);
+        if (choices.contains(SKY_ON_KEY)) skyIntensity = choices.getBoolean(SKY_ON_KEY, false)
+                ? (skyIntensity > 0 ? skyIntensity : 50) : 0;
+        if (choices.contains(SCENES_KEY)) {
+            if (choices.getBoolean(SCENES_KEY, false)) {
+                if (rotationMinutes <= 0) rotationMinutes = 60;
+                if (wallpapers.isEmpty() && dir != null) {
+                    wallpapers = new ArrayList<>(WallpaperRotation.images(new File(dir, "wallpapers")));
+                }
+                wallpaperEnabled = !wallpapers.isEmpty();
+                if (wallpaper == null && !wallpapers.isEmpty()) wallpaper = wallpapers.get(0);
+            } else {
+                wallpapers = new ArrayList<>();
+                wallpaper = null;
+                wallpaperEnabled = false;
+            }
+        }
         // A festive skin comes only from a theme; config.xml has no festival.
         Festival festival = json == null ? Festival.NONE : Festival.parse(string(json, "festival", ""),
                 string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
@@ -516,7 +546,7 @@ final class Config {
                 packageMap(appBanners), panelService,
                 panelAction, panelExtra, coocaaSources, inputAction, inputUriScheme,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
-                shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill, iconOnlyButtons, iconOnlyInputs, libraryButton, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot, vpn, homeSettings, showStats, library, librarySelection, background,
+                shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill, iconOnlyButtons, iconOnlyInputs, libraryButton, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot, vpn, homeSettings, showStats, library, librarySelection, uniformTiles, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied,
                 festival, inputKeycodes, appKeys, stockHomeRedirect, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow, fadeRows,
@@ -564,11 +594,13 @@ final class Config {
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
                     .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
-                    .remove(DOCK_OPACITY_KEY);
+                    .remove(DOCK_OPACITY_KEY).remove(UNIFORM_TILES_KEY).remove(DOCK_GLASS_KEY)
+                    .remove(SKY_ON_KEY).remove(SCENES_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
                     .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY).remove(DOCK_OPACITY_KEY)
+                    .remove(UNIFORM_TILES_KEY).remove(DOCK_GLASS_KEY).remove(SKY_ON_KEY).remove(SCENES_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
     }

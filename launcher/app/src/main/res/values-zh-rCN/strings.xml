@@ -10,6 +10,11 @@
     <string name="columns_label">每行应用数量</string>
     <string name="dock_opacity_label">Dock 栏不透明度</string>
     <string name="animations_state">动态效果：%1$s</string>
+    <string name="uniform_tiles_state">统一图标：%1$s</string>
+    <string name="scenes_state">风景壁纸：%1$s</string>
+    <string name="sky_state">时间天空：%1$s</string>
+    <string name="dock_glass_state">玻璃底栏：%1$s</string>
+    <string name="module_cards">模块卡片</string>
     <string name="advanced_effects">高级动态效果</string>
     <string name="advanced_effects_state">高级动态效果：%1$s</string>
     <string name="advanced_effects_warning">增加卡片上浮、图标缩放和背景颜色平滑过渡；可能增加内存占用，实际变化取决于电视。</string>

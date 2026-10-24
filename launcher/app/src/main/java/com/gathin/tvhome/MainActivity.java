@@ -887,6 +887,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             settingsRevision = settingsRevision();
             recreate();
         }
+        if (requestCode == LAUNCHER_SETTINGS_REQUEST && resultCode == RESULT_OK
+                && data != null && data.getBooleanExtra(LauncherSettingsActivity.EXTRA_CARDS, false)) {
+            getIntent().putExtra(LauncherSettingsActivity.EXTRA_CARDS, true);
+        }
     }
 
     private void startPendingSettingsReorder() {
@@ -894,6 +898,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 || !getIntent().getBooleanExtra(LauncherSettingsActivity.EXTRA_REORDER, false)) return;
         getIntent().removeExtra(LauncherSettingsActivity.EXTRA_REORDER);
         toggleReorder();
+    }
+
+    private void startPendingSettingsCards() {
+        if (!tilesReady || !hasWindowFocus() || isFinishing()
+                || !getIntent().getBooleanExtra(LauncherSettingsActivity.EXTRA_CARDS, false)) return;
+        getIntent().removeExtra(LauncherSettingsActivity.EXTRA_CARDS);
+        showModuleCards();
     }
 
     /** Rebuilds the tiles (and the module cards), then puts focus back where it was. */
@@ -949,6 +960,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // A newly installed app may have brought a card with it.
             tilesReady = true;
             startPendingSettingsReorder();
+            startPendingSettingsCards();
             showCardPrompt();
         }
     }
@@ -1003,6 +1015,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else focusTile(pos >= 0 ? pos : returnSlot);
             tilesReady = true;
             startPendingSettingsReorder();
+            startPendingSettingsCards();
             showCardPrompt();
         });
     }
@@ -1077,6 +1090,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             startPendingSettingsReorder();
+            startPendingSettingsCards();
             if (libraryFocusPending && appLibrary == null) focusLibrary();
             showCardPrompt();
         }

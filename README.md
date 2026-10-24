@@ -544,8 +544,13 @@ and a wallpaper.
     Follow theme, or push the theme again.
   - **Animations** on or off, and **Advanced effects** (tile lift, icon zoom and smooth ambient-colour
     transitions; they may use more memory) once animations are on.
+  - **Uniform icons**, **Scene wallpapers**, **Time-of-day sky** and **Glass dock**, each on or off. Off
+    leaves that part to the theme. Scene wallpapers rotates the pictures in the theme's `wallpapers/`
+    folder once an hour.
   - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
     clears them too.
+  - **Module cards**: each installed card (the Weather add-on is one), OK switches it between shown and
+    hidden.
   - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings
     page.
 - **Change the default home:** Launcher settings and the optional Default-home tile

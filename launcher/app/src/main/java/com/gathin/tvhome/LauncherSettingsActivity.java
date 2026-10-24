@@ -18,6 +18,7 @@ import java.util.List;
 /** Remote-friendly settings owned by the launcher; system settings stay one row away. */
 public final class LauncherSettingsActivity extends Activity {
     static final String EXTRA_REORDER = "com.gathin.tvhome.extra.REORDER_FROM_SETTINGS";
+    static final String EXTRA_CARDS = "com.gathin.tvhome.extra.CARDS_FROM_SETTINGS";
     private SharedPreferences choices;
     private final TextView[] columnChoices = new TextView[4];
     private final TextView[] rowChoices = new TextView[4];
@@ -27,11 +28,19 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
+    private TextView uniformTilesChoice;
+    private TextView scenesChoice;
+    private TextView skyChoice;
+    private TextView dockGlassChoice;
     private int columns;
     private int rowsBelowDock;
     private int dockOpacity;
     private boolean animations;
     private boolean advancedEffects;
+    private boolean uniformTiles;
+    private boolean scenes;
+    private boolean skyOn;
+    private boolean dockGlass;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -50,6 +59,10 @@ public final class LauncherSettingsActivity extends Activity {
         dockOpacity = config.dockOpacity;
         animations = config.animations;
         advancedEffects = config.animations && config.advancedEffects;
+        uniformTiles = config.uniformTiles;
+        scenes = config.wallpaperEnabled && !config.wallpapers.isEmpty();
+        skyOn = config.skyIntensity > 0;
+        dockGlass = config.dockGlass;
 
         int[] ids = {R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7};
         for (int i = 0; i < ids.length; i++) {
@@ -118,20 +131,57 @@ public final class LauncherSettingsActivity extends Activity {
                         .show();
             }
         });
+        uniformTilesChoice = findViewById(R.id.uniformTilesChoice);
+        uniformTilesChoice.setOnClickListener(v -> {
+            uniformTiles = !uniformTiles;
+            choices.edit().putBoolean(Config.UNIFORM_TILES_KEY, uniformTiles).apply();
+            changed();
+            refresh();
+        });
+        scenesChoice = findViewById(R.id.scenesChoice);
+        scenesChoice.setOnClickListener(v -> {
+            scenes = !scenes;
+            choices.edit().putBoolean(Config.SCENES_KEY, scenes).apply();
+            changed();
+            refresh();
+        });
+        skyChoice = findViewById(R.id.skyChoice);
+        skyChoice.setOnClickListener(v -> {
+            skyOn = !skyOn;
+            choices.edit().putBoolean(Config.SKY_ON_KEY, skyOn).apply();
+            changed();
+            refresh();
+        });
+        dockGlassChoice = findViewById(R.id.dockGlassChoice);
+        dockGlassChoice.setOnClickListener(v -> {
+            dockGlass = !dockGlass;
+            choices.edit().putBoolean(Config.DOCK_GLASS_KEY, dockGlass).apply();
+            changed();
+            refresh();
+        });
         followThemeChoice = findViewById(R.id.followThemeChoice);
         followThemeChoice.setOnClickListener(v -> {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).commit();
+                    .remove(Config.DOCK_OPACITY_KEY).remove(Config.UNIFORM_TILES_KEY)
+                    .remove(Config.DOCK_GLASS_KEY).remove(Config.SKY_ON_KEY).remove(Config.SCENES_KEY).commit();
             Config current = Config.load(this);
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
             dockOpacity = current.dockOpacity;
             animations = current.animations;
             advancedEffects = current.animations && current.advancedEffects;
+            uniformTiles = current.uniformTiles;
+            scenes = current.wallpaperEnabled && !current.wallpapers.isEmpty();
+            skyOn = current.skyIntensity > 0;
+            dockGlass = current.dockGlass;
             changed();
             refresh();
+        });
+        findViewById(R.id.moduleCardsChoice).setOnClickListener(v -> {
+            setResult(RESULT_OK, new Intent().putExtra(EXTRA_CARDS, true));
+            finish();
         });
         findViewById(R.id.defaultHomeChoice).setOnClickListener(v -> {
             Toast.makeText(this, R.string.home_settings_help, Toast.LENGTH_LONG).show();
@@ -227,6 +277,14 @@ public final class LauncherSettingsActivity extends Activity {
                 getString(advancedEffects ? R.string.on : R.string.off)));
         advancedChoice.setEnabled(animations);
         advancedChoice.setAlpha(animations ? 1f : 0.5f);
+        uniformTilesChoice.setText(getString(R.string.uniform_tiles_state,
+                getString(uniformTiles ? R.string.on : R.string.off)));
+        scenesChoice.setText(getString(R.string.scenes_state,
+                getString(scenes ? R.string.on : R.string.off)));
+        skyChoice.setText(getString(R.string.sky_state,
+                getString(skyOn ? R.string.on : R.string.off)));
+        dockGlassChoice.setText(getString(R.string.dock_glass_state,
+                getString(dockGlass ? R.string.on : R.string.off)));
         String wallpaperCurrent = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
         wallpaperChoice.setText(getString(R.string.wallpaper_state,
                 "none".equals(wallpaperCurrent) ? getString(R.string.wallpaper_none)
@@ -238,7 +296,9 @@ public final class LauncherSettingsActivity extends Activity {
     private boolean hasOnTvChoices() {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
-                || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY);
+                || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
+                || choices.contains(Config.UNIFORM_TILES_KEY) || choices.contains(Config.DOCK_GLASS_KEY)
+                || choices.contains(Config.SKY_ON_KEY) || choices.contains(Config.SCENES_KEY);
     }
 
     private void open(Intent intent) {
