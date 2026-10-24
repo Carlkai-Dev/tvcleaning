@@ -179,6 +179,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** The pills have been filled in once; later resumes refresh them after the first frame. */
     private boolean pillsShown;
     private TextView shamsiDate;
+    /** Moon phase and tithi under the date (Panchang). */
+    private TextView panchang;
+    /** config.xml weather_city: null when empty, and then nothing goes to the network. */
+    private HomeWeather weather;
+    private View weatherBlock;
+    private TextView weatherSky, weatherTemp, weatherAdvice;
     private TextView stats;
     private List<RaceWeekend.Race> raceCalendar;
     private View racePanel;
@@ -282,11 +288,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void onAvailable(@NonNull Network network) {
             handler.post(MainActivity.this::updateWifiLabel);
+            handler.post(MainActivity.this::refreshWeather);
         }
 
         @Override
         public void onLost(@NonNull Network network) {
             handler.post(MainActivity.this::updateWifiLabel);
+            handler.post(MainActivity.this::refreshWeather);
         }
     };
     /** Shows the Inputs pill once the TV registers an input: at boot HDMI inputs can appear after Home is shown. */
@@ -339,6 +347,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateRace();
+            refreshWeather();
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
             // signal level, so only it needs this minute's binder calls (about 7 ms on the UI thread).
             if (festive) updateWifiLabel();
@@ -445,6 +454,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         showStats = cfg.showStats;
         shamsi = cfg.shamsiDate;
         greetingName = cfg.greetingName;
+        panchang = findViewById(R.id.panchang);
+        weatherBlock = findViewById(R.id.weatherBlock);
+        weatherSky = findViewById(R.id.weatherSky);
+        weatherTemp = findViewById(R.id.weatherTemp);
+        weatherAdvice = findViewById(R.id.weatherAdvice);
+        String weatherCity = getString(R.string.weather_city).trim();
+        if (!weatherCity.isEmpty()) weather = new HomeWeather(weatherCity,
+                getString(R.string.latitude), getString(R.string.longitude));
         if (shamsi) {
             shamsiDate.setVisibility(View.VISIBLE);
             TextView date = findViewById(R.id.date);
@@ -511,7 +528,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public void onChildViewDetachedFromWindow(@NonNull View v) {
             }
         });
-        if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, cfg.alwaysShowNames, cfg.dockOpacity, cfg.dockGlass, cfg.dockEvenPadding));
+        if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, cfg.alwaysShowNames,
+                cfg.dockOpacity, cfg.dockGlass, cfg.dockEvenPadding, getString(R.string.apps_title),
+                getResources().getFont(R.font.outfit_medium)));
         if (cfg.fadeRows) TopFade.attach(grid, 48 * density);
         // Reduced motion: the tiles are simply there, with no entrance (reloadApps skips it there too).
         if (animations && !reducedMotion) {
@@ -591,6 +610,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
+        View btnSearch = findViewById(R.id.btnSearch);
+        btnSearch.setOnClickListener(v -> {
+            // search_type 1 asks Google's TV search (Katniss) for voice rather than the keyboard.
+            try {
+                startActivity(new Intent(Intent.ACTION_ASSIST).putExtra("search_type", 1)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (ActivityNotFoundException e) {
+                Toast.makeText(this, getString(R.string.cant_open, getString(R.string.search_hint)),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
         btnInputs.setOnClickListener(v -> showInputs());
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
@@ -666,19 +696,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 focusTile(lastFocused % COLUMNS);
                 return true;
             }
-            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
+            int firstButton = R.id.btnSearch;
             int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
             int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
+        btnSearch.setOnKeyListener(pillKeys);
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings}) {
+            for (View button : new View[]{btnSearch, btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings}) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(reducedMotion ? Motion.REDUCED_MS : 160).start());
@@ -690,6 +721,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
             boolean onTile = newF != null && newF.getId() == R.id.card;
             if (!onTile) hideGlass();
+            grid.invalidate();   // the dock header's "1-6 / 12" follows the focused row
         });
 
         packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -842,6 +874,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openLiveTvAfterBoot()) return;
         updateGreeting();
         updateRace();
+        refreshWeather();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
         // when the network or the inputs change, so this refresh only catches anything missed. Its binder calls
         // (about 7 ms on a TCL C755, most of it WifiManager.getConnectionInfo) would hold up the first frame back
@@ -2269,22 +2302,49 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             else if (hour < 21) res = R.string.good_afternoon;
             else res = R.string.good_night;
         } else {
-            if (hour < 5) res = R.string.good_night;
-            else if (hour < 12) res = R.string.good_morning;
+            if (hour < 12) res = R.string.good_morning;
             else if (hour < 17) res = R.string.good_afternoon;
-            else if (hour < 22) res = R.string.good_evening;
-            else res = R.string.good_night;
+            else res = R.string.good_evening;
         }
         String festiveGreeting = festive ? festival.greetingText(getResources()) : "";
+        String indian = IndianFestivals.greeting(LocalDate.now());
         if (!festiveGreeting.isEmpty()) {
             greeting.setText(festiveGreeting);
             greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
+        } else if (indian != null) {
+            greeting.setText(greetingName.isEmpty() ? indian
+                    : getString(R.string.greeting_with_name, indian, greetingName));
+            greeting.setTextColor(liftTowardsWhite(Festival.DEFAULT_ACCENT, 0.25f));
         } else {
             greeting.setText(greetingName.isEmpty() ? getString(res)
                     : getString(R.string.greeting_with_name, getString(res), greetingName));
             greeting.setTextColor(greetingColor);
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
+        panchang.setText(Panchang.line(System.currentTimeMillis()));
+    }
+
+    /** Shows the last weather reading and fetches a new one when it is 30 minutes old (HomeWeather). */
+    private void refreshWeather() {
+        if (weather == null) return;
+        // Offline: hide the block and skip the fetch, so the network callback's onAvailable fetches at once
+        // instead of waiting out the 30 minutes after a try that could not work (at boot the network comes late).
+        ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+        if (cm == null || cm.getActiveNetwork() == null) {
+            weatherBlock.setVisibility(View.GONE);
+            return;
+        }
+        weather.refresh(handler, lines -> {
+            if (lines == null) {
+                weatherBlock.setVisibility(View.GONE);
+                return;
+            }
+            weatherSky.setText(lines[0]);
+            weatherTemp.setText(lines[1]);
+            weatherAdvice.setText(lines[2]);
+            weatherAdvice.setVisibility(lines[2].isEmpty() ? View.GONE : View.VISIBLE);
+            weatherBlock.setVisibility(View.VISIBLE);
+        });
     }
 
     // ---- race-weekend panel (a theme's race_calendar) -----------------------------------------------

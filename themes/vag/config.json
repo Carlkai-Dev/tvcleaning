@@ -1,0 +1,24 @@
+{
+  "dock_apps": [
+    "in.startv.hotstar",
+    "com.jio.media.stb.ondemand",
+    "com.aajtak.tv",
+    "com.google.android.youtube.tv",
+    "com.netflix.ninja",
+    "com.amazon.amazonvideo.livingroom"
+  ],
+  "columns": 6,
+  "greeting_name": "VAG",
+  "wallpaper": true,
+  "wallpaper_rotation_minutes": 60,
+  "wallpaper_dim": 35,
+  "wallpaper_captions": false,
+  "wallpaper_moods": {
+    "morning": ["05-dunes.jpg", "06-above-the-clouds.jpg", "08-tea-hills.jpg", "11-balloon-sunrise.jpg"],
+    "afternoon": ["15-noon-coast.jpg", "16-green-valley.jpg", "17-palm-beach.jpg", "18-clear-lake.jpg"],
+    "evening": ["01-dusk-peaks.jpg", "02-golden-coast.jpg", "07-mirror-lake.jpg", "09-alpenglow.jpg", "12-monsoon.jpg", "14-autumn-valley.jpg"],
+    "night": ["03-moon-lake.jpg", "04-aurora.jpg", "10-city-lights.jpg", "13-lighthouse-coast.jpg"]
+  },
+  "dock_glass": true,
+  "icon_only_buttons": true
+}

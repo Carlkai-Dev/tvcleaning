@@ -183,11 +183,10 @@
                     android:singleLine="true"
                     android:ellipsize="end"
                     android:layout_marginStart="4dp"
-                    android:textColor="#8CFFFFFF"
-                    android:textSize="12sp"
-                    android:fontFamily="@string/font_medium"
-                    android:letterSpacing="0.22"
-                    android:textAllCaps="true" />
+                    android:textColor="#E6FFFFFF"
+                    android:textSize="20sp"
+                    android:fontFamily="@string/font_regular"
+                    android:letterSpacing="0.01" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -202,7 +201,7 @@
                         android:format12Hour="h:mm"
                         android:format24Hour="HH:mm"
                         android:textColor="#FFFFFFFF"
-                        android:textSize="52sp"
+                        android:textSize="84sp"
                         android:fontFamily="@string/font_light"
                         android:letterSpacing="-0.04"
                         android:includeFontPadding="false" />
@@ -213,30 +212,20 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
                         android:layout_gravity="bottom"
-                        android:layout_marginBottom="8dp"
+                        android:layout_marginBottom="14dp"
                         android:format12Hour="a"
                         android:format24Hour=""
                         android:textColor="#B3FFFFFF"
-                        android:textSize="15sp"
+                        android:textSize="18sp"
                         android:fontFamily="@string/font_medium"
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
-
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="26dp"
-                        android:layout_gravity="bottom"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:layout_marginBottom="8dp"
-                        android:background="#33FFFFFF" />
+                </LinearLayout>
 
                     <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_weight="1"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="bottom"
-                        android:layout_marginBottom="9dp"
+                        android:layout_marginStart="4dp"
                         android:orientation="vertical">
 
                         <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
@@ -265,13 +254,24 @@
                             android:ellipsize="end"
                             android:format12Hour="@string/date_format_home"
                             android:format24Hour="@string/date_format_home"
-                            android:textColor="#A6FFFFFF"
-                            android:textSize="14sp"
+                            android:textColor="#E6FFFFFF"
+                            android:textSize="18sp"
                             android:fontFamily="@string/font_regular"
-                            android:letterSpacing="0.14"
-                            android:textAllCaps="true" />
+                            android:letterSpacing="0.02" />
+
+                        <!-- Moon phase and tithi (Panchang), updated with the greeting once a minute. -->
+                        <TextView
+                            android:id="@+id/panchang"
+                            android:gravity="left"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:singleLine="true"
+                            android:ellipsize="end"
+                            android:textColor="#B3FFFFFF"
+                            android:textSize="16sp"
+                            android:fontFamily="@string/font_regular" />
                     </LinearLayout>
-                </LinearLayout>
 
             </LinearLayout>
 
@@ -299,11 +299,18 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
-                android:layout_alignBottom="@id/leftBlock"
-                android:layout_marginBottom="6dp"
+                android:layout_alignParentTop="true"
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 android:orientation="horizontal">
+
+                <!-- Opens Google Assistant listening, the same as the remote's mic button. -->
+                <TextView
+                    android:id="@+id/btnSearch"
+                    style="@style/TopButton"
+                    android:text="@string/search_hint"
+                    android:drawableStart="@drawable/ic_mic"
+                    android:nextFocusDown="@+id/grid" />
 
                 <TextView
                     android:id="@+id/btnInputs"
@@ -343,6 +350,50 @@
                     android:text="@string/settings"
                     android:drawableStart="@drawable/ic_settings"
                     android:nextFocusDown="@+id/grid" />
+            </LinearLayout>
+
+            <!-- Weather and air quality (HomeWeather); gone until a reading arrives. -->
+            <LinearLayout
+                android:id="@+id/weatherBlock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/topButtons"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="22dp"
+                android:layout_marginEnd="4dp"
+                android:gravity="right"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/weatherSky"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="24sp"
+                    android:fontFamily="@string/font_regular" />
+
+                <TextView
+                    android:id="@+id/weatherTemp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:singleLine="true"
+                    android:textColor="#E6FFFFFF"
+                    android:textSize="18sp"
+                    android:fontFamily="@string/font_regular" />
+
+                <TextView
+                    android:id="@+id/weatherAdvice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:singleLine="true"
+                    android:textColor="#FFFF9F7A"
+                    android:textSize="16sp"
+                    android:fontFamily="@string/font_regular"
+                    android:visibility="gone" />
             </LinearLayout>
         </RelativeLayout>
 

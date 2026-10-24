@@ -6,6 +6,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.Typeface;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -28,6 +29,17 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final boolean evenPadding;
     /** The band's top and bottom the glass gradient was made for; it is remade when they move. */
     private float shaderTop = Float.NaN, shaderBottom = Float.NaN;
+    /** Room at the band's top for the "Apps" title and the "1-6 / 12" counter; 0 without a header. */
+    private final float headerRoom;
+    private final Paint title = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint counter = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final String titleText;
+
+    /** The same band with a header: {@code titleText} at its top left, the focused row's range at its top right. */
+    DockDecoration(int dockSize, float density, boolean translucent, boolean names, int opacity, boolean lightGlass,
+                   boolean evenPadding, String titleText, Typeface typeface) {
+        this(dockSize, density, translucent, names, opacity, lightGlass, evenPadding, titleText, typeface, true);
+    }
 
     /**
      * @param translucent the cinematic shelf's band: the artwork and the glow show through it.
@@ -38,6 +50,21 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
      */
     DockDecoration(int dockSize, float density, boolean translucent, boolean names, int opacity, boolean lightGlass,
                    boolean evenPadding) {
+        this(dockSize, density, translucent, names, opacity, lightGlass, evenPadding, null, null, false);
+    }
+
+    private DockDecoration(int dockSize, float density, boolean translucent, boolean names, int opacity,
+                           boolean lightGlass, boolean evenPadding, String titleText, Typeface typeface,
+                           boolean header) {
+        this.titleText = titleText;
+        this.headerRoom = header ? 28 * density : 0;
+        title.setTypeface(typeface);
+        title.setTextSize(16 * density);
+        title.setColor(0xD9FFFFFF);
+        counter.setTypeface(typeface);
+        counter.setTextSize(14 * density);
+        counter.setColor(0x99FFFFFF);
+        counter.setTextAlign(Paint.Align.RIGHT);
         this.dockSize = dockSize;
         this.density = density;
         this.namesRoom = names ? 22 * density : 0;
@@ -68,7 +95,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
                                @NonNull RecyclerView.State state) {
         int pos = parent.getChildAdapterPosition(view);
         if (pos >= 0 && pos < dockSize) {
-            outRect.top = (int) (6 * density);
+            outRect.top = (int) (6 * density + headerRoom);
             outRect.bottom = (int) (12 * density);
         }
     }
@@ -119,6 +146,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             radius = 26 * density;
         }
         rect.bottom += namesRoom;
+        rect.top -= headerRoom;
         if (lightGlass && (rect.top != shaderTop || rect.bottom != shaderBottom)) {
             // The pills' glass (pill_bg: white, 18% fading to 8%), a little fainter over this much larger area.
             band.setShader(new LinearGradient(0, rect.top, 0, rect.bottom, 0x24FFFFFF, 0x0DFFFFFF,
@@ -128,5 +156,24 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         }
         c.drawRoundRect(rect, radius, radius, band);
         c.drawRoundRect(rect, radius, radius, edge);
+        if (headerRoom > 0) {
+            float baseline = rect.top + 26 * density;
+            c.drawText(titleText, rect.left + 22 * density, baseline, title);
+            c.drawText(rowRange(parent), rect.right - 22 * density, baseline, counter);
+        }
+    }
+
+    /** "1-6 / 12": the focused row's tiles out of all of them (the dock's row when nothing is focused). */
+    private String rowRange(RecyclerView parent) {
+        RecyclerView.Adapter<?> a = parent.getAdapter();
+        int total = a instanceof AppAdapter ? ((AppAdapter) a).appCount() : a == null ? 0 : a.getItemCount();
+        View f = parent.getFocusedChild();
+        int pos = f == null ? 0 : Math.max(0, parent.getChildAdapterPosition(f));
+        return rowRange(pos, dockSize, total);
+    }
+
+    static String rowRange(int focused, int columns, int total) {
+        int first = Math.min(focused, Math.max(0, total - 1)) / columns * columns;
+        return (first + 1) + "-" + Math.min(first + columns, total) + " / " + total;
     }
 }
