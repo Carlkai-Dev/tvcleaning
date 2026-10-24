@@ -48,6 +48,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
+import android.view.LayoutInflater;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -85,6 +86,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     static int COLUMNS = 4;
     private boolean rtlAppGrid;
     private static final long MINUTE_MS = 60_000L;
+    /** Festival wallpaper auto-rotate interval. */
+    private static final long WALLPAPER_ROTATE_MS = 5_000L;
+    /** Idle time before Maharashtra Marathi news overlay. */
+    private static final long IDLE_NEWS_MS = 20_000L;
+    /** How long each news story stays on screen while idle. */
+    private static final long NEWS_ROTATE_MS = 10_000L;
     private String liveTvPkg;
     private String liveTvAction;
     private String inputAction;
@@ -135,10 +142,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private IndiaEvents.Event indiaEvent;
     /** Index into today's cached festival photo set. */
     private int indiaWallpaperVariant = 0;
-    /** Dock/grid position that last triggered a wallpaper change (−1 = none yet). */
-    private int indiaWallpaperPos = -1;
     /** Event id whose internet photos are currently loaded / loading. */
     private String indiaPhotosEventId;
+    /** Full-screen Maharashtra Marathi news overlay (null when hidden). */
+    private View newsOverlay;
+    private int newsIndex;
+    private boolean newsVisible;
     private DiyaDrawable diya;
     private BellDrawable bell;
     private MarigoldDrawable marigold;
@@ -212,6 +221,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateWifiLabel();
             sky.update();
             handler.postDelayed(this, MINUTE_MS);
+        }
+    };
+    private final Runnable wallpaperRotateTick = new Runnable() {
+        @Override
+        public void run() {
+            if (!newsVisible) rotateIndiaWallpaper();
+            handler.postDelayed(this, WALLPAPER_ROTATE_MS);
+        }
+    };
+    private final Runnable idleNewsTick = () -> {
+        if (!newsVisible) showNewsOverlay();
+    };
+    private final Runnable newsRotateTick = new Runnable() {
+        @Override
+        public void run() {
+            if (!newsVisible) return;
+            newsIndex++;
+            bindNewsStory();
+            handler.postDelayed(this, NEWS_ROTATE_MS);
         }
     };
 
@@ -457,7 +485,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (WallpaperPrefs.MODE_INDIA.equals(mode)) {
             IndiaEvents.Event event = indiaEvent != null ? indiaEvent : IndiaEvents.everyday();
             indiaPhotosEventId = event.id;
-            indiaWallpaperPos = -1;
             int have = FestivalPhotos.count(this, event);
             if (have > 0) {
                 indiaWallpaperVariant = FestivalPhotos.pickIndex(have, -1);
@@ -465,7 +492,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             } else {
                 showIndiaWallpaper(0); // soft gradient until this festival's photos arrive
             }
-            // Background: download 20–30 internet photos for today's festival into cache (daily).
             FestivalPhotos.ensureDaily(this, event, (eventId, count) -> handler.post(() -> {
                 if (isFinishing() || isDestroyed()) return;
                 if (!WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)) return;
@@ -473,37 +499,137 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (count <= 0) return;
                 indiaWallpaperVariant = FestivalPhotos.pickIndex(count, indiaWallpaperVariant);
                 showIndiaWallpaper(indiaWallpaperVariant);
+                startWallpaperRotation();
             }));
+            startWallpaperRotation();
             return;
         }
+        stopWallpaperRotation();
         if (cfg.wallpaper != null) showWallpaperFile(cfg.wallpaper);
     }
 
-    /** Random cached festival photo whenever focus moves to a different launcher icon. */
-    private void maybeSwitchIndiaWallpaper(int position) {
-        if (!WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)) return;
-        if (position == indiaWallpaperPos) return;
-        indiaWallpaperPos = position;
+    /** Random festival photo every {@link #WALLPAPER_ROTATE_MS} while Home is visible. */
+    private void rotateIndiaWallpaper() {
+        if (!WallpaperPrefs.MODE_INDIA.equals(wallpaperMode) || newsVisible) return;
         IndiaEvents.Event event = indiaEvent != null ? indiaEvent : IndiaEvents.everyday();
         int have = FestivalPhotos.count(this, event);
-        if (have <= 0) {
-            FestivalPhotos.ensureDaily(this, event, (eventId, count) -> handler.post(() -> {
-                if (isFinishing() || isDestroyed()) return;
-                if (!WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)) return;
-                if (count <= 0) return;
-                indiaWallpaperVariant = FestivalPhotos.pickIndex(count, indiaWallpaperVariant);
-                showIndiaWallpaper(indiaWallpaperVariant);
-            }));
-            return;
-        }
+        if (have <= 0) return;
         indiaWallpaperVariant = FestivalPhotos.pickIndex(have, indiaWallpaperVariant);
         showIndiaWallpaper(indiaWallpaperVariant);
+    }
+
+    private void startWallpaperRotation() {
+        handler.removeCallbacks(wallpaperRotateTick);
+        if (!WallpaperPrefs.MODE_INDIA.equals(wallpaperMode)) return;
+        handler.postDelayed(wallpaperRotateTick, WALLPAPER_ROTATE_MS);
+    }
+
+    private void stopWallpaperRotation() {
+        handler.removeCallbacks(wallpaperRotateTick);
     }
 
     private void showIndiaWallpaper(int variant) {
         IndiaEvents.Event event = indiaEvent != null ? indiaEvent : IndiaEvents.everyday();
         android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
         showWallpaperBitmap(EventWallpaper.render(this, event, dm.widthPixels, dm.heightPixels, variant));
+    }
+
+    /** Reset the 20s idle timer; any interaction keeps the launcher on screen. */
+    private void touchIdle() {
+        handler.removeCallbacks(idleNewsTick);
+        if (newsVisible) return;
+        handler.postDelayed(idleNewsTick, IDLE_NEWS_MS);
+    }
+
+    private void showNewsOverlay() {
+        if (newsVisible || isFinishing() || isDestroyed()) return;
+        if (MhNews.count() == 0) {
+            MhNews.ensureDaily(this, count -> handler.post(() -> {
+                if (count > 0 && !newsVisible) showNewsOverlay();
+                else touchIdle();
+            }));
+            return;
+        }
+        if (newsOverlay == null) {
+            newsOverlay = LayoutInflater.from(this).inflate(R.layout.news_overlay, root, false);
+            root.addView(newsOverlay, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+        newsVisible = true;
+        newsIndex = 0;
+        stopWallpaperRotation();
+        handler.removeCallbacks(idleNewsTick);
+        setLauncherChromeVisible(false);
+        bindNewsStory();
+        newsOverlay.setVisibility(View.VISIBLE);
+        newsOverlay.bringToFront();
+        newsOverlay.requestFocus();
+        handler.removeCallbacks(newsRotateTick);
+        handler.postDelayed(newsRotateTick, NEWS_ROTATE_MS);
+    }
+
+    private void hideNewsOverlay() {
+        if (!newsVisible) return;
+        newsVisible = false;
+        handler.removeCallbacks(newsRotateTick);
+        if (newsOverlay != null) newsOverlay.setVisibility(View.GONE);
+        setLauncherChromeVisible(true);
+        startWallpaperRotation();
+        touchIdle();
+        if (grid != null) {
+            int pos = Math.max(0, lastFocused);
+            focusTile(pos);
+        }
+    }
+
+    private void bindNewsStory() {
+        if (newsOverlay == null) return;
+        MhNews.Story story = MhNews.at(newsIndex);
+        if (story == null) return;
+        TextView title = newsOverlay.findViewById(R.id.newsTitle);
+        TextView body = newsOverlay.findViewById(R.id.newsBody);
+        ImageView image = newsOverlay.findViewById(R.id.newsImage);
+        title.setText(story.title);
+        body.setText(story.summary);
+        if (story.image != null && story.image.isFile()) {
+            try {
+                android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+                opts.inPreferredConfig = Bitmap.Config.RGB_565;
+                opts.inSampleSize = 2;
+                Bitmap bmp = android.graphics.BitmapFactory.decodeFile(story.image.getPath(), opts);
+                if (bmp != null) {
+                    Drawable prev = image.getDrawable();
+                    image.setImageBitmap(bmp);
+                    if (prev instanceof BitmapDrawable) {
+                        Bitmap old = ((BitmapDrawable) prev).getBitmap();
+                        if (old != null && old != bmp && !old.isRecycled()) old.recycle();
+                    }
+                }
+            } catch (OutOfMemoryError ignored) { }
+        }
+    }
+
+    private void setLauncherChromeVisible(boolean visible) {
+        int v = visible ? View.VISIBLE : View.INVISIBLE;
+        if (grid != null) grid.setVisibility(v);
+        if (glass != null) {
+            glass.setVisibility(v);
+            if (!visible) glass.setAlpha(0f);
+        }
+        if (heroName != null) heroName.setVisibility(v);
+        if (greeting != null) greeting.setVisibility(v);
+        View left = findViewById(R.id.leftBlock);
+        if (left != null) left.setVisibility(v);
+        View topButtons = findViewById(R.id.topButtons);
+        if (topButtons != null) topButtons.setVisibility(v);
+        if (shamsiDate != null) shamsiDate.setVisibility(v);
+    }
+
+    private static boolean isArrowKey(int keyCode) {
+        return keyCode == KeyEvent.KEYCODE_DPAD_UP
+                || keyCode == KeyEvent.KEYCODE_DPAD_DOWN
+                || keyCode == KeyEvent.KEYCODE_DPAD_LEFT
+                || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
     }
 
     private void removeWallpaperView() {
@@ -614,7 +740,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 recreate();
                 return;
             }
-            // Daily background download of today's festival photos into cache.
             IndiaEvents.Event event = indiaEvent != null ? indiaEvent : IndiaEvents.everyday();
             indiaPhotosEventId = event.id;
             FestivalPhotos.ensureDaily(this, event, (eventId, count) -> handler.post(() -> {
@@ -626,7 +751,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     showIndiaWallpaper(indiaWallpaperVariant);
                 }
             }));
+            startWallpaperRotation();
         }
+        MhNews.ensureDaily(this, count -> { /* primed for idle overlay */ });
+        hideNewsOverlay();
+        touchIdle();
         promptsPaused = false;
         if (rebuildOnResume) {
             tilesReady = false;
@@ -723,10 +852,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.animate().cancel();
         ambient.animate().cancel();
         handler.removeCallbacks(minuteTick);
+        stopWallpaperRotation();
+        handler.removeCallbacks(idleNewsTick);
+        handler.removeCallbacks(newsRotateTick);
         if (diya != null) diya.stop();
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
         if (openPopup != null) openPopup.dismiss();
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            if (newsVisible && isArrowKey(event.getKeyCode())) {
+                hideNewsOverlay();
+                return true;
+            }
+            if (newsVisible) {
+                // Any other key also returns to the launcher.
+                hideNewsOverlay();
+                return true;
+            }
+            touchIdle();
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     @Override
@@ -769,7 +918,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onTileFocused(int position, View card) {
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
-        maybeSwitchIndiaWallpaper(position);
+        touchIdle();
         // Tile rect in root coordinates, using layout positions (ignores the scale animation).
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);

@@ -87,10 +87,12 @@
     <string name="wallpaper_hint">Choose a plain look, your own picture, or auto India special-day themes.</string>
     <string name="wallpaper_default">Default (theme / plain)</string>
     <string name="wallpaper_custom">Custom picture</string>
-    <string name="wallpaper_india">Today\'s festival photos (download daily, random on icon)</string>
+    <string name="wallpaper_india">Today\'s festival photos (auto every 5s)</string>
     <string name="wallpaper_pick">Choose picture…</string>
     <string name="wallpaper_state">Wallpaper: %1$s</string>
     <string name="wallpaper_custom_missing">No picture yet — choose one</string>
     <string name="wallpaper_saved">Wallpaper saved</string>
     <string name="wallpaper_pick_failed">Could not use that picture</string>
+    <string name="mh_news_badge">महाराष्ट्र न्यूज</string>
+    <string name="mh_news_hint">होम स्क्रीनसाठी कोणतीही बाण की (← ↑ → ↓) दाबा</string>
 </resources>
