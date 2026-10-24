@@ -3,6 +3,8 @@
     <string name="app_name">Home</string>
     <string name="inputs">Ingressi</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">Altoparlanti TV</string>
+    <string name="audio_headphones">Cuffie</string>
     <string name="settings">Impostazioni</string>
     <string name="choose_input">Ingressi</string>
     <string name="connected">Collegato</string>

@@ -3,6 +3,8 @@
     <string name="app_name">Home</string>
     <string name="inputs">Quellen</string>
     <string name="wifi">WLAN</string>
+    <string name="audio_speakers">TV-Lautsprecher</string>
+    <string name="audio_headphones">Kopfhörer</string>
     <string name="settings">Einstellungen</string>
     <string name="choose_input">Quellen</string>
     <string name="connected">Verbunden</string>

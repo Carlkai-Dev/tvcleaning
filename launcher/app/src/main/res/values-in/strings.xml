@@ -3,6 +3,8 @@
     <string name="app_name">Beranda</string>
     <string name="inputs">Input</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">Speaker TV</string>
+    <string name="audio_headphones">Headphone</string>
     <string name="settings">Setelan</string>
     <string name="choose_input">Input</string>
     <string name="connected">Terhubung</string>

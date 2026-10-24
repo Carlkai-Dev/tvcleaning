@@ -3,6 +3,8 @@
     <string name="app_name">בית</string>
     <string name="inputs">כניסות</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">רמקולי הטלוויזיה</string>
+    <string name="audio_headphones">אוזניות</string>
     <string name="settings">הגדרות</string>
     <string name="choose_input">כניסות</string>
     <string name="connected">מחובר</string>

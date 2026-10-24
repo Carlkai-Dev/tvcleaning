@@ -3,6 +3,8 @@
     <string name="app_name">হোম</string>
     <string name="inputs">ইনপুট</string>
     <string name="wifi">ওয়াই-ফাই</string>
+    <string name="audio_speakers">টিভির স্পিকার</string>
+    <string name="audio_headphones">হেডফোন</string>
     <string name="settings">সেটিংস</string>
     <string name="choose_input">ইনপুট</string>
     <string name="connected">কানেক্টেড</string>

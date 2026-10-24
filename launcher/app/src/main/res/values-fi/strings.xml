@@ -3,6 +3,8 @@
     <string name="app_name">Koti</string>
     <string name="inputs">Lähteet</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">Television kaiuttimet</string>
+    <string name="audio_headphones">Kuulokkeet</string>
     <string name="settings">Asetukset</string>
     <string name="choose_input">Lähteet</string>
     <string name="connected">Yhdistetty</string>

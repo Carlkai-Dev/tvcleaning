@@ -3,6 +3,8 @@
     <string name="app_name">Domů</string>
     <string name="inputs">Vstupy</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">Reproduktory televize</string>
+    <string name="audio_headphones">Sluchátka</string>
     <string name="settings">Nastavení</string>
     <string name="choose_input">Vstupy</string>
     <string name="connected">Připojeno</string>

@@ -3,6 +3,8 @@
     <string name="app_name">Bosh ekran</string>
     <string name="inputs">Manbalar</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">Televizor karnaylari</string>
+    <string name="audio_headphones">Quloqchinlar</string>
     <string name="settings">Sozlamalar</string>
     <string name="choose_input">Manbalar</string>
     <string name="connected">Ulangan</string>

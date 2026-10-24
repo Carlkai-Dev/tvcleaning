@@ -3,6 +3,8 @@
     <string name="app_name">Početni ekran</string>
     <string name="inputs">Ulazi</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">Zvučnici televizora</string>
+    <string name="audio_headphones">Slušalice</string>
     <string name="settings">Podešavanja</string>
     <string name="choose_input">Ulazi</string>
     <string name="connected">Povezano</string>

@@ -3,6 +3,8 @@
     <string name="app_name">Hjem</string>
     <string name="inputs">Innganger</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">TV-høyttalere</string>
+    <string name="audio_headphones">Hodetelefoner</string>
     <string name="settings">Innstillinger</string>
     <string name="choose_input">Innganger</string>
     <string name="connected">Tilkoblet</string>

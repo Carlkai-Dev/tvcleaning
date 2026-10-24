@@ -3,6 +3,8 @@
     <string name="app_name">Inici</string>
     <string name="inputs">Entrades</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">Altaveus del televisor</string>
+    <string name="audio_headphones">Auriculars</string>
     <string name="settings">Configuració</string>
     <string name="choose_input">Entrades</string>
     <string name="connected">Connectat</string>

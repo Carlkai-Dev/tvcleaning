@@ -3,6 +3,8 @@
     <string name="app_name">Головний екран</string>
     <string name="inputs">Джерела</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">Динаміки телевізора</string>
+    <string name="audio_headphones">Навушники</string>
     <string name="settings">Налаштування</string>
     <string name="choose_input">Джерела</string>
     <string name="connected">Під’єднано</string>

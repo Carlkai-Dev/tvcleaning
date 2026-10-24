@@ -3,6 +3,8 @@
     <string name="app_name">Màn hình chính</string>
     <string name="inputs">Nguồn vào</string>
     <string name="wifi">Wi-Fi</string>
+    <string name="audio_speakers">Loa TV</string>
+    <string name="audio_headphones">Tai nghe</string>
     <string name="settings">Cài đặt</string>
     <string name="choose_input">Nguồn vào</string>
     <string name="connected">Đã kết nối</string>
