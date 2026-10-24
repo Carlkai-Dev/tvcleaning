@@ -216,8 +216,8 @@
     <!-- The date (and the lunar date) on lines under the clock in smaller type, without the line beside the clock; the
          top-right buttons centre on the clock's digits. Can also be set with "date_below_clock" in a theme. -->
     <bool name="date_below_clock">false</bool>
-    <!-- Home shows no apps until Down or OK slides the dock and the grid up; Back, Home and every return to Home hide
-         them again. For a photo-frame Home. Can also be set with "hide_apps_until_down" in a theme. -->
+    <!-- Home shows no apps until Down or OK slides the dock and the grid up; Back and every return to Home hide them
+         again, and Home pressed on Home toggles them. For a photo-frame Home. Can also be set with "hide_apps_until_down" in a theme. -->
     <bool name="hide_apps_until_down">false</bool>
     <!-- Rotate the theme's wallpapers/ every this many seconds instead of wallpaper_rotation_minutes; 0 is off. Can also
          be set with "wallpaper_rotation_seconds" in a theme. -->

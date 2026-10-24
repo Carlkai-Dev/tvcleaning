@@ -74,6 +74,18 @@ public class AppsGateTest {
     }
 
     @Test
+    public void homeOnHomeToggles() {
+        AppsGate gate = new AppsGate(true);
+        assertEquals(AppsGate.Action.REVEAL, gate.onHomeAgain());   // the photo frame: Home brings the apps up
+        assertFalse(gate.hidden());
+        assertEquals(AppsGate.Action.HIDE, gate.onHomeAgain());     // and puts them away again
+        assertTrue(gate.hidden());
+        // Home is not a key the activity sees, so nothing is left to swallow after it.
+        assertEquals(AppsGate.Action.REVEAL, gate.onHomeAgain());
+        assertEquals(AppsGate.Action.PASS, gate.onKey(KeyEvent.KEYCODE_DPAD_CENTER, UP, false));
+    }
+
+    @Test
     public void hideForgetsAPendingSwallow() {
         AppsGate gate = new AppsGate(true);
         gate.onKey(KeyEvent.KEYCODE_DPAD_CENTER, DOWN, true);

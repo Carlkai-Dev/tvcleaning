@@ -199,6 +199,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private AppsGate appsGate;
     private View appsGateView;
     private View gridWrap;
+    /** Home was fully covered (onStop) since the last resume: the next resume hides the apps again. */
+    private boolean appsReturnHidden;
     /** After a boot with the theme's pictures still unreadable (WallpaperRetry): when the first look was scheduled. */
     private long wallpaperRetryStart;
     private final Runnable wallpaperRetry = this::retryWallpapers;
@@ -902,7 +904,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (stopped) {
             tileRefresh.onHomeAgain();   // onResume follows, and with hide_apps_until_down hides the apps there
         } else if (appsGate != null) {
-            hideApps(true);   // hide_apps_until_down: Home pressed on Home puts the apps away again
+            // hide_apps_until_down: Home pressed on Home brings the apps up, or puts them away when they are up.
+            if (appsGate.onHomeAgain() == AppsGate.Action.REVEAL) revealApps(true);
+            else hideApps(true);
         } else {
             // Still on screen (the quick panel was over it, or Home was already in front): the tiles are current,
             // so only go back to the first one; rebuilding would replay the entrance animation for nothing.
@@ -941,8 +945,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         restartIdleClock();
         promptsPaused = false;
-        // hide_apps_until_down: every return to Home starts as the photo frame again.
-        if (appsGate != null && !reordering) hideApps(false);
+        // hide_apps_until_down: every return to Home from an app starts as the photo frame again. Only after onStop:
+        // Home pressed on Home also passes through onResume, right after onNewIntent toggled the apps.
+        if (appsGate != null && !reordering && appsReturnHidden) hideApps(false);
+        appsReturnHidden = false;
         if (grid.getAdapter() == null) grid.setAdapter(adapter);   // dropped by onTrimMemory
         switch (tileRefresh.onResume(packagesChangedSinceRebuild())) {
             case REBUILD:
@@ -1164,6 +1170,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         unregisterReceiver(timeReceiver);
         handler.removeCallbacks(clockCheck);
         stopped = true;
+        appsReturnHidden = true;
         tileRefresh.onStop();
     }
 

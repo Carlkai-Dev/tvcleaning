@@ -9,7 +9,8 @@ import android.view.KeyEvent;
  * - Hidden, focus on the invisible gate: Down or OK reveals the apps, and the release of that key is swallowed so it
  *   does not open the dock app it lands on. Up goes to the top bar, Left and Right do nothing, Back does nothing.
  * - Hidden, focus in the top bar: Down reveals the apps, Back hides the bar's focus again, the rest is the bar's.
- * - Shown: Back hides the apps. Home and every return to Home hide them too (MainActivity calls hide()).
+ * - Shown: Back hides the apps, and so does every return to Home from an app (MainActivity calls hide()).
+ * - Home pressed on Home toggles: hidden apps come up, shown ones go away (onHomeAgain).
  */
 final class AppsGate {
 
@@ -34,6 +35,20 @@ final class AppsGate {
 
     void show() {
         hidden = false;
+    }
+
+    /**
+     * Home pressed while Home is already in front: it toggles, so the key never seems dead on a photo frame whose apps
+     * are already away. (Coming back to Home from an app hides the apps instead; MainActivity calls hide() there.)
+     */
+    Action onHomeAgain() {
+        if (hidden) {
+            hidden = false;
+            swallow = 0;
+            return Action.REVEAL;
+        }
+        hide();
+        return Action.HIDE;
     }
 
     /** What a key does; {@code onGate} is true while the invisible gate view holds the focus. */
