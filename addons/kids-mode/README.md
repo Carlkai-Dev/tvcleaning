@@ -84,6 +84,38 @@ Kids Mode off and handed Home to the normal launcher, and Home went there afterw
 installed on the test TV. The JVM tests cover the PIN rules and hash, the wait after wrong tries, which apps start
 on the kids' screen and what the guard lets through.
 
+## Home, tested
+
+Kids Mode registers as a home app, so this is what it does to Home. MOKA R8G (Android 14), 2026-10-24. The
+normal launcher on this TV is a build of this repo's `launcher/` under its own package name (`com.hmam.tvhome`);
+`FallbackHome` is the system's placeholder while the TV boots.
+
+**Kids Mode off, cold reboot: Home lands on the launcher.** Kids Mode stays the home app and hands straight over
+(`logcat -b events` after `adb reboot`, trimmed):
+
+```
+16:31:25.742 wm_create_activity  com.realtek.systemservice/.fallbackhome.FallbackHome
+16:31:31.548 wm_create_activity  io.github.maxhayim.kidsmode/.KidsHomeActivity
+16:31:31.846 wm_create_activity  com.hmam.tvhome/.HomeActivity
+```
+
+The launcher was in front 0.3 s after Kids Mode started, with nothing of Kids Mode on screen.
+
+**Uninstalling Kids Mode leaves a working Home.** Right after `pm uninstall -k io.github.maxhayim.kidsmode` (on this TV it removed the
+app's data too, as a plain uninstall does),
+`cmd package resolve-activity -a android.intent.action.MAIN -c android.intent.category.HOME` gave
+`com.hmam.tvhome/.HomeActivity`, the Home key went there, and a cold reboot went from `FallbackHome` straight to
+the launcher. Android also took the guard off the enabled accessibility services, so nothing is left behind.
+
+**Both enabled as home apps, none chosen: Android asks.** With the launcher and Kids Mode both installed and no
+home chosen (installing a second home app clears Android's choice), the Home key opened Android's own chooser
+(`android/com.android.internal.app.ResolverActivity`):
+
+<img src="home-chooser.jpg" alt="Android's Home chooser on the TV: Use TV Home as Home, Just once or Always, or Kids Mode" width="480">
+
+Nothing is picked until someone chooses. `install.sh` chooses Kids Mode (`cmd package set-home-activity`), and
+`install.sh --off <launcher>` chooses the launcher again. On a TV with no chooser screen, those are the way to set it.
+
 ## Maintainer
 
 [@maxhayim](https://github.com/maxhayim)
