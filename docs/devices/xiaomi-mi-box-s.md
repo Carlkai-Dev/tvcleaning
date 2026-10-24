@@ -41,9 +41,15 @@ Nothing broke between batches.
 - The other buttons, checked with the real remote and `getevent -lt`: Home (`KEY_HOMEPAGE`), Back,
   voice (`KEY_VOICECOMMAND`, Assistant kept) and Netflix (`KEY_VIDEO`, scancode 393 is `NETFLIX` in
   the same `.kl`) all work with the stock launcher disabled.
-
-An empty `live_tv_package` (no tuner) can be pushed as a theme `config.json` with `tools/theme.ps1`,
-so `config.xml` stays at its defaults.
+- **Remote Pairing Wizard when Unpaired (`prompt_remote_pairing`)**:
+  When no remote is paired, setting `"prompt_remote_pairing": true` in `config.json` automatically invokes
+  Xiaomi's animated pairing activity (`com.google.android.tungsten.setupwraith/com.google.android.tvsetup.app.RemotePairingActivity`
+  via `com.google.android.tvsetup.app.REPAIR_REMOTE`), which guides the user to hold Back + Home to bond their remote,
+  or falls back to `com.google.android.intent.action.CONNECT_INPUT`. Leave `setupwraith` enabled for this pairing screen.
+- **Apple TV Glass Theme & Interaction:**
+  Configured in [`examples/xiaomi-mi-box-s/config.json`](../../examples/xiaomi-mi-box-s/config.json): glass dock (`dock_glass`),
+  pagination dots (`cinematic_dots`), horizon ambient glow (`app_glow`), and long-press tile context menu (`tile_menu`).
+  Apply with `tools/theme.sh examples/xiaomi-mi-box-s` (Windows: `tools\theme.ps1 examples\xiaomi-mi-box-s`).
 
 ## Building on Windows without Android Studio
 
