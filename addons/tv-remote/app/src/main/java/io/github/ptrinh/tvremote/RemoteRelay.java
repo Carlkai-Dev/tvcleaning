@@ -427,7 +427,7 @@ final class RemoteRelay {
     static final String[] COMMANDS = {
             "ping", "caps", "info", "banner", "banner_clear", "lock", "unlock", "lock_timer", "lock_timer_cancel",
             "set_pin", "screen_off", "screen_on", "standby", "wake", "set_psk",
-            "sony", "button", "buttons", "intent", "launch", "apps", "global", "local", "type", "adb",
+            "sony", "button", "buttons", "intent", "launch", "apps", "global", "local", "type", "adb", "longpress",
     };
 
     /**
@@ -564,6 +564,8 @@ final class RemoteRelay {
             case "adb":
                 out.put("data", adb(args.optString("action", arg.isEmpty() ? "status" : arg)));
                 return "";
+            case "longpress":
+                return longPress();
             case "type":
                 return type(psk, args.optString("text", arg), args.optBoolean("enter"));
             case "buttons":
@@ -692,6 +694,33 @@ final class RemoteRelay {
      * whole text as it is typed). Through the accessibility service when it can see the field, else
      * Sony's appControl.setTextForm (the on-screen keyboard must be open). enter: submit afterwards.
      */
+    /**
+     * Holding OK on the phone: IRCC has no key hold, so the accessibility service long-clicks the node that has
+     * the focus (or its nearest long-clickable ancestor), the same as holding OK on the remote.
+     */
+    private static String longPress() throws Exception {
+        KeyService a = KeyService.running;
+        if (a == null) throw new SonyIp.Failed("The add-on's accessibility service is off.");
+        android.view.accessibility.AccessibilityNodeInfo target = null;
+        for (android.view.accessibility.AccessibilityWindowInfo w : a.getWindows()) {
+            android.view.accessibility.AccessibilityNodeInfo root = w.getRoot();
+            if (root == null) continue;
+            android.view.accessibility.AccessibilityNodeInfo f = root.findFocus(android.view.accessibility.AccessibilityNodeInfo.FOCUS_INPUT);
+            if (f == null) f = root.findFocus(android.view.accessibility.AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
+            if (f != null && w.isActive()) {
+                target = f;
+                break;
+            }
+            if (f != null && target == null) target = f;
+        }
+        for (int i = 0; target != null && i < 6 && !target.isLongClickable(); i++) target = target.getParent();
+        if (target == null) throw new SonyIp.Failed("Nothing on the TV is focused to hold.");
+        if (!target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_LONG_CLICK)) {
+            throw new SonyIp.Failed("That item on the TV has nothing on hold.");
+        }
+        return "";
+    }
+
     private static String type(String psk, String text, boolean enter) throws Exception {
         KeyService a = KeyService.running;
         android.view.accessibility.AccessibilityNodeInfo field = null;
