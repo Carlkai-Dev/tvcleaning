@@ -149,6 +149,12 @@ public class MainActivity extends Activity {
         qp.leftMargin = (int) (48 * d);
         row.addView(qrCard, qp);
 
+        TextView credit = text(getString(R.string.credit), 12, 0x4DFFFFFF);
+        FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        cp.bottomMargin = (int) (14 * d);
+        root.addView(credit, cp);
+
         setContentView(root);
         drawQr();
         newCode.requestFocus();

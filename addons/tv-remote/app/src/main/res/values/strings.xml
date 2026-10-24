@@ -17,6 +17,7 @@
     <string name="relay_step3">This card then shows the relay\'s code. Scan it again with the phone and Add to Home Screen.</string>
     <string name="relay_setup_scan">Setup guide and Deploy button</string>
     <string name="close">Close</string>
+    <string name="credit">Remote Add-on by Phil Trinh</string>
     <string name="card_lan_no_network">This TV is not on a network. Connect it to Wi-Fi or Ethernet for the phone to reach it.</string>
     <string name="status_lan">On this Wi-Fi only (no relay)</string>
     <string name="status_lan_starting">Starting…</string>
