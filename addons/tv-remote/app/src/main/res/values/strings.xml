@@ -9,7 +9,14 @@
 
     <string name="card_hint">Scan with your phone\'s camera and open the link, then Add to Home Screen. It works from anywhere.</string>
     <string name="card_hidden_hint">The code is hidden. Show it to pair another phone.</string>
-    <string name="card_lan_hint">Scan with a phone on the same Wi-Fi as this TV and open the link.\n\nSet up a relay for use from anywhere and notifications: see the README.</string>
+    <string name="card_lan_hint">Scan with a phone on the same Wi-Fi as this TV and open the link.\n\nFor use from anywhere and notifications, set up a relay: press Relay setup.</string>
+    <string name="relay_setup">Relay setup</string>
+    <string name="relay_setup_title">Use the remote from anywhere</string>
+    <string name="relay_step1">Scan the code and press Deploy to Cloudflare (a free account is enough). Note the address it gives you: https://tv-remote.&lt;name&gt;.workers.dev</string>
+    <string name="relay_step2">On a computer with ADB, from the cleanyourtv folder, run:\nRELAY_URL=&lt;that address&gt; TV_HOST=%1$s addons/tv-remote/install.sh</string>
+    <string name="relay_step3">This card then shows the relay\'s code. Scan it again with the phone and Add to Home Screen.</string>
+    <string name="relay_setup_scan">Setup guide and Deploy button</string>
+    <string name="close">Close</string>
     <string name="card_lan_no_network">This TV is not on a network. Connect it to Wi-Fi or Ethernet for the phone to reach it.</string>
     <string name="status_lan">On this Wi-Fi only (no relay)</string>
     <string name="status_lan_starting">Starting…</string>

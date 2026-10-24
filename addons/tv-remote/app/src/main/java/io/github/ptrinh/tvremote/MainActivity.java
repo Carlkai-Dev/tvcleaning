@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private float d;
-    private TextView status, hint, hideButton;
+    private TextView status, hint, hideButton, setupButton;
     private View statusDot;
     private ImageView qr;
     private TextView qrHidden;
@@ -79,14 +79,15 @@ public class MainActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding((int) (80 * d), (int) (48 * d), (int) (80 * d), (int) (48 * d));
+        // A TV screen is 540 dp tall: everything on the left has to fit without scrolling.
+        row.setPadding((int) (72 * d), (int) (28 * d), (int) (72 * d), (int) (28 * d));
         root.addView(row, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         LinearLayout left = new LinearLayout(this);
         left.setOrientation(LinearLayout.VERTICAL);
         row.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        TextView title = text(getString(R.string.app_name), 48, Color.WHITE);
+        TextView title = text(getString(R.string.app_name), 40, Color.WHITE);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         left.addView(title);
 
@@ -100,10 +101,10 @@ public class MainActivity extends Activity {
         statusRow.addView(status, sp);
         left.addView(statusRow, top(wrap(), 10));
 
-        hint = text("", 20, 0x99FFFFFF);
+        hint = text("", 18, 0x99FFFFFF);
         hint.setMaxWidth((int) (560 * d));
         hint.setLineSpacing(0, 1.15f);
-        left.addView(hint, top(wrap(), 24));
+        left.addView(hint, top(wrap(), 16));
 
         LinearLayout buttons = new LinearLayout(this);
         TextView newCode = button(getString(R.string.new_code));
@@ -117,13 +118,19 @@ public class MainActivity extends Activity {
         hideButton = button("");
         hideButton.setOnClickListener(v -> toggleHidden());
         LinearLayout.LayoutParams hp = wrap();
-        hp.leftMargin = (int) (14 * d);
+        hp.leftMargin = (int) (12 * d);
         buttons.addView(hideButton, hp);
-        left.addView(buttons, top(wrap(), 30));
+        setupButton = button(getString(R.string.relay_setup));
+        setupButton.setOnClickListener(v -> showRelaySetup());
+        LinearLayout.LayoutParams rp = wrap();
+        rp.leftMargin = (int) (12 * d);
+        buttons.addView(setupButton, rp);
+        left.addView(buttons, top(wrap(), 22));
 
+        // What install.sh granted: five short lines, small enough to fit under the buttons.
         checks = new LinearLayout(this);
         checks.setOrientation(LinearLayout.VERTICAL);
-        left.addView(checks, top(wrap(), 34));
+        left.addView(checks, top(wrap(), 20));
 
         qrCard = new FrameLayout(this);
         GradientDrawable white = new GradientDrawable();
@@ -191,6 +198,7 @@ public class MainActivity extends Activity {
         String ip = relay ? null : LocalServer.lanAddress();
         boolean h = hidden();
         hideButton.setText(h ? R.string.show_code : R.string.hide_code);
+        setupButton.setVisibility(relay ? View.GONE : View.VISIBLE);
         hint.setText(h ? R.string.card_hidden_hint : relay ? R.string.card_hint : ip != null ? R.string.card_lan_hint : R.string.card_lan_no_network);
         qr.setVisibility(h ? View.INVISIBLE : View.VISIBLE);
         qrHidden.setVisibility(h ? View.VISIBLE : View.GONE);
@@ -222,6 +230,76 @@ public class MainActivity extends Activity {
         }
         Bitmap small = Bitmap.createBitmap(px, n, n, Bitmap.Config.RGB_565);
         return Bitmap.createScaledBitmap(small, n * 8, n * 8, false);
+    }
+
+    /** Where the setup steps and the Deploy to Cloudflare button are; the popup's QR code opens it. */
+    private static final String SETUP_URL = "https://github.com/Gathin23/cleanyourtv/tree/main/addons/tv-remote#setup";
+
+    /** LAN mode's popup: the three steps to a relay, with the TV's own address filled into the command. */
+    private void showRelaySetup() {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setGravity(Gravity.CENTER_VERTICAL);
+        int pad = (int) (40 * d);
+        panel.setPadding(pad, pad, pad, pad);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xF21C1C1E);
+        bg.setCornerRadius(28 * d);
+        panel.setBackground(bg);
+
+        LinearLayout steps = new LinearLayout(this);
+        steps.setOrientation(LinearLayout.VERTICAL);
+        TextView title = text(getString(R.string.relay_setup_title), 30, Color.WHITE);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        steps.addView(title);
+        String ip = LocalServer.lanAddress();
+        String[] lines = {
+            getString(R.string.relay_step1),
+            getString(R.string.relay_step2, ip != null ? ip : "<tv ip>"),
+            getString(R.string.relay_step3),
+        };
+        for (int i = 0; i < lines.length; i++) {
+            LinearLayout row = new LinearLayout(this);
+            TextView n = text(String.valueOf(i + 1), 18, 0xFFFF9F0A);
+            n.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            row.addView(n, new LinearLayout.LayoutParams((int) (28 * d), ViewGroup.LayoutParams.WRAP_CONTENT));
+            TextView t = text(lines[i], 16, 0xCCFFFFFF);
+            t.setLineSpacing(0, 1.15f);
+            t.setMaxWidth((int) (600 * d));
+            row.addView(t);
+            steps.addView(row, top(wrap(), i == 0 ? 20 : 14));
+        }
+        TextView close = button(getString(R.string.close));
+        close.setOnClickListener(v -> dialog.dismiss());
+        steps.addView(close, top(wrap(), 24));
+        panel.addView(steps);
+
+        LinearLayout side = new LinearLayout(this);
+        side.setOrientation(LinearLayout.VERTICAL);
+        side.setGravity(Gravity.CENTER_HORIZONTAL);
+        ImageView code = new ImageView(this);
+        code.setImageBitmap(qrBitmap(SETUP_URL));
+        GradientDrawable white = new GradientDrawable();
+        white.setColor(Color.WHITE);
+        white.setCornerRadius(18 * d);
+        code.setBackground(white);
+        int qp = (int) (8 * d);
+        code.setPadding(qp, qp, qp, qp);
+        side.addView(code, new LinearLayout.LayoutParams((int) (220 * d), (int) (220 * d)));
+        TextView caption = text(getString(R.string.relay_setup_scan), 14, 0x99FFFFFF);
+        caption.setGravity(Gravity.CENTER);
+        caption.setMaxWidth((int) (220 * d));
+        side.addView(caption, top(wrap(), 10));
+        LinearLayout.LayoutParams sideLp = wrap();
+        sideLp.leftMargin = (int) (40 * d);
+        panel.addView(side, sideLp);
+
+        dialog.setContentView(panel);
+        Window w = dialog.getWindow();
+        if (w != null) w.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+        close.requestFocus();
     }
 
     private void askPin(String title, Runnable then) {
@@ -270,10 +348,10 @@ public class MainActivity extends Activity {
 
     private void check(int label, boolean on) {
         LinearLayout r = new LinearLayout(this);
-        TextView name = text(getString(label), 17, 0x99FFFFFF);
-        r.addView(name, new LinearLayout.LayoutParams((int) (300 * d), ViewGroup.LayoutParams.WRAP_CONTENT));
-        r.addView(text(getString(on ? R.string.check_on : R.string.check_off), 17, on ? 0xFF30D158 : 0xFFFF9F0A));
-        checks.addView(r, top(wrap(), 4));
+        TextView name = text(getString(label), 14, 0x99FFFFFF);
+        r.addView(name, new LinearLayout.LayoutParams((int) (260 * d), ViewGroup.LayoutParams.WRAP_CONTENT));
+        r.addView(text(getString(on ? R.string.check_on : R.string.check_off), 14, on ? 0xFF30D158 : 0xFFFF9F0A));
+        checks.addView(r, top(wrap(), 2));
     }
 
     /** An app-op is allowed for this app; PROJECT_MEDIA has no public constant, hence the string. */
@@ -298,13 +376,14 @@ public class MainActivity extends Activity {
     }
 
     private TextView button(String label) {
-        TextView b = text(label, 20, Color.WHITE);
+        TextView b = text(label, 18, Color.WHITE);
         b.setGravity(Gravity.CENTER);
         b.setFocusable(true);
         b.setClickable(true);
-        b.setPadding((int) (28 * d), 0, (int) (28 * d), 0);
+        b.setSingleLine();
+        b.setPadding((int) (20 * d), 0, (int) (20 * d), 0);
         b.setMinHeight((int) (52 * d));
-        b.setMinimumWidth((int) (150 * d));
+        b.setMinimumWidth((int) (110 * d));
         b.setBackground(PinPad.keyBackground(d));
         b.setOnFocusChangeListener((v, has) -> ((TextView) v).setTextColor(has ? 0xFF0B0B0D : Color.WHITE));
         b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
