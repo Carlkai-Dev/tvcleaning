@@ -462,7 +462,11 @@ public class MainActivity extends Activity {
         return lp;
     }
 
-    /** The progress line: a dim track and a white fill with round ends, hidden for live streams. */
+    /**
+     * The progress line: an orange fill with round ends growing from the left on a transparent track, as
+     * on the launcher fork's card, so it reads on the dark screen and over a light picture behind the
+     * pop-up; nothing for live streams.
+     */
     static final class Bar extends View {
         private final Paint back = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -471,8 +475,8 @@ public class MainActivity extends Activity {
 
         Bar(android.content.Context ctx) {
             super(ctx);
-            back.setColor(0x33FFFFFF);
-            fill.setColor(0xE6FFFFFF);
+            back.setColor(0x00000000);   // transparent: only the played part shows
+            fill.setColor(0xFFFF9F0A);
         }
 
         void set(float progress) {

@@ -19,9 +19,9 @@ pop-up, with no change to the launcher.
 
 | Where | What |
 |---|---|
-| **The card screen** | The artwork (or the app's icon when the app sends none) with a glow in its colour, NOW PLAYING or PAUSED, the title, "artist · app", a progress line with the time gone and the time left (LIVE for a stream with no length), and three round buttons: Previous, Play/Pause, Next. **Open *app*** goes to the playing app's own player. **Pop-up: On/Off** switches the pop-up. Three lines at the bottom say what install.sh granted. |
+| **The card screen** | The artwork (or the app's icon when the app sends none) with a glow in its colour, NOW PLAYING or PAUSED, the title, "artist · app", an orange progress line with the time gone and the time left (LIVE for a stream with no length), and three round buttons: Previous, Play/Pause, Next. **Open *app*** goes to the playing app's own player. **Pop-up: On/Off** switches the pop-up. Three lines at the bottom say what install.sh granted. |
 | **The remote** | On the card screen, OK on a button, and the remote's own play/pause, next and previous keys act on the track shown. Everywhere else the media keys go to the playing app as Android always sends them; the add-on doesn't touch them. |
-| **The pop-up** | A glass pill with the artwork, NOW PLAYING, the title and "artist · app", over whatever is on screen, for six seconds when a new track starts playing. Not when you pause and play again, not while the card screen is open, not with the screen off, and (with usage access) not while the music app itself is on screen. It never takes focus or touches: the remote keeps working in the app underneath. |
+| **The pop-up** | A glass pill with the artwork, NOW PLAYING, the title, "artist · app" and the orange progress line moving, over whatever is on screen, for six seconds when a new track starts playing. Not when you pause and play again, not while the card screen is open, not with the screen off, and (with usage access) not while the music app itself is on screen. It never takes focus or touches: the remote keeps working in the app underneath. |
 
 Which track: Android's media sessions, most recently active first. The first one playing wins, else the first
 one paused; with none, the card says Nothing playing.
@@ -92,9 +92,9 @@ Sony BRAVIA 4K AE2 (Google TV 14), with SoundCloud playing in the background, on
 
 - The three grants (notification access, overlay, usage access) show On on the card screen.
 - The card screen shows the title, "artist · app", the app's icon on a glass tile when the app sends no
-  artwork, and the progress with the time gone and left.
+  artwork, and the orange progress with the time gone and left.
 - The remote's play/pause key pauses and plays (PLAYING → PAUSED → PLAYING), and next skips.
-- From Home, a new track pops up in the top right corner and is gone after six seconds; the remote keeps
+- From Home, a new track pops up in the top right corner with its progress and is gone after six seconds; the remote keeps
   working on Home underneath.
 - Nothing playing (YouTube drops its session once it is in the background): the card says Nothing playing.
 

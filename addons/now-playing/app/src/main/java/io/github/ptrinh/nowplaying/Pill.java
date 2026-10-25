@@ -33,8 +33,19 @@ final class Pill {
     private final WindowManager wm;
     private final float d;
     private View view;
+    private Sessions.Track track;
+    private MainActivity.Bar bar;
 
     private final Runnable hide = this::hide;
+    private final Runnable tick = new Runnable() {
+        @Override
+        public void run() {
+            if (view == null || track == null) return;
+            float p = NowPlaying.progress(track.now(), track.duration);
+            bar.set(p);
+            if (p >= 0) handler.postDelayed(this, 250);
+        }
+    };
 
     Pill(Context ctx, Handler handler) {
         this.ctx = ctx;
@@ -94,6 +105,13 @@ final class Pill {
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         lines.addView(title);
         if (!t.subtitle.isEmpty()) lines.addView(text(t.subtitle, 14, 0xB3FFFFFF));
+        // The progress under the lines, moving while the pill is up; none for a live stream.
+        bar = new MainActivity.Bar(ctx);
+        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                Math.max(2, Math.round(3 * d)));
+        bp.topMargin = (int) (8 * d);
+        lines.addView(bar, bp);
+        if (NowPlaying.progress(t.now(), t.duration) < 0) bar.setVisibility(View.GONE);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.leftMargin = (int) (16 * d);
@@ -115,6 +133,8 @@ final class Pill {
             return false;   // the overlay permission went away between the check and now
         }
         view = pill;
+        track = t;
+        tick.run();
         pill.setAlpha(0f);
         pill.setTranslationY(-16 * d);
         pill.animate().alpha(1f).translationY(0f).setDuration(260).start();
@@ -133,6 +153,8 @@ final class Pill {
 
     void removeNow() {
         handler.removeCallbacks(hide);
+        handler.removeCallbacks(tick);
+        track = null;
         View v = view;
         view = null;
         if (v != null) {
