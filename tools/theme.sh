@@ -6,6 +6,12 @@
 # Usage: TV_HOST=192.168.1.50 tools/theme.sh themes/aurora
 #        TV_HOST=192.168.1.50 tools/theme.sh --reset        # remove the overlay, back to config.xml
 set -euo pipefail
+# Local Skyworth customization: every theme, including reset, keeps the Home
+# redirect required while Google TV and Chromecast remain enabled.
+LOCAL_THEME_WRAPPER="$(cd "$(dirname "$0")/.." && pwd)/work/apply-theme-tv.sh"
+if [ "${CYT_THEME_DIRECT:-0}" != 1 ] && [ -f "$LOCAL_THEME_WRAPPER" ]; then
+  exec bash "$LOCAL_THEME_WRAPPER" "$@"
+fi
 # Resolve the theme folder against the caller's directory before moving into tools/.
 # Git Bash's pwd says /c/Users/..., which the Windows Python cannot open; pwd -W gives C:/Users/... (as in disable.sh).
 # An absolute argument needs the same: /c/Users/... passed through as typed reached the JSON check below, which
