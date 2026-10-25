@@ -56,7 +56,7 @@ public final class QuickSettingsActivity extends Activity {
     /** The grid, in dp: four 42dp columns and 6dp gaps across the panel's 186dp. */
     private static final int COL = 42, GAP = 6, ROW = 46;
     /** Fork de Natalia, estilo Pixel: primario verde azulado, tonal claro y tinta oscura (Material You). */
-    private static final int BLUE = 0xFF00687A, INK = 0xFF0B2A33, TONAL = 0xFFE3F1F7, DIM_INK = 0xFF3F5A63;
+    private static final int BLUE = 0xFF00687A, INK = 0xFF0B2A33, TONAL = 0xFFBBD8E3, DIM_INK = 0xFF3F5A63;
 
     private float density;
     private FrameLayout panel;

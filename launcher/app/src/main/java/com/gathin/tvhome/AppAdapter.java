@@ -404,7 +404,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (pixelStyle) {
             // Un círculo del alto de la casilla, centrado; el ícono lo llena y el círculo blanco queda detrás de
             // los íconos que no son adaptativos (como hace el Pixel).
+            h = Math.round(h * 0.8f);   // círculos un poco más pequeños que la casilla
             cardLp.width = h;
+            cardLp.height = h;
             card.setBackgroundResource(R.drawable.pixel_icon_bg);
             View iconView = card.findViewById(R.id.icon);
             android.widget.FrameLayout.LayoutParams ilp = (android.widget.FrameLayout.LayoutParams) iconView.getLayoutParams();

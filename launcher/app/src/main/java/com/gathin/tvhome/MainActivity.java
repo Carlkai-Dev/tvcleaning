@@ -2715,13 +2715,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ((LinearLayout) clock.getParent()).setOrientation(LinearLayout.VERTICAL);
         clock.setFormat12Hour("hh");
         clock.setFormat24Hour("HH");
-        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 96f);
+        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 76f);
         clock.setLetterSpacing(0f);
         ampm.setFormat12Hour("mm");
         ampm.setFormat24Hour("mm");
         ampm.setAllCaps(false);
         ampm.setLetterSpacing(0f);
-        ampm.setTextSize(TypedValue.COMPLEX_UNIT_SP, 96f);
+        ampm.setTextSize(TypedValue.COMPLEX_UNIT_SP, 76f);
         ampm.setTextColor(0xFF9FD8EA);
         ampm.setIncludeFontPadding(false);
         ampm.setTypeface(clock.getTypeface());
@@ -2731,6 +2731,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         lp.topMargin = Math.round(-6 * density);
         lp.gravity = Gravity.START;
         ampm.setLayoutParams(lp);
+        // La fila del reloj traía la raya y la columna de día y fecha al lado; en dos líneas se iban debajo y
+        // empujaban el clima hacia los íconos. Se quitan de la fila y la fecha pasa bajo el saludo, como en el Pixel.
+        LinearLayout row = (LinearLayout) clock.getParent();
+        TextClock date = findViewById(R.id.date);
+        View dateColumn = date == null ? null : (View) date.getParent();
+        for (int i = row.getChildCount() - 1; i >= 0; i--) {
+            View child = row.getChildAt(i);
+            if (child != clock && child != ampm) row.removeViewAt(i);
+        }
+        if (date != null && dateColumn instanceof ViewGroup && greeting != null
+                && greeting.getParent() instanceof LinearLayout) {
+            ((ViewGroup) dateColumn).removeView(date);
+            LinearLayout header = (LinearLayout) greeting.getParent();
+            date.setFormat12Hour("EEE, d 'de' MMM");
+            date.setFormat24Hour("EEE, d 'de' MMM");
+            date.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+            date.setTextColor(0xEBFFFFFF);
+            LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            dlp.setMarginStart(Math.round(4 * density));
+            dlp.topMargin = Math.round(2 * density);
+            dlp.bottomMargin = Math.round(8 * density);
+            header.addView(date, header.indexOfChild(greeting) + 1, dlp);
+        }
     }
 
     private void rotateFondo() {
