@@ -9,7 +9,7 @@ Cambios de este fork:
 | Saludo fijo | Clave de tema `greeting_text` (p. ej. `"Hola"`) en lugar de "Buenos días / Buenas tardes". |
 | Fondos que rotan solos | Clave de tema `fondo_rotation_minutes` (p. ej. `60`): al volver al Inicio pasa al siguiente video. `0` deja el fondo elegido a mano en el Centro de control. |
 | Fondos sin `adb` | `tools/fondos.sh <carpeta>` envía `gg-sunset.mp4`, `gg-night.mp4`, `sequoia.mp4`, `noche.mp4` y `utah.mp4` (y sus `.jpg`) con `tools/tv.py`, a través del ThemeProvider, para que Android 14 deje leerlos. |
-| Nombres de los fondos | Cascada, Cueva verde, En la oscuridad, Capa roja y Entre llamas. |
+| Nombres de los fondos | Cascada, Cueva verde, Eco de sombras, Capa roja y Entre llamas. |
 
 El tema personal (nombre, ciudad) y los videos viven en el PC, no en este repositorio.
 | Estilo Pixel | Mosaicos de sistema (Inicio, Ajustes, Play Store…) con iconos Material Symbols Rounded (Apache 2.0) sobre colores tonales, y los iconos pequeños con los mismos símbolos. |

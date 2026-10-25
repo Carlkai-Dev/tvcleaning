@@ -27,7 +27,7 @@ final class Fondos {
     private static final String[][] ALL = {
             {"gg-sunset", "Cascada"},
             {"gg-night", "Cueva verde"},
-            {"sequoia", "En la oscuridad"},
+            {"sequoia", "Eco de sombras"},
             {"noche", "Capa roja"},
             {"utah", "Entre llamas"},
             {SKY, "Cielo"},
