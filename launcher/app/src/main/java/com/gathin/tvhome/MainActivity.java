@@ -125,6 +125,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean tileMenuEnabled;
     private String inputAction;
     private String inputUriScheme;
+    private String bootInput;
     private String sourcePanelService;
     private String sourcePanelAction;
     private String sourcePanelExtra;
@@ -405,6 +406,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         tileMenuEnabled = cfg.tileMenu;
         inputAction = cfg.inputAction;
         inputUriScheme = cfg.inputUriScheme;
+        bootInput = cfg.bootInput;
         sourcePanelService = cfg.sourcePanelService;
         sourcePanelAction = cfg.sourcePanelAction;
         sourcePanelExtra = cfg.sourcePanelExtra;
@@ -2769,19 +2771,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
     }
 
-    /** boot_to_live_tv, or the Open on start app: the first time Home comes up after the TV starts, open that app
-     *  instead. Once per boot, keyed on Settings.Global.BOOT_COUNT and committed to disk before the app starts: on a
-     *  low-memory TV the app can push the launcher out of memory, and an apply() still in flight was lost then, so
-     *  every Home press opened the app again. */
+    /** boot_input, boot_to_live_tv, or the Open on start app: the first time Home comes up after the TV starts,
+     *  switch to that input or open that app instead. Once per boot, keyed on Settings.Global.BOOT_COUNT and
+     *  committed to disk before the app starts: on a low-memory TV the app can push the launcher out of memory,
+     *  and an apply() still in flight was lost then, so every Home press opened the app again. An input goes
+     *  the same way as an Inputs row (openInput), so vendor source numbers and URI schemes apply to it too. */
     private boolean openLiveTvAfterBoot() {
         String app = openOnStartChoice ? getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
                 .getString(OpenOnStart.KEY, "") : "";
-        if (!bootToLiveTv && app.isEmpty()) return false;
+        if (bootInput.isEmpty() && !bootToLiveTv && app.isEmpty()) return false;
         int boot = OpenOnStart.boot(this);
         SharedPreferences prefs = getSharedPreferences(OpenOnStart.BOOT_PREFS, MODE_PRIVATE);
-        String target = bootToLiveTv ? liveTvPkg : app;
+        String target = !bootInput.isEmpty() ? bootInput : bootToLiveTv ? liveTvPkg : app;
         if (!OpenOnStart.due(boot, prefs.getInt(OpenOnStart.BOOT_KEY, -1), target, getPackageName())) return false;
         if (!prefs.edit().putInt(OpenOnStart.BOOT_KEY, boot).commit()) return false;
+        if (!bootInput.isEmpty()) {
+            openInput(bootInput);
+            return true;
+        }
         Intent i = bootToLiveTv ? liveTvIntent() : OpenOnStart.intent(getPackageManager(), app);
         if (i == null) return false;
         open(i);
