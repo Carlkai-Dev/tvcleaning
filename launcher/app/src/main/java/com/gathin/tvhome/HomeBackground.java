@@ -68,6 +68,10 @@ final class HomeBackground {
      */
     void applyFondo(boolean cloudsMayMove) {
         Fondos.Fondo fondo = Fondos.current(activity);
+        // Fork de Natalia: con un video elegido, el cielo dibujado no se asoma mientras el video arranca (al encender
+        // se veía un segundo antes que el fondo propio); queda negro hasta el primer cuadro. Si el video falla,
+        // el VideoBackdrop avisa (shown false) y el cielo vuelve como respaldo.
+        if (fondo.video != null && !videoCovers) showSky(false);
         video.setSource(fondo.video);
         if (skyClouds != null) {
             if (fondo.video != null) skyClouds.stop();
