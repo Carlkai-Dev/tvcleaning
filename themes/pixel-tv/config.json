@@ -1,0 +1,20 @@
+{
+  "dock_glass": true,
+  "dock_even_padding": true,
+  "cinematic_home": false,
+  "ambient_glow": false,
+  "sky_intensity": 90,
+  "columns": 5,
+  "always_show_names": false,
+  "show_network_pill": false,
+  "icon_only_buttons": true,
+  "icon_only_inputs": true,
+  "advanced_effects": true,
+  "home_idle_clock_minutes": 10,
+  "weather_label": "Bogotá",
+  "weather_latitude": "4.71",
+  "weather_longitude": "-74.07",
+  "pixel_style": true,
+  "greeting_text": "Hola",
+  "fondo_rotation_minutes": 60
+}
