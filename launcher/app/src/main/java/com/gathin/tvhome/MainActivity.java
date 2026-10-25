@@ -361,6 +361,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
+        AppAdapter.pixelStyle = cfg.pixelStyle;
         // restore_key_services: after a force stop, put back the remote's accessibility helpers that Android took
         // off the list (needs WRITE_SECURE_SETTINGS, granted by build-and-install with RESTORE_KEY_SERVICES=1).
         if (cfg.restoreKeyServices) ServiceRepair.restore(this);
@@ -422,6 +423,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         appContent = new AppContent(this);
         askForTvListings();
         glass = findViewById(R.id.glass);
+        if (cfg.pixelStyle) glass.setVisibility(View.GONE);   // estilo Pixel: anillo en el círculo, sin vidrio
         if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
@@ -457,6 +459,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         dayName = findViewById(R.id.dayName);
         weatherView = findViewById(R.id.weather);
         if (modernHeader) setUpModernHeader(cfg);
+        if (cfg.pixelStyle) setUpPixelClock();
         if (getResources().getBoolean(R.bool.rtl_menu_bar)) {
             // Center Hebrew greetings over the numeric time, independent of a visible AM/PM label.
             findViewById(R.id.clock).addOnLayoutChangeListener((v, l, t, right, bottom, ol, ot, or, ob) -> {
@@ -2700,6 +2703,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Fork de Natalia (fondo_rotation_minutes): al volver al Inicio, si ya pasó el intervalo, pasa al siguiente
      * fondo de video. El Cielo dibujado no entra en la rotación.
      */
+    /**
+     * Fork de Natalia (pixel_style): el reloj como en la pantalla bloqueada del Pixel, la hora arriba y los minutos
+     * debajo en azul claro. Reusa los dos TextClock del encabezado: clock muestra la hora y ampm los minutos.
+     */
+    private void setUpPixelClock() {
+        TextClock clock = findViewById(R.id.clock);
+        TextClock ampm = findViewById(R.id.ampm);
+        if (clock == null || ampm == null || !(clock.getParent() instanceof LinearLayout)) return;
+        float density = getResources().getDisplayMetrics().density;
+        ((LinearLayout) clock.getParent()).setOrientation(LinearLayout.VERTICAL);
+        clock.setFormat12Hour("hh");
+        clock.setFormat24Hour("HH");
+        clock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 96f);
+        clock.setLetterSpacing(0f);
+        ampm.setFormat12Hour("mm");
+        ampm.setFormat24Hour("mm");
+        ampm.setAllCaps(false);
+        ampm.setLetterSpacing(0f);
+        ampm.setTextSize(TypedValue.COMPLEX_UNIT_SP, 96f);
+        ampm.setTextColor(0xFF9FD8EA);
+        ampm.setIncludeFontPadding(false);
+        ampm.setTypeface(clock.getTypeface());
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) ampm.getLayoutParams();
+        lp.setMarginStart(0);
+        lp.bottomMargin = 0;
+        lp.topMargin = Math.round(-6 * density);
+        lp.gravity = Gravity.START;
+        ampm.setLayoutParams(lp);
+    }
+
     private void rotateFondo() {
         if (fondoRotationMinutes <= 0) return;
         SharedPreferences p = Fondos.prefs(this);

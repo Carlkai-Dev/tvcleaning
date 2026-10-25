@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork de Natalia, estilo Pixel: el anillo del círculo enfocado, blanco por fuera y verde azulado por dentro, para
+     que se vea tanto sobre íconos claros como oscuros. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <stroke android:width="4dp" android:color="#FFFFFFFF" />
+        </shape>
+    </item>
+    <item android:left="4dp" android:top="4dp" android:right="4dp" android:bottom="4dp">
+        <shape android:shape="oval">
+            <stroke android:width="2dp" android:color="#FF00687A" />
+        </shape>
+    </item>
+</layer-list>

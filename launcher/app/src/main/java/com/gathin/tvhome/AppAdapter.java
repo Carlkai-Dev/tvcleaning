@@ -47,6 +47,11 @@ import java.util.Set;
  * (by label), the rest is alphabetical.
  */
 public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+    /**
+     * Fork de Natalia (tema pixel_style): cada app es un círculo con su propio ícono, como el launcher del Pixel,
+     * en lugar del banner rectangular. MainActivity lo fija antes de crear el adaptador.
+     */
+    static boolean pixelStyle;
 
     interface TileListener {
         void onTileFocused(int position, View card);
@@ -282,8 +287,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             String label = card != null ? card.label : Cards.cleanLabel(
                     appLabels.containsKey(pkg) ? appLabels.get(pkg) : String.valueOf(ri.loadLabel(pm)), pkg);
             if (!seen.add(pkg + '\n' + label)) continue;
-            Drawable banner = bundledBanner(appBanners.get(pkg));
-            if (banner == null) banner = loadBanner(pm, ri);
+            Drawable banner = pixelStyle ? null : bundledBanner(appBanners.get(pkg));
+            if (banner == null && !pixelStyle) banner = loadBanner(pm, ri);
             // The icon is only drawn (and sampled for the glow) when there is no banner, so a tile with a
             // banner skips loading and decoding it.
             Drawable icon = banner == null ? ri.loadIcon(pm) : null;
@@ -317,7 +322,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         if (dockRow && ctx.getResources().getBoolean(R.bool.home_tile)) {
             fresh.add(0, new Entry(Entry.HOME_TILE, ctx.getString(R.string.home_tile),
-                    new ComponentName(ctx, "home-tile"), ctx.getDrawable(R.drawable.banner_home), null, null, 0xFF3B82F6));
+                    new ComponentName(ctx, "home-tile"), pixelStyle ? null : ctx.getDrawable(R.drawable.banner_home),
+                    pixelStyle ? ctx.getDrawable(R.drawable.ic_home_pixel) : null, null, 0xFF3B82F6));
         }
         docked = 0;
         while (docked < fresh.size() && (fresh.get(docked).kind == Entry.HOME_TILE || isDocked(fresh.get(docked)))) docked++;
@@ -395,6 +401,19 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         ViewGroup.LayoutParams cardLp = card.getLayoutParams();
         cardLp.width = w;
         cardLp.height = h;
+        if (pixelStyle) {
+            // Un círculo del alto de la casilla, centrado; el ícono lo llena y el círculo blanco queda detrás de
+            // los íconos que no son adaptativos (como hace el Pixel).
+            cardLp.width = h;
+            card.setBackgroundResource(R.drawable.pixel_icon_bg);
+            View iconView = card.findViewById(R.id.icon);
+            android.widget.FrameLayout.LayoutParams ilp = (android.widget.FrameLayout.LayoutParams) iconView.getLayoutParams();
+            ilp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            ilp.height = ViewGroup.LayoutParams.MATCH_PARENT;
+            ilp.bottomMargin = 0;
+            iconView.setLayoutParams(ilp);
+            ((ImageView) iconView).setScaleType(ImageView.ScaleType.FIT_CENTER);
+        }
         card.setLayoutParams(cardLp);
         View name = v.findViewById(R.id.name);
         ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) name.getLayoutParams();
@@ -452,8 +471,16 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.banner.setVisibility(View.GONE);
             h.icon.setImageDrawable(e.icon);
             h.icon.setVisibility(View.VISIBLE);
-            h.label.setText(e.label);
-            h.label.setVisibility(View.VISIBLE);
+            if (pixelStyle) {
+                // Un ícono adaptativo llena el círculo; uno antiguo (con transparencia) va más pequeño sobre el blanco.
+                int pad = e.icon instanceof android.graphics.drawable.AdaptiveIconDrawable || e.kind == Entry.HOME_TILE
+                        ? 0 : Math.round(h.card.getLayoutParams().height * 0.16f);
+                h.icon.setPadding(pad, pad, pad, pad);
+                h.label.setVisibility(View.GONE);
+            } else {
+                h.label.setText(e.label);
+                h.label.setVisibility(View.VISIBLE);
+            }
         }
         h.card.setOnClickListener(v -> launch(e));
         if (e.kind == Entry.HOME_TILE) {
@@ -725,6 +752,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 @Override
                 public void getOutline(View view, Outline outline) {
                     // 16dp at the design width, scaled down with the tile so small tiles keep the same shape.
+                    if (pixelStyle) {
+                        outline.setOval(0, 0, view.getWidth(), view.getHeight());
+                        return;
+                    }
                     outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadius(view.getWidth(), density));
                 }
             });
@@ -745,6 +776,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 // My System TV: the focused tile shows its own colours a little richer instead of a white sheen
                 // over it (GlassView no longer draws one).
                 banner.setColorFilter(focused ? VIVID : null);
+                // Estilo Pixel: un anillo blanco marca el círculo enfocado (no hay placa de vidrio).
+                if (pixelStyle) view.setForeground(focused ? view.getContext().getDrawable(R.drawable.pixel_focus_ring) : null);
                 float scale = !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
                 float s = focused ? scale : 1f;
                 if (!animations) {

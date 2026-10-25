@@ -11,7 +11,6 @@ import android.graphics.Outline;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -56,7 +55,8 @@ public final class QuickSettingsActivity extends Activity {
 
     /** The grid, in dp: four 42dp columns and 6dp gaps across the panel's 186dp. */
     private static final int COL = 42, GAP = 6, ROW = 46;
-    private static final int BLUE = 0xFF0A84FF, INK = 0xFF111318;
+    /** Fork de Natalia, estilo Pixel: primario verde azulado, tonal claro y tinta oscura (Material You). */
+    private static final int BLUE = 0xFF00687A, INK = 0xFF0B2A33, TONAL = 0xFFE3F1F7, DIM_INK = 0xFF3F5A63;
 
     private float density;
     private FrameLayout panel;
@@ -117,7 +117,7 @@ public final class QuickSettingsActivity extends Activity {
             on.setColor(BLUE);
             GradientDrawable focusedOn = new GradientDrawable();
             focusedOn.setShape(GradientDrawable.OVAL);
-            focusedOn.setColor(0xF7FAFAFC);
+            focusedOn.setColor(0xFF004E5C);
             StateListDrawable lit = new StateListDrawable();
             lit.addState(new int[]{android.R.attr.state_focused}, focusedOn);
             lit.addState(new int[]{}, on);
@@ -221,7 +221,7 @@ public final class QuickSettingsActivity extends Activity {
         ImageView circle = new ImageView(this);
         circle.setImageResource(icon);
         circle.setImageTintList(new ColorStateList(new int[][]{{android.R.attr.state_focused}, {}},
-                new int[]{INK, 0xFFFFFFFF}));
+                new int[]{0xFFFFFFFF, INK}));
         circle.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         circle.setPadding(dp(9), dp(9), dp(9), dp(9));
         circle.setBackground(glass(0, true));
@@ -236,8 +236,7 @@ public final class QuickSettingsActivity extends Activity {
         FrameLayout.LayoutParams clp = new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER_HORIZONTAL | Gravity.TOP);
         cell.addView(circle, clp);
         TextView label = text(title, 7f, false, null);
-        label.setTextColor(0xFFFFFFFF);
-        label.setShadowLayer(4 * density, 0, density / 2, 0x99000000);
+        label.setTextColor(INK);
         label.setGravity(Gravity.CENTER_HORIZONTAL);
         FrameLayout.LayoutParams llp = new FrameLayout.LayoutParams(dp(COL + GAP + 8), ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.CENTER_HORIZONTAL | Gravity.TOP);
@@ -292,11 +291,11 @@ public final class QuickSettingsActivity extends Activity {
         int pad = Math.round((sizeDp - iconDp) / 2f * density);
         d.setPadding(pad, pad, pad, pad);
         StateListDrawable bg = new StateListDrawable();
-        bg.addState(new int[]{android.R.attr.state_focused}, oval(BLUE));
-        bg.addState(new int[]{}, oval(0xFFFFFFFF));
+        bg.addState(new int[]{android.R.attr.state_focused}, oval(0xFFFFFFFF));
+        bg.addState(new int[]{}, oval(BLUE));
         d.setBackground(bg);
         d.setImageTintList(new ColorStateList(new int[][]{{android.R.attr.state_focused}, {}},
-                new int[]{0xFFFFFFFF, BLUE}));
+                new int[]{BLUE, 0xFFFFFFFF}));
         d.setDuplicateParentStateEnabled(true);
         d.setElevation(2 * density);
         d.setLayoutParams(new LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp)));
@@ -312,7 +311,8 @@ public final class QuickSettingsActivity extends Activity {
         t.setEllipsize(TextUtils.TruncateAt.END);
         t.setIncludeFontPadding(false);
         t.setDuplicateParentStateEnabled(true);
-        t.setTextColor(Showcase.pillText(this, bold ? R.drawable.pill_text : R.drawable.pill_text_dim));
+        t.setTextColor(new ColorStateList(new int[][]{{android.R.attr.state_focused}, {}},
+                bold ? new int[]{0xFFFFFFFF, INK} : new int[]{0xD9FFFFFF, DIM_INK}));
         try {
             t.setTypeface(UiFont.get(this, bold ? R.string.font_medium : R.string.font_regular),
                     bold ? Typeface.BOLD : Typeface.NORMAL);
@@ -328,17 +328,14 @@ public final class QuickSettingsActivity extends Activity {
      * bright video, a white sheen across it and a light rim. Solid white while focused.
      */
     private Drawable glass(float radiusDp, boolean oval) {
+        // Estilo Pixel: módulos planos, tonal claro; el enfocado se llena del color primario.
         GradientDrawable base = shape(oval, radiusDp);
-        base.setColor(0x2E0C0E16);
-        GradientDrawable sheen = shape(oval, radiusDp);
-        sheen.setOrientation(GradientDrawable.Orientation.TL_BR);
-        sheen.setColors(new int[]{0x4DFFFFFF, 0x1AFFFFFF, 0x29FFFFFF});
-        sheen.setStroke(Math.max(1, Math.round(density * 0.75f)), 0x59FFFFFF);
+        base.setColor(TONAL);
         GradientDrawable focused = shape(oval, radiusDp);
-        focused.setColor(0xF7FAFAFC);
+        focused.setColor(BLUE);
         StateListDrawable s = new StateListDrawable();
         s.addState(new int[]{android.R.attr.state_focused}, focused);
-        s.addState(new int[]{}, new LayerDrawable(new Drawable[]{base, sheen}));
+        s.addState(new int[]{}, base);
         return s;
     }
 
@@ -371,10 +368,10 @@ public final class QuickSettingsActivity extends Activity {
         box.setBackground(glass(16, false));
         box.setPadding(dp(8), dp(8), dp(8), dp(8));
         TextView title = text(getString(R.string.cc_fondo), 12f, true, null);
-        title.setTextColor(0xFFFFFFFF);
+        title.setTextColor(INK);
         box.addView(title);
         TextView hint = text(getString(R.string.cc_fondo_hint), 8f, false, null);
-        hint.setTextColor(0xBFFFFFFF);
+        hint.setTextColor(DIM_INK);
         LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         hlp.topMargin = dp(2);

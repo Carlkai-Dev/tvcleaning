@@ -93,6 +93,8 @@ final class Config {
     String greetingText = "";
     /** Fork de Natalia: minutos entre un fondo de video y el siguiente; 0 deja el fondo elegido a mano. */
     int fondoRotationMinutes;
+    /** Fork de Natalia: estilo Pixel (íconos circulares, sin vidrio, reloj en dos líneas). */
+    boolean pixelStyle;
     final boolean moduleCards;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     final boolean reducedMotion;
@@ -489,6 +491,7 @@ final class Config {
             cfg.weatherLongitude = string(json, "weather_longitude", cfg.weatherLongitude).trim();
             cfg.greetingText = string(json, "greeting_text", "").trim();
             cfg.fondoRotationMinutes = integer(json, "fondo_rotation_minutes", 0, 0, 1440);
+            cfg.pixelStyle = bool(json, "pixel_style", false);
         }
         return cfg;
     }
