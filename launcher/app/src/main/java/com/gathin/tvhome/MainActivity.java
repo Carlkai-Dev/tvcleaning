@@ -605,13 +605,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             int inner = (r - l) - grid.getPaddingLeft() - grid.getPaddingRight();
             int tileW = AppAdapter.tileWidthPx(inner, h, COLUMNS, rowsBelowDock, cfg.dockTitle, cfg.dockRow, density);
             int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), density);
+            // Estilo Pixel: la casilla real mide el círculo fijo más el nombre, no el alto de la tarjeta ancha.
+            if (cfg.pixelStyle) itemH = AppAdapter.itemHeightPx(Math.round(AppAdapter.PIXEL_ICON_DP * density), density);
             continueRow.setSizes(inner / COLUMNS, tileW, AppAdapter.tileHeightPx(tileW));
             int dockRow = itemH + (int) (AppAdapter.DOCK_EXTRA_DP * density);   // item height plus DockDecoration offsets
             int gridRows = itemH * rowsBelowDock;
             // Keep the hero below the header when the library is enabled on a short screen,
             // even when the theme requests an extra visible row below the dock.
             int shelfClearance = cfg.appLibrary ? hero.getMeasuredHeight() + (int) (40 * density) : 0;
-            int want = Math.max(shelfClearance, h - dockRow - gridRows - (int) (AppAdapter.BOTTOM_ROOM_DP * density));
+            // Estilo Pixel: espacio bajo el dock para que el marco oscuro quede entero dentro de la pantalla.
+            float bottomRoom = cfg.pixelStyle ? AppAdapter.PIXEL_BOTTOM_ROOM_DP : AppAdapter.BOTTOM_ROOM_DP;
+            int want = Math.max(shelfClearance, h - dockRow - gridRows - (int) (bottomRoom * density));
             // Where the rows cannot fit even at the smallest tile (3 rows with the title on), the title keeps its
             // room above the dock and the last rows run off the bottom instead of the title drawing over the clock.
             if (MainActivity.this.dockRow && cfg.dockTitle && rowsBelowDock > 0) want = Math.max(want, (int) (AppAdapter.TITLE_ROOM_DP * density));
