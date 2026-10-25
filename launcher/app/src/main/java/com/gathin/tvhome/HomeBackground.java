@@ -66,12 +66,17 @@ final class HomeBackground {
      * cloudsMayMove (Home is up and no app backdrop hides them). The vignette is baked into the videos themselves
      * (videos/<id>.mp4): a full-screen shade layer cost the GPU a fill on every frame.
      */
-    void applyFondo(boolean cloudsMayMove) {
+    void applyFondo(boolean cloudsMayMove, boolean waitingForVideo) {
         Fondos.Fondo fondo = Fondos.current(activity);
         // Fork de Natalia: con un video elegido, el cielo dibujado no se asoma mientras el video arranca (al encender
-        // se veía un segundo antes que el fondo propio); queda negro hasta el primer cuadro. Si el video falla,
-        // el VideoBackdrop avisa (shown false) y el cielo vuelve como respaldo.
-        if (fondo.video != null && !videoCovers) showSky(false);
+        // se veía un segundo antes que el fondo propio); queda negro hasta el primer cuadro. Tampoco mientras el
+        // video elegido aún no aparece al encender (waitingForVideo). Si el video falla del todo, el VideoBackdrop
+        // avisa (shown false) y el cielo vuelve como respaldo.
+        if (fondo.video != null) {
+            if (!videoCovers) showSky(false);
+        } else {
+            showSky(!waitingForVideo && !allAppsCovered && !showcaseCovered);
+        }
         video.setSource(fondo.video);
         if (skyClouds != null) {
             if (fondo.video != null) skyClouds.stop();

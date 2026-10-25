@@ -2790,11 +2790,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** Shows the chosen background (Fondos); the clouds move only while Home is up and no app backdrop hides them. */
     private void applyFondo() {
-        background.applyFondo(started && backdropPkg == null);
         // Fork de Natalia: al encender, la carpeta de los videos puede no estar lista todavía y el fondo elegido
-        // no aparece (queda el cielo). Mientras el elegido sea un video que aún no se encuentra, se vuelve a mirar.
+        // no aparece. Mientras el elegido sea un video que aún no se encuentra, se vuelve a mirar cada 2 s (hasta
+        // unos 40 s), con la pantalla en negro en vez del cielo; después, el cielo como respaldo.
+        boolean waiting = Fondos.wantsVideo(this) && fondoRetries < 20;
+        background.applyFondo(started && backdropPkg == null, waiting);
         handler.removeCallbacks(fondoRetry);
-        if (!background.hasVideo() && Fondos.wantsVideo(this) && fondoRetries < 20) {
+        if (!background.hasVideo() && waiting) {
             fondoRetries++;
             handler.postDelayed(fondoRetry, 2000);
         } else if (background.hasVideo()) {

@@ -188,8 +188,8 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
             if (mp == player) {
                 android.util.Log.w("TvHome.Fondo", "video error " + what + "/" + extra + ", try " + (retries + 1));
                 release();
-                shown(false);
-                retryLater();
+                // Mientras se reintenta queda en negro; el cielo de respaldo solo si ya no hay más intentos.
+                if (!retryLater()) shown(false);
             }
             return true;
         });
@@ -205,7 +205,7 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
                 main.post(() -> {
                     if (p == player) {
                         release();
-                        retryLater();
+                        if (!retryLater()) shown(false);
                     }
                 });
             }
@@ -221,11 +221,13 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
         if (wanted && player == null && source != null) open();
     };
 
-    private void retryLater() {
-        if (!wanted || source == null || retries >= 6) return;
+    /** true si queda otro intento programado. */
+    private boolean retryLater() {
+        if (!wanted || source == null || retries >= 6) return false;
         retries++;
         main.removeCallbacks(retry);
         main.postDelayed(retry, 1500L * retries);
+        return true;
     }
 
     /** Lets go of the player (and its hardware decoder) on the worker, after anything still queued for it. */
