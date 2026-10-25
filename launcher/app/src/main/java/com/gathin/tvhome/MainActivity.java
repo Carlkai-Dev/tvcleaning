@@ -2786,6 +2786,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void open(Intent i) {
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        // The stock launcher opened on purpose from a tile: the usage-stats redirect gives it an
+        // hour alone, like aerial's guard does; the Home key clears the allowance (HomeKeyService).
+        SharedPreferences stock = getSharedPreferences("stock", MODE_PRIVATE);
+        String redirect = stock.getString("stock_pkg", null);
+        String target = i.getComponent() != null ? i.getComponent().getPackageName() : i.getPackage();
+        if (redirect != null && !redirect.isEmpty() && redirect.equals(target)) {
+            stock.edit().putLong("stock_allow_until", System.currentTimeMillis() + 60 * 60 * 1000L).apply();
+        }
         try {
             startActivity(i);
         } catch (ActivityNotFoundException | SecurityException e) {

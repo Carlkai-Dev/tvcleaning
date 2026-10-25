@@ -2,6 +2,9 @@ package com.gathin.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
+import android.app.AppOpsManager;
+import android.app.usage.UsageEvents;
+import android.app.usage.UsageStatsManager;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -15,6 +18,7 @@ import android.os.UserManager;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityEvent;
@@ -97,6 +101,7 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     public void onDestroy() {
         stopWaitingForUnlock();
+        stopWatch();
         if (gamepads != null) gamepads.stop();
         if (consumeVolumeKeys) VolumeKeys.stop();
         super.onDestroy();
@@ -128,7 +133,13 @@ public class HomeKeyService extends AccessibilityService {
             info.eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
             setServiceInfo(info);
         }
-        if (!stockHome.isEmpty()) probeAtBoot();
+        if (!stockHome.isEmpty()) {
+            getSharedPreferences("stock", MODE_PRIVATE).edit()
+                    .putString("stock_pkg", config.stockHomeRedirect).apply();
+            redirectPkg = config.stockHomeRedirect;
+            probeAtBoot();
+            startWatch();
+        } else stopWatch();
         holdAppKeys = RemoteKeys.parseHoldAppKeys(config.appKeys);
         holdAppScancodes = RemoteKeys.parseHoldAppScancodes(config.appKeys);
         // gamepad_passthrough, off by default. Only with key_filter on: off, the service never filters keys.
@@ -194,6 +205,9 @@ public class HomeKeyService extends AccessibilityService {
         if (stockHome.isEmpty() || event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         CharSequence cls = event.getClassName();
         if (cls != null && stockHome.contains(cls.toString())) openHome();
+        // Any other window change (an app closing onto the stock home, a dialog going away) is a
+        // moment the stock home can follow without a window event of its own: open a watch window.
+        else startWatch();
     }
 
     /** How long after boot the first bind still counts as "at boot" for probeAtBoot. */
@@ -247,4 +261,131 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     public void onInterrupt() {
     }
+
+    // ---- stock_home_redirect by usage stats, over short event-driven watch windows ----
+    // Firmwares that deliver no window-change event for the stock launcher's home screen (Hisense
+    // VIDAA, the Vidda C1S projector, MT9669, Android 9) stay blind to onAccessibilityEvent above,
+    // while usage stats still record its MOVE_TO_FOREGROUND with the right class — as they do for
+    // Xiaomi's PatchWall up to Android 6. The sampling never runs on a schedule of its own: each
+    // trigger (config bound, a window event, screen on, dream stopped, system dialogs closed)
+    // opens a watch window that samples usage stats once a second and stops, so nothing runs while
+    // the TV just sits on a screen. The key filter stays off, so VIDAA's own volume handling is
+    // untouched.
+
+    private static final long POLL_MS = 1000L;
+    private static final long WATCH_MS = 10_000L;
+    /** A window can start long after the stock home came up (screen on over an auto-raised home),
+     *  so each sample reaches back far enough to see that transition. */
+    private static final long LOOKBACK_MS = 90_000L;
+    private boolean watchRegistered;
+    private boolean usageStatsDeniedLogged;
+    private long watchUntil;
+    private String lastFrontPkg;
+    private String lastFrontCls;
+    private long broughtBackAt;
+    private String redirectPkg;
+
+    /** Whether usage stats may be read (GET_USAGE_STATS, granted over adb); see startWatch. */
+    private boolean usageStatsAllowed() {
+        AppOpsManager appOps = getSystemService(AppOpsManager.class);
+        return appOps != null && appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(), getPackageName()) == AppOpsManager.MODE_ALLOWED;
+    }
+
+    /** Opens a watch window: usage stats are sampled once a second for WATCH_MS, then the handler
+     *  goes quiet until the next trigger. Re-triggers while a window is open only extend it. */
+    private void startWatch() {
+        if (stockHome.isEmpty()) return;
+        if (!watchRegistered) {
+            // All protected system broadcasts: on this firmware (Android 9) the plain
+            // registration receives them; no export flag is needed.
+            IntentFilter triggers = new IntentFilter();
+            triggers.addAction(Intent.ACTION_SCREEN_ON);
+            triggers.addAction(Intent.ACTION_DREAMING_STOPPED);
+            triggers.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
+            registerReceiver(watchReceiver, triggers);
+            watchRegistered = true;
+        }
+        if (!usageStatsAllowed()) {
+            if (!usageStatsDeniedLogged) {
+                usageStatsDeniedLogged = true;
+                Log.i("TvHome.HomeKey", "usage stats not allowed; stock_home_redirect stays event-only");
+            }
+            return;
+        }
+        long now = SystemClock.uptimeMillis();
+        if (now < watchUntil) {
+            watchUntil = now + WATCH_MS;
+            return;
+        }
+        watchUntil = now + WATCH_MS;
+        handler.post(pollForeground);
+    }
+
+    private void stopWatch() {
+        watchUntil = 0;
+        if (watchRegistered) {
+            try {
+                unregisterReceiver(watchReceiver);
+            } catch (IllegalArgumentException ignored) {
+            }
+            watchRegistered = false;
+        }
+    }
+
+    /** The package and class of the latest MOVE_TO_FOREGROUND within [lookbackMs], or null. */
+    @SuppressWarnings("deprecation")
+    private String[] latestForeground(long lookbackMs) {
+        UsageStatsManager stats = getSystemService(UsageStatsManager.class);
+        if (stats == null) return null;
+        long now = System.currentTimeMillis();
+        UsageEvents events = stats.queryEvents(now - lookbackMs, now);
+        UsageEvents.Event event = new UsageEvents.Event();
+        String pkg = null;
+        String cls = null;
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event);
+            if (event.getEventType() == UsageEvents.Event.MOVE_TO_FOREGROUND && event.getClassName() != null) {
+                pkg = event.getPackageName();
+                cls = event.getClassName();
+            }
+        }
+        if (pkg == null || cls == null) return null;
+        return new String[]{pkg, cls};
+    }
+
+    private final Runnable pollForeground = new Runnable() {
+        @Override public void run() {
+            if (SystemClock.uptimeMillis() >= watchUntil) return;
+            handler.postDelayed(this, POLL_MS);
+            if (stockHome.isEmpty()) return;
+            String[] front = latestForeground(LOOKBACK_MS);
+            if (front == null) return;
+            lastFrontPkg = front[0];
+            lastFrontCls = front[1];
+            if (!stockHome.contains(front[1]) || !front[0].equals(redirectPkg)) return;
+            if (SystemClock.uptimeMillis() - broughtBackAt < 1000) return;
+            if (SystemClock.uptimeMillis() < getSharedPreferences("stock", MODE_PRIVATE)
+                    .getLong("stock_allow_until", 0)) return;
+            broughtBackAt = SystemClock.uptimeMillis();
+            Log.i("TvHome.HomeKey", "stock launcher in front by usage stats; opening Home");
+            openHome();
+        }
+    };
+
+    /** The triggers: system events that often precede, or mark, the stock home coming up on its own.
+     *  A Home key among them clears a deliberate-open allowance and brings the launcher back when
+     *  the stock home is already in front. */
+    private final BroadcastReceiver watchReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if ("homekey".equals(intent.getStringExtra("reason"))) {
+                getSharedPreferences("stock", MODE_PRIVATE).edit().putLong("stock_allow_until", 0).apply();
+                if (lastFrontCls != null && stockHome.contains(lastFrontCls)) {
+                    broughtBackAt = SystemClock.uptimeMillis();
+                    openHome();
+                }
+            }
+            startWatch();
+        }
+    };
 }
