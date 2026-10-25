@@ -189,6 +189,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView raceKicker, raceHeadline, raceSessions;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
+    /** config.xml show_taskbar, overridable by a theme. Off: the taskbar button is hidden. */
+    private boolean showTaskbar;
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
@@ -473,6 +475,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         raceHeadline = findViewById(R.id.raceHeadline);
         raceSessions = findViewById(R.id.raceSessions);
         showStats = cfg.showStats;
+        showTaskbar = cfg.showTaskbar;
         shamsi = cfg.shamsiDate;
         lunarDate = findViewById(R.id.lunarDate);
         lunar = cfg.lunarDate;
@@ -710,6 +713,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
         View btnTaskbar = findViewById(R.id.btnTaskbar);
         if (btnTaskbar != null) {
+            btnTaskbar.setVisibility(showTaskbar && !cfg.topMenu ? View.VISIBLE : View.GONE);
             btnTaskbar.setOnClickListener(v -> showTaskbarPopup());
         }
         addTopBarApps(cfg.topBarApps);
@@ -3165,7 +3169,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             status.setText(network);
             status.setVisibility(View.VISIBLE);
         }
-        addInputRow(rows, popup, R.drawable.ic_taskbar, getString(R.string.taskbar_title), -1, this::showTaskbarPopup);
+        if (showTaskbar) {
+            addInputRow(rows, popup, R.drawable.ic_taskbar, getString(R.string.taskbar_title), -1, this::showTaskbarPopup);
+        }
         addInputRow(rows, popup, R.drawable.ic_swap_vert, getString(R.string.reorder), -1, this::toggleReorder);
         if (launcherSettingsButton) {
             addInputRow(rows, popup, R.drawable.ic_home_settings_pill, getString(R.string.launcher_settings), -1,
