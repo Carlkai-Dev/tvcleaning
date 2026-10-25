@@ -12,6 +12,19 @@
         android:layout_height="match_parent"
         android:importantForAccessibility="no" />
 
+    <!-- Daily nature photo (res/drawable-nodpi/nature_1..7, one per weekday) with a soft scrim for legibility. -->
+    <ImageView
+        android:id="@+id/natureBg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:importantForAccessibility="no" />
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/nature_scrim"
+        android:importantForAccessibility="no" />
+
     <!-- Cinematic top shelf (cinematic_home): the focused dock app's artwork, a few pixels across and
          stretched over the screen, which softens it like a blur without the cost of one. Hidden otherwise. -->
     <ImageView
@@ -121,6 +134,10 @@
             android:fontFamily="@string/font_light"
             android:letterSpacing="-0.02"
             android:includeFontPadding="false"
+            android:shadowColor="#B3000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="14"
             android:singleLine="true" />
 
         <!-- Cinematic shelf only: when the app was last opened, and the dock position dots. -->
@@ -288,6 +305,46 @@
                             android:textAllCaps="true"
                             android:visibility="gone" />
                     </LinearLayout>
+                </LinearLayout>
+
+                <!-- Daily quote (assets/quotes.txt) on a glass card, one pillar tag and one line, chosen by day of year. -->
+                <LinearLayout
+                    android:id="@+id/quoteCard"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="22dp"
+                    android:paddingStart="26dp"
+                    android:paddingEnd="30dp"
+                    android:paddingTop="18dp"
+                    android:paddingBottom="20dp"
+                    android:orientation="vertical"
+                    android:background="@drawable/glass_card"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/quotePillar"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="11sp"
+                        android:fontFamily="@string/font_medium"
+                        android:letterSpacing="0.22"
+                        android:textAllCaps="true" />
+
+                    <TextView
+                        android:id="@+id/quoteText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:maxWidth="460dp"
+                        android:maxLines="3"
+                        android:ellipsize="end"
+                        android:textColor="#F2FFFFFF"
+                        android:textSize="21sp"
+                        android:fontFamily="@string/font_light"
+                        android:lineSpacingExtra="4dp" />
                 </LinearLayout>
 
             </LinearLayout>
