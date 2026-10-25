@@ -61,11 +61,29 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
     void setSource(@Nullable File file) {
         if (file == null ? source == null : file.equals(source)) return;
         source = file;
-        if (wanted) {
-            release();
-            if (file == null) shown(false);
-            else open();
+        if (!wanted) return;
+        // Fork de Natalia: un cambio con el video a la vista (la rotación de fondos) tapa el cambio con el cuadro
+        // actual, que se desvanece cuando el nuevo video dibuja, en vez de un parpadeo en negro.
+        if (file != null && rendering && animate) {
+            snapshot(960, 540, b -> {
+                if (file != source || !wanted) return;   // otro cambio llegó mientras tanto
+                if (b != null) {
+                    still.animate().cancel();
+                    still.setImageBitmap(b);
+                    still.setAlpha(1f);
+                    still.setVisibility(View.VISIBLE);
+                }
+                swap();
+            });
+            return;
         }
+        swap();
+    }
+
+    private void swap() {
+        release();
+        if (source == null) shown(false);
+        else open();
     }
 
     boolean hasVideo() {
@@ -188,6 +206,7 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
         MediaPlayer p = player;
         player = null;
         prepared = false;
+        rendering = false;
         if (p == null) return;
         worker.execute(() -> {
             try {
@@ -203,6 +222,13 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
     private void shown(boolean on) {
         Consumer<Boolean> l = coverListener;
         if (l != null) l.accept(on);
+        if (!on && still.getVisibility() == View.VISIBLE) {
+            // Fork de Natalia: sin video (falló o se quitó) el cuadro guardado no debe tapar al cielo de respaldo.
+            still.animate().cancel();
+            still.setVisibility(View.INVISIBLE);
+            still.setImageDrawable(null);
+            return;
+        }
         if (on && still.getVisibility() == View.VISIBLE) {
             still.animate().cancel();
             if (animate) {

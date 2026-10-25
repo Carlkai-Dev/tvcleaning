@@ -3,12 +3,16 @@ package com.gathin.tvhome;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.style.AbsoluteSizeSpan;
+import android.text.style.DynamicDrawableSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.ImageSpan;
 import android.text.style.StyleSpan;
 
 import org.json.JSONObject;
@@ -104,8 +108,10 @@ final class Weather {
             long temp = Math.round(now.getDouble("temperature_2m"));
             long max = Math.round(daily.getJSONArray("temperature_2m_max").getDouble(0));
             long min = Math.round(daily.getJSONArray("temperature_2m_min").getDouble(0));
-            // As in the preview: no sky symbol, the temperature where it was.
+            // As in the preview: no sky symbol, the temperature where it was. Fork de Natalia (estilo Pixel): un
+            // ícono a color según el clima y si es de día o de noche, como el clima del Pixel.
             SpannableStringBuilder s = new SpannableStringBuilder();
+            if (AppAdapter.pixelStyle) appendIcon(s, now.optInt("weather_code", 0), now.optInt("is_day", 1) == 1);
             int start = s.length();
             s.append(String.format(Locale.ROOT, "%d°C", temp));
             s.setSpan(new AbsoluteSizeSpan(18, true), start, s.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -118,14 +124,26 @@ final class Weather {
         }
     }
 
-    /** A symbol for a WMO weather code (Open-Meteo's weather_code). */
-    static String symbol(int code, boolean day) {
-        if (code == 0) return day ? "☀️" : "🌙";                 // clear: sun, moon
-        if (code <= 2) return day ? "🌤️" : "☁️";           // mainly clear, partly cloudy
-        if (code == 3) return "☁️";                                        // overcast
-        if (code == 45 || code == 48) return "🌫️";                   // fog
-        if (code >= 95) return "⛈️";                                       // thunderstorm
-        if ((code >= 71 && code <= 77) || code == 85 || code == 86) return "🌨️";   // snow
-        return "🌧️";                                                 // drizzle, rain, showers
+    /** The colored icon for a WMO weather code (Open-Meteo's weather_code), day or night. */
+    static int icon(int code, boolean day) {
+        if (code == 0) return day ? R.drawable.wx_clear_day : R.drawable.wx_clear_night;
+        if (code <= 2) return day ? R.drawable.wx_partly_cloudy_day : R.drawable.wx_partly_cloudy_night;
+        if (code == 3) return R.drawable.wx_cloud;                                          // overcast
+        if (code == 45 || code == 48) return R.drawable.wx_foggy;                           // fog
+        if (code >= 95) return R.drawable.wx_thunderstorm;                                  // thunderstorm
+        if ((code >= 71 && code <= 77) || code == 85 || code == 86) return R.drawable.wx_snowy;   // snow
+        return R.drawable.wx_rainy;                                                         // drizzle, rain, showers
+    }
+
+    /** The icon, as tall as the 18sp temperature beside it, then a space. */
+    private void appendIcon(SpannableStringBuilder s, int code, boolean day) {
+        Drawable d = ctx.getDrawable(icon(code, day));
+        if (d == null) return;
+        int size = Math.round(22 * ctx.getResources().getDisplayMetrics().density);
+        d.setBounds(0, 0, size, size);
+        int align = Build.VERSION.SDK_INT >= 29 ? DynamicDrawableSpan.ALIGN_CENTER : DynamicDrawableSpan.ALIGN_BASELINE;
+        s.append("\u00A0");
+        s.setSpan(new ImageSpan(d, align), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        s.append("  ");
     }
 }

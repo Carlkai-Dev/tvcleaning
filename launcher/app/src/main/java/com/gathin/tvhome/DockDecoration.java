@@ -40,6 +40,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
                    boolean evenPadding) {
         this.dockSize = dockSize;
         this.density = density;
+        pixelEdge.setStrokeWidth(density);
         this.namesRoom = names ? 22 * density : 0;
         this.lightGlass = lightGlass;
         this.evenPadding = evenPadding;
@@ -139,8 +140,16 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         c.drawRoundRect(rect, radius, radius, edge);
     }
 
-    private final Paint pixelBand = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint pixelEdge = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /** Los pinceles del marco Pixel, preparados una vez (el grosor del borde, en el constructor) y no en cada cuadro. */
+    private final Paint pixelBand = pixelPaint(Paint.Style.FILL, 0x780A0E14);
+    private final Paint pixelEdge = pixelPaint(Paint.Style.STROKE, 0x28FFFFFF);
+
+    private static Paint pixelPaint(Paint.Style style, int color) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(style);
+        p.setColor(color);
+        return p;
+    }
 
     /**
      * Fork de Natalia, estilo Pixel: un marco oscuro translúcido y angosto alrededor de los círculos del dock y sus
@@ -175,10 +184,6 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         float pad = 16 * density;
         rect.inset(-26 * density, -pad);
         float radius = 28 * density;
-        pixelBand.setColor(0x780A0E14);
-        pixelEdge.setStyle(Paint.Style.STROKE);
-        pixelEdge.setStrokeWidth(density);
-        pixelEdge.setColor(0x28FFFFFF);
         c.drawRoundRect(rect, radius, radius, pixelBand);
         c.drawRoundRect(rect, radius, radius, pixelEdge);
     }

@@ -346,10 +346,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
             // signal level, so only it needs this minute's binder calls (about 7 ms on the UI thread).
             if (festive) updateWifiLabel();
-            sky.update();
-            if (skyClouds != null) skyClouds.setTint(sky.cloudColor(), sky.cloudAlpha());
+            // Bajo un video el cielo no se ve: no hace falta recalcularlo (vuelve a hacerse al regresar al Inicio).
+            if (!background.hasVideo()) {
+                sky.update();
+                if (skyClouds != null) skyClouds.setTint(sky.cloudColor(), sky.cloudAlpha());
+            }
             updateWeather();
             wallpaperPlayer.update();
+            rotateFondo();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -1640,41 +1644,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float x = r.exactCenterX() - w / 2f;
         float y = r.exactCenterY() - h / 2f - (advancedEffects ? 4f * density : 0f);
 
-        ViewGroup.LayoutParams lp = glass.getLayoutParams();
-        if (lp.width != (int) w || lp.height != (int) h || card.getWidth() != glassCardW) {
-            lp.width = (int) w;
-            lp.height = (int) h;
-            glass.setLayoutParams(lp);
-            // GlassView draws its slab inset by pad, i.e. exactly over the zoomed tile: same corners as the tile.
-            glass.setRadius(AppAdapter.cornerRadius(card.getWidth(), density) * scale);
-        }
-        glassCardW = card.getWidth();
-        glassTargetX = x;
-        glassTargetY = y;
-        // Cinematic shelf: the highlight glows in the dock app's colour, plain white in the grid. app_glow: every tile.
-        boolean coloured = (appGlow || cinematic && position < COLUMNS) && !festive;
-        int accent = coloured ? adapter.ambientColorAt(position) : 0;
-        if ((cinematic || appGlow) && !festive && accent != glassAccent) {
-            glassAccent = accent;
-            glass.setAccent(accent);
-        }
-        if (!glassShown) {
-            springX.cancel();
-            springY.cancel();
-            glass.setTranslationX(x);
-            glass.setTranslationY(y);
-            if (animations && !reducedMotion) glass.animate().alpha(1f).setDuration(180).start();
-            else glass.setAlpha(1f);
-            glassShown = true;
-        } else if (!animations) {
-            springX.cancel();
-            springY.cancel();
-            glass.setTranslationX(x);
-            glass.setTranslationY(y);
-        } else {
-            springX.animateToFinalPosition(x);
-            springY.animateToFinalPosition(y - glassScrollShift);
-        }
+        // Estilo Pixel: el vidrio está oculto (el anillo va en el círculo), así que ni se mide ni se mueve.
+        if (!AppAdapter.pixelStyle) placeGlass(position, card, x, y, w, h);
         View item = (View) card.getParent();
         if (dockRow) setRowsHidden(position < COLUMNS && !reordering);
         if (dockRow) setAllApps(position >= COLUMNS || reordering);
@@ -1709,8 +1680,48 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** The glass slab over the focused tile: its size, the dock app's colour and the slide to the tile. */
+    private void placeGlass(int position, View card, float x, float y, float w, float h) {
+        ViewGroup.LayoutParams lp = glass.getLayoutParams();
+        if (lp.width != (int) w || lp.height != (int) h || card.getWidth() != glassCardW) {
+            lp.width = (int) w;
+            lp.height = (int) h;
+            glass.setLayoutParams(lp);
+            // GlassView draws its slab inset by pad, i.e. exactly over the zoomed tile: same corners as the tile.
+            glass.setRadius(AppAdapter.cornerRadius(card.getWidth(), density) * adapter.focusScale());
+        }
+        glassCardW = card.getWidth();
+        glassTargetX = x;
+        glassTargetY = y;
+        // Cinematic shelf: the highlight glows in the dock app's colour, plain white in the grid. app_glow: every tile.
+        boolean coloured = (appGlow || cinematic && position < COLUMNS) && !festive;
+        int accent = coloured ? adapter.ambientColorAt(position) : 0;
+        if ((cinematic || appGlow) && !festive && accent != glassAccent) {
+            glassAccent = accent;
+            glass.setAccent(accent);
+        }
+        if (!glassShown) {
+            springX.cancel();
+            springY.cancel();
+            glass.setTranslationX(x);
+            glass.setTranslationY(y);
+            if (animations && !reducedMotion) glass.animate().alpha(1f).setDuration(180).start();
+            else glass.setAlpha(1f);
+            glassShown = true;
+        } else if (!animations) {
+            springX.cancel();
+            springY.cancel();
+            glass.setTranslationX(x);
+            glass.setTranslationY(y);
+        } else {
+            springX.animateToFinalPosition(x);
+            springY.animateToFinalPosition(y - glassScrollShift);
+        }
+    }
+
     /** Refits the glass to the focused holder once the grid layout and tile dimensions settle. */
     private void refitGlass() {
+        if (AppAdapter.pixelStyle) return;   // estilo Pixel: sin vidrio
         if (isDestroyed() || adapter.appCount() == 0 || libraryFocusPending) return;
         int pos = Math.max(0, Math.min(lastFocused, adapter.appCount() - 1));
         RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(pos);
@@ -2706,15 +2717,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (Fondos.VITRINA.equals(key)) {
             MainActivity.this.vitrinaOn = p.getBoolean(Fondos.VITRINA, false);
             if (!MainActivity.this.vitrinaOn) hideShowcase();
-        } else {
+        } else if (Fondos.KEY.equals(key)) {
+            // Solo el fondo elegido; la hora de la rotación (Fondos.CHANGED) no cambia nada en pantalla.
             applyFondo();
         }
     };
 
-    /**
-     * Fork de Natalia (fondo_rotation_minutes): al volver al Inicio, si ya pasó el intervalo, pasa al siguiente
-     * fondo de video. El Cielo dibujado no entra en la rotación.
-     */
     /**
      * Fork de Natalia (pixel_style): el reloj como en la pantalla bloqueada del Pixel, la hora arriba y los minutos
      * debajo en azul claro. Reusa los dos TextClock del encabezado: clock muestra la hora y ampm los minutos.
@@ -2769,28 +2777,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * Fork de Natalia (fondo_rotation_minutes): si ya pasó el intervalo, el siguiente video. Corre al volver al
+     * Inicio y cada minuto con el Inicio a la vista; el cambio llega a applyFondo por fondoListener.
+     */
     private void rotateFondo() {
-        if (fondoRotationMinutes <= 0) return;
-        SharedPreferences p = Fondos.prefs(this);
-        long now = System.currentTimeMillis();
-        long changed = p.getLong(FONDO_CHANGED, 0);
-        if (changed == 0) {
-            p.edit().putLong(FONDO_CHANGED, now).apply();
-            return;
-        }
-        if (now - changed < fondoRotationMinutes * 60_000L) return;
-        List<Fondos.Fondo> videos = new ArrayList<>();
-        for (Fondos.Fondo f : Fondos.available(this)) if (f.video != null) videos.add(f);
-        if (videos.size() < 2) return;
-        String current = Fondos.current(this).id;
-        int next = 0;
-        for (int i = 0; i < videos.size(); i++) {
-            if (videos.get(i).id.equals(current)) next = (i + 1) % videos.size();
-        }
-        p.edit().putString(Fondos.KEY, videos.get(next).id).putLong(FONDO_CHANGED, now).apply();
+        Fondos.rotateIfDue(this, fondoRotationMinutes);
     }
-
-    private static final String FONDO_CHANGED = "cambiado";
 
     /** Shows the chosen background (Fondos); the clouds move only while Home is up and no app backdrop hides them. */
     private void applyFondo() {

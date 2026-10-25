@@ -461,6 +461,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         // Estilo Pixel: el dock va sin nombres, solo los círculos (como el dock del teléfono).
         h.name.setVisibility(dockRow && position < dockSize && (restNameAlpha == 0f || pixelStyle) ? View.INVISIBLE : View.VISIBLE);
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
+        // Estilo Pixel: una casilla reciclada no se queda con el anillo de la que estaba enfocada antes.
+        if (pixelStyle) h.card.setForeground(focused ? h.focusRing : null);
         h.name.setAlpha(focused ? 1f : restNameAlpha);
         h.card.setScaleX(focused && animations ? focusScale() : 1f);
         h.card.setScaleY(focused && animations ? focusScale() : 1f);
@@ -734,6 +736,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final TextView label;
         final TextView name;
         final View shine;
+        /** Estilo Pixel: el anillo de enfoque de esta casilla, creado una vez (null fuera del estilo Pixel). */
+        final android.graphics.drawable.Drawable focusRing;
         final boolean animations;
         final boolean advancedEffects;
         final boolean reducedMotion;
@@ -751,6 +755,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             label = v.findViewById(R.id.label);
             name = v.findViewById(R.id.name);
             shine = v.findViewById(R.id.shine);
+            focusRing = pixelStyle ? v.getContext().getDrawable(R.drawable.pixel_focus_ring) : null;
             this.animations = animations;
             this.advancedEffects = advancedEffects;
             this.reducedMotion = reducedMotion;
@@ -787,7 +792,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 // over it (GlassView no longer draws one).
                 banner.setColorFilter(focused ? VIVID : null);
                 // Estilo Pixel: un anillo blanco marca el círculo enfocado (no hay placa de vidrio).
-                if (pixelStyle) view.setForeground(focused ? view.getContext().getDrawable(R.drawable.pixel_focus_ring) : null);
+                if (pixelStyle) view.setForeground(focused ? focusRing : null);
                 float scale = !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
                 float s = focused ? scale : 1f;
                 if (!animations) {
@@ -828,7 +833,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     name.animate().alpha(focused ? 1f : restNameAlpha)
                             .translationY(focused ? density * 4f : -density * 6f)
                             .setDuration(220).start();
-                    if (view.getResources().getBoolean(R.bool.focus_shine)) sweep(focused, view.getWidth());
+                    // Estilo Pixel: sin la franja de luz al enfocar (el Pixel no la tiene); una animación menos.
+                    if (!pixelStyle && view.getResources().getBoolean(R.bool.focus_shine)) sweep(focused, view.getWidth());
                 }
                 int pos = getBindingAdapterPosition();
                 if (focused && listener != null && pos != RecyclerView.NO_POSITION) {
