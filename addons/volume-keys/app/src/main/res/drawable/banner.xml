@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 16:9 banner: four coloured buttons over rising volume bars. Own art. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#101418" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#E5534B" android:pathData="M60,50h30v24h-30z" />
+    <path android:fillColor="#3FB950" android:pathData="M100,50h30v24h-30z" />
+    <path android:fillColor="#E3B341" android:pathData="M140,50h30v24h-30z" />
+    <path android:fillColor="#4493F8" android:pathData="M180,50h30v24h-30z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M60,140h14v-16h-14z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M84,140h14v-28h-14z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M108,140h14v-40h-14z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M132,140h14v-52h-14z" />
+</vector>

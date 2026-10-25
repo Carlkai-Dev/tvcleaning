@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Four volume bars inside the adaptive icon's safe zone. Own art. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#E5534B" android:pathData="M32,70h8v-10h-8z" />
+    <path android:fillColor="#3FB950" android:pathData="M44,70h8v-18h-8z" />
+    <path android:fillColor="#E3B341" android:pathData="M56,70h8v-26h-8z" />
+    <path android:fillColor="#4493F8" android:pathData="M68,70h8v-34h-8z" />
+</vector>
