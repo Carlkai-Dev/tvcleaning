@@ -572,6 +572,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             grid.setLayoutAnimation(new LayoutAnimationController(
                     AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
         }
+        if (cfg.pixelStyle) {
+            // Estilo Pixel: columnas angostas (como el cajón de apps del Pixel), así los círculos quedan juntos y
+            // centrados en vez de repartirse por todo el ancho de la tele.
+            float d = getResources().getDisplayMetrics().density;
+            int cell = Math.round(AppAdapter.PIXEL_CELL_DP * d);
+            int side = Math.max(grid.getPaddingLeft(), (getResources().getDisplayMetrics().widthPixels - cell * COLUMNS) / 2);
+            grid.setPadding(side, grid.getPaddingTop(), side, grid.getPaddingBottom());
+        }
         // My System TV: the Seguir viendo row, over the grid between the dock and the apps (ContinueRow).
         continueRow = new ContinueRow(this, continueHost, animations && !reducedMotion);
         continueRow.view.setPadding(grid.getPaddingLeft(), 0, grid.getPaddingRight(), 0);

@@ -52,6 +52,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
      * en lugar del banner rectangular. MainActivity lo fija antes de crear el adaptador.
      */
     static boolean pixelStyle;
+    /** Estilo Pixel: el círculo y el ancho de cada columna, en dp. */
+    static final int PIXEL_ICON_DP = 60, PIXEL_CELL_DP = 104;
 
     interface TileListener {
         void onTileFocused(int position, View card);
@@ -404,7 +406,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (pixelStyle) {
             // Un círculo del alto de la casilla, centrado; el ícono lo llena y el círculo blanco queda detrás de
             // los íconos que no son adaptativos (como hace el Pixel).
-            h = Math.round(h * 0.8f);   // círculos un poco más pequeños que la casilla
+            h = Math.round(PIXEL_ICON_DP * density);   // tamaño fijo: las columnas angostas no lo achican
             cardLp.width = h;
             cardLp.height = h;
             card.setBackgroundResource(R.drawable.pixel_icon_bg);
@@ -419,7 +421,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         card.setLayoutParams(cardLp);
         View name = v.findViewById(R.id.name);
         ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) name.getLayoutParams();
-        nameLp.width = w;
+        nameLp.width = pixelStyle ? Math.max(h, inner / Math.max(1, dockSize)) : w;
         nameLp.topMargin = h + Math.round((dockRow ? 7 : 4) * density);
         if (!dockRow) {
             // Compact spacing (COMPACT_ITEM_EXTRA_DP): 4dp item padding and a 20dp name instead of 8dp and 22dp.
