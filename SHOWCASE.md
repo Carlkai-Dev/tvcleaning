@@ -8,6 +8,8 @@ Nothing here is reviewed or maintained by this repo. Read the project's own READ
 it was built on, and treat it the way you'd treat any app you sideload. Each row links to the
 project's own issue tracker.
 
+<!-- PR preview change -->
+
 **Jump to:** [Home screens built as their own app](#home-screens-built-as-their-own-app) · [Forks of the launcher](#forks-of-the-launcher) · [Screensavers and add-ons](#screensavers-and-add-ons) · [Tools and companion apps](#tools-and-companion-apps) · [Other platforms: Fire TV and LG webOS](#other-platforms-fire-tv-and-lg-webos) · [Add-ons in this repo](addons/README.md) · [Guides and write-ups](#guides-and-write-ups) · [Find a project by TV brand](#find-a-project-by-tv-brand) · [Add yours](#add-yours)
 
 113 projects so far.
