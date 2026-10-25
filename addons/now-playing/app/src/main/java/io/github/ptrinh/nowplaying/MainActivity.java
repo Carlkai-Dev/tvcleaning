@@ -86,6 +86,8 @@ public class MainActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
+        // A focused round button grows by a tenth: every layer up to here lets it draw past its edges.
+        row.setClipChildren(false);
         // A TV screen is 960x540 dp: the artwork and the column beside it fit without scrolling.
         row.setPadding((int) (64 * d), (int) (32 * d), (int) (64 * d), (int) (40 * d));
         root.addView(row, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -106,6 +108,7 @@ public class MainActivity extends Activity {
 
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
+        col.setClipChildren(false);
         LinearLayout.LayoutParams colLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         colLp.leftMargin = (int) (48 * d);
         row.addView(col, colLp);
@@ -142,6 +145,7 @@ public class MainActivity extends Activity {
 
         controls = new LinearLayout(this);
         controls.setGravity(Gravity.CENTER_VERTICAL);
+        controls.setClipChildren(false);
         previous = round(R.drawable.ic_previous, getString(R.string.previous));
         previous.setOnClickListener(v -> sessions.previous());
         playPause = round(R.drawable.ic_play, getString(R.string.play));
