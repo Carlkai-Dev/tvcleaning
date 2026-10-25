@@ -27,8 +27,9 @@ The weather location is blurred in the screenshots. The Control Center shot is f
 Every addition is off in `config.xml` and switched on by the theme in [`theme/config.json`](theme/config.json),
 except the `config.xml` defaults for this TCL set (dock, six columns, `com.tcl.tv` as Live TV).
 
-The release APK is about 629 KB, over upstream's 576 KB size gate. Most of the difference is Arimo, already
-subset to the Latin, Cyrillic, Hebrew and Vietnamese ranges the launcher's languages need.
+The release APK is about 563 KB, under upstream's 576 KB size gate. To fit, Arimo is cut down to the letters
+the launcher's languages use in Latin, Cyrillic, Hebrew and Vietnamese, with kerning kept. A city name in another
+script still shows, in the TV's own font.
 
 ## Network and privacy
 
