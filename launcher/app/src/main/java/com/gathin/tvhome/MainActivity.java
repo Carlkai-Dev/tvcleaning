@@ -189,6 +189,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView raceKicker, raceHeadline, raceSessions;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
+    /** config.xml quote_card, overridable by a theme. Off: the card stays gone and quotes.txt is never read. */
+    private boolean quoteCard;
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
@@ -473,6 +475,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         raceHeadline = findViewById(R.id.raceHeadline);
         raceSessions = findViewById(R.id.raceSessions);
         showStats = cfg.showStats;
+        quoteCard = cfg.quoteCard;
         shamsi = cfg.shamsiDate;
         lunarDate = findViewById(R.id.lunarDate);
         lunar = cfg.lunarDate;
@@ -2449,6 +2452,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** One line a day from assets/quotes.txt ("Pillar|Quote" per line), picked by day of year. */
     private void updateQuote() {
+        View card = findViewById(R.id.quoteCard);
+        if (!quoteCard) {
+            card.setVisibility(View.GONE);
+            return;
+        }
         TextView pillar = findViewById(R.id.quotePillar);
         TextView text = findViewById(R.id.quoteText);
         java.util.List<String> lines = new java.util.ArrayList<>();
@@ -2460,7 +2468,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } catch (java.io.IOException e) {
             lines.clear();
         }
-        View card = findViewById(R.id.quoteCard);
         if (lines.isEmpty()) {
             card.setVisibility(View.GONE);
             return;
@@ -2471,16 +2478,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         pillar.setText(line.substring(0, bar).trim());
         text.setText(line.substring(bar + 1).trim());
         card.setVisibility(View.VISIBLE);
-        // Mon..Sun -> nature_1..7
-        int[] photos = {R.drawable.nature_7, R.drawable.nature_1, R.drawable.nature_2, R.drawable.nature_3,
-                R.drawable.nature_4, R.drawable.nature_5, R.drawable.nature_6};
-        // Decoded once per day, not once a minute: this runs with the clock tick on a small-RAM TV.
-        ImageView bg = findViewById(R.id.natureBg);
-        Integer photo = photos[c.get(Calendar.DAY_OF_WEEK) - 1];
-        if (!photo.equals(bg.getTag())) {
-            bg.setImageResource(photo);
-            bg.setTag(photo);
-        }
     }
 
     // ---- race-weekend panel (a theme's race_calendar) -----------------------------------------------

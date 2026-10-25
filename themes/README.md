@@ -22,6 +22,7 @@ pushes it with `theme.sh`.
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour | <img src="aurora/screenshot.jpg" width="320" alt="aurora theme"> |
 | `dussehra/` | Festive skin for Dussehra (ends 21 Oct 2026): a marigold toran, a faint gold rangoli, a diya for Wi-Fi, a bell for Inputs, a marigold for Settings and a petal shower | <img src="dussehra/screenshot.jpg" width="320" alt="dussehra theme"> |
 | `glass/` | Dark navy wallpaper with soft teal and violet light, the cinematic top shelf, a frosted-glass dock, icon-only buttons and the focus glow in the app's colour, gliding without overshoot | <img src="glass/screenshot.jpg" width="320" alt="glass theme"> |
+| `nature/` | Seven mountain, river and lake photos from Wikimedia Commons, one a day with its place under the buttons and slightly dimmed; six small tiles in a frosted-glass dock, no app-colour glow, and a daily quote on a glass card under the clock (`quote_card`, from `assets/quotes.txt`). The photos are CC BY / CC BY-SA, not MIT: see `nature/CREDITS.md` | <img src="nature/screenshot.jpg" width="320" alt="nature theme"> |
 | `ruska/` | A Finnish autumn ("ruska") dusk over a lake: spruce shoreline, birches in autumn colour, a few falling leaves, drawn in code by `make_wallpaper.py`. The app-colour glow stays off the picture so the autumn colours keep their own light; the dock is 70% opaque so the lake shows through, and the focus glows in the app's colour without overshoot | <img src="ruska/screenshot.jpg" width="320" alt="ruska theme"> |
 | `scenes/` | 14 dark illustrated landscapes in `wallpapers/`, a new one every hour; drawn from code by `tools/scenes_wallpapers.py` | <img src="scenes/screenshot.jpg" width="320" alt="scenes theme"> |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock | <img src="six-columns/screenshot.jpg" width="320" alt="six-columns theme"> |
@@ -92,6 +93,7 @@ A new key needs one there in the same pull request.
 | `advanced_effects` | bool | Optional lifted tile, icon zoom, smooth ambient colour and app opening effects; false by default |
 | `show_home_settings_shortcut` | bool | Keep the optional Default-home tile visible when the TV has a home picker; false by default |
 | `show_stats` | bool | One line under the clock with CPU, free memory and free storage. Off unless set |
+| `quote_card` | bool | A daily line from `assets/quotes.txt` (`Pillar\|Quote` per line, picked by day of year) on a glass card under the clock; `false` (the default) shows nothing and never reads the file. Edit the file and rebuild to write your own |
 | `handle_view_inputs` | bool | Answer the system input switcher (`VIEW_INPUTS`, what the remote's Input button becomes) with the Inputs menu, for sets whose stock launcher was its only handler (Hisense huangshan); `false` by default so a TV with its own input picker never gets a chooser |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `sky_intensity` | 0 to 100 | Time-of-day backdrop: a dark gradient that follows the clock, 0 hides it (default) |

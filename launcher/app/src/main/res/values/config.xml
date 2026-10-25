@@ -227,7 +227,7 @@
     <!-- The dock band as light frosted glass, like the Inputs, Wi-Fi and Settings pills, so a sky or wallpaper shows
          through it. false (the default) keeps the solid near-black band, or the cinematic shelf's dark glass. Can
          also be set with "dock_glass": true in a theme's config.json. -->
-    <bool name="dock_glass">true</bool>
+    <bool name="dock_glass">false</bool>
     <!-- Every app in one row: the dock apps first, the rest after them, and the row scrolls sideways when focus
          reaches its edge. No grid below; rows_below_dock is ignored. Needs dock_row. Can also be set with
          "single_row" in a theme. -->
@@ -303,7 +303,7 @@
 
     <!-- Tiles per row in the grid; the dock always has this many slots. Tiles are 180dp wide at 4 columns and
          shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
-    <integer name="columns">6</integer>
+    <integer name="columns">4</integer>
 
     <!-- Basic motion is on; advanced effects are opt-in in the launcher's own Settings screen. -->
     <bool name="animations">true</bool>
@@ -350,6 +350,10 @@
     <!-- One line under the clock: CPU, free memory and free storage. Off by default; a theme can set
          "show_stats": true. Nothing is read, and the clock does not move, while this is false. -->
     <bool name="show_stats">false</bool>
+    <!-- One line a day from assets/quotes.txt (Pillar|Quote per line, chosen by day of year) on a glass card under
+         the clock. false (the default) shows nothing and never reads the file. Can also be set with "quote_card": true
+         in a theme's config.json. -->
+    <bool name="quote_card">false</bool>
 
     <!-- Time-of-day backdrop behind everything: a dark gradient that follows the clock, with a warm
          horizon glow around sunrise and sunset. 0 keeps the plain background (the default); 1 to 100
@@ -384,7 +388,7 @@
     <!-- The glow behind the dock in the focused app's colour (red for YouTube, blue for Prime Video). false keeps
          only background_color or the wallpaper behind everything. Can also be set with "ambient_glow": false in a
          theme's config.json. -->
-    <bool name="ambient_glow">false</bool>
+    <bool name="ambient_glow">true</bool>
     <!-- The focus highlight glows in the focused app's colour on every tile, as the cinematic shelf does for the
          dock, without cinematic_home. Can also be set with "app_glow": true in a theme's config.json. -->
     <bool name="app_glow">false</bool>

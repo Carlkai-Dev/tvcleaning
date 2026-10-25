@@ -12,19 +12,6 @@
         android:layout_height="match_parent"
         android:importantForAccessibility="no" />
 
-    <!-- Daily nature photo (res/drawable-nodpi/nature_1..7, one per weekday) with a soft scrim for legibility. -->
-    <ImageView
-        android:id="@+id/natureBg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:importantForAccessibility="no" />
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/nature_scrim"
-        android:importantForAccessibility="no" />
-
     <!-- Cinematic top shelf (cinematic_home): the focused dock app's artwork, a few pixels across and
          stretched over the screen, which softens it like a blur without the cost of one. Hidden otherwise. -->
     <ImageView
@@ -134,10 +121,6 @@
             android:fontFamily="@string/font_light"
             android:letterSpacing="-0.02"
             android:includeFontPadding="false"
-            android:shadowColor="#B3000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="14"
             android:singleLine="true" />
 
         <!-- Cinematic shelf only: when the app was last opened, and the dock position dots. -->
