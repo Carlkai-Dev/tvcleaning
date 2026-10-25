@@ -82,6 +82,11 @@ final class Fondos {
         return all.get(0);
     }
 
+    /** Fork de Natalia: el fondo elegido es un video (no el Cielo), esté o no su archivo todavía. */
+    static boolean wantsVideo(Context ctx) {
+        return !SKY.equals(prefs(ctx).getString(KEY, DEFAULT));
+    }
+
     /** Fork de Natalia: cuándo cambió el fondo por última vez (a mano o por la rotación), en milisegundos. */
     static final String CHANGED = "cambiado";
 

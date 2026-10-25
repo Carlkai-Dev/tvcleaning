@@ -956,6 +956,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         askForTvListings();   // also on the way back: Home is rarely created again
         rotateFondo();
+        fondoRetries = 0;
         applyFondo();   // videos pushed (or removed) while Home was away
         background.video.setAway(false);
         background.video.start();
@@ -1199,6 +1200,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onDestroy() {
         super.onDestroy();
         Fondos.prefs(this).unregisterOnSharedPreferenceChangeListener(fondoListener);
+        handler.removeCallbacks(fondoRetry);
         if (live.get() == this) live.clear();
         background.video.stop();
         unregisterReceiver(packageReceiver);
@@ -2789,7 +2791,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Shows the chosen background (Fondos); the clouds move only while Home is up and no app backdrop hides them. */
     private void applyFondo() {
         background.applyFondo(started && backdropPkg == null);
+        // Fork de Natalia: al encender, la carpeta de los videos puede no estar lista todavía y el fondo elegido
+        // no aparece (queda el cielo). Mientras el elegido sea un video que aún no se encuentra, se vuelve a mirar.
+        handler.removeCallbacks(fondoRetry);
+        if (!background.hasVideo() && Fondos.wantsVideo(this) && fondoRetries < 20) {
+            fondoRetries++;
+            handler.postDelayed(fondoRetry, 2000);
+        } else if (background.hasVideo()) {
+            fondoRetries = 0;
+        }
     }
+
+    private int fondoRetries;
+    private final Runnable fondoRetry = () -> {
+        if (!isFinishing() && !isDestroyed()) applyFondo();
+    };
 
     /**
      * The all-apps view, after tvOS: the background goes soft and dark and the header leaves; the dock is lifted

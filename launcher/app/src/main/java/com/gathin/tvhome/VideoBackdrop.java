@@ -61,6 +61,8 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
     void setSource(@Nullable File file) {
         if (file == null ? source == null : file.equals(source)) return;
         source = file;
+        retries = 0;
+        main.removeCallbacks(retry);
         if (!wanted) return;
         // Fork de Natalia: un cambio con el video a la vista (la rotación de fondos) tapa el cambio con el cuadro
         // actual, que se desvanece cuando el nuevo video dibuja, en vez de un parpadeo en negro.
@@ -97,12 +99,14 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
 
     void start() {
         wanted = true;
+        retries = 0;
         if (player == null) open();
     }
 
     /** Releases the player and its decoder; the surface goes with the window, the still covers the way back. */
     void stop() {
         wanted = false;
+        main.removeCallbacks(retry);
         release();
     }
 
@@ -175,14 +179,17 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
         p.setOnInfoListener((mp, what, extra) -> {
             if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START && mp == player) {
                 rendering = true;
+                retries = 0;
                 shown(true);
             }
             return false;
         });
         p.setOnErrorListener((mp, what, extra) -> {
             if (mp == player) {
+                android.util.Log.w("TvHome.Fondo", "video error " + what + "/" + extra + ", try " + (retries + 1));
                 release();
                 shown(false);
+                retryLater();
             }
             return true;
         });
@@ -194,11 +201,31 @@ final class VideoBackdrop implements SurfaceHolder.Callback {
                 p.setVolume(0f, 0f);
                 p.prepareAsync();
             } catch (Exception | Error e) {
+                android.util.Log.w("TvHome.Fondo", "video open failed: " + e);
                 main.post(() -> {
-                    if (p == player) release();
+                    if (p == player) {
+                        release();
+                        retryLater();
+                    }
                 });
             }
         });
+    }
+
+    /**
+     * Fork de Natalia: al encender, el decodificador de la tele a veces aún no está listo y el video falla; el cielo
+     * de respaldo se quedaba hasta salir y volver al Inicio. Se reintenta unas veces, cada vez con más espera.
+     */
+    private int retries;
+    private final Runnable retry = () -> {
+        if (wanted && player == null && source != null) open();
+    };
+
+    private void retryLater() {
+        if (!wanted || source == null || retries >= 6) return;
+        retries++;
+        main.removeCallbacks(retry);
+        main.postDelayed(retry, 1500L * retries);
     }
 
     /** Lets go of the player (and its hardware decoder) on the worker, after anything still queued for it. */
