@@ -214,6 +214,12 @@
     <!-- The date (with the Shamsi and lunar lines) on its own line under the clock instead of beside it, for a top bar
          whose pills leave the date too little room. Can also be set with "date_below_clock" in a theme. -->
     <bool name="date_below_clock">false</bool>
+    <!-- Tiles that open a link in another app instead of its start screen, e.g. a TV channel straight in a broadcaster's
+         app: "Label|package|uri|#colour", up to 12. A tile shows only while the package is installed, and acts as an app
+         named link.tile.<label in lower case> for dock_apps, hidden_apps and the saved order. A link-<that name>.jpg
+         beside config.json (16:9) is drawn on the tile; without one the label is drawn on the colour. If the app no
+         longer takes the link, OK opens the app. A theme can set it ("link_tiles"). Empty by default. -->
+    <string-array name="link_tiles" translatable="false" />
 
     <!-- A name after the greeting: "Mr. Trịnh" shows GOOD MORNING, MR. TRỊNH. Empty: the greeting alone. -->
     <string name="greeting_name" translatable="false"></string>
