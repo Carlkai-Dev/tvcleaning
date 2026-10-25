@@ -76,7 +76,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
 
     @Override
     public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
-        if (AppAdapter.pixelStyle) return;   // Fork de Natalia: estilo Pixel, los íconos van sueltos sin banda
+        if (AppAdapter.pixelStyle) {
+            drawPixelBand(c, parent);
+            return;
+        }
         boolean any = false;
         int cardWidth = 0;
         for (int i = 0; i < parent.getChildCount(); i++) {
@@ -134,5 +137,48 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         }
         c.drawRoundRect(rect, radius, radius, band);
         c.drawRoundRect(rect, radius, radius, edge);
+    }
+
+    private final Paint pixelBand = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint pixelEdge = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    /**
+     * Fork de Natalia, estilo Pixel: un marco oscuro translúcido y angosto alrededor de los círculos del dock y sus
+     * nombres, con el mismo margen arriba (sobre el círculo) que abajo (bajo el nombre), para que queden centrados.
+     */
+    private void drawPixelBand(Canvas c, RecyclerView parent) {
+        boolean any = false;
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            int pos = parent.getChildAdapterPosition(child);
+            if (pos < 0 || pos >= dockSize) continue;
+            RecyclerView.ViewHolder vh = parent.getChildViewHolder(child);
+            if (!(vh instanceof AppAdapter.Holder)) continue;
+            AppAdapter.Holder h = (AppAdapter.Holder) vh;
+            float dx = child.getLeft() + child.getTranslationX();
+            float dy = child.getTop() + child.getTranslationY();
+            float l = dx + h.card.getLeft();
+            float r = dx + h.card.getRight();
+            float t = dy + h.card.getTop();
+            // Hasta donde termina el texto del nombre, no la caja completa de la etiqueta.
+            float b = dy + h.name.getTop() + h.name.getTranslationY()
+                    + (h.name.getHeight() + h.name.getLineHeight()) / 2f;
+            if (!any) {
+                rect.set(l, t, r, b);
+                any = true;
+            } else {
+                rect.union(l, t, r, b);
+            }
+        }
+        if (!any) return;
+        float pad = 16 * density;
+        rect.inset(-26 * density, -pad);
+        float radius = 28 * density;
+        pixelBand.setColor(0x780A0E14);
+        pixelEdge.setStyle(Paint.Style.STROKE);
+        pixelEdge.setStrokeWidth(density);
+        pixelEdge.setColor(0x28FFFFFF);
+        c.drawRoundRect(rect, radius, radius, pixelBand);
+        c.drawRoundRect(rect, radius, radius, pixelEdge);
     }
 }
