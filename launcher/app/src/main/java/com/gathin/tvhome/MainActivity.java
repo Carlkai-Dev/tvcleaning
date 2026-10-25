@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import android.graphics.Typeface;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
@@ -111,6 +112,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean rtlAppGrid;
     private static final long MINUTE_MS = 60_000L;
     private static final long STATS_MS = 10_000L;
+    private static final long STATS_BUTTON_MS = 3_000L;
     /**
      * 2025-01-01. TVs without a clock battery boot at the epoch (08:00 in China) and keep it until network
      * time arrives; the clock, date and greeting stay hidden before then.
@@ -195,6 +197,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView raceKicker, raceHeadline, raceSessions;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
+    /** stats_button: the rings button at the start of the top bar; null unless the key is on. */
+    private StatsButton statsButton;
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
@@ -732,6 +736,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
         addTopBarApps(cfg.topBarApps, cfg.launchActions);
+        if (cfg.statsButton) addStatsButton();
         iconOnlyButtons = cfg.iconOnlyButtons;
         topMenu = cfg.topMenu;
         wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
@@ -979,7 +984,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateInputsButton();
             pillsShown = true;
         }
-        if (showStats) startStats();
+        if (showStats || statsButton != null) startStats();
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
@@ -2048,7 +2053,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void startStats() {
         if (statsThread != null) return;
-        stats.setVisibility(View.VISIBLE);
+        if (showStats) stats.setVisibility(View.VISIBLE);
         cpuTotalPrev = -1;
         idlePrev = -1;
         procStatDead = false;
@@ -2062,11 +2067,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             @Override
             public void run() {
                 if (statsBg != bg) return;
-                String line = readStatsLine();
+                StatsSample sample = readStatsSample();
+                String line = showStats ? statsLine(sample) : "";
                 handler.post(() -> {
-                    if (showStats && stats != null && statsBg == bg) stats.setText(line);
+                    if (statsBg != bg) return;
+                    if (showStats && stats != null) stats.setText(line);
+                    if (statsButton != null) showOnStatsButton(sample);
                 });
-                if (statsBg == bg) bg.postDelayed(this, STATS_MS);
+                // The rings follow the CPU every 3 s; the line alone keeps its quieter pace.
+                if (statsBg == bg) bg.postDelayed(this, statsButton != null ? STATS_BUTTON_MS : STATS_MS);
             }
         });
     }
@@ -2088,24 +2097,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         line.append(part);
     }
 
-    private String readStatsLine() {
+    /** One reading: CPU % (-1 when it cannot be read), memory {used, total} in MB (null), storage bytes. */
+    private static final class StatsSample {
+        int cpu;
+        long[] mem;
+        long storageFree, storageTotal;
+    }
+
+    private StatsSample readStatsSample() {
+        StatsSample sample = new StatsSample();
         int cpu = cpuPercent();
         if (cpu < 0) {
             try {
                 Thread.sleep(200);             // second sample, so the first line already has a CPU figure
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                return "";
+                cpu = -1;
             }
-            cpu = cpuPercent();
+            if (cpu < 0) cpu = cpuPercent();
         }
+        sample.cpu = cpu;
+        sample.mem = memUsedOfTotalMb();
+        File data = Environment.getDataDirectory();
+        sample.storageFree = data.getFreeSpace();
+        sample.storageTotal = data.getTotalSpace();
+        return sample;
+    }
+
+    private String statsLine(StatsSample sample) {
+        int cpu = sample.cpu;
         // Android 8 and later hide /proc/stat from apps on many TVs: then the line leaves CPU out rather than
         // showing a dash that never fills in.
         StringBuilder line = new StringBuilder();
         if (cpu >= 0) line.append(getString(R.string.stats_cpu, cpu));
-        long[] mem = memUsedOfTotalMb();
+        long[] mem = sample.mem;
         if (mem != null) appendStat(line, getString(R.string.stats_memory, mem[0], mem[1]));
-        String free = formatGb(getResources(), Environment.getDataDirectory().getFreeSpace());
+        String free = formatGb(getResources(), sample.storageFree);
         if (!free.isEmpty()) appendStat(line, getString(R.string.stats_storage, free));
         return StatsText.forLocale(line.toString(), getResources().getConfiguration().getLocales().get(0));
     }
@@ -2219,6 +2246,41 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    /** stats_button: the rings button, before the top_bar_apps buttons, keyed and scaled like them. */
+    private void addStatsButton() {
+        ViewGroup bar = findViewById(R.id.topButtons);
+        Typeface font = null;
+        try {
+            font = getResources().getFont(R.font.outfit_medium);
+        } catch (Resources.NotFoundException ignored) {
+        }
+        statsButton = new StatsButton(this, font, animations && !reducedMotion);
+        statsButton.setId(View.generateViewId());   // pillKeys finds the bar's ends by id
+        statsButton.setContentDescription(getString(R.string.stats_cpu, 0));
+        ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMarginStart(Math.round(10 * density));
+        View first = topAppButtons.isEmpty() ? btnWifi : topAppButtons.get(0);
+        bar.addView(statsButton, bar.indexOfChild(first), lp);
+        topAppButtons.add(0, statsButton);
+    }
+
+    /** stats_button: the rings and the three lines from one reading; the description reads them all. */
+    private void showOnStatsButton(StatsSample sample) {
+        String cpuLine = sample.cpu >= 0 ? getString(R.string.stats_cpu, sample.cpu) : "";
+        String memLine = sample.mem != null ? getString(R.string.stats_memory, sample.mem[0], sample.mem[1]) : "";
+        String free = formatGb(getResources(), sample.storageFree);
+        String storageLine = free.isEmpty() ? "" : getString(R.string.stats_storage, free);
+        float cpu = sample.cpu >= 0 ? sample.cpu / 100f : -1f;
+        float mem = sample.mem != null && sample.mem[1] > 0 ? (float) sample.mem[0] / sample.mem[1] : -1f;
+        float storage = sample.storageTotal > 0
+                ? 1f - (float) sample.storageFree / sample.storageTotal : -1f;
+        statsButton.setValues(cpu, mem, storage, cpuLine, memLine, storageLine);
+        StringBuilder said = new StringBuilder();
+        for (String part : new String[]{cpuLine, memLine, storageLine}) appendStat(said, part);
+        statsButton.setContentDescription(said);
     }
 
     private static String formatGb(Resources res, long bytes) {
