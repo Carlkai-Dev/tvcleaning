@@ -160,9 +160,10 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             float l = dx + h.card.getLeft();
             float r = dx + h.card.getRight();
             float t = dy + h.card.getTop();
-            // Hasta donde termina el texto del nombre, no la caja completa de la etiqueta.
-            float b = dy + h.name.getTop() + h.name.getTranslationY()
-                    + (h.name.getHeight() + h.name.getLineHeight()) / 2f;
+            // Hasta el borde del círculo; si se ven los nombres, hasta donde termina su texto.
+            float b = h.name.getVisibility() == View.VISIBLE
+                    ? dy + h.name.getTop() + h.name.getTranslationY() + (h.name.getHeight() + h.name.getLineHeight()) / 2f
+                    : dy + h.card.getBottom();
             if (!any) {
                 rect.set(l, t, r, b);
                 any = true;

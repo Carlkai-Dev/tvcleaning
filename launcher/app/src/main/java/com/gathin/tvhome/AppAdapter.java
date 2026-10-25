@@ -143,8 +143,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     static final float DOCK_EXTRA_DP = 6 + 12;
     /** Room kept under the last row rows_below_dock asks for (MainActivity places the dock with the same). */
     static final float BOTTOM_ROOM_DP = 0;   // My System TV: 30 upstream, then 12; the dock sits lower
-    /** Estilo Pixel: el marco del dock sobresale 16dp bajo los nombres, más margen por el overscan de la tele. */
-    static final float PIXEL_BOTTOM_ROOM_DP = 36;
+    /**
+     * Estilo Pixel: el dock va sin nombres, así que bajo el marco ya quedan libres el hueco del nombre (21dp) y el
+     * margen de DockDecoration (12dp); con esto el marco queda a unos 37dp del borde, a salvo del overscan.
+     */
+    static final float PIXEL_BOTTOM_ROOM_DP = 4;
     /** Room kept above the dock for the dock title (48sp hero name plus its 40dp gap) when dock_title is on. */
     static final float TITLE_ROOM_DP = 104;
     /** dock_row false: room above the first row for its zoom and glass (MainActivity places the grid with it). */
@@ -455,7 +458,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.card.setFocusable(true);
         h.name.setText(e.name);
         // The dock has no labels, unless always_show_names asks for them (DockDecoration then makes room in the band).
-        h.name.setVisibility(dockRow && position < dockSize && restNameAlpha == 0f ? View.INVISIBLE : View.VISIBLE);
+        // Estilo Pixel: el dock va sin nombres, solo los círculos (como el dock del teléfono).
+        h.name.setVisibility(dockRow && position < dockSize && (restNameAlpha == 0f || pixelStyle) ? View.INVISIBLE : View.VISIBLE);
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : restNameAlpha);
         h.card.setScaleX(focused && animations ? focusScale() : 1f);
