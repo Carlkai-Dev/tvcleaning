@@ -101,6 +101,13 @@
          type). YaOS: live-tv. Its source player answers live-tv://android.media.tv/passthrough/<input>, while the
          content:// URI goes to its channel player, which resumes the last film it played. Leave empty to omit. -->
     <string name="input_uri_scheme" translatable="false"></string>
+    <!-- An input to switch to the first time Home comes up after the TV is switched on, once per boot like
+         boot_to_live_tv (this wins when both are set): the input's id as the Inputs menu uses it, listed by
+         `tools/tv.py 'dumpsys tv_input'` (Epson HA90: com.droidlogic.tvinput/.services.Hdmi1InputService/HW5).
+         For a set whose own "power on to last source" setting is missing or ignored, or whose Live TV app
+         opens its tuner rather than the port you want. Home after that stays Home. Can also be set with
+         "boot_input" in a theme's config.json. Leave empty to omit. -->
+    <string name="boot_input" translatable="false"></string>
 
     <!-- Whether HomeKeyService and InputKeyService actually request key filtering (config.xml or a theme's
          "key_filter"). Some firmware (TCL Google TV on Android 12) drops key auto-repeat once ANY service
