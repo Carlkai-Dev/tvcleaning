@@ -1,0 +1,29 @@
+# Pillar|Quote. One is shown per day, in order of the calendar. Edit, then rebuild.
+Health|Take care of the body that carries your dreams. The people you love need you strong.
+Health|Sleep, water, movement. Do the basics and let the rest follow.
+Health|Walk today. Even ten minutes counts.
+Health|Eat like you love your future self.
+Health|Rest is part of the work, not the opposite of it.
+Health|A strong body makes a patient mind.
+Health|Energy is the first thing we build together.
+Health|Small habits, kept daily, outlast big plans.
+Mind|Calm is a skill. Practise it before you need it.
+Mind|You are not your worst thought. Breathe and begin again.
+Mind|Be here. The moment you are in is the only one you can use.
+Mind|Attention is the most valuable thing you own. Spend it well.
+Mind|Be kind to your mind, it is doing its best.
+Mind|Quiet the noise. The next step usually becomes clear.
+Mind|Curiosity beats certainty.
+Mind|Decide what matters today, then protect it.
+Growth|One percent better, every day, together.
+Growth|We are becoming, not arriving. Keep going.
+Growth|Do the hard thing first. Future us will say thanks.
+Growth|Consistency turns small people into big stories.
+Growth|Dream big, start small, begin today.
+Growth|Every setback is tuition. Learn the lesson, keep the faith.
+Growth|Build the life we talk about, one day at a time.
+Growth|Show up, even on the slow days.
+Together|A small pack building something big. Keep each other going.
+Together|Home is the people who make you want to be better.
+Together|Love is the team. Growth is the game. Health is the fuel.
+Together|Win the day, then celebrate it together.
