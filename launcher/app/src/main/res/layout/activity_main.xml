@@ -323,6 +323,13 @@
                 android:orientation="horizontal">
 
                 <TextView
+                    android:id="@+id/btnClear"
+                    style="@style/TopButtonIcon"
+                    android:contentDescription="@string/clear_memory"
+                    android:drawableStart="@drawable/ic_broom"
+                    android:nextFocusDown="@+id/grid" />
+
+                <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
                     android:text="@string/inputs"

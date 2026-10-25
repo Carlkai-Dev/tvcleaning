@@ -375,6 +375,13 @@
                     android:text="@string/inputs"
                     android:drawableStart="@drawable/ic_input"
                     android:nextFocusDown="@+id/grid" />
+
+                <TextView
+                    android:id="@+id/btnClear"
+                    style="@style/TopButtonIcon"
+                    android:contentDescription="@string/clear_memory"
+                    android:drawableStart="@drawable/ic_broom"
+                    android:nextFocusDown="@+id/grid" />
             </LinearLayout>
         </RelativeLayout>
 

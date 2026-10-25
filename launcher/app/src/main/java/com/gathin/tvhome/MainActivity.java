@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -52,6 +53,8 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.MetricAffectingSpan;
+import android.text.style.RelativeSizeSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -192,6 +195,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
+    /** Settings device name, shown after the greeting. */
+    private String deviceName = "";
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
     private String vpnApp;
@@ -486,6 +491,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         lunarOffset = Lunar.offsetFor(cfg.lunarUtcOffset, Locale.getDefault());
         if (lunar) lunarDate.setVisibility(View.VISIBLE);
         greetingName = cfg.greetingName;
+        String named = Settings.Global.getString(getContentResolver(), Settings.Global.DEVICE_NAME);
+        deviceName = named == null ? "" : named.trim();
         if (cfg.dateBelowClock) moveDateBelowClock();
         if (shamsi) {
             shamsiDate.setVisibility(View.VISIBLE);
@@ -687,8 +694,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
 
         btnInputs = findViewById(R.id.btnInputs);
+        View btnClear = findViewById(R.id.btnClear);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
+        boolean showClear = getResources().getBoolean(R.bool.clear_memory_button);
+        btnClear.setVisibility(showClear ? View.VISIBLE : View.GONE);
+        if (showClear) btnClear.setOnClickListener(v -> clearMemory());
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnWifi.setOnLongClickListener(v -> {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
@@ -775,13 +786,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
         btnInputs.setOnKeyListener(pillKeys);
+        btnClear.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings));
+            List<View> pills = new ArrayList<>(Arrays.asList(btnClear, btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings));
             pills.addAll(topAppButtons);
             for (View button : pills) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
@@ -2473,15 +2485,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         String festiveGreeting = festive ? festival.greetingText(getResources()) : "";
         if (!festiveGreeting.isEmpty()) {
-            greeting.setText(festiveGreeting);
-            greeting.setTextColor(liftTowardsWhite(festival.accentColor(), 0.25f));
+            showGreeting(festiveGreeting, liftTowardsWhite(festival.accentColor(), 0.25f));
         } else {
-            greeting.setText(greetingName.isEmpty() ? getString(res)
-                    : getString(R.string.greeting_with_name, getString(res), greetingName));
-            greeting.setTextColor(greetingColor);
+            showGreeting(greetingName.isEmpty() ? getString(res)
+                    : getString(R.string.greeting_with_name, getString(res), greetingName), greetingColor);
         }
         if (shamsi) shamsiDate.setText(Shamsi.today(getResources()));
         if (lunar) lunarDate.setText(Lunar.today(getResources(), lunarOffset));
+    }
+
+    private void showGreeting(String text, int color) {
+        greeting.setTextColor(color);
+        if (deviceName.isEmpty()) {
+            greeting.setAllCaps(true);
+            greeting.setText(text);
+            return;
+        }
+        greeting.setAllCaps(false);
+        String head = text.toUpperCase(Locale.getDefault());
+        String full = head + ", " + deviceName;
+        SpannableString span = new SpannableString(full);
+        int from = head.length() + 2;
+        span.setSpan(new RelativeSizeSpan(0.75f), from, full.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        span.setSpan(new TrackingSpan(0.04f), from, full.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        greeting.setText(span);
+    }
+
+    /** Letter spacing for one run of text, so the TV name is not tracked as widely as the greeting. */
+    private static final class TrackingSpan extends MetricAffectingSpan {
+        private final float spacing;
+        TrackingSpan(float spacing) { this.spacing = spacing; }
+        @Override public void updateDrawState(TextPaint paint) { paint.setLetterSpacing(spacing); }
+        @Override public void updateMeasureState(TextPaint paint) { paint.setLetterSpacing(spacing); }
     }
 
     // ---- race-weekend panel (a theme's race_calendar) -----------------------------------------------
@@ -2733,6 +2768,28 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         g += (int) ((255 - g) * amount);
         b += (int) ((255 - b) * amount);
         return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
+    /** Drops background processes of every visible app except this launcher. Foreground apps stay. */
+    private void clearMemory() {
+        ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        ActivityManager.MemoryInfo before = new ActivityManager.MemoryInfo();
+        am.getMemoryInfo(before);
+        String self = getPackageName();
+        new Thread(() -> {
+            for (ApplicationInfo info : getPackageManager().getInstalledApplications(0)) {
+                if (self.equals(info.packageName)) continue;
+                am.killBackgroundProcesses(info.packageName);
+            }
+            ActivityManager.MemoryInfo after = new ActivityManager.MemoryInfo();
+            am.getMemoryInfo(after);
+            long freed = Math.max(0, after.availMem - before.availMem) / (1024 * 1024);
+            runOnUiThread(() -> {
+                if (isDestroyed()) return;
+                Toast.makeText(this, freed > 0 ? getString(R.string.memory_freed, freed)
+                        : getString(R.string.memory_cleared), Toast.LENGTH_SHORT).show();
+            });
+        }).start();
     }
 
     /** The network pill opens the VPN app when one is configured and installed, otherwise Wi-Fi settings. */

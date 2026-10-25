@@ -2,6 +2,9 @@
 <resources>
     <string name="app_name">Home</string>
     <string name="inputs">Inputs</string>
+    <string name="clear_memory">Clear memory</string>
+    <string name="memory_cleared">Memory cleared</string>
+    <string name="memory_freed">Freed %1$d MB</string>
     <string name="wifi">Wi-Fi</string>
     <string name="settings">Settings</string>
     <string name="choose_input">Inputs</string>
