@@ -173,8 +173,12 @@ final class BluetoothInfo {
             finished[0] = true;
             main.removeCallbacks(self[0]);
             if (gatt[0] != null) {
-                gatt[0].disconnect();
-                gatt[0].close();
+                try {
+                    gatt[0].disconnect();
+                    gatt[0].close();
+                } catch (SecurityException ignored) {
+                    // BLUETOOTH_CONNECT was revoked while the read ran; the connection dies with the process.
+                }
             }
             main.post(done);
         };
@@ -183,20 +187,28 @@ final class BluetoothInfo {
         BluetoothGattCallback cb = new BluetoothGattCallback() {
             @Override
             public void onConnectionStateChange(BluetoothGatt g, int status, int newState) {
+                boolean discovering = false;
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    g.discoverServices();
-                } else {
-                    finish.run();
+                    try {
+                        discovering = g.discoverServices();
+                    } catch (SecurityException ignored) {
+                    }
                 }
+                if (!discovering) finish.run();
             }
 
             @Override
             public void onServicesDiscovered(BluetoothGatt g, int status) {
                 BluetoothGattService service = g.getService(BATTERY_SERVICE);
                 BluetoothGattCharacteristic level = service != null ? service.getCharacteristic(BATTERY_LEVEL) : null;
-                if (level == null || !g.readCharacteristic(level)) {
-                    finish.run();
+                boolean reading = false;
+                if (level != null) {
+                    try {
+                        reading = g.readCharacteristic(level);
+                    } catch (SecurityException ignored) {
+                    }
                 }
+                if (!reading) finish.run();
             }
 
             @Override
