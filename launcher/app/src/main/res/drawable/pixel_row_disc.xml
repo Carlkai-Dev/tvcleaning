@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork de Natalia, estilo Pixel: el disco del ícono de una fila, primario con ícono blanco; blanco al enfocarla. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="oval"><solid android:color="#FFFFFFFF" /></shape>
+    </item>
+    <item>
+        <shape android:shape="oval"><solid android:color="#FF00687A" /></shape>
+    </item>
+</selector>

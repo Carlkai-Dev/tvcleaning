@@ -59,6 +59,7 @@ import android.view.View;
 import android.view.SoundEffectConstants;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.WindowManager;
 import android.view.Window;
 import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
@@ -3537,6 +3538,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private PopupWindow glassPopup(View panel, int width) {
+        if (AppAdapter.pixelStyle) {
+            // Estilo Pixel: el menú va en el mismo panel claro y opaco de los ajustes rápidos.
+            panel.setBackgroundResource(R.drawable.qs_panel_pixel);
+            int pad = Math.round(12 * density);
+            panel.setPadding(pad, pad, pad, Math.round(6 * density));   // las filas ya dejan 6dp bajo cada una
+        }
         final PopupWindow popup = new PopupWindow(panel, width, ViewGroup.LayoutParams.WRAP_CONTENT, true);
         popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));   // needed for Back to dismiss
         popup.setOutsideTouchable(true);
@@ -3589,9 +3596,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             popup.dismiss();
             action.run();
         });
-        // My System TV: Control Center capsules, apart from each other, growing a little when focused.
+        pixelRow(row);
+        // My System TV: Control Center capsules, apart from each other, growing a little when focused. Fork de
+        // Natalia: más corto y en una capa propia, así cada cuadro solo mueve la fila ya dibujada.
         row.setOnFocusChangeListener((v, focused) -> v.animate().scaleX(focused ? 1.04f : 1f)
-                .scaleY(focused ? 1.04f : 1f).setDuration(140).start());
+                .scaleY(focused ? 1.04f : 1f).setDuration(100)
+                .setInterpolator(new DecelerateInterpolator(1.5f)).withLayer().start());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 (int) (46 * density));
         lp.bottomMargin = (int) (6 * density);
@@ -3614,8 +3624,26 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** Fork de Natalia, estilo Pixel: una fila de menú con los colores de los ajustes rápidos (item_input.xml). */
+    private void pixelRow(View row) {
+        if (!AppAdapter.pixelStyle) return;
+        row.setBackgroundResource(R.drawable.pixel_row_bg);
+        ImageView icon = row.findViewById(R.id.icon);
+        icon.setBackgroundResource(R.drawable.pixel_row_disc);
+        icon.setImageTintList(getColorStateList(R.color.pixel_row_icon));
+        icon.setElevation(0f);   // plano, como en el Pixel; y sin sombra que recalcular en cada cuadro
+        ((TextView) row.findViewById(R.id.title)).setTextColor(getColorStateList(R.color.pixel_row_title));
+        ((TextView) row.findViewById(R.id.status)).setTextColor(getColorStateList(R.color.pixel_row_status));
+    }
+
     /** While a menu is open the screen darkens towards it, as behind the Control Center. */
     private void dimBehind(PopupWindow popup) {
+        if (AppAdapter.pixelStyle && systemDim(popup)) {
+            popup.setOnDismissListener(() -> {
+                if (openPopup == popup) openPopup = null;
+            });
+            return;
+        }
         View dim = new View(this);
         dim.setBackground(new android.graphics.drawable.GradientDrawable(
                 android.graphics.drawable.GradientDrawable.Orientation.RIGHT_LEFT,
@@ -3630,6 +3658,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (openPopup == popup) openPopup = null;
             dim.animate().alpha(0f).setDuration(200).withEndAction(() -> root.removeView(dim)).start();
         });
+    }
+
+    /**
+     * Fork de Natalia: el sistema atenúa la pantalla detrás del menú, como detrás de los ajustes rápidos, en vez de
+     * una sombra que la app repinta en cada cuadro. false si la ventana del menú no deja (queda la sombra de siempre).
+     */
+    private boolean systemDim(PopupWindow popup) {
+        try {
+            View container = popup.getContentView().getRootView();
+            if (!(container.getLayoutParams() instanceof WindowManager.LayoutParams)) return false;
+            WindowManager.LayoutParams lp = (WindowManager.LayoutParams) container.getLayoutParams();
+            lp.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+            lp.dimAmount = 0.35f;
+            getWindowManager().updateViewLayout(container, lp);
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     // ---- launcher settings and module cards -------------------------------------------------------
@@ -3741,6 +3787,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         row.findViewById(R.id.dot).setVisibility(View.GONE);
         row.findViewById(R.id.status).setVisibility(View.GONE);
         ((TextView) row.findViewById(R.id.title)).setText(title);
+        pixelRow(row);
         row.setOnClickListener(v -> {
             popup.dismiss();
             action.run();
