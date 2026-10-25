@@ -3101,6 +3101,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             dot.setVisibility(View.GONE);
         }
         row.setOnClickListener(v -> {
+            if (action == null) return;
             popup.dismiss();
             action.run();
         });
@@ -3276,6 +3277,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         row.findViewById(R.id.status).setVisibility(View.GONE);
         ((TextView) row.findViewById(R.id.title)).setText(title);
         row.setOnClickListener(v -> {
+            if (action == null) return;
             popup.dismiss();
             action.run();
         });
