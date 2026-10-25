@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.TypedValue;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,7 +13,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 /**
- * Live PiP on a chosen screen corner/edge of whichever TV Cam screen is open.
+ * Live PiP on the chosen screen area of whichever TV Cam screen is open.
+ * Only shown when PiP preference is ON and a camera is connected.
  */
 final class PipOverlay {
     private static View overlay;
@@ -25,7 +25,13 @@ final class PipOverlay {
     private PipOverlay() {}
 
     static void attach(Activity activity) {
-        if (!Prefs.pipOverview(activity)) {
+        if (!Prefs.pipActive(activity)) {
+            detach(activity);
+            return;
+        }
+        // Don't draw in-app PiP on the position picker (dummy already there)
+        // or on Main live view (full preview already fills the screen).
+        if (activity instanceof PipPositionActivity || activity instanceof MainActivity) {
             detach(activity);
             return;
         }
@@ -42,7 +48,7 @@ final class PipOverlay {
 
         int size = Prefs.pipSizePx(activity);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(size, size);
-        applyGravityMargins(activity, lp, Prefs.pipPosition(activity));
+        applyPlacement(activity, lp);
         decor.addView(overlay, lp);
         host = activity;
     }
@@ -51,50 +57,16 @@ final class PipOverlay {
         if (overlay == null || !(overlay.getLayoutParams() instanceof FrameLayout.LayoutParams)) {
             return;
         }
-        int size = Prefs.pipSizePx(activity);
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) overlay.getLayoutParams();
-        lp.width = size;
-        lp.height = size;
-        applyGravityMargins(activity, lp, Prefs.pipPosition(activity));
+        applyPlacement(activity, lp);
         overlay.setLayoutParams(lp);
     }
 
-    private static void applyGravityMargins(Activity activity, FrameLayout.LayoutParams lp,
-                                            int position) {
-        int gravity = Prefs.pipGravity(position);
-        lp.gravity = gravity;
+    private static void applyPlacement(Activity activity, FrameLayout.LayoutParams lp) {
         float density = activity.getResources().getDisplayMetrics().density;
-        int margin = Math.round(24f * density);
-        int bottomExtra = Math.round(72f * density);
-        int left = 0, top = 0, right = 0, bottom = 0;
-        if ((gravity & Gravity.START) == Gravity.START
-                || (gravity & Gravity.LEFT) == Gravity.LEFT) {
-            left = margin;
-        }
-        if ((gravity & Gravity.END) == Gravity.END
-                || (gravity & Gravity.RIGHT) == Gravity.RIGHT) {
-            right = margin;
-        }
-        if ((gravity & Gravity.TOP) == Gravity.TOP) {
-            top = margin;
-        }
-        if ((gravity & Gravity.BOTTOM) == Gravity.BOTTOM) {
-            bottom = margin + bottomExtra;
-        }
-        if ((gravity & Gravity.CENTER_HORIZONTAL) == Gravity.CENTER_HORIZONTAL
-                && gravity != Gravity.CENTER) {
-            left = 0;
-            right = 0;
-        }
-        if ((gravity & Gravity.CENTER_VERTICAL) == Gravity.CENTER_VERTICAL
-                && gravity != Gravity.CENTER) {
-            top = 0;
-            bottom = 0;
-        }
-        if (gravity == Gravity.CENTER) {
-            left = top = right = bottom = 0;
-        }
-        lp.setMargins(left, top, right, bottom);
+        int bottomReserve = Math.round(96f * density);
+        PipLayout.applyFrame(activity, lp, Prefs.pipSizePx(activity),
+                Prefs.pipXPct(activity), Prefs.pipYPct(activity), bottomReserve);
     }
 
     static void detach(Activity activity) {
@@ -112,7 +84,7 @@ final class PipOverlay {
     static void refreshVisibility() {
         Activity a = TvCamApp.get() != null ? TvCamApp.get().currentActivity() : null;
         if (a == null) return;
-        if (Prefs.pipOverview(a)) {
+        if (Prefs.pipActive(a)) {
             attach(a);
         } else {
             detach(a);

@@ -14,9 +14,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.Process;
 import android.provider.Settings;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.TextureView;
 import android.view.View;
@@ -64,8 +62,8 @@ public class FloatingPipService extends Service {
     }
 
     static void start(Context ctx) {
-        if (!Prefs.pipOverview(ctx)) {
-            Log.i(TAG, "start skipped: pip pref off");
+        if (!Prefs.pipActive(ctx)) {
+            Log.i(TAG, "start skipped: pip inactive (pref/camera)");
             return;
         }
         if (!canDrawOverlays(ctx)) {
@@ -82,7 +80,7 @@ public class FloatingPipService extends Service {
     }
 
     static void sync(Context ctx) {
-        if (Prefs.pipOverview(ctx) && canDrawOverlays(ctx)) {
+        if (Prefs.pipActive(ctx) && canDrawOverlays(ctx)) {
             start(ctx);
             boolean inApp = TvCamApp.get() != null && TvCamApp.get().isInApp();
             setVisible(!inApp);
@@ -126,8 +124,9 @@ public class FloatingPipService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startAsForeground();
-        if (!Prefs.pipOverview(this) || !canDrawOverlays(this)) {
-            Log.w(TAG, "self-stop: pip=" + Prefs.pipOverview(this)
+        if (!Prefs.pipActive(this) || !canDrawOverlays(this)) {
+            Log.w(TAG, "self-stop: pipActive=" + Prefs.pipActive(this)
+                    + " pref=" + Prefs.pipOverview(this)
                     + " overlay=" + canDrawOverlays(this));
             removeOverlay();
             stopForeground(true);
@@ -225,14 +224,8 @@ public class FloatingPipService extends Service {
         }
     }
 
-    private int marginPx() {
-        DisplayMetrics dm = getResources().getDisplayMetrics();
-        return Math.round(24f * dm.density);
-    }
-
     private WindowManager.LayoutParams buildLayoutParams() {
         int size = Prefs.pipSizePx(this);
-        int margin = marginPx();
         int type = Build.VERSION.SDK_INT >= 26
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
@@ -248,35 +241,10 @@ public class FloatingPipService extends Service {
             lp.layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
         }
-        int gravity = Prefs.pipGravity(Prefs.pipPosition(this));
-        lp.gravity = gravity;
-        int left = 0, top = 0, right = 0, bottom = 0;
-        if ((gravity & Gravity.START) == Gravity.START || (gravity & Gravity.LEFT) == Gravity.LEFT) {
-            left = margin;
-        }
-        if ((gravity & Gravity.END) == Gravity.END || (gravity & Gravity.RIGHT) == Gravity.RIGHT) {
-            right = margin;
-        }
-        if ((gravity & Gravity.TOP) == Gravity.TOP) {
-            top = margin;
-        }
-        if ((gravity & Gravity.BOTTOM) == Gravity.BOTTOM) {
-            bottom = margin + Math.round(72f * getResources().getDisplayMetrics().density);
-        }
-        if ((gravity & Gravity.START) == Gravity.START || (gravity & Gravity.LEFT) == Gravity.LEFT) {
-            lp.x = left;
-        } else if ((gravity & Gravity.END) == Gravity.END || (gravity & Gravity.RIGHT) == Gravity.RIGHT) {
-            lp.x = right;
-        } else {
-            lp.x = 0;
-        }
-        if ((gravity & Gravity.TOP) == Gravity.TOP) {
-            lp.y = top;
-        } else if ((gravity & Gravity.BOTTOM) == Gravity.BOTTOM) {
-            lp.y = bottom;
-        } else {
-            lp.y = 0;
-        }
+        float density = getResources().getDisplayMetrics().density;
+        int bottomReserve = Math.round(96f * density);
+        PipLayout.applyWindow(this, lp, size,
+                Prefs.pipXPct(this), Prefs.pipYPct(this), bottomReserve);
         return lp;
     }
 

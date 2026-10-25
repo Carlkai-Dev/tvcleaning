@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@color/bg"
+    android:padding="20dp"
+    android:baselineAligned="false">
+
+    <!-- Left: TV screen mock with movable PiP dummy -->
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.35"
+        android:padding="8dp">
+
+        <FrameLayout
+            android:id="@+id/tvScreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:background="@drawable/tv_screen_bg"
+            android:padding="10dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:descendantFocusability="blocksDescendants">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/pip_dummy_hint"
+                android:textColor="@color/text_secondary"
+                android:textSize="16sp"
+                android:gravity="center" />
+
+            <!-- Dummy PiP preview box -->
+            <FrameLayout
+                android:id="@+id/pipDummy"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:background="@drawable/pip_frame"
+                android:padding="3dp"
+                android:elevation="12dp">
+
+                <ImageView
+                    android:id="@+id/pipDummyImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/pip_dummy_preview"
+                    android:contentDescription="@string/pip_live" />
+
+                <TextView
+                    android:id="@+id/pipDummyBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|start"
+                    android:layout_margin="4dp"
+                    android:paddingLeft="5dp"
+                    android:paddingRight="5dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:background="#99000000"
+                    android:text="@string/pip_live"
+                    android:textColor="@color/accent_soft"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+        </FrameLayout>
+    </FrameLayout>
+
+    <!-- Right: controls -->
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/pip_position_title"
+                android:textColor="@color/text_primary"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/pipStatusLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/accent_soft"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/pipCoordLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:fontFamily="monospace" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/pip_move_hint"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/btnMoveLeft"
+                    android:layout_width="64dp"
+                    android:layout_height="52dp"
+                    android:text="◀"
+                    android:textSize="18sp"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/btn_bg"
+                    android:focusable="true" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp">
+
+                    <Button
+                        android:id="@+id/btnMoveUp"
+                        android:layout_width="64dp"
+                        android:layout_height="48dp"
+                        android:text="▲"
+                        android:textColor="@color/text_primary"
+                        android:background="@drawable/btn_bg"
+                        android:focusable="true" />
+
+                    <Button
+                        android:id="@+id/btnMoveDown"
+                        android:layout_width="64dp"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="6dp"
+                        android:text="▼"
+                        android:textColor="@color/text_primary"
+                        android:background="@drawable/btn_bg"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnMoveRight"
+                    android:layout_width="64dp"
+                    android:layout_height="52dp"
+                    android:text="▶"
+                    android:textSize="18sp"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/btn_bg"
+                    android:focusable="true" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:text="@string/settings_pip_position"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <include
+                layout="@layout/pip_position_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/settings_pip_size"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <Spinner
+                android:id="@+id/spinPipSize"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/btn_bg"
+                android:focusable="true"
+                android:spinnerMode="dropdown" />
+
+            <CheckBox
+                android:id="@+id/chkPipOn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="@string/settings_pip"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:focusable="true"
+                android:padding="10dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnCancel"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:text="@string/cancel"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/btn_bg"
+                    android:focusable="true" />
+
+                <Button
+                    android:id="@+id/btnSave"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:text="@string/save_pip"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/btn_bg"
+                    android:focusable="true" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -135,6 +135,14 @@
             android:focusable="true"
             android:padding="12dp" />
 
+        <TextView
+            android:id="@+id/pipCamStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/accent_soft"
+            android:textSize="15sp" />
+
         <CheckBox
             android:id="@+id/chkPip"
             android:layout_width="match_parent"
@@ -152,6 +160,17 @@
             android:layout_height="52dp"
             android:layout_marginTop="8dp"
             android:text="@string/settings_pip_overlay_perm"
+            android:textAllCaps="false"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/btn_bg"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btnPipAdvanced"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="12dp"
+            android:text="@string/btn_pip_advanced"
             android:textAllCaps="false"
             android:textColor="@color/text_primary"
             android:background="@drawable/btn_bg"

@@ -166,12 +166,25 @@
                 android:layout_width="140dp"
                 android:layout_height="56dp"
                 android:layout_marginStart="10dp"
-                android:text="@string/btn_pip"
+                android:text="@string/btn_pip_off"
                 android:textAllCaps="false"
                 android:textColor="@color/text_primary"
                 android:background="@drawable/btn_bg"
                 android:focusable="true"
-                android:nextFocusLeft="@id/btnSettings" />
+                android:nextFocusLeft="@id/btnSettings"
+                android:nextFocusRight="@id/btnPipPos" />
+
+            <Button
+                android:id="@+id/btnPipPos"
+                android:layout_width="150dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="10dp"
+                android:text="@string/btn_pip_pos"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/btn_bg"
+                android:focusable="true"
+                android:nextFocusLeft="@id/btnPip" />
         </LinearLayout>
     </HorizontalScrollView>
 </FrameLayout>

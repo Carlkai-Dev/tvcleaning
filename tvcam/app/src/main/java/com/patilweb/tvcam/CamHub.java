@@ -89,11 +89,12 @@ final class CamHub implements CameraEngine.Listener {
             return;
         }
         backgroundArmed = true;
-        Log.i(TAG, "onAppBackgrounded pip=" + Prefs.pipOverview(app)
+        Log.i(TAG, "onAppBackgrounded pipActive=" + Prefs.pipActive(app)
+                + " pref=" + Prefs.pipOverview(app)
                 + " overlay=" + FloatingPipService.canDrawOverlays(app));
         PipOverlay.detach(null);
 
-        if (Prefs.pipOverview(app) && FloatingPipService.canDrawOverlays(app)) {
+        if (Prefs.pipActive(app) && FloatingPipService.canDrawOverlays(app)) {
             cancelSegmentRotator();
             if (engine.hasActiveClip()) {
                 engine.stopRecordingSync();
@@ -199,7 +200,7 @@ final class CamHub implements CameraEngine.Listener {
                 color = app.getColor(R.color.accent);
             }
 
-            if (Prefs.pipOverview(app) && !usingFloating) {
+            if (Prefs.pipActive(app) && !usingFloating) {
                 PipOverlay.showFrame(frame);
                 PipOverlay.setBadge(badge, color);
             }
@@ -254,10 +255,28 @@ final class CamHub implements CameraEngine.Listener {
     }
 
     void maybeStartService() {
-        if (Prefs.loopArmed(app) || Prefs.motionArmed(app) || Prefs.pipOverview(app)) {
+        if (Prefs.loopArmed(app) || Prefs.motionArmed(app) || Prefs.pipActive(app)) {
             Intent i = new Intent(app, CctvService.class);
             ContextCompat.startForegroundService(app, i);
         }
+    }
+
+    /** Camera plugged/unplugged — turn floating PiP on or off to match. */
+    void onCameraAvailabilityChanged(boolean connected) {
+        Log.i(TAG, "camera availability connected=" + connected);
+        ui.post(() -> {
+            PipOverlay.refreshVisibility();
+            FloatingPipService.sync(app);
+            if (!connected) {
+                // Keep pref as-is; just stop overlay. Re-open when cam returns if pref ON.
+                if (usingFloating) {
+                    usingFloating = false;
+                }
+            } else if (Prefs.pipOverview(app) && !TvCamApp.get().isResumed()) {
+                FloatingPipService.sync(app);
+            }
+            maybeStartService();
+        });
     }
 
     void resetMotionToast() {

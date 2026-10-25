@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.patilweb.tvcam"
-    android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionCode="2"
+    android:versionName="1.1-pip" >
 
     <uses-sdk
         android:minSdkVersion="26"
@@ -97,6 +97,11 @@
             android:screenOrientation="landscape" />
         <activity
             android:name="com.patilweb.tvcam.SettingsActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name="com.patilweb.tvcam.PipPositionActivity"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
             android:exported="false"
             android:screenOrientation="landscape" />
 

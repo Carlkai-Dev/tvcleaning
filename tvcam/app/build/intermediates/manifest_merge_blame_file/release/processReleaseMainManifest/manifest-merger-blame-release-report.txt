@@ -1,8 +1,8 @@
 1<?xml version="1.0" encoding="utf-8"?>
 2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 3    package="com.patilweb.tvcam"
-4    android:versionCode="1"
-5    android:versionName="1.0" >
+4    android:versionCode="2"
+5    android:versionName="1.1-pip" >
 6
 7    <uses-sdk
 8        android:minSdkVersion="26"
@@ -96,7 +96,7 @@
 51-->[androidx.core:core:1.13.1] C:\Users\amolp\.gradle\caches\8.9\transforms\1c3eba2ff83689054fd06d61b1cd9f78\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
 52
 53    <application
-53-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:26:5-92:19
+53-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:26:5-98:19
 54        android:name="com.patilweb.tvcam.TvCamApp"
 54-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:27:9-33
 55        android:allowBackup="false"
@@ -190,93 +190,103 @@
 100-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:71:13-37
 101            android:screenOrientation="landscape" />
 101-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:72:13-50
-102
-103        <service
-103-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:74:9-77:65
-104            android:name="com.patilweb.tvcam.CctvService"
-104-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:75:13-40
+102        <activity
+102-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:74:9-78:93
+103            android:name="com.patilweb.tvcam.PipPositionActivity"
+103-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:75:13-48
+104            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode"
+104-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:78:13-90
 105            android:exported="false"
 105-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:76:13-37
-106            android:foregroundServiceType="camera|microphone" />
-106-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:77:13-62
-107        <service
-107-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:79:9-82:54
-108            android:name="com.patilweb.tvcam.FloatingPipService"
-108-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:80:13-47
-109            android:exported="false"
-109-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:81:13-37
-110            android:foregroundServiceType="camera" />
-110-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:82:13-51
-111
-112        <receiver
-112-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:84:9-91:20
-113            android:name="com.patilweb.tvcam.BootReceiver"
-113-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:85:13-41
-114            android:enabled="true"
-114-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:87:13-35
-115            android:exported="true" >
-115-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:86:13-36
-116            <intent-filter>
-116-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:88:13-90:29
-117                <action android:name="android.intent.action.BOOT_COMPLETED" />
-117-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:89:17-79
-117-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:89:25-76
-118            </intent-filter>
-119        </receiver>
-120
-121        <provider
-121-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:24:9-32:20
-122            android:name="androidx.startup.InitializationProvider"
-122-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:25:13-67
-123            android:authorities="com.patilweb.tvcam.androidx-startup"
-123-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:26:13-68
-124            android:exported="false" >
-124-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:27:13-37
-125            <meta-data
-125-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
-126                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-126-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
-127                android:value="androidx.startup" />
-127-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
-128        </provider>
-129
-130        <receiver
-130-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
-131            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-131-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
-132            android:directBootAware="false"
-132-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
-133            android:enabled="true"
-133-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
-134            android:exported="true"
-134-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
-135            android:permission="android.permission.DUMP" >
-135-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
-136            <intent-filter>
-136-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
-137                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-137-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
-137-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
-138            </intent-filter>
-139            <intent-filter>
-139-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
-140                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-140-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
-140-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
-141            </intent-filter>
-142            <intent-filter>
-142-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
-143                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-143-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
-143-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
-144            </intent-filter>
-145            <intent-filter>
-145-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
-146                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-146-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
-146-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
-147            </intent-filter>
-148        </receiver>
-149    </application>
-150
-151</manifest>
+106            android:screenOrientation="landscape" />
+106-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:77:13-50
+107
+108        <service
+108-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:80:9-83:65
+109            android:name="com.patilweb.tvcam.CctvService"
+109-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:81:13-40
+110            android:exported="false"
+110-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:82:13-37
+111            android:foregroundServiceType="camera|microphone" />
+111-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:83:13-62
+112        <service
+112-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:85:9-88:54
+113            android:name="com.patilweb.tvcam.FloatingPipService"
+113-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:86:13-47
+114            android:exported="false"
+114-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:87:13-37
+115            android:foregroundServiceType="camera" />
+115-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:88:13-51
+116
+117        <receiver
+117-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:90:9-97:20
+118            android:name="com.patilweb.tvcam.BootReceiver"
+118-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:91:13-41
+119            android:enabled="true"
+119-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:93:13-35
+120            android:exported="true" >
+120-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:92:13-36
+121            <intent-filter>
+121-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:94:13-96:29
+122                <action android:name="android.intent.action.BOOT_COMPLETED" />
+122-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:95:17-79
+122-->C:\Users\amolp\Downloads\cleanyourtv\tvcam\app\src\main\AndroidManifest.xml:95:25-76
+123            </intent-filter>
+124        </receiver>
+125
+126        <provider
+126-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:24:9-32:20
+127            android:name="androidx.startup.InitializationProvider"
+127-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:25:13-67
+128            android:authorities="com.patilweb.tvcam.androidx-startup"
+128-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:26:13-68
+129            android:exported="false" >
+129-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:27:13-37
+130            <meta-data
+130-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+131                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+131-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+132                android:value="androidx.startup" />
+132-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+133        </provider>
+134
+135        <receiver
+135-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+136            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+136-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+137            android:directBootAware="false"
+137-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+138            android:enabled="true"
+138-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+139            android:exported="true"
+139-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+140            android:permission="android.permission.DUMP" >
+140-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+141            <intent-filter>
+141-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+142                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+142-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+142-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+143            </intent-filter>
+144            <intent-filter>
+144-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+145                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+145-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+145-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+146            </intent-filter>
+147            <intent-filter>
+147-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+148                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+148-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+148-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+149            </intent-filter>
+150            <intent-filter>
+150-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+151                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+151-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+151-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\amolp\.gradle\caches\8.9\transforms\5a04c3be00eea761e8b77c6a699b7ea4\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+152            </intent-filter>
+153        </receiver>
+154    </application>
+155
+156</manifest>

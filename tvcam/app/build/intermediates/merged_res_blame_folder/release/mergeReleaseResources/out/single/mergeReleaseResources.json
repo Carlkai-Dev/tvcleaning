@@ -1,9 +1,5 @@
 [
     {
-        "merged": "com.patilweb.tvcam.app-release-10:/layout_pip_overlay.xml.flat",
-        "source": "com.patilweb.tvcam.app-main-11:/layout/pip_overlay.xml"
-    },
-    {
         "merged": "com.patilweb.tvcam.app-release-10:/layout_activity_settings.xml.flat",
         "source": "com.patilweb.tvcam.app-main-11:/layout/activity_settings.xml"
     },
@@ -24,12 +20,12 @@
         "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\activity_player.xml"
     },
     {
-        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_btn_bg.xml.flat",
-        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\btn_bg.xml"
-    },
-    {
         "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable-hdpi_ic_launcher.png.flat",
         "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable-hdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_btn_bg.xml.flat",
+        "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\btn_bg.xml"
     },
     {
         "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_item_clip.xml.flat",
@@ -42,6 +38,10 @@
     {
         "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_pip_overlay.xml.flat",
         "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\pip_overlay.xml"
+    },
+    {
+        "merged": "com.patilweb.tvcam.app-release-10:/layout_activity_pip_position.xml.flat",
+        "source": "com.patilweb.tvcam.app-main-11:/layout/activity_pip_position.xml"
     },
     {
         "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_pip_frame.xml.flat",
@@ -60,8 +60,20 @@
         "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\layout\\activity_settings.xml"
     },
     {
+        "merged": "com.patilweb.tvcam.app-release-10:/layout_activity_main.xml.flat",
+        "source": "com.patilweb.tvcam.app-main-11:/layout/activity_main.xml"
+    },
+    {
         "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\drawable_banner.png.flat",
         "source": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-main-11:\\drawable\\banner.png"
+    },
+    {
+        "merged": "com.patilweb.tvcam.app-release-10:/drawable_tv_screen_bg.xml.flat",
+        "source": "com.patilweb.tvcam.app-main-11:/drawable/tv_screen_bg.xml"
+    },
+    {
+        "merged": "com.patilweb.tvcam.app-release-10:/drawable_pip_dummy_preview.xml.flat",
+        "source": "com.patilweb.tvcam.app-main-11:/drawable/pip_dummy_preview.xml"
     },
     {
         "merged": "C:\\Users\\amolp\\.gradle\\daemon\\8.9\\com.patilweb.tvcam.app-release-10:\\layout_pip_position_grid.xml.flat",

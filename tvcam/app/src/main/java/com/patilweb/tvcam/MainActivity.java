@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
-public class MainActivity extends Activity implements CameraEngine.Listener {
+public class MainActivity extends Activity implements CameraEngine.Listener, CameraMonitor.Listener {
     private static final int REQ_PERMS = 42;
 
     private TextureView preview;
@@ -39,6 +39,7 @@ public class MainActivity extends Activity implements CameraEngine.Listener {
     private Button btnLoop;
     private Button btnMotion;
     private Button btnPip;
+    private Button btnPipPos;
 
     private CameraEngine engine;
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -63,6 +64,7 @@ public class MainActivity extends Activity implements CameraEngine.Listener {
         btnLoop = findViewById(R.id.btnLoop);
         btnMotion = findViewById(R.id.btnMotion);
         btnPip = findViewById(R.id.btnPip);
+        btnPipPos = findViewById(R.id.btnPipPos);
         Button btnSnap = findViewById(R.id.btnSnap);
         Button btnGallery = findViewById(R.id.btnGallery);
         Button btnSettings = findViewById(R.id.btnSettings);
@@ -79,6 +81,14 @@ public class MainActivity extends Activity implements CameraEngine.Listener {
         btnLoop.setOnClickListener(v -> toggleLoop());
         btnMotion.setOnClickListener(v -> toggleMotion());
         btnPip.setOnClickListener(v -> togglePip());
+        btnPip.setOnLongClickListener(v -> {
+            startActivity(new Intent(this, PipPositionActivity.class));
+            return true;
+        });
+        if (btnPipPos != null) {
+            btnPipPos.setOnClickListener(v ->
+                    startActivity(new Intent(this, PipPositionActivity.class)));
+        }
         btnSnap.setOnClickListener(v -> engine.takeSnapshot());
         btnGallery.setOnClickListener(v ->
                 startActivity(new Intent(this, GalleryActivity.class)));
@@ -232,6 +242,16 @@ public class MainActivity extends Activity implements CameraEngine.Listener {
     }
 
     private void togglePip() {
+        boolean cam = CameraMonitor.get() != null && CameraMonitor.get().isConnected();
+        if (!cam) {
+            Prefs.setPipOverview(this, false);
+            PipOverlay.refreshVisibility();
+            FloatingPipService.sync(this);
+            refreshToggleButtons();
+            toast(getString(R.string.pip_needs_camera));
+            showMessage(getString(R.string.camera_missing));
+            return;
+        }
         boolean on = !Prefs.pipOverview(this);
         Prefs.setPipOverview(this, on);
         PipOverlay.refreshVisibility();
@@ -242,7 +262,8 @@ public class MainActivity extends Activity implements CameraEngine.Listener {
         FloatingPipService.sync(this);
         CamHub.get().maybeStartService();
         refreshToggleButtons();
-        toast(on ? "PiP ON · works over other apps too" : "PiP OFF");
+        toast(on ? getString(R.string.pip_state_on) + " · over other apps too"
+                : getString(R.string.pip_state_off));
     }
 
     private void startClock() {
@@ -269,7 +290,17 @@ public class MainActivity extends Activity implements CameraEngine.Listener {
         btnRecord.setSelected(rec);
         btnLoop.setSelected(Prefs.loopArmed(this));
         btnMotion.setSelected(Prefs.motionArmed(this));
-        btnPip.setSelected(Prefs.pipOverview(this));
+        boolean cam = CameraMonitor.get() != null && CameraMonitor.get().isConnected();
+        boolean pipOn = Prefs.pipActive(this);
+        btnPip.setEnabled(cam);
+        btnPip.setSelected(pipOn);
+        btnPip.setText(pipOn ? R.string.btn_pip_on : R.string.btn_pip_off);
+        if (btnPipPos != null) {
+            btnPipPos.setEnabled(true);
+        }
+        if (!cam) {
+            cameraLabel.setText(R.string.cam_disconnected);
+        }
         updateStatusUi();
     }
 
@@ -309,18 +340,39 @@ public class MainActivity extends Activity implements CameraEngine.Listener {
     @Override
     protected void onResume() {
         super.onResume();
+        if (CameraMonitor.get() != null) {
+            CameraMonitor.get().addListener(this);
+            CameraMonitor.get().refresh();
+        }
         CamHub.get().setUiListener(this);
         CamHub.get().setPreview(preview);
         PipOverlay.refreshVisibility();
+        FloatingPipService.sync(this);
         refreshToggleButtons();
         if (surfaceReady) tryOpenCamera();
     }
 
     @Override
     protected void onPause() {
-        // Stay live in-app: Gallery / Settings keep camera + bottom-right PiP.
+        if (CameraMonitor.get() != null) {
+            CameraMonitor.get().removeListener(this);
+        }
+        // Stay live in-app: Gallery / Settings keep camera + PiP overlay.
         // Full release only when leaving the app (handled by CamHub.onAppBackgrounded).
         super.onPause();
+    }
+
+    @Override
+    public void onCameraAvailabilityChanged(boolean connected) {
+        refreshToggleButtons();
+        PipOverlay.refreshVisibility();
+        FloatingPipService.sync(this);
+        if (connected) {
+            hideMessage();
+            if (surfaceReady) tryOpenCamera();
+        } else {
+            showMessage(getString(R.string.camera_missing));
+        }
     }
 
     @Override

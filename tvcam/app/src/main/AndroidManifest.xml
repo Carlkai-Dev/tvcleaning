@@ -71,6 +71,12 @@
             android:exported="false"
             android:screenOrientation="landscape" />
 
+        <activity
+            android:name=".PipPositionActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden|uiMode" />
+
         <service
             android:name=".CctvService"
             android:exported="false"

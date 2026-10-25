@@ -23,7 +23,10 @@ public class TvCamApp extends Application {
     public void onCreate() {
         super.onCreate();
         instance = this;
+        CameraMonitor.init(this);
         CamHub.init(this);
+        CameraMonitor.get().addListener(connected ->
+                CamHub.get().onCameraAvailabilityChanged(connected));
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
@@ -45,7 +48,7 @@ public class TvCamApp extends Application {
                 PipOverlay.attach(activity);
                 CamHub.get().onAppResumed();
                 // Keep service warm; hide overlay while inside TV Cam.
-                if (Prefs.pipOverview(TvCamApp.this) && FloatingPipService.canDrawOverlays(TvCamApp.this)) {
+                if (Prefs.pipActive(TvCamApp.this) && FloatingPipService.canDrawOverlays(TvCamApp.this)) {
                     FloatingPipService.start(TvCamApp.this);
                     FloatingPipService.setVisible(false);
                 }

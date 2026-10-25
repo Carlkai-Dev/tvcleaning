@@ -134,12 +134,41 @@ final class Prefs {
     }
 
     static void setPipPosition(Context ctx, int position) {
-        get(ctx).edit().putInt("pip_pos", Math.max(0, Math.min(8, position))).apply();
+        int p = Math.max(0, Math.min(8, position));
+        float[] pct = PipLayout.pctForGrid(p);
+        get(ctx).edit()
+                .putInt("pip_pos", p)
+                .putFloat("pip_x_pct", pct[0])
+                .putFloat("pip_y_pct", pct[1])
+                .apply();
     }
 
     static int pipGravity(int position) {
         int i = Math.max(0, Math.min(8, position));
         return PIP_GRAVITIES[i];
+    }
+
+    /** Free placement: 0..100% of usable screen from top-left. */
+    static float pipXPct(Context ctx) {
+        if (!get(ctx).contains("pip_x_pct")) {
+            return PipLayout.pctForGrid(pipPosition(ctx))[0];
+        }
+        return PipLayout.clamp(get(ctx).getFloat("pip_x_pct", 100f));
+    }
+
+    static float pipYPct(Context ctx) {
+        if (!get(ctx).contains("pip_y_pct")) {
+            return PipLayout.pctForGrid(pipPosition(ctx))[1];
+        }
+        return PipLayout.clamp(get(ctx).getFloat("pip_y_pct", 100f));
+    }
+
+    static void setPipXPct(Context ctx, float pct) {
+        get(ctx).edit().putFloat("pip_x_pct", PipLayout.clamp(pct)).apply();
+    }
+
+    static void setPipYPct(Context ctx, float pct) {
+        get(ctx).edit().putFloat("pip_y_pct", PipLayout.clamp(pct)).apply();
     }
 
     /** Index into PIP_SIZE_DP. Default Medium (200). */
@@ -161,5 +190,15 @@ final class Prefs {
     static int pipSizePx(Context ctx) {
         float density = ctx.getResources().getDisplayMetrics().density;
         return Math.max(80, Math.round(pipSizeDp(ctx) * density));
+    }
+
+    /**
+     * Effective PiP: user toggle ON and USB camera currently connected.
+     * If camera is unplugged, PiP stays off even when the preference is ON.
+     */
+    static boolean pipActive(Context ctx) {
+        boolean want = pipOverview(ctx);
+        boolean cam = CameraMonitor.get() != null && CameraMonitor.get().isConnected();
+        return want && cam;
     }
 }

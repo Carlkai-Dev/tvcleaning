@@ -2,6 +2,7 @@ package com.patilweb.tvcam;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,11 +19,13 @@ import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 
-public class SettingsActivity extends Activity {
+public class SettingsActivity extends Activity implements CameraMonitor.Listener {
     private static final int REQ_STORAGE = 71;
 
     private ArrayList<ClipStore.Location> locations;
     private TextView storagePathLabel;
+    private TextView pipCamStatus;
+    private CheckBox chkPip;
     private Spinner spinStorage;
 
     @Override
@@ -37,9 +40,11 @@ public class SettingsActivity extends Activity {
         Spinner spinMotion = findViewById(R.id.spinMotion);
         CheckBox chkAudio = findViewById(R.id.chkAudio);
         CheckBox chkOverlay = findViewById(R.id.chkOverlay);
-        CheckBox chkPip = findViewById(R.id.chkPip);
+        chkPip = findViewById(R.id.chkPip);
+        pipCamStatus = findViewById(R.id.pipCamStatus);
         CheckBox chkBoot = findViewById(R.id.chkBoot);
         Button back = findViewById(R.id.btnBack);
+        Button btnPipAdvanced = findViewById(R.id.btnPipAdvanced);
 
         bindStorageSpinner();
 
@@ -92,6 +97,14 @@ public class SettingsActivity extends Activity {
         chkAudio.setOnCheckedChangeListener((b, on) -> Prefs.setRecordAudio(this, on));
         chkOverlay.setOnCheckedChangeListener((b, on) -> Prefs.setTimestampOverlay(this, on));
         chkPip.setOnCheckedChangeListener((b, on) -> {
+            boolean cam = CameraMonitor.get() != null && CameraMonitor.get().isConnected();
+            if (on && !cam) {
+                chkPip.setChecked(false);
+                Prefs.setPipOverview(this, false);
+                Toast.makeText(this, R.string.pip_needs_camera, Toast.LENGTH_LONG).show();
+                refreshPipStatus();
+                return;
+            }
             Prefs.setPipOverview(this, on);
             PipOverlay.refreshVisibility();
             if (on && !OverlayPermission.isGranted(this)) {
@@ -100,14 +113,18 @@ public class SettingsActivity extends Activity {
             }
             FloatingPipService.sync(this);
             CamHub.get().maybeStartService();
+            refreshPipStatus();
         });
         btnOverlayPerm.setOnClickListener(v -> OverlayPermission.openSettings(this));
+        btnPipAdvanced.setOnClickListener(v ->
+                startActivity(new Intent(this, PipPositionActivity.class)));
         chkBoot.setOnCheckedChangeListener((b, on) -> Prefs.setStartOnBoot(this, on));
         back.setOnClickListener(v -> finish());
         back.requestFocus();
+        refreshPipStatus();
 
         // Auto-jump if PiP is already on but overlay was never allowed.
-        if (Prefs.pipOverview(this) && !OverlayPermission.isGranted(this)) {
+        if (Prefs.pipActive(this) && !OverlayPermission.isGranted(this)) {
             OverlayPermission.openSettings(this);
         }
     }
@@ -115,7 +132,52 @@ public class SettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (CameraMonitor.get() != null) {
+            CameraMonitor.get().addListener(this);
+            CameraMonitor.get().refresh();
+        }
         refreshOverlayButton(findViewById(R.id.btnOverlayPerm));
+        refreshPipStatus();
+        // Re-sync label after returning from advanced picker.
+        TextView pipPosLabel = findViewById(R.id.pipPosLabel);
+        if (pipPosLabel != null) {
+            int cur = Prefs.pipPosition(this);
+            pipPosLabel.setText(Prefs.PIP_POSITION_LABELS[cur]
+                    + String.format(" · %.0f%% , %.0f%%",
+                    Prefs.pipXPct(this), Prefs.pipYPct(this)));
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        if (CameraMonitor.get() != null) {
+            CameraMonitor.get().removeListener(this);
+        }
+        super.onPause();
+    }
+
+    @Override
+    public void onCameraAvailabilityChanged(boolean connected) {
+        refreshPipStatus();
+        PipOverlay.refreshVisibility();
+        FloatingPipService.sync(this);
+    }
+
+    private void refreshPipStatus() {
+        if (pipCamStatus == null || chkPip == null) return;
+        boolean cam = CameraMonitor.get() != null && CameraMonitor.get().isConnected();
+        boolean want = Prefs.pipOverview(this);
+        boolean active = Prefs.pipActive(this);
+        chkPip.setEnabled(cam);
+        if (!cam && want) {
+            // Keep preference, but UI shows PiP cannot run without camera.
+        }
+        String camTxt = cam ? getString(R.string.cam_connected) : getString(R.string.cam_disconnected);
+        String pipTxt = active
+                ? getString(R.string.pip_state_on)
+                : (want ? getString(R.string.pip_state_off_no_cam) : getString(R.string.pip_state_off));
+        pipCamStatus.setText(camTxt + "  ·  " + pipTxt);
+        pipCamStatus.setTextColor(getColor(active ? R.color.accent_soft : R.color.text_secondary));
     }
 
     private void refreshOverlayButton(Button btn) {
