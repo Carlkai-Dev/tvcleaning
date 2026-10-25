@@ -72,17 +72,11 @@ public final class QuickSettingsActivity extends Activity {
         density = getResources().getDisplayMetrics().density;
         View scrim = findViewById(R.id.scrim);
         scrim.setOnClickListener(v -> finish());
-        // After the Apple TV app's sidebar: the screen darkens towards the panel while it unfolds.
-        // Only over the right 60% of the screen: the gradient is clear beyond it, and the panel's window paid a
-        // full-screen fill for it on every frame.
-        View dim = new View(this);
-        dim.setBackground(new GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT,
-                new int[]{0x8C000000, 0x33000000, 0x00000000}));
-        dim.setAlpha(0f);
-        ((FrameLayout) scrim).addView(dim, 0, new FrameLayout.LayoutParams(
-                Math.round(getResources().getDisplayMetrics().widthPixels * 0.6f), ViewGroup.LayoutParams.MATCH_PARENT,
-                Gravity.END));
-        dim.animate().alpha(1f).setDuration(280).start();
+        // Fork de Natalia (estilo Pixel): el sistema atenúa la pantalla detrás del panel, como la cortina del Pixel.
+        // La sombra en degradado era una vista del 60% de la pantalla que la app repintaba en cada cuadro de cada
+        // movimiento del foco; el atenuado del sistema lo compone la tele sin que la app lo dibuje.
+        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        getWindow().setDimAmount(0.35f);
         panel = findViewById(R.id.panel);
         panel.setOnClickListener(v -> { });   // a click on the panel itself does not close it
         showGrid("wifi");
@@ -92,6 +86,7 @@ public final class QuickSettingsActivity extends Activity {
 
     private void showGrid(String focus) {
         picking = false;
+        MainActivity.panelVideo(false);   // el fondo se queda quieto detrás de la cuadrícula
         panel.removeAllViews();
         items.clear();
 
@@ -229,8 +224,7 @@ public final class QuickSettingsActivity extends Activity {
         circle.setClickable(true);
         circle.setContentDescription(title);
         circle.setOnClickListener(c -> open(target));
-        circle.setOnFocusChangeListener((c, f) -> c.animate().scaleX(f ? 1.06f : 1f).scaleY(f ? 1.06f : 1f)
-                .setDuration(140).start());
+        circle.setOnFocusChangeListener((c, f) -> focusZoom(c, f ? 1.06f : 1f));
         circle.setId(View.generateViewId());
         items.put(id, circle);
         FrameLayout.LayoutParams clp = new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER_HORIZONTAL | Gravity.TOP);
@@ -252,10 +246,20 @@ public final class QuickSettingsActivity extends Activity {
         v.setFocusable(true);
         v.setClickable(true);
         v.setId(View.generateViewId());
-        v.setOnFocusChangeListener((c, f) -> c.animate().scaleX(f ? 1.04f : 1f).scaleY(f ? 1.04f : 1f)
-                .setDuration(140).start());
+        v.setOnFocusChangeListener((c, f) -> focusZoom(c, f ? 1.04f : 1f));
         items.put(id, v);
         return v;
+    }
+
+    private final DecelerateInterpolator focusEase = new DecelerateInterpolator(1.5f);
+
+    /**
+     * Fork de Natalia: el zoom del foco, más corto y arrancando rápido, en una capa propia (withLayer) para que cada
+     * cuadro solo mueva el módulo ya dibujado en vez de volver a pintarlo con su texto e ícono.
+     */
+    private void focusZoom(View v, float scale) {
+        v.animate().cancel();
+        v.animate().scaleX(scale).scaleY(scale).setDuration(100).setInterpolator(focusEase).withLayer().start();
     }
 
     private void place(View v, int col, int row, int cols, int rows) {
@@ -362,6 +366,7 @@ public final class QuickSettingsActivity extends Activity {
     /** Fondo: the backgrounds this TV has, two across, each with its still; the chosen one carries a check. */
     private void showPicker() {
         picking = true;
+        MainActivity.panelVideo(true);   // eligiendo fondo sí se ve correr el video detrás
         panel.removeAllViews();
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -475,7 +480,7 @@ public final class QuickSettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        MainActivity.panelOver();
+        MainActivity.panelVideo(picking);
     }
 
     /** Anything else taking the screen (Home, an app, a screensaver) closes the panel. */
