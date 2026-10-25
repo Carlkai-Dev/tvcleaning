@@ -1129,7 +1129,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         // An app or the screensaver is opening: the video stops at once, not a second later when Home stops. The
-        // Control Center over Home plays it again only in its background picker (panelVideo).
+        // Control Center over Home plays it again (panelVideo).
         background.video.setAway(true);
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
@@ -2694,10 +2694,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** The Home on screen, for the Control Center to start and stop its video. */
     private static java.lang.ref.WeakReference<MainActivity> live = new java.lang.ref.WeakReference<>(null);
 
-    /**
-     * The Control Center is over Home. Fork de Natalia: the video holds still behind the grid (the panel moves
-     * more smoothly without the video's frames under it) and plays while the background picker is up.
-     */
+    /** The Control Center is over Home: the video plays on behind it (true), or holds still (false). */
     static void panelVideo(boolean play) {
         MainActivity home = live.get();
         if (home != null && home.background != null && !home.isFinishing()) home.background.video.setAway(!play);

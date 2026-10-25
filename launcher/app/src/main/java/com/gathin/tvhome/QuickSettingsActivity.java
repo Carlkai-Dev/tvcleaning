@@ -86,7 +86,6 @@ public final class QuickSettingsActivity extends Activity {
 
     private void showGrid(String focus) {
         picking = false;
-        MainActivity.panelVideo(false);   // el fondo se queda quieto detrás de la cuadrícula
         panel.removeAllViews();
         items.clear();
 
@@ -368,7 +367,6 @@ public final class QuickSettingsActivity extends Activity {
     /** Fondo: the backgrounds this TV has, two across, each with its still; the chosen one carries a check. */
     private void showPicker() {
         picking = true;
-        MainActivity.panelVideo(true);   // eligiendo fondo sí se ve correr el video detrás
         panel.removeAllViews();
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -482,7 +480,7 @@ public final class QuickSettingsActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        MainActivity.panelVideo(picking);
+        MainActivity.panelVideo(true);   // el video sigue corriendo detrás del panel
     }
 
     /** Anything else taking the screen (Home, an app, a screensaver) closes the panel. */
