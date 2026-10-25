@@ -3599,7 +3599,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         pixelRow(row);
         // My System TV: Control Center capsules, apart from each other, growing a little when focused. Fork de
         // Natalia: más corto y en una capa propia, así cada cuadro solo mueve la fila ya dibujada.
-        row.setOnFocusChangeListener((v, focused) -> v.animate().scaleX(focused ? 1.04f : 1f)
+        // Estilo Pixel: sin zoom, la fila enfocada solo cambia de color al instante.
+        if (!AppAdapter.pixelStyle) row.setOnFocusChangeListener((v, focused) -> v.animate().scaleX(focused ? 1.04f : 1f)
                 .scaleY(focused ? 1.04f : 1f).setDuration(100)
                 .setInterpolator(new DecelerateInterpolator(1.5f)).withLayer().start());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -3614,7 +3615,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         DecelerateInterpolator ease = new DecelerateInterpolator(2f);
         for (int i = 0; i < rows.getChildCount(); i++) {
             View v = rows.getChildAt(i);
-            float end = v.isFocused() ? 1.04f : 1f;
+            float end = v.isFocused() && !AppAdapter.pixelStyle ? 1.04f : 1f;
             v.setAlpha(0f);
             v.setTranslationY(-18 * density);
             v.setScaleX(0.92f);

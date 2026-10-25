@@ -153,7 +153,7 @@ public final class QuickSettingsActivity extends Activity {
             v.setTranslationY(-18 * density);
             v.setScaleX(0.92f);
             v.setScaleY(0.92f);
-            float end = v.isFocused() ? 1.04f : 1f;   // the focused module ends at its focus zoom
+            float end = v.isFocused() && !AppAdapter.pixelStyle ? 1.04f : 1f;   // the focused module ends at its focus zoom
             // withLayer: each module is drawn once into a layer and only that moves and fades; without it every
             // frame redrew every fading module through an offscreen buffer (about 28 ms of GPU a frame on this TV).
             v.animate().alpha(1f).translationY(0f).scaleX(end).scaleY(end).setStartDelay(i * 28L).setDuration(340)
@@ -258,6 +258,8 @@ public final class QuickSettingsActivity extends Activity {
      * cuadro solo mueva el módulo ya dibujado en vez de volver a pintarlo con su texto e ícono.
      */
     private void focusZoom(View v, float scale) {
+        // Estilo Pixel: sin zoom; el módulo enfocado solo cambia de color, al instante, como el panel del Pixel.
+        if (AppAdapter.pixelStyle) return;
         v.animate().cancel();
         v.animate().scaleX(scale).scaleY(scale).setDuration(100).setInterpolator(focusEase).withLayer().start();
     }
