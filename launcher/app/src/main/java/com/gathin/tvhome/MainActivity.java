@@ -193,6 +193,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private List<RaceWeekend.Race> raceCalendar;
     private View racePanel;
     private TextView raceKicker, raceHeadline, raceSessions;
+    private TextView btnBluetooth;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
     private boolean shamsi;
@@ -372,6 +373,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateRace();
+            updateBluetooth();
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
             // signal level, so only it needs this minute's binder calls (about 7 ms on the UI thread).
             if (festive) updateWifiLabel();
@@ -735,6 +737,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
         addTopBarApps(cfg.topBarApps, cfg.launchActions);
+        btnBluetooth = findViewById(R.id.btnBluetooth);
+        if (getResources().getBoolean(R.bool.bluetooth_button) && !cfg.topMenu) {
+            btnBluetooth.setVisibility(View.VISIBLE);
+            btnBluetooth.setOnClickListener(v -> open(systemIntent(Settings.ACTION_BLUETOOTH_SETTINGS)));
+        }
         iconOnlyButtons = cfg.iconOnlyButtons;
         topMenu = cfg.topMenu;
         wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
@@ -799,8 +806,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
+        btnBluetooth.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnVpn, btnReorder, btnLibraryTop, btnSettings));
+            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnVpn, btnBluetooth, btnReorder, btnLibraryTop, btnSettings));
             pills.addAll(topAppButtons);
             for (View button : pills) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
@@ -971,6 +979,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openLiveTvAfterBoot()) return;
         updateGreeting();
         updateRace();
+        updateBluetooth();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
         // when the network or the inputs change, so this refresh only catches anything missed. Its binder calls
         // (about 7 ms on a TCL C755, most of it WifiManager.getConnectionInfo) would hold up the first frame back
@@ -2527,6 +2536,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // ---- race-weekend panel (a theme's race_calendar) -----------------------------------------------
 
     private static final int RACE_RED = 0xFFFF3B2F;
+
+    /** Dims the Bluetooth button while Bluetooth is off; once a minute and on each return to Home. */
+    private void updateBluetooth() {
+        if (btnBluetooth.getVisibility() != View.VISIBLE) return;
+        android.bluetooth.BluetoothManager bm = getSystemService(android.bluetooth.BluetoothManager.class);
+        android.bluetooth.BluetoothAdapter bt = bm != null ? bm.getAdapter() : null;
+        btnBluetooth.setAlpha(bt != null && bt.isEnabled() ? 1f : 0.5f);
+    }
 
     /**
      * Shows or hides the race-weekend panel for this minute. Text only, set once a minute with the clock:

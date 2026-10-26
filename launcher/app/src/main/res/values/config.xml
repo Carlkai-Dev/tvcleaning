@@ -468,4 +468,7 @@
          faint outer glow), rim (the crisp rim alone, no sheen, fill or glow, for a quiet focus over a wallpaper) or
          halo (the rim with a lighter outer glow). Can also be set with "glass_style": "rim" in a theme's config.json. -->
     <string name="glass_style" translatable="false">glass</string>
+
+    <!-- A round Bluetooth button after Wi-Fi in the top bar; dimmed while Bluetooth is off. -->
+    <bool name="bluetooth_button">false</bool>
 </resources>
