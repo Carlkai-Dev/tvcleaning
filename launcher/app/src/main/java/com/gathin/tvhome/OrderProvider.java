@@ -13,7 +13,9 @@ import android.net.Uri;
 import android.os.Bundle;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Lets tools/order.py read and set the Home tile order (order.txt, see {@link Order}) from a computer, so a long
@@ -24,6 +26,8 @@ import java.util.List;
  *   content call --uri content://com.gathin.tvhome.order --method set --arg 'com.google.android.youtube.tv,com.netflix.ninja'
  *   content call --uri content://com.gathin.tvhome.order --method clear
  *
+ * get answers the saved order, or under "stale" one saved under other dock_apps (which Home ignores), and the name
+ * of each saved tile and TV app under "labels", so the list can be read without knowing package names.
  * set takes package names or components, one per line or comma-separated; a package stands for its TV launcher
  * activity. The order is saved under the current dock_apps, as the reorder button saves it, and Home reloads.
  */
@@ -32,8 +36,13 @@ public class OrderProvider extends ContentProvider {
     static final String METHOD_GET = "get";
     static final String METHOD_SET = "set";
     static final String METHOD_CLEAR = "clear";
-    /** Result keys: the saved tile keys, one per line; how many were saved; the entries that matched no app. */
+    /**
+     * Result keys: the saved tile keys, one per line; a saved order that no longer applies; "key TAB name" per line
+     * for the saved tiles and every TV app; how many were saved; the entries that matched no app.
+     */
     static final String KEY_ORDER = "order";
+    static final String KEY_STALE = "stale";
+    static final String KEY_LABELS = "labels";
     static final String KEY_SAVED = "saved";
     static final String KEY_UNKNOWN = "unknown";
 
@@ -55,6 +64,8 @@ public class OrderProvider extends ContentProvider {
             Order saved = Order.load(Order.file(ctx));
             boolean applies = saved != null && saved.dock.equals(Order.dockKey(dockApps));
             out.putString(KEY_ORDER, applies ? String.join("\n", saved.keys) : "");
+            out.putString(KEY_STALE, saved != null && !applies ? String.join("\n", saved.keys) : "");
+            out.putString(KEY_LABELS, labels(ctx.getPackageManager(), saved == null ? null : saved.keys));
             return out;
         }
         if (METHOD_CLEAR.equals(method)) {
@@ -80,6 +91,34 @@ public class OrderProvider extends ContentProvider {
         out.putInt(KEY_SAVED, keys.size());
         out.putString(KEY_UNKNOWN, String.join("\n", unknown));
         return out;
+    }
+
+    /** "key TAB name" per line: the saved keys still installed, then every TV launcher activity not among them. */
+    private static String labels(PackageManager pm, List<String> savedKeys) {
+        Map<String, String> names = new LinkedHashMap<>();
+        if (savedKeys != null) {
+            for (String key : savedKeys) {
+                ComponentName c = ComponentName.unflattenFromString(key);
+                if (c == null) continue;
+                try {
+                    names.put(key, String.valueOf(pm.getActivityInfo(c, 0).loadLabel(pm)));
+                } catch (PackageManager.NameNotFoundException e) {
+                    // uninstalled since: the launcher drops it too
+                }
+            }
+        }
+        Intent main = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        for (ResolveInfo ri : pm.queryIntentActivities(main, 0)) {
+            String key = new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name).flattenToShortString();
+            if (!names.containsKey(key)) names.put(key, String.valueOf(ri.loadLabel(pm)));
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> e : names.entrySet()) {
+            if (sb.length() > 0) sb.append('\n');
+            // One line per app whatever the name holds.
+            sb.append(e.getKey()).append('\t').append(e.getValue().replaceAll("[\\t\\r\\n]+", " ").trim());
+        }
+        return sb.toString();
     }
 
     /** The tile key (component, flattened short) for a package or component, or null when no such app is installed. */

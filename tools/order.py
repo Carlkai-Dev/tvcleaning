@@ -7,10 +7,14 @@
   TV_HOST=<tv ip> tools/order.py clear               # back to dock_apps and A to Z
 
 A line is a package name (com.netflix.ninja) or a component (ar.tvplayer.tv/.ui.MainActivity); # starts a
-comment. Apps you leave out keep following the usual rule after the listed ones. The order is saved as the
-reorder button saves it, so it is also kept until dock_apps changes (a rebuild or a theme push with another dock).
-`get > file` before a factory reset or a reinstall keeps a copy you can `set` again.
+comment, and `get` writes each app's name there. Apps you leave out keep following the usual rule after the listed
+ones. The order is saved as the reorder button saves it, so it is kept until dock_apps changes (a rebuild or a
+theme push with another dock); `get` says when a saved order no longer applies.
+
+Before `set` and `clear` change anything, the order on the TV is copied to ~/.cleanyourtv/order-<tv>-<time>.txt,
+and `set` of that file puts it back. `get > file` before a factory reset or a reinstall keeps a copy as well.
 """
+import datetime
 import os
 import re
 import sys
@@ -18,6 +22,7 @@ import sys
 PACKAGE = "com.gathin.tvhome"
 URI = "content://" + PACKAGE + ".order"
 ENTRY = re.compile(r"[A-Za-z0-9_.]+(/[A-Za-z0-9_.$]+)?")
+KEYS = ("order", "stale", "labels", "saved", "unknown")
 
 
 def shell(dev, command):
@@ -33,7 +38,8 @@ def shell(dev, command):
 
 
 def call(dev, method, arg=None):
-    """content call on OrderProvider; the Bundle comes back as {key=value, ...} text."""
+    """content call on OrderProvider. The Bundle comes back as Bundle[{key=value, ...}] text: split it on the
+    known keys, so an app name holding ", " cannot cut a value short."""
     command = f"content call --uri {URI} --method {method}"
     if arg is not None:
         command += f" --arg '{arg}'"
@@ -41,24 +47,50 @@ def call(dev, method, arg=None):
     body = re.search(r"Bundle\[\{(.*)\}\]", text, re.S)
     if not body:
         raise RuntimeError("the launcher did not answer; is it installed and up to date? " + text[:200])
-    return body[1]
+    starts = sorted((m.start(), m.end(), m[1]) for m in
+                    re.finditer(r"(?:^|, )(" + "|".join(KEYS) + r")=", body[1]))
+    fields = {}
+    for i, (_, end, key) in enumerate(starts):
+        stop = starts[i + 1][0] if i + 1 < len(starts) else len(body[1])
+        fields.setdefault(key, body[1][end:stop])
+    return fields
 
 
-def field(bundle, key):
-    # Values are the last keys' text up to the next ", key=" (keys are fixed, values hold no "=").
-    m = re.search(r"(?:^|, )" + key + r"=(.*?)(?=, [a-z]+=|$)", bundle, re.S)
-    return m[1] if m else ""
+def lines(value):
+    return [v for v in (value or "").split("\n") if v]
 
 
-def tv_apps(dev):
-    """Packages with a TV launcher activity, in the TV's own order (the launcher's tiles come from these)."""
-    text = shell(dev, "cmd package query-activities --brief -a android.intent.action.MAIN"
-                      " -c android.intent.category.LEANBACK_LAUNCHER")
-    seen = []
-    for comp in re.findall(r"(?m)^\s*([A-Za-z0-9_.]+)/[A-Za-z0-9_.$]+\s*$", text):
-        if comp != PACKAGE and comp not in seen:
-            seen.append(comp)
-    return seen
+def render(fields):
+    """The order as an editable text file: listed tiles first, then the rest, each with its name as a comment."""
+    names = dict(l.split("\t", 1) for l in lines(fields.get("labels")) if "\t" in l)
+    saved, stale = lines(fields.get("order")), lines(fields.get("stale"))
+    out = ["# Home tile order: first line = first tile. Packages or components, one per line; # starts a comment."]
+    if stale:
+        out.append("# A saved order no longer applies: dock_apps changed after it was saved, so Home ignores it.")
+        out.append("# These lines are that order; `set` this file to use it again.")
+    listed = saved or stale
+    for k in listed:
+        out.append(f"{k}  # {names[k]}" if k in names else k)
+    packages = {k.split("/", 1)[0] for k in listed}
+    rest = [k for k in names if k not in listed and k.split("/", 1)[0] not in packages
+            and not k.startswith(PACKAGE + "/")]
+    if rest:
+        out.append("# Not in the saved order (they follow by the usual rule):")
+        out.extend(f"{k}  # {names[k]}" for k in rest)
+    return "\n".join(out) + "\n"
+
+
+def backup(fields):
+    """Copy the order on the TV before it changes, or None when there was none to lose."""
+    if not lines(fields.get("order")) and not lines(fields.get("stale")):
+        return None
+    folder = os.path.join(os.path.expanduser("~"), ".cleanyourtv")
+    os.makedirs(folder, exist_ok=True)
+    host = re.sub(r"[^A-Za-z0-9._-]", "_", os.environ.get("TV_HOST", "tv"))
+    path = os.path.join(folder, f"order-{host}-{datetime.datetime.now():%Y%m%d-%H%M%S}.txt")
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(render(fields))
+    return path
 
 
 def entries(text):
@@ -94,21 +126,24 @@ def main():
     try:
         from tv import connect
         dev = connect()
+        before = call(dev, "get")
         if args[0] == "get":
-            saved = [k for k in field(call(dev, "get"), "order").split("\n") if k]
-            listed = {k.split("/", 1)[0] for k in saved}
-            print("# Home tile order: first line = first tile. Packages or components, one per line.")
-            for k in saved:
-                print(k)
-            rest = [p for p in tv_apps(dev) if p not in listed]
-            if rest:
-                print("# Not in the saved order (they follow by the usual rule):")
-                for p in rest:
-                    print(p)
-        elif args[0] == "set":
-            bundle = call(dev, "set", ",".join(wanted))
-            unknown = [u for u in field(bundle, "unknown").split("\n") if u]
-            print(f"Saved {field(bundle, 'saved')} tiles; Home shows them first.")
+            # `get > order.txt` on Windows would write the console code page (cp1252), so app names with accents
+            # come back garbled and `set` reads the file as UTF-8: write UTF-8 whenever the output is a file.
+            if not sys.stdout.isatty():
+                sys.stdout.reconfigure(encoding="utf-8")
+            sys.stdout.write(render(before))
+            if lines(before.get("stale")):
+                print("Note: the saved order no longer applies (dock_apps changed); `set` it to use it again.",
+                      file=sys.stderr)
+            return 0
+        copy = backup(before)
+        if copy:
+            print(f"Previous order copied to {copy} (`set` that file to put it back).")
+        if args[0] == "set":
+            result = call(dev, "set", ",".join(wanted))
+            print(f"Saved {result.get('saved', '?')} tiles; Home shows them first.")
+            unknown = lines(result.get("unknown"))
             if unknown:
                 print("Not installed, left out: " + ", ".join(unknown))
         else:
