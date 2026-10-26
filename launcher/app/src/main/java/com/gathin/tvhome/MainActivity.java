@@ -195,6 +195,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView raceKicker, raceHeadline, raceSessions;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
+    /** config.xml developer_options_row: the Settings menu offers Developer options once the TV has unlocked them. */
+    private boolean developerOptionsRow;
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
@@ -495,6 +497,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         raceHeadline = findViewById(R.id.raceHeadline);
         raceSessions = findViewById(R.id.raceSessions);
         showStats = cfg.showStats;
+        developerOptionsRow = cfg.developerOptionsRow;
         shamsi = cfg.shamsiDate;
         lunarDate = findViewById(R.id.lunarDate);
         lunar = cfg.lunarDate;
@@ -3263,6 +3266,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 Intent vendor = SystemSettings.vendorIntent(this);
                 if (vendor != null) open(vendor);
             });
+        }
+        // developer_options_row: Developer options, where USB debugging is switched on, once they are unlocked here.
+        if (DeveloperOptionsRow.shown(developerOptionsRow, android.provider.Settings.Global.getInt(getContentResolver(),
+                android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0))) {
+            addSettingsMenuRow(rows, popup, R.string.developer_options, () ->
+                    open(new Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)));
         }
         if (moduleCards) addSettingsMenuRow(rows, popup, R.string.module_cards, this::showModuleCards);
         if (dockRow) addSettingsMenuRow(rows, popup, R.string.dock_edit, this::startDockEdit);
