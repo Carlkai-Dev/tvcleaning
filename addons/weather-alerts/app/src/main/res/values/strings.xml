@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Weather Alerts</string>
+    <string name="source">National Weather Service · United States</string>
+    <string name="choose_state">Choose state or territory</string>
+    <string name="refresh">Refresh</string>
+    <string name="not_configured">Choose a state or territory to check its alerts. Nothing is requested until you choose.</string>
+    <string name="coverage">Statewide coverage, not just your city. Checks run only when opened or refreshed.</string>
+    <string name="checking">Checking %1$s…</string>
+    <string name="checked">%1$s · Checked %2$s</string>
+    <string name="empty">No active alerts returned for this area at the last check.</string>
+    <string name="failed">Could not check alerts. Try Refresh. An unavailable feed does not mean there are no alerts.</string>
+    <string name="stale">Refresh failed. Previous results below are from %1$s.</string>
+    <string name="limited_summary">%1$s\nShowing %2$d of %3$d; most severe first.</string>
+    <string name="footer">On-demand information only. Keep your usual emergency alert channels enabled.</string>
+    <string name="expires">Expires: %1$s</string>
+    <string name="expired">Expired since the last check — refresh for current alerts.</string>
+    <string name="no_instructions">No additional instructions supplied.</string>
+    <plurals name="alert_count">
+        <item quantity="one">%1$d active alert</item>
+        <item quantity="other">%1$d active alerts</item>
+    </plurals>
+</resources>
