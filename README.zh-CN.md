@@ -1,5 +1,15 @@
 <p align="center">
-  <a href="https://cleanyour.tv"><img src="docs/banner.png" alt="CleanYourTV：让电视桌面回归简洁" width="800"></a>
+  <a href="https://cleanyour.tv"><img src="images/zh/banner.png" alt="CleanYourTV：你的电视，没有广告。通过 Wi-Fi 清理任意 Android TV 或 Google TV 的预装臃肿软件，并用简洁桌面替换满是广告的主屏，看起来就像 Apple TV。无需 root、无需数据线、不卸载任何应用，一行命令即可还原。" width="800"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Gathin23/cleanyourtv/stargazers"><img src="https://img.shields.io/github/stars/Gathin23/cleanyourtv?style=flat&cacheSeconds=1800&color=cfffcf&labelColor=15181e" alt="星标数"></a>
+  <a href="https://github.com/Gathin23/cleanyourtv/pulls?q=is%3Amerged"><img src="https://img.shields.io/github/issues-search?query=repo%3AGathin23%2Fcleanyourtv%20is%3Apr%20is%3Amerged&style=flat&cacheSeconds=1800&label=merged%20PRs&color=cfffcf&labelColor=15181e" alt="已合并的 PR"></a>
+  <a href="https://github.com/Gathin23/cleanyourtv/network/members"><img src="https://img.shields.io/github/forks/Gathin23/cleanyourtv?style=flat&cacheSeconds=1800&color=cfffcf&labelColor=15181e" alt="Fork 数"></a>
+  <a href="https://github.com/Gathin23/cleanyourtv/graphs/contributors"><img src="https://img.shields.io/github/contributors/Gathin23/cleanyourtv?style=flat&cacheSeconds=1800&color=cfffcf&labelColor=15181e" alt="贡献者"></a>
+  <a href="README.md"><img src="https://img.shields.io/badge/README-English-cfffcf?style=flat&labelColor=15181e" alt="English"></a>
+  <a href="https://buymeacoffee.com/gathint"><img src="https://img.shields.io/badge/support-%E2%9D%A4-ff5e8a?style=flat&labelColor=15181e" alt="支持作者，请我喝杯咖啡"></a>
+  <a href="https://www.producthunt.com/products/cleanyourtv"><img src="https://img.shields.io/badge/Product%20Hunt-upvote%20%E2%96%B2-da552f?style=flat&logo=producthunt&logoColor=white&labelColor=15181e" alt="在 Product Hunt 上支持 CleanYourTV"></a>
 </p>
 
 <p align="center">
@@ -7,282 +17,815 @@
 </p>
 
 <p align="center">
-  <a href="https://cleanyour.tv">项目网站</a> ·
-  <a href="PROMPT.md">操作提示词</a> ·
-  <a href="examples/README.md">机型清单</a> ·
-  <a href="SHOWCASE.md">社区作品</a>
+  <a href="https://trendshift.io/repositories/310225"><img src="images/zh/trending-badge.png" alt="trendshift.io 本周趋势榜第 1 名" width="360"></a>
 </p>
 
-# CleanYourTV 中文使用指南
+<p align="center">
+  <a href="docs/PRESS.md"><img src="images/zh/card.jpg" alt="307 款电视型号 · 87 个品牌 · 28 种语言 · 520 KB 桌面。被 TechCrunch、TechRadar、Tom's Guide、Mashable、Android Authority、XDA、FlatpanelsHD、It's FOSS、Phandroid、GIGAZINE、Xataka、WinFuture、Frandroid、Macitynet、Techaeris、TechPP 等媒体报道，另有 180 余家：来自 32 个国家的 196 篇报道。清理前：带赞助广告的原厂 Google TV 主屏。清理后：Clean Your TV 桌面。" width="800"></a>
+</p>
 
-通过局域网连接 Android TV 或 Google TV，停用不需要的预装应用、广告和遥测服务，并在兼容设备上安装简洁的原生桌面。无需 root、刷机或 USB 数据线；清理工具采用停用方式，不卸载系统应用，并提供恢复脚本。
+**那条刷屏的推文：** [x.com/gathint/status/2111379569030939102](https://x.com/gathint/status/2111379569030939102)
 
-本文介绍通用功能和使用方法。不同机型、地区和固件的应用包及限制可能不同，请先核对自己的设备。功能变化以[英文 README](README.md)为准，具体机型记录见[机型清单](examples/README.md)。
+2026 年 10 月 17 日，我发了一组父母家电视的前后对比图——那是 Claude Code 通过 Wi-Fi 帮我清理干净的。
+这条推文获得了 740 万次浏览，很多人开始对自己的电视下手，他们的回复最终变成了这里的清单：四天之内，200 多位贡献者提交了 170 多种电视型号。仓库在 19 日之前叫 `tv-vibehack`，旧链接依然有效。
 
-![原生 Google TV 桌面与 CleanYourTV 桌面对比](docs/stock-vs-new-side.jpg)
+**主题、开关与扩展插件：** [cleanyour.tv/addons](https://cleanyour.tv/addons)
+
+**官方链接：** 官网是 [cleanyour.tv](https://cleanyour.tv)，代码、桌面和工具只存放在本仓库。其他使用同名域名的站点（例如 cleanyourtv.com）并非本项目运营（见 [#1004](https://github.com/Gathin23/cleanyourtv/issues/1004)）。
+
+> 说明：本文为英文 README 的完整中文版。文中涉及的机型型号、系统版本号、包名、命令、路径、品牌名称保留原文形式；随仓库发布的 `docs/` 下文档目前仍为英文。
 
 ## 工作原理
 
-电视开启开发者选项中的 USB 调试，建立并授权网络 ADB 连接后，就可以完成以下步骤：
+Android 电视和 Android 手机一样带有调试桥。在电视的开发者选项里打开 USB 调试，允许电脑连接一次，剩下的都是标准的 Android 工具流程：
 
-1. **备份**已安装应用列表及相关设置。使用[操作提示词](PROMPT.md)时，先让助手保存完整快照；手动使用 `tools/disable.sh` 时，工具仅保存恢复该停用列表所需的状态。
-2. **按需停用**厂商遥测、广告服务、推荐内容和不需要的预装应用，使用的是 `pm disable-user`。
-3. **安装简洁桌面**，并将其设为默认 HOME。
+| 步骤 | 做了什么 |
+|---|---|
+| **备份** | 记录已安装应用包列表和相关设置。 |
+| **停用** | 用 `pm disable-user` 停用厂商的遥测、广告服务、推荐内容行和预装垃圾应用。**不卸载任何东西**，所以恢复脚本可以撤销每一步。 |
+| **安装** | 安装一个体积很小的原生桌面，并设为默认主屏。 |
 
-各品牌需要保留的系统组件不同。[操作提示词](PROMPT.md)会引导编程助手先检查实际设备，再确认你使用哪些应用和功能。
+**无需 root、无需数据线、不卸载任何东西；如果后悔了，一行命令即可还原。**
+
+各品牌的预装软件并不相同，所以提示词会让你的编程助手先在电视上实地探查，并在改动你可能用到的任何东西之前征求你的同意。
 
 ## 快速开始
 
-准备一台与电视连接同一局域网的电脑，以及可以运行终端命令的编程助手，例如 [Claude Code](https://claude.com/product/claude-code)、[Codex](https://github.com/openai/codex) 或 [Gemini CLI](https://github.com/google-gemini/gemini-cli)。
-
-| 步骤 | 操作 |
+| 你手上有什么 | 该怎么做 |
 |---|---|
-| 1. 电视端 | 打开「设置 → 设备偏好设置 → 关于」，在「版本号 / Build」上连续按七次确定，返回后进入开发者选项，开启 USB 调试。如果另有网络调试或 ADB 调试开关，也需要开启。菜单名称因机型而异。 |
-| 2. 电脑端 | 先克隆仓库并在助手中打开该文件夹（`git clone https://github.com/Gathin23/cleanyourtv`），再将 [`PROMPT.md`](PROMPT.md) 的内容交给助手，填写电视型号。 |
-| 3. 确认需求 | 在电视上接受调试授权，告诉助手常用应用、底部快捷栏中的应用，以及是否保留语音助手、Chromecast 和系统更新。 |
-| 4. 检查结果 | 按提示完成备份、清理和安装，检查应用启动、遥控器操作、输入源和恢复路径。 |
+| **一台电脑** | 配合编程助手使用提示词，即下面三步。 |
+| **只有一台 Android 手机** | 使用社区开发的 [Clean Your TV 应用](https://cleanyour.tv/app)（作者 [@udhaykumarbala](https://github.com/udhaykumarbala)）：连接、分析、清理，大约五分钟搞定。不需要笔记本，也不需要编程助手。 |
 
-先克隆仓库的意义在于：助手会直接使用本仓库的 `tools/disable.sh` 和 `launcher/build-and-install.sh`，不会另写一套；备份、默认桌面保护和恢复记录都在其中。
+用电脑的话，电脑需要和电视连在同一个 Wi-Fi 下，并且有一个能执行 shell 命令的编程助手。
 
-## 桌面功能
+以下任意一种都可以：Claude Code（在 [0G Private Computer](https://pc.0g.ai) 上，或使用 [Anthropic 订阅](https://claude.com/pricing)）、[Codex](https://github.com/openai/codex) 或 [Gemini CLI](https://github.com/google-gemini/gemini-cli)。
 
-- **简洁首页**：深色背景，默认四个常用应用组成底部快捷栏。
-- **应用聚焦展示**：显示当前应用名称；环境色优先从应用横幅提取，没有横幅时才从图标提取。
-- **应用网格**：按向下键进入更多应用，支持每行 4、5、6 或 7 个。
-- **遥控器排序**：从设置按钮的长按菜单进入排序模式，调整应用位置。
-- **可选应用库**：浏览已安装且可启动的应用，用遥控器添加或移除首页快捷方式。
-- **动效控制**：可开关动态效果，也可单独启用高级动态效果。
-- **常用入口**：Wi-Fi / 以太网和系统设置；设备有可识别的 HDMI、AV、直播电视或已配置来源面板时，还会显示输入源入口。HDMI 名称沿用电视系统中的命名。
-- **时钟与屏保**：问候语、时间、日期，以及配套的时钟屏保。
-- **主题**：通过配置文件调整颜色、壁纸、快捷栏和列数，无需重新编译。
-- **模块卡片**：其他应用可以提供桌面卡片，需用户同意才会显示。
-
-![应用聚焦效果](docs/focus-2-up-netflix.png)
-
-### 在电视上调整设置
-
-默认短按「设置」打开电视系统设置，长按后可进入「简洁桌面设置」。在配置或主题中启用 `launcher_settings_button` 后，顶部改为独立的「简洁桌面设置」按钮，短按即可进入；长按仍可打开模块卡片和应用排序工具，电视系统设置也可从设置页面或下方应用图标进入。
-
-启用独立按钮后，页面还提供「调整应用顺序」，点击即可返回桌面进入移动模式。
-
-可调整：
-
-| 选项 | 作用 |
+| 在哪里 | 做什么 |
 |---|---|
-| 每行应用数量 | 选择 4、5、6 或 7 个，列数增加时卡片相应缩小。 |
-| 动态效果 | 开启或关闭桌面动画。 |
-| 高级动态效果 | 增加卡片上浮、图标缩放和背景颜色平滑过渡。可能增加内存占用，实际影响取决于电视。 |
-| 跟随主题（重置电视端设置） | 清除电视端的布局与动效选择，恢复当前主题或内置配置。推送或重置主题也会清除这些选择。 |
-| 默认桌面入口 | 打开 Android 的默认桌面选择页，切换到原始桌面或 CleanYourTV。 |
+| **1. 在电视上** | 设置 → 设备偏好设置 → 关于 → 在**版本号（Build）**上连按七次 OK → 返回 → 开发者选项 → 打开 **USB 调试**。如果还能看到「网络调试」或「ADB 调试」开关，也一并打开。电视保持开机。 |
+| **2. 在电脑上** | 克隆仓库，并在助手里打开该文件夹（`git clone https://github.com/Gathin23/cleanyourtv`），然后粘贴 [`PROMPT.md`](PROMPT.md) 并填入你的电视型号。 |
+| **3. 跟着走** | 在电视上接受「允许 USB 调试？」提示，然后回答清单里的问题：你用哪些应用、底部程序坞放几个、应用顺序、是否保留语音助手、Chromecast 和系统更新。 |
 
-默认桌面入口不负责重新启用已停用的原始桌面。如果原始桌面已被安装脚本停用，需要先按下文恢复。部分电视不提供系统桌面选择页。还可以通过 `show_home_settings_shortcut` 配置单独显示该入口。
+**克隆这一步很重要：** 助手会复用本仓库的 `tools/disable.sh` 和 `launcher/build-and-install.sh`，而不是自己另写一套——备份、HOME 守卫和恢复记录都在这些脚本里。
 
-### 排序与应用库
+助手会完成备份、清理、编译并安装桌面，并从电视上抓截图逐步核验。以本仓库作为上下文，整个过程大约十五分钟。
 
-在桌面「设置」按钮上长按确定，通过菜单进入排序模式。按确定选中要移动的应用，用方向键调整位置，再按确定或返回放下；没有拿起应用时，按返回退出排序并保存。顶部独立排序按钮默认隐藏，可通过配置或主题的 `reorder_button` 开启。
+## 你会得到什么
 
-应用库默认关闭，在配置或主题中启用 `app_library` 后，入口显示在首页应用的最后一行之后。它可以列出具有电视或普通 Android 启动入口的应用；普通 Android 应用可能仍需触摸或鼠标操作。
+一个看起来像 Apple TV、又不会打扰你的主屏：
 
-另可启用默认关闭的 `app_library_selection`：按确定直接切换右上角勾选，选择是否在首页显示。已勾选和未勾选分别按显示名称排序，勾选组排在前面；取消后焦点选相邻的下一个，末尾则选前一个，不跟随隐藏的应用移到后组。
+| 组成部分 | 长什么样 |
+|---|---|
+| **纯黑主屏** | 一条圆角横带里放你最爱的四个应用，位置和 Apple TV 一致。 |
+| **顶部信息条（Top shelf）** | 用大字显示当前聚焦的应用名称，并从它的封面图里取一种颜色作为环境光晕。 |
+| **其余应用网格** | 按「下」键时向上滑出。 |
+| **一个浮动的玻璃高亮框** | 从一个磁贴弹跳到另一个。聚焦的磁贴会上浮并显示名称。 |
+| **三个磨砂按钮** | 输入源（你在电视设置里命名过的 HDMI 接口、AV、直播电视）、Wi-Fi 或以太网（显示网络名）、设置。 |
+| **问候语、细体时钟和日期** | 使用 [Outfit](https://fonts.google.com/specimen/Outfit) 字体，并配一个风格一致的时钟屏保。在配置或主题里设置 `show_stats` 后，时钟下方会多一行：CPU、可用内存和可用存储。默认关闭，只有你打开才显示，而且只在主屏可见时刷新。 |
+| **主题与模块卡片** | 主题可以在不重新编译的情况下更换配色、壁纸、程序坞和列数；模块卡片让其他应用在你的许可下插入自己的磁贴。 |
 
-- 对尚未添加到首页的应用按确定，可添加快捷方式。
-- 对已经在首页的应用按确定，可打开应用；长按可打开操作菜单，添加或移除首页快捷方式，也可查看应用信息。
-- 从首页移除不会卸载应用。相关选择在重启、应用更新及推送或重置主题后保留。
+以及一台不再跟你作对的电视：没有赞助内容行、没有「发现」页的骚扰、没有偷偷回传的分析数据、没有你从没要过的应用。
 
-详见[应用库说明](docs/app-library.md)。
+| | |
+|---|---|
+| ![顶部信息条在环境光晕上显示聚焦的应用名](images/zh/focus-2-up-netflix.png) | ![输入源弹窗：带连接状态的 HDMI 接口、AV 和直播电视](images/zh/inputs-menu.jpg) |
+| *顶部信息条与环境光晕* | *输入源：HDMI（含连接状态）、AV、直播电视* |
+| ![带玻璃高亮框和下方名称的网格](images/zh/focus-1-fancode.png) | ![时钟屏保：细体时钟在光晕上漂移](images/zh/clock-screensaver.png) |
+| *网格、一个玻璃高亮框、磁贴名称* | *时钟屏保，会缓慢漂移，避免烧屏* |
+| ![极光主题：推送壁纸和着色胶囊，无需重新编译](images/zh/aurora-screenshot.jpg) | ![主题 config.json 提供的六列布局和六应用程序坞](images/zh/six-columns-screenshot.jpg) |
+| *极光主题，用 `tools/theme.sh` 推送* | *六列加六应用程序坞，同一个桌面* |
+| ![移动磁贴：按住 OK，选择「移动」，磁贴被拿起，其他变暗](images/zh/tile-move.jpg) | ![应用库：已安装的应用，按一下就加回主屏](images/zh/app-library.jpg) |
+| *启用 `tile_menu` 后，在磁贴上长按 OK 选「移动」：方向键搬运，Back 放下* | *应用库：按一下就能把移除的应用放回主屏* |
 
-## 支持哪些设备
+## 支持的电视
 
-清理清单面向 **Android TV / Google TV**；当前桌面 APK 要求 **Android 8.0（API 26）或更高版本**。社区提供了多种电视与电视盒子的配置；其中一些设备运行的 Android 版本低于桌面的最低要求，清理清单不代表桌面可安装。请在[机型清单](examples/README.md)中核对型号、地区和固件，阅读对应目录的说明，再使用停用列表。
+任何运行 **Android TV** 或 **Google TV** 的设备都可以。
 
-- Samsung Tizen 和 LG webOS 不能直接运行本项目的 Android 桌面；[docs/devices/samsung-tizen.md](docs/devices/samsung-tizen.md) 记录了一台 2021 年 Tizen 机型在局域网里暴露的接口（没有 ADB，因而无法停用应用），社区移植项目可参考[社区作品](SHOWCASE.md)。
-- Fire TV 的清理记录可供手动适配；[操作提示词](PROMPT.md)不适用于 Fire TV，Fire OS 也限制替换默认桌面。
-- 部分中国大陆版电视会拒绝侧载 APK 或安装第三方 HOME 桌面，已记录的 TCL 机型只是其中的例子。不能仅凭品牌判断兼容性。
-- 没有现成清单时，可以让助手检查实际设备，并按[贡献指南](CONTRIBUTING.md)提交经过验证的机型记录。
+| 平台 | 能做到什么 |
+|---|---|
+| **Android TV、Google TV** | 清理和桌面都可以。 |
+| **Fire TV** | 只能做清理这一半，因为 Fire OS 不会把 Home 交给第三方桌面。而 2015 年的 Fire TV Box（Fire OS 5）连这一半都会失败：所有 `pm` 途径都被拒绝。 |
+| **部分中国市场的 TCL 机型** | 它们完全拒绝安装任何第三方桌面；对应的清单在文件开头已注明。 |
+| **三星（Tizen）、LG（webOS）** | 属于另一套系统。三个 webOS 移植版的说明见 [SHOWCASE.md](SHOWCASE.md#other-platforms-fire-tv-and-lg-webos)；如果你在考虑 Tizen 移植，[docs/devices/samsung-tizen.md](docs/devices/samsung-tizen.md) 记录了 2021 年一台三星电视通过 Wi-Fi 能回答什么（没有 ADB，因此没有 `pm disable-user`）。 |
+
+以下是由贡献者提供的实测清单，[`examples/`](examples/) 下每个型号一个文件夹：
+
+<!-- tv-brands:start: 由 tools/gen_tables.py 依据 examples/*/tv.json 生成；请改那些文件，不要改这里 -->
+
+**TCL** 68 · **Sony（索尼）** 37 · **Xiaomi（小米）** 31 · **Philips（飞利浦）** 17 · **Skyworth（创维）** 11 · **Hisense（海信）** 10 · **Amazon Fire TV** 7 ·
+**BenQ（明基）** 4 · **OnePlus（一加）** 4 · **Panasonic（松下）** 4 · **Thomson** 4 · **Google** 3 · **Haier（海尔）** 3 · **JVC** 3 ·
+**NVIDIA Shield** 3 · **SHARP（夏普）** 3 · **Vu** 3 · **CHiQ（长虹）** 2 · **FFalcon（雷鸟）** 2 · **Hitachi（日立）** 2 · **Insignia Fire TV** 2 ·
+**Kalley** 2 · **Kogan** 2 · **Motorola（摩托罗拉）** 2 · **Nokia（诺基亚）** 2 · **onn** 2 · **RCA** 2 · **Redmi（红米）** 2 · **RockTek** 2 ·
+**Sankey** 2 · **Toshiba（东芝）** 2 · **Vidda** 2 ·
+Acer · AiPro2K · AIWA · AQUA · Artel · ASUS（华硕）· Beko · Caxium · Cecotec · Challenger · Compac · Dcolor · Dialog · EKO ·
+Freebox · Grundig · INCLO · Karbonn · KTC · Liberton · Lumio · Master-G · MTC · Next · Noblex · OK. · Panavox · PEAQ ·
+Polytron · PRISM+ · SANYO（三洋）· Sber · Seleco · Super General · Tele System · TiVo · Tornado · Turkcell · Tuvio · Verizon ·
+Vision ·
+以及 Alwtniet、Anker Nebula、BYINTEK、Epson（爱普生）、Formovie（峰米）、Gadnic、HOTACK、HY320、JMGO、Magcubic、Portronics、Stellamore、Wanbo、XGIMI（极米）等品牌的投影仪
+
+<!-- tv-brands:end -->
+
+<details>
+<summary><strong>完整机型清单</strong></summary>
+
+> 下表列出已实测的机型、芯片组信息与系统版本。机型标识属于硬件识别码，保持原文未作翻译，方便你对照自己电视的型号字符串。
+
+| 机型 | 系统 |
+|---|---|
+| Acer AR55AR2851UDPRO 55" (SCBC R4, Realtek rtd2851m), India | Android TV 14 |
+| AiPro2K (Expressluck, dongnae; Changhong AI PONT family) | Android TV 14 |
+| AIWA AI PONT SA (Changhong, osaka, ISDB86AW) | Google TV 14 |
+| Alwtniet HY320 Mini projector (device adt3, Askey; Allwinner/HTC firmware), 1 GB, 720p | Android 11 |
+| Amazon Fire TV 4K smart TV, 50" and 75" Omni Series (AFTTIFF43, brandenburg) | Fire OS 7.7.1.4 / 7.7.1.7, Android 9 |
+| Amazon Fire TV smart TV (AFTEU014, greta, MediaTek m7322), Germany | Fire OS 7.6.8.5 / Android 9 |
+| Amazon Fire TV Stick 4K Max, 1st gen 2021 (AFTKA, kara), Colombia | Fire OS 7.7.1.3 / Android 9 |
+| Amazon Fire TV Stick 4K, 1st gen 2018 (AFTMM, mantis) | Fire OS 6.7.1.1 / Android 7.1 |
+| Amazon Fire TV Stick 4K, 2nd gen 2023 (AFTKM, karat), Brazil | Fire OS 8.1.8.5 / Android 11 |
+| Amazon Fire TV Stick Lite, 1st gen 2020 (AFTSS, sheldon) | Fire OS 7.7.1.7 / Android 9 |
+| Amazon Fire TV, AFTDEC012E (ginza), Android 11 | Fire OS / Android 11 |
+| Anker Nebula Cosmos projector D2140 (D2140-Cosmos, SDMC/Amlogic, 2 GB), Vietnam | Android TV 9 |
+| Anker Nebula Mars 3 Air projector D2325 (Nebula_Mars_2_V2, taihang, MediaTek m7332), Portugal | Google TV 14 |
+| Anker Nebula projector D2426 (D2426_CapsuleIIIPro, baekdu, SDMC/MediaTek m7632, 1.7 GB), Brazil | Android TV 14 |
+| AQUA MatrixTV EE 50" 4K (Haier, AQ9676EU, omonia, MediaTek), Indonesia | Google TV 14 |
+| Artel smart TV (CVTE TP.MT5510S.PB782, cvt_mt5863_eu, SMART_TV), Uzbekistan | Android 7.0 |
+| ASUS M1G Google TV (MOKA, dahu, Realtek RTD2851F), US | Android TV 11 |
+| Beko B43B880B (Arçelik, sinchon, MediaTek), Turkey | Android TV 11 |
+| BenQ E55-735 (Changhong AI PONT, DVB96BQ) | Google TV 14 |
+| BenQ E55-750 (Changhong AI PONT, DVB96BQ) | Google TV (Android 11) |
+| BenQ GV32 portable projector (SDMC, BenQ_GV01, himalaya, MediaTek m7332) | Google TV 14 |
+| BenQ QS01 Android TV dongle for BenQ projectors (Inspur, Amlogic S905Y2, 2 GB) | Android TV 12 |
+| BYINTEK Love U4 projector, 1080P (Skyworth RG_HS352, HiSilicon Hi3751V350, 1 GB), Brazil | Android 9 |
+| BYINTEK T5 Max projector (built-in Google TV stick: SkyworthDigital YYT, Amlogic), Brazil | Google TV 14 |
+| Caxium 58" 147 cm UHD Smart TV (Realtek RTD285O, RTK2851P, TopTech + Zeasn), Colombia | Android TV 9 |
+| Cecotec VQU10065S 65" QLED (Vestel-built, shandao, MediaTek), Spain | Android TV 14 |
+| Challenger 32T22 BT (cvt_mt5863_col, board TP.MT5510.PB781, MediaTek MT5659, 1 GB RAM), Colombia | Android 7.0 |
+| CHiQ AI PONT (Changhong GTVU65, dangni, MediaTek mt5867) | Google TV 14 |
+| CHiQ AI PONT (DVB93CQ) | Android TV 11 |
+| Compac ATV R2 (SCBC R2, Realtek RTD285O) | Android TV 9 |
+| Dcolor GD2 (YHT) | Android TV 14 (SDK 34) |
+| Dialog ViU (SEI Robotics SEI103DL, Amlogic, NES middleware), Sri Lanka | Android TV 9 |
+| EKO 2K Google TV (MTC-built, tennoji, MediaTek mt5867 / T56) | Google TV 14 |
+| Epson LS800 laser projector (Askey HA90 module, sti6202d101, Amlogic) | Android TV 14 |
+| FFalcon (雷鸟) r34a0, China (V8-A920T01-LF1V147, Amlogic T920), 1 GB | Android 5.1.1 |
+| FFalcon (雷鸟) 鹤6 PRO 65S585C Pro (China, tcl_mt5879_cn, MediaTek MT9653) | Android TV 11 |
+| Formovie / Fengmi projector MiProjM05 (eva, Amlogic) | Android TV 9 |
+| Formovie Laser 4K projector (hanlla, MediaTek T31 / m7632, 1.8 GB) | Android TV 14 |
+| Freebox Player POP (Free, fbx8am, Amlogic), IPTV/DVB-T box | Android TV 10 |
+| Gadnic PROJ100W projector (built-in Google TV stick: SkyworthDigital YYT, Amlogic HP46B), Argentina | Google TV 14 |
+| Google Chromecast with Google TV 4K (sabrina) | Google TV 14 |
+| Google Chromecast with Google TV HD (boreal) | Google TV 14 |
+| Google TV Streamer 4K (kirkwood, GZRNL) | Google TV 14 |
+| Grundig Android UHD TV (Arçelik, GxGrNM, kunyang, MediaTek), Turkey | Android TV 14 |
+| Haier Android TV DVB2K (broadway, HaierATVT56DVB) | Android TV 11 |
+| Haier H32S80EFX (MatrixTV CE, HRT56EU, deto, MediaTek), Thailand | Google TV 14 |
+| Haier MatrixTV GE (HR9216EU, haeundae, MediaTek), EU | Google TV 14 |
+| Hisense 65D62QH (VIDAA_TV, MediaTek MT9653), China | Android TV 11 |
+| Hisense E5Q Pro (VIDAA_TV, MediaTek MT9653), China | Android TV 11 |
+| Hisense Fire TV (AFTCIBFBD1, coyote, MediaTek), US | Fire OS 8.0 / Android 11 |
+| Hisense HG9 (HiSmart 4K A4FFM) | Android TV 9 |
+| Hisense HiSmartTV A4 (xiaoyushan, MStar m7322), Android 11 firmware RTT2.221108.001 | Android TV 11 |
+| Hisense HiSmartTV A4 (xiaoyushan, MStar m7322), India | Android TV 9 |
+| Hisense SmartTV 4K FFM (huangshan, MediaTek), Latin America; also the US Hisense U9DG | Android TV 10 |
+| Hisense SmartTV 4K FFM (lushan, MediaTek MT9676), Mongolia | Google TV 12 |
+| Hisense SmartTV 4K FFM (songshan, MediaTek m7632); also the US Hisense 50A6H4 | Android 11 (SDK 30) |
+| Hisense U75 / 75U75N (hengshan, MediaTek), Latin America and US | Google TV 12 |
+| Hitachi 65QLEDSM20 (MTC, bangbae, MediaTek m7322), Australia | Android TV 11 |
+| Hitachi CDH-LE32SMART21 (TCL-built C06, C06_2K_GB, MediaTek MT9221, 1 GB), Argentina | Android TV 11 |
+| HOTACK SMART2KPJT projector, "Whale TV 95C8" (Amlogic am30b8, WhaleOS S8E, Zeasn firmware) | Android 13 |
+| HY320 projector (t950s_be311, Google-certified Android TV) | Android 13 |
+| INCLO Google TV 4K (KTC, Realtek, khardi, KTC_INCLO_4K_EU_23GV1), Taiwan | Google TV 11 |
+| Insignia 42" F20 Fire TV (NS-42F201NA22, AFTEAMR311, blanche) | Fire OS 6.7.1.1 / Android 7.1.2 |
+| Insignia 55" F30 4K Fire TV (NS-55F301NA25, AFTDCT31, duckie) | Fire OS 7 / Android 9 |
+| JMGO N1S projector (K80A, holan, MediaTek m7332), Australia | Google TV 14 |
+| JVC Android TV (Vestel-built, BARTU_Jvc, menlo, MediaTek mt5867), Spain | Android TV 11 |
+| JVC LT55MB508 (MTC, seocho, MediaTek MSD6886), Brazil | Android TV 11 |
+| JVC UK 4K Android TV (MTC, MTCMSD6886UK, sadang, MediaTek m7322), UK | Android TV 11 |
+| Kalley 43G200 (device R3_GTV, MOKA, Realtek RTD2841A), Latin America | Google TV 14 |
+| Kalley R10G (device R10G, product ACER_FFM, MOKA, Realtek RTD2875P), Latin America | Google TV 14 |
+| Karbonn SWTV-20AE (Skyworth OEM, SW4H, MediaTek), India | Android TV 10 |
+| Kogan G7 (Expressluck, cottongreen, Realtek), Australia | Google TV (Android 11) |
+| Kogan Google TV (Changhong CHiQ AI PONT, GTVU65KG, dangni, MediaTek mt5867), Australia | Google TV 14 |
+| KTC 4K Smart TV (device hongkong, MediaTek), Taiwan | Google TV 14 |
+| Liberton LTV 24H01AT (Liberton, built by Changhong, device redwood), Ukraine | Android TV 11 |
+| Lumio Vision 7 55" (KTC ODM, Realtek, khardi, KTC_LUMIO_4K_EU_23GV1), India | Google TV 14 |
+| Magcubic HY300 Pro projector (rk3566_rgo, device adt3, Askey) | Android 11 |
+| Master-G MGA3200 (SCBC R1, Realtek; Android reports model `ATV R1`), Chile | Android TV 9 |
+| Motorola / Coocaa SWTV-24AE-FHD (24LP6000G, Skyworth OEM, beomil), India/SEA | Google TV 14 |
+| Motorola MT4310 (Newsan; Hisense board, hayward, MediaTek), Argentina | Android TV 11 |
+| MTC UK 2K Android TV (tabata, MediaTek m5621; JVC-family firmware, `android.autoinstalls.config.JVC` present), UK | Android TV 11 |
+| Next Start Pro 4K TV Box (SDT HPR314-Next, Realtek RTD1325), Turkey, streaming box | Google TV 14 |
+| Noblex NoblexTV (Skyworth-built, shinjuku, MediaTek m5621), Argentina | Android TV 11 |
+| Nokia Streaming Box 8000 (Sagemcom/NES, SEI600NK4, HND, Amlogic) | Android TV 14 |
+| Nokia Streaming Box 8010 (Sagemcom/NES, SEI804NK, YYJ, Amlogic) | Android TV 14 |
+| NVIDIA SHIELD TV 2017 (darcy) | Android TV 11 |
+| NVIDIA SHIELD TV 2019 tube (P3430, sif) | Android TV 11 |
+| NVIDIA SHIELD TV Pro 2019 (P2897, mdarcy) | Android TV 11 |
+| OK. AI PONT (Changhong, ikebukuro, MediaTek), Italy | Android TV 11 |
+| OnePlus TV (C00, Cebu, MediaTek m7632), India | Android TV 10 |
+| OnePlus TV (D00, Dubai) | Google TV 14 |
+| OnePlus TV (Dosa, Oneplus_Dosa_IN) | Android TV 11 |
+| OnePlus Y1 43" (Y Series, shibuya) | Android TV 11 |
+| onn 4K Streaming Box (2023, Walmart; YOC, Amlogic), US | Google TV 14 |
+| onn. 4K Plus Streaming (2025, Walmart; coffey, Amlogic S905X5M), US | Google TV 14 |
+| Panasonic 4KTV-0SU (Skyworth-built SW4H, MediaTek m7332), Gulf region | Android TV 10 |
+| Panasonic 4KTV-JUP (Jupiter_PA, MediaTek) | Android TV 11 |
+| Panasonic Google TV LCD (OZUM_Panasonic, kowloon, MediaTek) | Android 14 |
+| Panasonic TH-40HS550K (Skyworth-built, GS655 shibuya, MediaTek) | Android TV 11 |
+| PANAVOX Google TV (dongnae) | Google TV 14 |
+| PEAQ PTV 43AQU-5023C (Changhong, reports OK. AI PONT, dundas, MediaTek m7332) | Android TV 11 |
+| Philips 50PUD7406/43 (TPV, PH0M_EA_T32, MStar/MediaTek), Chile; 55PUS7906/12, Lithuania | Android TV 11 |
+| Philips 50PUF7099/T3 (TPV EBONY_V560, Hisilicon), China | Android TV 9 |
+| Philips 50PUS8517/12 (TP Vision, PH1M_EA_9970A, MediaTek MT5895), Europe | Android TV 11 |
+| Philips 55OLED707/12 (TP Vision, PH1M_EA_9970A, MediaTek MT5895), UK | Android TV 11 |
+| Philips 55OLED708/12 (TPV, PH1M_WW_9972, MediaTek), Poland | Google TV 12 |
+| Philips 55PUS7503/12 (TP Vision TPM171E, PH7M_EU_5596, MediaTek MT5891), Europe | Android TV 8.0 |
+| Philips 65OLED706/12 (TP Vision, PH1M_EA_9970A, MediaTek MT5895), France; 55OLED706/12, Poland | Android TV 11 |
+| Philips 65OLED907/12 (TP Vision, PH1M_EA_9970A, MediaTek MT5895), UK | Android TV 11 |
+| Philips 65PML9506/12 (TP Vision, PH1M_EA_9970A, MediaTek), Spain | Android TV 11 |
+| Philips 65PUS8102/12 (TP Vision TPM171E, PH7M_EU_5596, MediaTek MT5891), Europe | Android TV 8.0 |
+| Philips 65PUS8729/60 (TPV, PH1M_WW_9972, MediaTek), Russia | Google TV 14 |
+| Philips 65PUS9435/12 (TP Vision TPM191E, PH9M_EA_5599, MediaTek MT5887), Germany | Android TV 12 |
+| Philips 75PUS8505/12 (TP Vision TPM191E, PH9M_EA_5599, MediaTek MT5887), Europe | Android TV 12 |
+| Philips Google TV TA7 (TPV, PH3M_AL_T32, MediaTek), Brazil | Google TV 14 |
+| Philips R8G Google TV (MOKA, whitefield, Realtek RTD2851F), US | Google TV 14 |
+| Philips Smart 4K TV (Skyworth, eleonas, MediaTek), India | Google TV 14 |
+| Philips TPM191E / 50PUS8505 / 55OLED854 / 65OLED804 (TP Vision, PH9M_EA_5599, MediaTek MT5887), Europe | Android TV 12 |
+| Polytron 2K (WLTV POLYTRON2K, hayward; Hisense/CVTE board, MediaTek mt5867), Indonesia | Android TV 11 |
+| Portronics Beem 470 Smart LED Projector (Allwinner H713, 1 GB), India | Android 11 |
+| PRISM+ Q65 Ultra 2026 QLED 4K AI Google TV (R10G, PRISMPLUS_FFM, MOKA, Realtek RTD2875 SoC, RTD6748 platform) | Google TV 14 |
+| RCA AI PONT SA (Changhong, redwood, ISDB92RC; also sold as realme 40-inch, AIWA AW32B4SMG and CHiQ AI PONT DVB92CQ) | Android 14 |
+| RCA RC50A21S-4KSM, Zeasn home (Toptech firmware RTK2851P, Realtek RTD2851P, board mac6p) | Android TV 9 |
+| Redmi TV (MiTV-ANTL0, starwars) | Android 5.1.1 (not Android TV) |
+| Redmi TV (MiTV-MFTP0, alita), China firmware 23.2.10.6129 | Android TV 9 (CN build) |
+| RockTek GB1 | Google TV 14 |
+| RockTek GX1 (HPR3A1325_4K) | Google TV 14 |
+| Sankey SMART2KTVSE (Whale OS, SiliconPlayer am30bm) | Android TV 13 |
+| Sankey SMART_TV (CVTE, HiSilicon Hi3751V350, 1 GB) | Android 12 |
+| SANYO ATV R2 (SCBC, Realtek RTD285O) | Android TV 9 |
+| Sber Salute TV 43" (CVTE TP.T962D4.PC756, Amlogic T962D4, at30a6, 2 GB), Russia | StarOS 1.101 / Android 13 |
+| Seleco TV39020HDA9SMART 39" (AT_SmartScreen, Toptech + Zeasn, Realtek RTK2842P), Italy | Android TV 9 |
+| SHARP 2T-C32GH3000I (SHARP 2K Smart TV-A; Skyworth-built, beomil, MediaTek mt5867), Indonesia | Google TV 14 |
+| SHARP AQUOS TVE21F (AQUOS-TVE21F, banqiao, CVTE/MediaTek), UK | Android TV 14 |
+| SHARP AQUOS TVE23A (AQUOS-TVE23A, sandiego, CVTE/MediaTek mt5889), Denmark | Google TV 14 |
+| Skyworth / Coocaa 8R40_K5C (Realtek rtd285x, 1 GB, 32-bit), China domestic firmware | Android 8.0 (not Google TV) |
+| Skyworth 65A3F (7T641_A3F, MediaTek MT9633), China | Android 13 (CCOS 10.01.250328) |
+| Skyworth 7S60_A5 (sky8S34, 1.9 GB), China market | Coocaa OS / Android 8 |
+| Skyworth 7T861_A23 (MediaTek MT9638), China market | Coocaa OS / Android 10 |
+| Skyworth Coocaa K3 Pro 90P3D Max (8R145_P3DM, Realtek RTD2885N), China market | Android 11 (Coocaa OS) |
+| Skyworth SW-22SA (SW6H, MediaTek), ~1.9 GB | Android TV 14 (Google TV home) |
+| Skyworth SWTV-21AE (sunnyvale, MediaTek) | Android TV 14 |
+| Skyworth SWTV-22AE-FHD (umeda, MediaTek), Vietnam/Global | Google TV 14 |
+| Skyworth SWTV-24AE-4K NF (eleonas, MediaTek mt5896), South Africa/Global | Google TV 14 |
+| Skyworth SWTV-24NA-4K NF (eleonas, MediaTek mt5896), US | Google TV 14 |
+| Skyworth Xiaopai P3 (Q5001, cupid-p2), streaming box | Android 10 |
+| Sony BRAVIA 4K AE1 (BRAVIA_AE_M6L, MediaTek MT5897), EU | Google TV 12 |
+| Sony BRAVIA 4K AE2 (BRAVIA_AE2, MediaTek MT5897), North America | Google TV 14 |
+| Sony BRAVIA 4K GB (BRAVIA_ATV2_EU, BRAVIA_ATV2) | Android TV 9 |
+| Sony BRAVIA 4K GB (BRAVIA_ATV2_UC, MediaTek mt5891) | Android TV 9 |
+| Sony BRAVIA 4K UR2 (BRAVIA_UR2_4K, MediaTek) | Android TV 10 |
+| Sony BRAVIA 4K UR3 (BRAVIA_UR3, MediaTek mt5893), EU | Android TV 10 |
+| Sony BRAVIA 4K VH1 (KD-55XH9096, BRAVIA_VH1, MediaTek MT5895), EU | Google TV 12 |
+| Sony BRAVIA 4K VH2 (KD-55X80J / XR-65A83J, BRAVIA_VH2, MediaTek), EU, North America and India | Google TV 12 |
+| Sony BRAVIA 4K VH21 (KD-65X85K, 2022, BRAVIA_VH21, MediaTek MT5895), Australia | Google TV 12 |
+| Sony BRAVIA 4K VH21 (XR-55A80K, 2022, BRAVIA_VH21, MediaTek mt5895), EU | Google TV 12 |
+| Sony BRAVIA 9 II (K-65XR90M2, BRAVIA_AE3, MediaTek MT5838) | Google TV 14 |
+| Sony BRAVIA BF1 (BRAVIA 2 II class, BRAVIA_BF1_4K_A, MediaTek) | Google TV 12 |
+| Sony BRAVIA KD-43X8000G (2019, BRAVIA_ATV3_4K, MediaTek), APAC | Android TV 9 |
+| Sony BRAVIA KD-43X80L (2023, BRAVIA_VH22, MediaTek MT5895), EU | Google TV 12 |
+| Sony BRAVIA KD-49X8307C (2015, "BRAVIA 4K 2015", SVP-DTV15, MediaTek), EU firmware | Android TV 7.0 |
+| Sony BRAVIA KD-55X75K (BRAVIA_VU3_4K, Realtek rtd2885m) | Google TV 14 |
+| Sony BRAVIA KD-55X8000C (2015, "BRAVIA 4K 2015", SVP-DTV15, MediaTek), China firmware | Android TV 7.0 |
+| Sony BRAVIA KD-55X8509C (2015, "BRAVIA 4K 2015", SVP-DTV15, MediaTek), EU firmware | Android TV 7.0 |
+| Sony BRAVIA KD-55X85J (2021, BRAVIA_VH2, MediaTek MT5895), South America | Google TV 12 |
+| Sony BRAVIA KD-55XE8596 (2017, "BRAVIA 4K GB", BRAVIA_ATV2_EU, MediaTek MT5891), UK | Android TV 9 |
+| Sony BRAVIA KD-55XF7596 (2018, "BRAVIA 4K GB ATV3", BRAVIA_ATV3_4K_EU, MediaTek MT5891), EU | Android TV 9 |
+| Sony BRAVIA KD-55XF8096 (2018, "BRAVIA 4K GB ATV3", BRAVIA_ATV3_4K_EU, MediaTek MT5891), Spain | Android TV 9 |
+| Sony BRAVIA KD-65X80J (2021, BRAVIA_VH2, MediaTek), India | Google TV 10 |
+| Sony BRAVIA KD-65X82L (2023, BRAVIA_VH22, MediaTek), India | Google TV 12 |
+| Sony BRAVIA KD-65X9300D (2016, SVP-DTV15, MediaTek), Asia-Pacific | Android TV 8.0 |
+| Sony BRAVIA KDL-43W950D (2015/2016, SVP-DTV15, MediaTek), India ("PA") firmware | Android TV 8.0.0 |
+| Sony BRAVIA TL2 (OD0M_EA_T32, TPV-built, MediaTek), Europe | Android TV 11 |
+| Sony BRAVIA VU1 (KD-43X7500H, BRAVIA_VU1_UC, Realtek) | Android TV 11 |
+| Sony BRAVIA VU31 4K (BRAVIA_VU31_4K, Realtek), India | Google TV 14 |
+| Sony BRAVIA X9000H (2020, BRAVIA_VH1_CN, MediaTek MT5895), China | Android TV 12 |
+| Sony BRAVIA XBR-55X850C (2015, "BRAVIA 4K 2015", SVP-DTV15, MediaTek), US firmware | Android TV 8.0 |
+| Sony BRAVIA XBR-55X850D (Android model "BRAVIA 4K 2015"), firmware 6.827 | Android TV 8.0.0 |
+| Sony BRAVIA XBR-65X900E (2017, BRAVIA_ATV2) | Android TV 9 |
+| Sony BRAVIA XBR-65X900F (2018, BRAVIA_ATV3_4K, MediaTek MT5891), US/Canada | Android TV 9 |
+| Sony KD-55X7500 (BRAVIA 4K GB ATV3, BRAVIA_ATV3_4K_CN), China | Android TV 9 |
+| Sony XR-65A80J (65-inch OLED, 2021, BRAVIA_VH2), EU | Google TV 12 |
+| Sony XR-65X90J (2021, BRAVIA_VH2, MediaTek MT5895), China | Android TV 10 |
+| Stellamore T950S projector (Droidlogic be30a3, Amlogic txhd2) | Android 13 |
+| Super General 55" 4K (CVTE TP.SK708D.PC821, Amlogic T972, x30a4, 1 GB), Saudi Arabia | Android 9 |
+| TCL / FFalcon China (tcl9655_cn, MediaTek MT9655 "merak", UTT2.250416.001 AU01) | Android 14 |
+| TCL 32ES570F (C06, C06_2K_GB, MStar mt5867, 939 MB), Italy | Android TV 11 |
+| TCL 32L5A (C06, model "Smart TV", 1 GB) | Android TV 11 |
+| TCL 32S5400A (C06, C06_2K_GB, MediaTek MT9221, 1 GB), 2023 | Android TV 11 |
+| TCL 32S5K (C06, C06_2K_GB, MediaTek MT9221, 918 MB), EU | Android TV 11 |
+| TCL 32SF560 (TCL Fire TV, AFTSHN02, shine) | Fire OS 7.7.1.7 / Android 9 |
+| TCL 40S5400A (C06, C06_2K_GB, MediaTek MT9221, 1 GB) | Android TV 11 |
+| TCL 43C645 (Smart TV Pro, Realtek RTD2851 / R51MT05, V8-R51MT05-LF1V652); also TCL 50C635 / 60C635 (G03_4K_GB, Realtek rtd288o), Spain | Google TV launcher on Android TV 11 |
+| TCL 43EP660 (Europe, BeyondTV, Realtek rtd285o, V8-R851T02-LF1V378) | Android TV 9 |
+| TCL 43P615 (Europe, BeyondTV, Realtek RTD2851, AR06) | Android TV 11 |
+| TCL 43P725 (Smart TV Pro, BeyondTV4, Realtek rtd288o), Italy | Android TV 11 |
+| TCL 43S450F-CA (S4 Fire TV Edition, AFTDEC012E, ginza, MediaTek), Canada | Fire OS 8.1.8.5 / Android 11 |
+| TCL 43S5400A (C06, C06_2K_GB, MediaTek MT9221, 1 GB) | Android TV 11 |
+| TCL 43S5K / 32V5C (G13, G13_2K_GB, MediaTek MT9221/MT5867, 1 GB), India; also a G13 unit from Brazil and a 40" V5C on AU13 | Google TV 14 |
+| TCL 50C725K (Smart TV Pro, BeyondTV4/BeyondTV6, RTD2851M, Realtek rtd288o, 2 GB), AR10 build | Android TV 11 |
+| TCL 50DP660 / L49C2US ("Percee TV", tcl_eu, MediaTek MT5658 / board mt5891, V8-T658T01-LF1V602 / V570) | Android TV 8.0 |
+| TCL 50EP680 (Europe, BeyondTV, Realtek rtd285o) | Android TV 11 |
+| TCL 50J7000A (Thailand, BeyondTV, Realtek RT2851 / rtd285o, AR04, V8-R851T02-LF1V674) | Android TV 11 |
+| TCL 50P615 (Greece and Türkiye, BeyondTV, Realtek RTD2851 / rtd285o, AR05) | Android TV 11 |
+| TCL 50P735 (BeyondTV4, Smart TV Pro) | Google TV 11 |
+| TCL 55" 4K Google TV, 2023 (G10, G10_4K_US_NF); also TCL 55P6K, Spain and TCL 43P69K, Netherlands (G10_4K_GB_NF_32BIT) | Google TV 12 |
+| TCL 55C715 QLED (Europe, BeyondTV2, Realtek RTD2851, V8-R851T02-LF1V606) | Android TV 9 |
+| TCL 55C725 (Smart TV Pro, BeyondTV4, G03_4K_GB, Realtek R51MT05, V8-R51MT05-LF1V620), Italy; also TCL 65C655 Pro (same build) | Google TV launcher on Android TV 11 |
+| TCL 55C745, 2023 (G08, G08_4K_GB, MediaTek tcl9618) | Google TV 14 |
+| TCL 55C7K QD-Mini LED, 2025, UK (G08, MediaTek tcl9618) | Google TV 14 |
+| TCL 55C815 (2020, Europe/Denmark, BeyondTV2, Realtek rtd285o) | Android TV 11 |
+| TCL 55EP640 (Greece, BeyondTV, Realtek RTD2851 / rtd285o, AR04) | Android TV 11 |
+| TCL 55P638 (Smart TV, BeyondTV4) | Android TV 11 |
+| TCL 55P7K, Middle East (G10, G10_4K_GB, Realtek RTD2875P) | Google TV 12 |
+| TCL 55P8LS QD-Mini LED, Vietnam (G10, G10_4K_GB_32BIT, Realtek rtd6748) | Google TV 12 |
+| TCL 55Q10G Pro (China, tcl_mt5879_cn, MediaTek MT9952) | Android TV 11 |
+| TCL 55Q6CX1 (Smart TV Pro, G08, G08_4K_GB, MediaTek) | Google TV 12 |
+| TCL 55S470G (G10, G10_4K_US_NF, Realtek), US | Google TV 12 |
+| TCL 55S546 (5-Series, G03_4K_US, BeyondTV4, GTV93), US | Google TV 11 |
+| TCL 58S571F (TCL Fire TV, AFTDEC012E, ginza, MediaTek mt5896), US | Fire OS 8 / Android 11 |
+| TCL 65C725 (Smart TV Pro, BeyondTV4) | Android TV 11 |
+| TCL 65C735 (Smart TV Pro, G05, MediaTek), France; also TCL 55C728, Turkey, TCL 65C935, France, and TCL 65C745, France | Google TV 11 |
+| TCL 65C7K (Smart TV Pro, G08, G08_4K_GB, MediaTek mt5896), Brazil | Google TV 14 |
+| TCL 65C7L (Smart TV Pro, G08, G08_4K_GB, MediaTek tcl9618), 2025, Australia | Google TV 14 |
+| TCL 65EP640 (Finland, BeyondTV, Realtek RTD2851 / rtd285o, AP06) | Android TV 9 |
+| TCL 65EP68 (Europe, BeyondTV, Realtek RTD2851 / rtd285o, V8-R851T02-LF1V722) | Android TV 11 |
+| TCL 65Q550G (TCL Smart TV, Google TV 11, V8-R51MT08-LF1V095.021344) | Google TV |
+| TCL 65Q650G (US Q6 2023, BeyondTV4, Realtek RTD2851 / R51MT08, V8-R51MT08-LF1V095, 2 GB) | Google TV 11 |
+| TCL 75C845X2, UK/Europe (G08_4K_GB, MediaTek tcl9618) | Google TV 14 |
+| TCL 75P8K, Europe / Nordics (G10, G10_4K_GB / C6KS, Realtek RTD2875P / rtd6748) | Google TV 12 |
+| TCL 75T7 / 55Q77K (Smart TV Pro, G08, G08_4K_US, MediaTek tcl9618), US firmware | Google TV 14 |
+| TCL 85RM7L (G08, G08_4K_GB, MediaTek tcl9618) | Google TV 14 |
+| TCL ak30a5 (China, Amlogic) | Android TV 9 |
+| TCL BeyondTV (India) | Android TV 9 |
+| TCL BeyondTV, EU/Nordic (Realtek RTD2851, V8-R851T02-LF1V606) | Android TV 9 |
+| TCL BeyondTV, Poland (Realtek RTD2851, AP03, 2 GB) | Android TV 9 |
+| TCL BeyondTV2 (Latin America / Brazil, Realtek RTD2851) | Android TV 9 |
+| TCL BeyondTV2, Android 11 build (AR05, Realtek rtd285o) | Android TV 11 |
+| TCL C635 (Smart TV Pro, BeyondTV4, Realtek rtd288o, Android 11/SDK 30), Brazil | Android TV 11 |
+| TCL C755 QD-Mini LED, 2024, Australia (G08, MediaTek tcl9618) | Google TV 14 |
+| TCL C89B 85", 2024, a local variant of the C855 (G08, G08_4K_GB, MediaTek tcl9618) | Google TV 14 |
+| TCL L40S66E (C06, C06_2K_GB, MediaTek MT9221, 1 GB), Argentina | Android TV 11 |
+| TCL Q7C (Smart TV Pro, G08, G08_4K_GB, MediaTek tcl9618), European firmware | Google TV 14 |
+| TCL QM6K Pro, 2025 (G08, MediaTek tcl9618) | Google TV 14 |
+| TCL Smart TV (G07, G07_4K_GB_NF, Realtek RTD2851A, 2 GB) | Google TV 11 |
+| TCL Smart TV Pro (G03, G03_4K_GB / G03_4K_US, BeyondTV4, Realtek R51MT05, V8-R51MT05-LF1V620 / LF1V813), Middle East and US firmware | Google TV 11 |
+| TCL Smart TV Pro (G05, G05_4K_US, MediaTek MT5889); also TCL 55Q750G | Google TV 11 |
+| TCL Smart TV Pro (G08, G08_4K_GB, MediaTek), Australian firmware | Google TV 12 |
+| TCL Smart TV Pro (G08, G08_4K_GB, MediaTek), Europe/UK firmware | Android TV 12 |
+| TCL Smart TV Pro (G09, G09_4K_GB, Amlogic T5M, 2 GB), UK firmware, Brazil | Google TV 12 |
+| TCL Smart TV Pro, UK Freeview Play (BeyondTV4 / BeyondTV6, Realtek rtd288o, 2 GB, AR05) | Android TV 11 |
+| TCL tc8000_ay30a2 (China, Amlogic ohm, TC8000, 3.8 GB) | Android 11 |
+| TCL UnionTV, Latin America (TCL-built like Thomson 32HE5800, Realtek RT2841) | Android TV 9 |
+| Tele System TS ON T2/HD (ONT2HD, SDMC, Amlogic), Italy | Android TV 11 |
+| Thomson 32HE5800 (TCL-built UnionTV, Realtek RT2841), Spain | Android TV 9 |
+| Thomson 43RT1055 FA Series (SPPL-built, sauve, Realtek RTD2841A), India | Android TV 14 |
+| Thomson SPPL 4K Google TV (Skyworth SW6H, MediaTek, same board as `skyworth-sw-22sa/`), India, ~1.9 GB | Android TV 14 (Google TV home) |
+| Thomson T32RTL6000 (SCBC, Realtek; Android reports model `ATV R1`) | Android TV 9 |
+| TiVo Stream 4K (SEI Robotics IPA1104HDW, SEI400TV, Amlogic S905Y2, NES) | Android TV 12 |
+| Tornado 65UA1400E (El Araby, Skyworth-built SW4H, MediaTek m7332), Egypt | Android TV 11 |
+| Toshiba (Vestel Cosmos170, yeoksam, MediaTek), Spain | Android TV 11 |
+| Toshiba Fire TV (AFTHA004, hazel) | Fire OS 7 / Android 9 |
+| Turkcell TV+ 4K Box (SDMC DV6069Y, Amlogic), Turkey, operator streaming box | Android TV 10 |
+| Tuvio TD43UFBCV5 (Changhong AI PONT, DVB96, MediaTek m7632), Russia | Google TV 14 |
+| Verizon Stream TV, 1st gen (WNC JS8V, Amlogic), US | Android 12 |
+| Vidda C1S 4K laser projector (VIDAA_TV, device MT9669, board m7642), China JuUI | Android 9 |
+| Vidda VIDAA_TV (Hisense sub-brand; device MT9653, board mt5879), China JuUI | Android TV 11 |
+| Vision 2024VISION43STV (CVTE TP.T950D4T.PB751, Amlogic T950D4, 1 GB), Europe | Android 13 |
+| Vu 4K (HVCL, lushan, MediaTek), India | Google TV 12 |
+| Vu Premium FHD 43-inch (Smart 2K ATV4, hamamatsucho), India | Android TV 9 |
+| Vu VIBE TV (KONKA, bandra, Realtek), India | Google TV 14 |
+| Wanbo X5 Pro projector (built-in Google TV stick: SkyworthDigital YYT, Amlogic), Australia | Google TV 14 |
+| XGIMI Horizon S Pro projector (XK03H, xgimigalileo, MediaTek) | Android TV 11 |
+| XGIMI MoGo 2 projector (MoGo, xgimiapollo, pokemon) | Android TV 11 |
+| XGIMI MoGo 3 Pro projector (G0035, altai, MediaTek) | Google TV 14 |
+| XGIMI MoGo 4 projector (WK08K, altai, MediaTek) | Google TV 14 |
+| Xiaomi Mi Box 3 (MIBOX3, once), streaming box | Android TV 9 |
+| Xiaomi Mi Box S (MIBOX4, oneday), streaming box | Android TV 9 |
+| Xiaomi Mi Box S (MIBOX4, oneday), streaming box, Android 12 update | Android TV 12 |
+| Xiaomi Mi Box S 2nd gen (MiTV-AFKR0, jaws), streaming box | Google TV 11 |
+| Xiaomi Mi TV (MiTV-MOOQ0, croods; includes P1 43" EU variant) | Android TV 10 and 11 |
+| Xiaomi Mi TV 4A (MiTV-MOOQ1) | Android TV 10 |
+| Xiaomi Mi TV P1 43" (MiTV-MOOQ2, croods) | Android TV 11 |
+| Xiaomi MiTV-AESP0 stick (aquaman, 1 GB) | Android TV 9 |
+| Xiaomi MiTV-ANSP0 (小米电视5 Pro 65", jobs, Amlogic), China firmware 23.6.5.3226, 4 GB RAM | Android TV 9 (CN build) |
+| Xiaomi MiTV-ASTP0 (mulan, sold as L55M7-EA), China firmware 22.12.2.1630, 1.5 GB RAM | Android TV 9 (CN build) |
+| Xiaomi MiTV-ASTP1 (maverick), China firmware 2.40.641.0514.cn, 1 GB RAM, 720p | Android TV 9 (CN build) |
+| Xiaomi MiTV-AXFR0 (rango, Amlogic, 1 GB), India | Android TV 11 |
+| Xiaomi MiTV-AXFR1 (rango, Amlogic, 1 GB), India | Android TV 11 |
+| Xiaomi MiTV-AXSO0 (dangal; Mi TV 4C Pro 2019 / 4A Pro) | Android TV 9 |
+| Xiaomi MiTV-AXSO2 (dangalUHD, India, 2 GB) | Android TV 9 |
+| Xiaomi MiTV-MFTR0 (freeguy, MediaTek mt9653), China firmware OS2.0.23.0.RFTMATV (HyperOS TV 2) | Android 11 (HyperOS TV 2, CN build) |
+| Xiaomi MiTV-MOOR2 / MOOR4 (venom, MediaTek) | Google TV 11 |
+| Xiaomi MiTV-MOSR4 (irobot, MediaTek) | Google TV 11 |
+| Xiaomi MiTV-MSSP0 / Xiaomi Mi TV 4A 32 (amelie), firmware PI.5926 | Android TV 9 |
+| Xiaomi MiTV-MSSP1 (nino), firmware PI.5925 | Android TV 9 |
+| Xiaomi MiTV-MSSP2 (volver, MediaTek), firmware PI.4621, low-RAM | Android TV 9 |
+| Xiaomi MiTV-MSSP3 (machuca, MediaTek) | Android TV 11 |
+| Xiaomi MiTV-MSSP3 (machuca, MediaTek), Android 9 firmware PI.7524 | Android TV 9 |
+| Xiaomi Redmi Smart TV A Pro 55" 2025 Energy-saving (MiTV-ASTR0, blueplanet, Amlogic), China firmware OS3.0.106.0.USTAATV, 3 GB RAM | Android 14 (HyperOS 3, CN build) |
+| Xiaomi TV A Pro 75" 2026 (MiTV-MZTU0, river, MediaTek) | Google TV 14 |
+| Xiaomi TV Box S 3rd gen (MiTV-AFMU0, twilight, Amlogic), streaming box | Google TV 14 |
+| Xiaomi TV EA Pro 55" (MiTV-MTEQ0, baymax, MediaTek), China firmware 23.6.26.4028 | Android TV 10 (CN build) |
+| Xiaomi TV S Mini LED 75 2025 (MiTV-MOEU0, ladybird, MediaTek) | Google TV 14 |
+| Xiaomi TV S Pro 100 Mini LED 2025 (小米电视 S Pro 100, L100MB-SP, MiTV-MFFU0, finch, MediaTek), China firmware OS3.0.115.0.UFFMATV, 4 GB RAM | Android 14 (HyperOS 3, CN build) |
+| Xiaomi TV Stick 4K (MiTV-AYFR0, soul, Amlogic), streaming stick | Android TV 14 |
+| Xiaomi TV Stick 4K 2nd gen (MiTV-AFMU1, twilight, adastra, Amlogic), streaming stick | Google TV 14 |
+
+</details>
+
+你的电视不在清单里？提示词会自己去探查预装软件。之后把你的清单提交上来，下一个用同款机型的人就能省掉这一步：[CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 手动操作
 
-以下命令从仓库根目录运行。`192.168.1.50` 是示例地址，请替换为电视的局域网地址。`tools/tv.py` 默认连接传统 TCP ADB 的 5555 端口；如果电视只提供需要配对的「无线调试」，须先按[操作提示词中的连接步骤](PROMPT.md)配对并开启 5555 端口，才能使用下列命令。
-
-### 1. 准备连接工具
-
-连接工具需要 Python 3：
+助手做的每一件事，你都可以自己跑。工具只依赖 Python 3，不需要别的东西。
+`tools/tv.py` 通过 5555 端口连接网络 ADB。如果该端口不通，而电视提供了带配对码的无线调试（Chromecast with Google TV 和 Google TV Streamer 属于这种情况），先用原版 `adb` 配对一次，再执行 `adb tcpip 5555`，具体步骤见[常见问题排查](docs/TROUBLESHOOTING.md#connecting)。
 
 ```bash
-python3 -m venv tools/venv
-tools/venv/bin/pip install -r tools/requirements.txt
-export TV_HOST=192.168.1.50
+python3 -m venv tools/venv && tools/venv/bin/pip install -r tools/requirements.txt
+export TV_HOST=192.168.1.50                                   # 你电视的 IP 地址
 
-# 读取型号、Android 版本和固件
-tools/venv/bin/python -I tools/tv.py --probe
-
-# 查看已安装的应用包
-tools/venv/bin/python -I tools/tv.py 'pm list packages'
+tools/venv/bin/python -I tools/tv.py --probe                 # 型号、Android 版本、固件
+tools/venv/bin/python -I tools/tv.py 'pm list packages'      # 在电视上执行一条 shell 命令
+tools/disable.sh examples/xiaomi-mi-tv-4a/debloat.txt        # 应用一份清理清单
+tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt        # 撤销清理，恢复原厂桌面
+tools/venv/bin/python -I tools/check.py examples/xiaomi-mi-tv-4a/debloat.txt   # 检查固件更新撤销了什么
+TV_HOST=192.168.1.50 launcher/build-and-install.sh           # 编译桌面并设为 Home
+tools/theme.sh themes/aurora                                 # 推送主题；加 --reset 移除
 ```
 
-### 2. 按需应用停用列表
+| 工具 | 作用 |
+|---|---|
+| [`tools/tv.py`](tools/tv.py) | 纯 Python 的 ADB 客户端：shell、批量、push、pull、重启和截图，还可以先按遥控器按键。在原版 `adb` 可执行文件被封禁的环境里也能用。 |
+| [`tools/b64push.py`](tools/b64push.py) | 以 base64 分块上传 APK 之类的大文件，并校验校验和。 |
+| [`tools/relay.py`](tools/relay.py) | 把本地端口转发到电视的 ADB 端口，适用于沙箱访问不到你所在网络的助手。只监听本机。[说明](tools/relay.md)。 |
+| [`tools/disable.sh`](tools/disable.sh)、[`restore.sh`](tools/restore.sh) | 应用或撤销一份清理清单，撤销基于改动前记录的状态。 |
+| [`tools/recovery.py`](tools/recovery.py) | 写入 `disable.sh` 自我撤销所需的记录，并打印恢复批处理命令。 |
+| [`tools/check.py`](tools/check.py) | 把电视当前状态与已应用的清单比对，找出固件更新撤销了什么；`--fix` 会把它们改回去。 |
+| [`tools/adb-closed.py`](tools/adb-closed.py) | 调试关闭后确认电视的网络 ADB 端口已关闭：无响应时退出码 0，仍开放时 1，检查本身无法执行时 2。不需要 `nc`。 |
+| [`tools/privacy.py`](tools/privacy.py) | 审计电视上的语音、ACR 和遥测候选包，并给出每一项的证据；`--write` 会把结果写成 `disable.sh` 和 `restore.sh` 能直接读取的清单。 |
+| [`tools/theme.sh`](tools/theme.sh) | 把 [`themes/`](themes/) 里的某个文件夹推送到桌面并重启主屏。 |
+| [`tools/manage.py`](tools/manage.py) | 列出所有扩展、主题和开关及其截图，查看电视上已装了什么，并通过运行作者自己的脚本完成安装、更新或移除。 |
+| [`tools/bench.py`](tools/bench.py) | 测量接管 HOME 的桌面的表现：按键延迟、焦点移动距离、卡顿帧数、冷启动、返回主屏耗时，以及待机时的 CPU 和 PSS 开销。不改变电视上的任何东西，并把每次按键的原始数据写入 JSON；不需要额外安装。 |
+| [`tools/trace.py`](tools/trace.py)、[`trace_report.py`](tools/trace_report.py) | 录制桌面的 Perfetto trace（返回主屏、冷启动、方向键），并报告时间花在哪里，支持单次以及改动前后对比。可选，需要 [`requirements-perf.txt`](tools/requirements-perf.txt)。[说明](tools/trace.md)。 |
+| [`tools/flamechart.py`](tools/flamechart.py) | 用上面的 trace 画出改动前后的火焰图，适合放进 PR：一条线程一个泳道、共享时间轴，被改动的部分用洋红色标出并给出总计。和 trace 工具一样是可选的。[说明](tools/flamechart.md)。 |
+| [`tools/screendiff.py`](tools/screendiff.py) | 逐像素比较改动前后的截图，可以排除时钟或你指定的任何区域，并输出一张把你 Wi-Fi 名称打码的对比图。和 trace 工具一样是可选的。[说明](tools/screendiff.md)。 |
+| [`tools/race_calendar.py`](tools/race_calendar.py) | 从免费的 Jolpica API 把本赛季 F1 赛历写进主题，用于比赛周末模式。 |
+| [`launcher/build-and-install.sh`](launcher/build-and-install.sh) | 编译精简版发行包（约 520 KB）、安装、切换 Home，如果 Home 没有落到它身上就自动回滚。 |
 
-**下面的小米路径仅为示例，请替换为与你的电视匹配且已核对的列表。** 不要将其他机型的列表直接用于自己的电视。
+**这些脚本绝不会让电视没有桌面可用**：它们只会停用自己认识的原厂桌面，并且在有别的桌面能响应 HOME 之前，跳过清单里的 Home 应用。细节见下文。
 
-```bash
-tools/disable.sh examples/xiaomi-mi-tv-4a/debloat.txt
-```
+<details>
+<summary><b>Windows（PowerShell）</b></summary>
 
-列表路径相对于运行命令时所在的目录，也可以使用绝对路径。保留原列表及工具生成的恢复记录，方便撤销。手动流程若还需要完整的应用和设置快照，应在停用前另行保存；`tools/disable.sh` 不会生成该快照。
-
-### 3. 编译和安装桌面
-
-桌面使用 Java 和 AndroidX RecyclerView，应用包名为 `com.gathin.tvhome`。编译需要 JDK 17、Android SDK Platform 34 和 Build Tools 34.0.0。macOS 可安装：
-
-```bash
-brew install openjdk@17 android-commandlinetools
-sdkmanager "platforms;android-34" "build-tools;34.0.0"
-```
-
-Linux 安装脚本可查找 `~/Android/Sdk` 和 `PATH` 中的 Java。准备好环境后运行：
-
-```bash
-TV_HOST=192.168.1.50 launcher/build-and-install.sh
-```
-
-**此 Shell 脚本不仅安装 APK，还会切换默认 HOME，并按检测结果停用原始桌面。** 它先确认新桌面能够启动，再完成切换；切换失败时尝试回退。自动识别仅支持 `com.google.android.tvlauncher`、`com.google.android.apps.tv.launcherx`、`com.google.android.leanbacklauncher` 和 `com.mitv.tvhome`；若识别失败，需核对设备后指定 `STOCK_LAUNCHER=<包名>`，或使用 `none`。
-
-可使用 `STOCK_LAUNCHER=<包名>` 指定原始桌面；如果希望保留原始桌面的启用状态，使用：
-
-```bash
-TV_HOST=192.168.1.50 STOCK_LAUNCHER=none launcher/build-and-install.sh
-```
-
-`none` 只表示不停用原始桌面，**仍会将 CleanYourTV 设为默认 HOME**。
-
-### Windows
-
-仓库提供对应的 PowerShell 脚本。安装 Python 和 Android Studio，并确认上述 JDK、SDK 组件可用后：
+每个脚本旁边都有对应的 PowerShell 版本。在已安装 Android Studio 的 Windows 上不需要别的东西：
 
 ```powershell
-python -m venv tools\venv
-tools\venv\Scripts\python.exe -m pip install -r tools\requirements.txt
+python -m venv tools\venv; tools\venv\Scripts\python.exe -m pip install -r tools\requirements.txt
 powershell -ExecutionPolicy Bypass -File launcher\build-and-install.ps1 -TvHost 192.168.1.50
+powershell -ExecutionPolicy Bypass -File tools\disable.ps1 -TvHost 192.168.1.50 examples\xiaomi-mi-tv-4a\debloat.txt
 ```
 
-PowerShell 安装脚本使用 `-StockLauncher <包名>` 指定原始桌面，或使用 `-StockLauncher none` 保留其启用状态。当前 PowerShell 脚本会先请求设置新 HOME，再检查新桌面是否启动，与上述 Shell 脚本的顺序不同；操作前请确认 ADB 恢复路径可用。清理与恢复分别使用 [`tools/disable.ps1`](tools/disable.ps1) 和 [`tools/restore.ps1`](tools/restore.ps1)。
+</details>
 
-### 工具索引
+<details>
+<summary><b>脚本如何保护 Home</b></summary>
 
-| 工具 | 用途 |
+安装脚本会先问电视当前由哪个桌面接管 Home，并且只停用自己认识的那一个，也就是 `KNOWN_STOCK_LAUNCHERS` 里的四个：`com.google.android.tvlauncher`、`com.google.android.apps.tv.launcherx`、`com.google.android.leanbacklauncher` 以及小米的 `com.mitv.tvhome`（PatchWall）。传入 `STOCK_LAUNCHER=<包名>`（`-StockLauncher`）可以覆盖判断，传 `none` 则完全不动它。
+
+`tools/disable.sh`（`disable.ps1`）在停用任何东西之前也遵循同样的规则：如果清单里包含接管 Home 的应用，而电视上没有别的应用能响应 HOME，它就跳过这一条、说明原因，然后停用清单里的其余部分。设置向导、设置应用、厂商的 `FallbackHome` 和出厂测试应用（小米的 `com.duokan.factorytest`）也会响应 HOME，但不算数。所以在桌面交接之前应用清单，不会让电视开机后什么都没有。等 `launcher/build-and-install.sh` 把新桌面设为 Home 之后，再跑一次同样的清单，这一条就会被应用；`FORCE_HOME=1`（PowerShell 里是 `$env:FORCE_HOME`）可以强制停用。
+
+</details>
+
+<details>
+<summary><b>清单可以放在哪里</b></summary>
+
+传给 `disable.sh` 和 `restore.sh` 的清理清单路径相对于你执行的目录，所以自己的清单可以放在仓库之外。绝对路径同样可用。
+
+</details>
+
+## 麦克风，以及关于它能说些什么
+
+「这些包里哪一个在监听？」没有诚实的一句话答案，而权限扫描只会让事情更糟：在很多机型上，大部分包都以 `android.uid.system` 身份运行，于是五十个包都显示 `RECORD_AUDIO: granted=true`，但没有一个真的在录音。在另一些机型上，麦克风在遥控器里而不是电视面板上，于是一个完全没有音频权限的包依然能看到屏幕上的所有内容——像 `tv.inscape.tvclient.inscapeacr` 这样的 ACR 客户端只需 `INTERNET` 权限，就能根据画面识别内容。
+
+`tools/privacy.py` 报告的是电视实际怎么说，而不是猜测：
+`TV_HOST=192.168.1.50 tools/venv/bin/python -I tools/privacy.py` 会把语音、ACR 和遥测候选分成三组打印，每一项都附带证据——来自固件自己的 `voice_interaction_service` 命名、来自 [`examples/`](examples/) 的已知组件，或者仅仅是名字匹配——同时给出该包是否声明了 `RECORD_AUDIO`、是否共用系统 UID、以及返回的 AppOps 历史里是否包含麦克风访问。仅仅配置了某种模式或有过一次被拒绝的尝试，都不构成访问的证据。
+
+`--write privacy.txt` 会把识别出的候选写成一个标准的清理清单，于是应用和撤销用的还是你熟悉的那两条命令（`tools/disable.sh`、`tools/restore.sh`）。仅靠名字匹配的包默认不会写进去，除非你加 `--include-low`；这些包建议先用 `dumpsys package <名称>` 核实。
+
+审计做不到的是证明意图。`appops` 只能说明某个操作被触碰过，不能说明之后数据流去了哪里；而任何基于包名的扫描都无法证明一台电视在或不在录音。停用语音助手是一笔有明确代价的交易（遥控器上的麦克风键、应用内的语音搜索），所以报告会逐包列出这个代价，而不是简单说「赢了」。
+
+## 桌面
+
+一个为 Android TV 打造的小体积原生主屏：**约 520 KB**，纯 Java 编写，专为 1 GB 内存的电视而做。没有模糊效果、没有视频、不申请网络权限、没有后台服务。
+
+电视需要 **Android 8.0（API 26）或更高版本**：`minSdk` 是 [`launcher/app/build.gradle`](launcher/app/build.gradle) 里的编译期下限，而安装脚本会在编译前向电视查询 `ro.build.version.sdk`，所以较老的机型会被告知这两个数字，而不是在 `pm install` 阶段失败（这类机器上还能做什么，见[常见问题排查](docs/TROUBLESHOOTING.md)）。
+
+| 项目 | 实现方式 |
 |---|---|
-| [`tools/tv.py`](tools/tv.py) | Python ADB 客户端，支持执行命令、批处理、上传和下载。 |
-| [`tools/b64push.py`](tools/b64push.py) | 分块上传 APK 等大文件并校验。 |
-| [`tools/disable.sh`](tools/disable.sh) / [`tools/restore.sh`](tools/restore.sh) | 应用停用列表，或按照操作前记录恢复。 |
-| [`tools/recovery.py`](tools/recovery.py) | 保存恢复记录并生成恢复命令。 |
-| [`tools/theme.sh`](tools/theme.sh) | 推送或重置主题，并重新启动桌面。 |
-| [`launcher/build-and-install.sh`](launcher/build-and-install.sh) | 编译、安装桌面并切换 HOME。 |
+| **配置** | 程序坞顺序、隐藏应用、直播电视应用、每行 4 到 7 个磁贴、减弱动效。全部在 [`config.xml`](launcher/app/src/main/res/values/config.xml) 里 |
+| **电视上的设置** | 在「设置」上长按 OK 进入桌面设置。可选的 `launcher_settings_button` 让普通点击直接打开它们；电视自身的设置仍保留在设置页和它的应用磁贴里。 |
+| **主题** | 通过 Wi-Fi 推送一个 `config.json` 就能换背景、壁纸和布局，无需重新编译。[`themes/`](themes/) 内置十套，包含默认的 `default/` |
+| **28 种语言** | 跟随电视语言，希伯来语有完整镜像的从右到左布局 |
+| **应用库** | 可选：浏览所有已安装应用，增删主屏快捷方式。见[应用库指南](docs/app-library.md) |
+| **磁贴菜单** | 可选（`tile_menu`）：在磁贴上长按 OK 出现「移动」「从主屏移除」「应用信息」。关闭时长按 OK 直接打开应用信息 |
+| **模块卡片** | 任何电视应用都能提供自己的磁贴；每一个都需要你批准一次。见 [`docs/modules.md`](docs/modules.md) |
+| **扩展插件** | 作为模块卡片接入的可选应用，放在 [`addons/`](addons/)，永远不会编进桌面本身 |
+| **时钟屏保** | 一个在光晕上漂移的时钟，避免烧屏 |
+| **遥控器按键** | 原厂桌面被移除后，继续保住「输入源」「YouTube」和齿轮键 |
 
-## 更多配置
+<details>
+<summary><b>自己编译</b></summary>
 
-### 布局与主题
+需要 JDK 17 和 Android SDK platform 34。macOS 上：`brew install openjdk@17 android-commandlinetools`
+然后 `sdkmanager "platforms;android-34" "build-tools;34.0.0"`。Linux 上安装脚本会自己找到
+`~/Android/Sdk` 和 PATH 里的 `java`。
 
-内置配置位于 [`config.xml`](launcher/app/src/main/res/values/config.xml)，可设置快捷栏顺序、隐藏应用、直播电视包名、列数、快捷栏下方的行数、网络按钮关联的 VPN 应用，以及 `reduced_motion` 等选项。
+</details>
 
-还可通过 `show_stats` 尝试显示 CPU、可用内存和可用存储空间，默认关闭，开启后仅在首页显示期间刷新。设备禁止读取 CPU 数据时会省略 CPU 一项。`greeting_name` 可设置问候语中的名字。
+<details>
+<summary><b>配置</b></summary>
 
-主题通过 `config.json` 覆盖内置配置，还可提供背景色和壁纸。使用示例：
+[`config.xml`](launcher/app/src/main/res/values/config.xml) 设置程序坞顺序、隐藏的应用、直播电视包名、列数（超过 5 个磁贴会缩小）、程序坞下方保留的行数、可选的用于网络胶囊的 VPN 应用，以及给 GPU 跟不上的电视使用的 `reduced_motion`。主题可以设置同样的键，外加一个背景色和一张壁纸。
+
+</details>
+
+<details>
+<summary><b>桌面设置与默认主屏</b></summary>
+
+- 点击**设置**进入电视自身的设置。在它上面长按 OK 打开菜单：**桌面设置**（启用 `launcher_settings_button` 后普通点击直接进入这里，菜单里就不再出现这一项）、**原生设置**（当电视在 Android 设置之外还自带一套设置应用时出现——小米中国版、TCL/FFALCON 和 Fire OS 都在 `settings_fallback_components` 里——因为那套应用里有 Android 设置没有的页面，例如小米的「账号与安全」里的 ADB 开关）、**模块卡片**（配合 `module_cards`）、**编辑程序坞**（配合 `dock_row`）、以及**应用排序**。桌面自己的设置页从上到下是这些项：
+  - **应用排序**，仅在启用 `launcher_settings_button` 时出现：按 OK 拿起一个应用，方向键移动，Back 放下，再按一次 Back 结束。
+  - **每行应用数** 4、5、6 或 7；**程序坞下方行数** 0 到 3，即程序坞横带下方保持可见的磁贴行数；**程序坞横带不透明度** 100%、70%、50% 或 30%。后两项只有在程序坞独占一行（`dock_row`，默认开启）时才生效。
+  - **壁纸**：从主题的图集里选一张（或它的 `wallpaper.jpg`）、**无**、或**主题默认**。选定后会固定该图片并停止轮换，直到你选择「主题默认」、按「跟随主题」或重新推送主题。
+  - **动画**开关，以及动画打开后的**高级效果**（磁贴上浮、图标缩放和柔和的环境色过渡；可能占用更多内存）。
+  - **启动时打开**，仅在启用 `open_on_start_choice` 时出现：关闭，或指定一个应用——电视开机后主屏第一次出现时改为打开它。每次开机只执行一次，所以 Home 和 Back 依然能回到桌面。
+  - **跟随主题（重置电视端选择）**，会清除上面所有选择。推送或重置主题同样会清除它们。
+  - **选择默认主屏**打开 Android 的主屏选择器，**电视系统设置**打开电视自己的设置页。
+- **更换默认主屏：** 桌面设置和可选的「默认主屏」磁贴（`show_home_settings_shortcut`）都会打开 Android 的主屏选择器。选择原来的桌面就不再用 CleanYourTV 作为 Home，选 CleanYourTV 则回来。原桌面必须处于启用状态；如果安装脚本停用了它，请先运行下面的恢复脚本。有些电视不提供主屏选择器。
+
+</details>
+
+<details>
+<summary><b>语言</b></summary>
+
+英语、德语、丹麦语、西班牙语、加泰罗尼亚语、法语、俄语、塞尔维亚语（拉丁字母）、波兰语、捷克语、意大利语、葡萄牙语、土耳其语、阿拉伯语、希伯来语、简体中文、繁体中文（台湾）、泰语、芬兰语、越南语、孟加拉语、印尼语、挪威博克马尔语、荷兰语、乌兹别克语（拉丁字母）、乌克兰语和韩语。桌面跟随电视语言。Android 13 及以上可以只为桌面单独设置：
+`tools/tv.py 'cmd locale set-app-locales com.gathin.tvhome --locales ca'`。
+
+希伯来语会镜像整个布局：菜单按钮在左，日期和时钟在右且问候语在其上方，程序坞和应用行从右侧开始并配套遥控器导航，输入源选择器的图标和标签在右，日期带月份前缀 ב（例如 19 באוקטובר）。时钟屏保的日期和时间也右对齐。俄语覆盖了每一个界面，包括比赛周末、节日问候和波斯历日期。其他语言保持原有布局。
+
+</details>
+
+<details>
+<summary><b>模块卡片</b></summary>
+
+任何电视应用都可以声明自己的磁贴（标签、说明、光晕）。桌面会为每个应用询问你一次，默认保持隐藏，并按该应用的签名密钥和卡片名称记住你的回答。在「设置」上长按 OK 选择「模块卡片」可以随时改变主意。怎么做一个：[`docs/modules.md`](docs/modules.md)；契约：[`docs/specs/card.md`](docs/specs/card.md)。
+
+</details>
+
+<details>
+<summary><b>时钟屏保</b></summary>
+
+在电视的屏保设置里选「时钟」，或者通过 ADB：
 
 ```bash
-TV_HOST=192.168.1.50 tools/theme.sh themes/aurora
+tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream; settings put secure screensaver_enabled 1'
 ```
 
-恢复内置主题：
+</details>
+
+<details>
+<summary><b>遥控器按键</b></summary>
+
+- 一个可选的无障碍服务可以让 Google TV 遥控器上的**输入源**键继续工作（安装时设 `INPUT_KEY_SERVICE=1`）。
+- 它还能找回原本只有原厂桌面才响应的按键，比如 **YouTube** 键（在 config.xml 或主题里配置 `app_keys` 和 `input_key_keycodes`；`HOME_KEY_SERVICE=1` 也会读取 `app_keys`）。
+- 在 `app_keys` 条目上加 `hold:` 前缀，可以给该按键配第二个应用：普通按下打开无前缀的应用，按住半秒打开带 `hold:` 的那个（用 keycode 或 `hold:scan:...`）。条目里也可以写某个 activity（`包名/.Activity`），例如某个扩展插件的快捷栏，而不是应用的主入口。
+- 除了应用，`app_keys` 条目还能指定动作：`back`、`home`、`recents`、`mute`、`sleep`、`screensaver`、`settings` 或 `wifi`，这样一个闲置的彩色键就能用来静音，按住则进入待机。
+- `HOME_KEY_SERVICE=1` 还能修正那些 Home 键发送 ALL_APPS 的电视棒，并让遥控器的**齿轮**键能打开设置，哪怕 Android 本身没有映射它（scancode 或 keycode 写在 config.xml 里）。
+- 启用 `settings_key_panel` 后，齿轮键会在主屏或任何应用之上打开一个[小型快捷设置面板](images/zh/quick-settings-panel.jpg)：电视设置、显示、网络、应用和桌面设置。
+
+</details>
+
+<details>
+<summary><b>导航与封面图</b></summary>
+
+上下键移动一行。顶部按钮不会把焦点漏给磁贴，从它们按「下」会回到你刚才所在的程序坞磁贴。上一次聚焦的应用会被记住；在主屏打开期间安装或移除应用，磁贴会即时刷新。应用横幅以 xhdpi 或更高分辨率加载，避免低密度电视界面在聚焦放大之前先把它们降采样。
+
+</details>
+
+## 还原你的电视
+
+保留你应用过的那份清单。一行命令就能把电视恢复原样：
 
 ```bash
-TV_HOST=192.168.1.50 tools/theme.sh --reset
+TV_HOST=192.168.1.50 tools/restore.sh examples/<你的电视>/debloat.txt                                    # Android TV
+TV_HOST=192.168.1.50 tools/restore.sh examples/<你的电视>/debloat.txt com.google.android.apps.tv.launcherx  # Google TV
 ```
 
-主题格式和可用配置见 [`themes/README.md`](themes/README.md)。
+| 要点 | 说明 |
+|---|---|
+| **先有记录** | `tools/disable.sh` 在改动任何东西之前，会先把电视当时的样子写下来，存在 `~/.cleanyourtv/`。 |
+| **恢复是回放** | 你原本就自己停用的包会保持停用，Home 也会回到原本接管它的组件。 |
+| **桌面仍然装着** | 想让它消失，请到电视的「设置 → 应用」里卸载。 |
+| **没有电脑？** | 如果电视连不上，它自己的「设置 → 应用」页面也能重新启用包。 |
 
-### 语言、屏保与遥控器
+<details>
+<summary><b>记录里有什么，以及没有记录时会怎样</b></summary>
 
-以下 ADB 命令使用 macOS/Linux 的虚拟环境路径；Windows 将前缀 `tools/venv/bin/python -I tools/tv.py` 换为 `tools\venv\Scripts\python.exe -I tools\tv.py`。
+在改动任何东西之前，`tools/disable.sh` 会把电视当时的样子写下来：清单里每个包是已启用、已停用还是未安装，哪个组件接管了 Home，以及三个动画缩放值。这份记录存在 `~/.cleanyourtv/`，每台电视每份清单一个文件；同一份清单第二次运行时会保留第一次的记录，而不会把清理后的状态覆盖上去。如果你之后往清单里加了包，那一次运行会先把它们补进记录再停用。
 
-- **语言**：桌面**没有应用内语言开关**，语言由系统决定，简体中文和繁体中文都已包含。
-  - **Android 13 及以上**可以只给桌面单独设语言：`tools/venv/bin/python -I tools/tv.py 'cmd locale set-app-locales com.gathin.tvhome --locales zh-CN'`（切英文把 `zh-CN` 换成 `en`）。查当前值用 `cmd locale get-app-locales com.gathin.tvhome`。
-  - **Android 12 及以下**只能改电视的系统语言，桌面跟着走。国内电视出厂通常已是简体中文，一般不用动。
-- **时钟屏保**可在电视的屏保设置中选择 Clock；也可执行：`tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream; settings put secure screensaver_enabled 1'`。
-- **输入源键**可在 macOS/Linux 安装时使用 `INPUT_KEY_SERVICE=1` 启用辅助功能服务，以适配 Google TV 的遥控器输入源按钮；Windows 使用 `-InputKeyService`。
-- **HOME / 设置键**可在 macOS/Linux 安装时使用 `HOME_KEY_SERVICE=1`，并通过 `config.xml` 中的按键配置适配部分设备；Windows 使用 `-HomeKeyService`。`settings_key_panel` 可启用快捷设置面板，提供电视设置、显示、网络、应用和桌面设置入口。重装时需重新传入所需的服务选项。
+保留你应用过的那份清单。恢复脚本回放的是记录，所以你原本自己停用的包会保持停用，Home 也会回到原本接管它的组件。
 
-### 模块卡片
+`stock launcher` 参数只是兜底：有记录时，真正接管过 Home 的那个桌面会拿回 Home，这个参数只在当时没有任何东西响应 HOME、或本项目桌面接管了 Home 时才使用。无论如何，原厂桌面都会被重新启用，除非记录建立时它就已经是停用状态。
+没有记录时（较早的运行，或你删掉了记录），脚本会明确告诉你，并退回到「启用整份清单 + 把缩放重置为 `1.0`」的旧行为。
 
-应用可声明自己的卡片名称、说明和环境色。桌面会询问是否显示，默认保持隐藏，并按应用签名及卡片名称保存选择。在桌面「设置」按钮上长按确定，选择模块卡片菜单即可管理。
+它会让新桌面保持安装状态（想让它消失，请到电视的「设置 → 应用」里卸载），也不会知道你在这份清单之外停用了哪些包。以后想切回去，重新运行安装脚本即可；即使 Home 已经落到 Android 的选择器上，它也能判断出该停用哪个桌面。如果电视连不上，它自己的「设置 → 应用」页面也能重新启用包。
 
-开发说明见 [`docs/modules.md`](docs/modules.md)，接口约定见 [`docs/specs/card.md`](docs/specs/card.md)。
+</details>
 
-## 恢复原始桌面和应用
+## 固件更新之后
 
-`tools/disable.sh` 在停用前记录列表内各应用的状态（启用、已停用或未安装）、当时的默认 HOME 和三项系统动画缩放设置。它还会记录当时拥有 HOME 的包，但不会保存完整应用列表或全部系统设置。记录位于电脑的 `~/.cleanyourtv/`，按电视和列表分别保存。重复运行同一列表不会覆盖最初记录；新增列表项会补充记录。
-
-将以下路径替换为**实际使用过的列表**后恢复：
+系统更新会覆盖在已清理的系统之上：清单里的包回来了，Home 回到原厂桌面，还会出现清单没提到的新的预装应用。本项目的其他部分不会察觉，所以你需要把电视和已应用的清单做对比：
 
 ```bash
-TV_HOST=192.168.1.50 tools/restore.sh examples/xiaomi-mi-tv-4a/debloat.txt
+TV_HOST=192.168.1.50 tools/venv/bin/python -I tools/check.py examples/<你的电视>/debloat.txt
 ```
 
-如需指定原始桌面的备用包名，可增加最后一个参数。Google TV 常用的是 `com.google.android.apps.tv.launcherx`，但应以实际设备为准：
+电视仍与清单一致时退出码为 `0`，出现偏差为 `1`，完全无法检查时为 `2`：电视没有响应、没人及时接受「允许 USB 调试？」提示、清单路径不存在，或清单会停用 Android 的核心包。只有 `1` 代表偏差，所以只在 `1` 时发邮件的任务在「检查根本没跑」时会保持沉默；如果你希望这种情况也知道，就在非 `0`（或包括 `2`）时发信，一台家用服务器或树莓派上跑每周任务就够了：
 
 ```bash
-TV_HOST=192.168.1.50 tools/restore.sh "examples/你的机型/debloat.txt" com.google.android.apps.tv.launcherx
+0 9 * * 1 cd ~/cleanyourtv && TV_HOST=192.168.1.50 tools/venv/bin/python -I tools/check.py examples/<你的电视>/debloat.txt
 ```
 
-- 有记录时，优先恢复当时实际拥有 HOME 的组件；当时没有解析到 HOME 或 HOME 已属于 CleanYourTV 时，使用指定的备用包名，未指定则默认尝试 `com.google.android.tvlauncher`。
-- 记录中操作前已经停用的包会保持停用。恢复脚本还会尝试启用备用桌面包；如果它不在记录中，脚本无法判断其操作前状态。请先核对备用包名。
-- 缺少记录时，脚本会提示并回退为启用列表内应用、将动画缩放恢复为 `1.0`；这不等同于精确恢复操作前状态。
-- 恢复脚本不会卸载 CleanYourTV，也无法恢复列表之外的手动修改。若要卸载，可在电视「设置 → 应用」中操作。
-- 无法连接 ADB 时，也可以尝试从电视系统设置中重新启用相关应用。
+`TV_HOST` 在上面这些之前就会被读取：没有设置时，运行会在 `tools/tv.py` 里带着自己的提示信息停下，同样以 1 退出——所以请像上面那样写在任务行里，因为 cron 不会从你的 shell 继承它。
 
-## 故障排查
+`--fix` 会把清单重新应用到出现偏差的部分：先把 Home 切到清单没有停用的那个桌面（如果你跑的是 fork，就把包名作为第二个参数传入），再停用那些回来的清单内包，然后回读电视确认两者。它不写恢复记录，因为记录里已经保存了第一次运行之前的状态：之后 `tools/restore.sh` 仍能把电视恢复原厂。Home 会优先被修好；如果没有桌面能接住 Home，`--fix` 不做任何改动并明确说明。
 
-完整说明见 [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)。
+它在停用任何东西之前会执行与 `tools/disable.sh` 相同的安全检查，因为更新正是这些检查再次变得重要的时刻：保存的 Wi-Fi 网络属于 setupwraith 时，保留它（在以太网下用 `FORCE_SETUPWRAITH=1`）；保留 HDMI/AV 输入相关的包（确实想停用就设 `TVINPUT_ALLOW=1`）；保留电视用来打开输入源和设置的应用（`HANDLERS_ALLOW=1`）；并且绝不会把 Home 交给厂商的 `FallbackHome` 或出厂测试应用。
+每一个被保留的包都会附上原因并以 1 退出，因为在你手工处理掉它之前，电视并没有回到清单描述的状态。
 
-- **macOS 提示 `No route to host`**：检查本地网络隐私权限；可尝试通过 `tools/venv/bin/python -I tools/tv.py` 使用仓库的 Python ADB 工具。
-- **替换后 HOME 异常**：应先确认新桌面已安装且能够运行，再停用原始桌面。Shell 安装脚本按这个顺序执行；Windows 脚本的现有顺序见上文。
-- **Google TV 设置向导抢占 HOME**：`com.google.android.tungsten.setupwraith` 可能在原始桌面停用后抢占 HOME。先按故障排查文档检查它是否拥有当前 Wi-Fi 配置；直接停用可能删除该网络。清理工具会在这种情况下跳过它，需先在系统设置中忘记该 Wi-Fi，再重新加入。若已经异常，可尝试重新启用 Google TV 原始桌面：`tools/venv/bin/python -I tools/tv.py 'pm enable --user 0 com.google.android.apps.tv.launcherx'`。
+配合 `stock_home_redirect`，原厂桌面可以有意保留为 Home：清单不包含它，安装脚本以 `STOCK_LAUNCHER=none` 运行，Android 继续把它当作 Home，而 `HomeKeyService` 把它的主屏转发给本桌面。在 Chromecast with Google TV 4K 上，这种配置对应文件夹里的 `debloat-keep-cast.txt` 而不是 `debloat.txt`，因为后者会停用重定向方案需要保留的 setupwraith 和屏保那一对。在 Acer AR55AR2851UDPRO 上则对应文件夹里的 `debloat.txt`。检查这些清单时要把原厂桌面作为第二个参数传进去。否则检查会期望 Home 是 `com.gathin.tvhome`，于是每次运行都报告 Home 有偏差，`--fix` 还会试图把 Home 搬过去，而这些电视并不会保持。
+
+```bash
+TV_HOST=192.168.1.50 tools/venv/bin/python -I tools/check.py examples/google-chromecast-gtv-4k/debloat-keep-cast.txt com.google.android.apps.tv.launcherx
+TV_HOST=192.168.1.50 tools/venv/bin/python -I tools/check.py examples/acer-ar55ar2851udpro/debloat.txt com.google.android.tvlauncher
+```
+
+在原厂桌面本就该关闭的地方（清单停用了它，或安装脚本停用了它）请省略这个参数：Chromecast 的 `debloat.txt` 中安装脚本会停用 launcherx，XGIMI 投影仪上重定向只负责兜住那些会被固件重新打开的情况。在这些场景下，原厂桌面占据 Home 就是偏差，把它写进第二个参数反而会掩盖这个偏差。
+
+清单里如果连更新器一并停用了，就完全收不到更新。想装更新：先在电视上重新启用更新器，让它更新，运行 `check.py --fix`，再把更新器停用。
+
+Windows 上同样的命令是 `tools\venv\Scripts\python.exe -I tools\check.py <清单>`。
+
+## 出问题的时候
+
+让我们踩过坑的完整清单在 [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)。最要紧的三个：
+
+- 🍎 **macOS 会拦截 `adb connect`**（提示「No route to host」），因为本地网络隐私权限。`tools/tv.py` 绕开了那个可执行文件。
+- ⚠️ **一定要在新桌面安装并运行起来之后，再停用原厂桌面**，否则 Home 会落到出厂测试应用上。安装脚本已经替你安排好顺序。
+- 🔁 **在 Google TV 上，设置向导**（`com.google.android.tungsten.setupwraith`）在原厂桌面被停用后可能抢走 Home 并导致系统崩溃重启。把它也停用，并写进你的 `debloat.txt`，这样恢复时能把它带回来。但先检查 `dumpsys wifi | grep -o 'cname=[^ ]*'`：如果 Wi-Fi 网络是在设置向导期间保存的，它就属于 setupwraith，停用它会删掉这个网络（先在设置里重新连一次；在你重连之前 `tools/disable.sh` 会跳过 setupwraith）。在 Google 自家的 Chromecast 和 Google TV Streamer 上，停用它还会导致手机投屏失效，详见[常见问题排查](docs/TROUBLESHOOTING.md)。已经卡住了？`tools/tv.py 'pm enable --user 0 com.google.android.apps.tv.launcherx'`。
 
 ## 常见问题
 
-**会刷机或删除系统应用吗？**
+<details>
+<summary><b>我不会写代码，也没有笔记本，还能做吗？</b></summary>
 
-不会。清理通过停用应用实现，但停用系统依赖仍可能造成故障，因此需要按机型核对、分批处理，并保留恢复路径。
+可以。[@udhaykumarbala](https://github.com/udhaykumarbala) 为 Android 做了一个免费开源的[手机应用](https://cleanyour.tv/app)，同样通过 Wi-Fi 完成清理：它会连接电视、先给出方案、保存恢复点，并且只关闭应用，所以一切都能还原。这是社区项目。
 
-**系统更新和应用更新会受影响吗？**
+</details>
 
-部分停用列表包含系统更新服务，需要重新启用后才能接收固件更新。常用流媒体应用仍可通过保留的应用商店更新；具体取决于设备和所用列表。
+<details>
+<summary><b>安全吗？会把电视刷成砖吗？</b></summary>
 
-**能远程帮助其他人操作吗？**
+不会刷机、不会 root、不会删除任何东西；这些包只是被停用在当前用户配置里。风险在于停用了电视所依赖的某个组件，所以清单都建议小批量应用，并随时备好恢复脚本。即使没有这些工具，电视自己的「设置 → 应用」页面也能重新启用包。
 
-可以通过私有 Tailscale 网络连接，详见[远程操作说明](docs/REMOTE.md)。不要在路由器上将 ADB 端口暴露到互联网。
+如果电视已经卡到连这个页面或 ADB 都进不去，通常的退路是在 recovery 菜单里恢复出厂设置（见 [#1578](https://github.com/Gathin23/cleanyourtv/issues/1578)）：这些工具改动的所有东西都在用户数据里，而恢复出厂会清空它，于是所有被停用的应用都会回来，新桌面也会消失——你自己的应用和账号同样一起消失。如果恢复出厂后电视仍然循环重启，那更可能是硬件问题而不是清理造成的（见 [#1592](https://github.com/Gathin23/cleanyourtv/issues/1592)）；目前已遇到的案例记在[常见问题排查](docs/TROUBLESHOOTING.md#working-on-the-tv)。
 
-**完成后要关闭调试吗？**
+</details>
 
-需要。本工具使用的传统 TCP ADB（默认 5555 端口）为明文连接，部分固件甚至不强制授权。完成后关闭 USB 调试及网络 / ADB 调试，撤销调试授权，并按[英文 README 的检查步骤](README.md#questions-people-ask)确认端口已关闭。
+<details>
+<summary><b>那固件更新呢？</b></summary>
 
-**支持私有 DNS 或 AirPlay 吗？**
+大多数清单会保留更新器，所以固件更新照常推送。有些清单会停用电视自带的更新器，在这些机器上，只有你重新启用后才会收到更新。更新真的下来时，它会覆盖在已清理的系统之上，于是某些包又回来了，你再跑一次脚本即可，详见[固件更新之后](#固件更新之后)。
 
-私有 DNS 是部分 Android 版本提供的系统功能，并非桌面的广告过滤能力，也无法屏蔽所有视频广告。AirPlay 不属于桌面内置功能，需要另行安装和配置。相关可选方案见[英文常见问题](README.md#questions-people-ask)。
+</details>
 
-**有现成 APK 吗？**
+<details>
+<summary><b>应用会不会出问题？</b></summary>
 
-目前仓库的使用方式是通过安装脚本编译并安装，方便根据设备调整配置。
+流媒体应用依然通过 Play 商店更新，商店没有被改动。桌面只是列出已安装的应用，并用十年来一直稳定的 intent 启动它们。
+
+</details>
+
+<details>
+<summary><b>能帮别人家（不在同一屋檐下）的电视做吗？</b></summary>
+
+可以，用私有的 [Tailscale](https://tailscale.com) 链路代替同一个 Wi-Fi：要么在他们电视上装 Tailscale 并共享给你，要么在他们家放一台电脑或 Apple TV 做路由。**绝不要**在他们路由器上开放 ADB 端口。分步说明见 [docs/REMOTE.md](docs/REMOTE.md)。
+
+</details>
+
+<details>
+<summary><b>开放 ADB 访问不是安全漏洞吗？</b></summary>
+
+它只是在电视上点一次「允许这台电脑」，和你开发 Android 应用时一样。网络 ADB 在 5555 端口上明文传输，而在 `ro.adb.secure=0` 的固件上，局域网里任何设备都能拿到 shell，所以用完就关掉：
+
+1. 在电视上：开发者选项 → 关闭 **USB 调试**、**网络/ADB 调试** 和 **无线调试**（电视上有哪个就关哪个），并撤销 USB 调试授权。无线调试监听自己的端口，USB 调试关闭后它仍可能保持开放（在 Chromecast with Google TV 4K 上见过）。关闭之前先记下这个端口（`adb mdns services` 会把它列为 `_adb-tls-connect._tcp`），关掉后立刻、在重启之前检查：`python3 tools/adb-closed.py <电视 ip> <端口>` 必须报告该端口已关闭。重启之后旧端口号无论如何都会显示关闭：无线调试每次启动都会换一个新端口。
+2. 重启电视，然后从电脑确认端口已消失：`python3 tools/adb-closed.py <电视 ip>` 必须报告端口已关闭。开发者选项里无线调试仍须关闭，并且 `adb mdns services` 不应列出这台电视的任何 `_adb-tls-connect._tcp` 条目；如果又出现了，按第 1 步关掉并检查它的新端口。用 `nc -vz <电视 ip> 5555` 检查时，只有「Connection refused」才算数：在 macOS 上，本地网络隐私权限可能拦住 `nc`，让它在端口仍然开放时报「No route to host」。
+
+桌面在没有调试的情况下照常工作。
+
+</details>
+
+<details>
+<summary><b>能顺便拦掉应用内的广告吗？</b></summary>
+
+能部分做到，靠 Android 的 Private DNS（Android 9 及以上）。把它指向一个带广告拦截的解析器，例如 [AdGuard DNS](https://adguard-dns.io)，所有应用的广告和追踪域名就会解析失败，这是系统级的，重启后依然有效。代价是：那个解析器将能看到这台电视发出的每一次 DNS 查询。
+
+```bash
+tools/tv.py 'settings put global private_dns_specifier dns.adguard-dns.com'
+tools/tv.py 'settings put global private_dns_mode hostname'
+```
+
+它去不掉 YouTube 的广告，因为那些广告和视频来自同一批服务器。当电视提示「无网络」时，说明解析器挂了或不可达，切回来就能恢复一切：`tools/tv.py 'settings put global private_dns_mode opportunistic'`。这一行需要重新打开调试，因为 Android TV 的设置应用没有 Private DNS 页面（AOSP 里没有，Chromecast with Google TV 4K 上的 Google TV 14 里也没有）；而 ADB 直连电视地址，所以解析器挂掉时它照样能连上。一个能正常应答的解析器也可能单独弄坏某个应用，所以如果只有一个应用播不了、其他都正常，先看[某个应用播不了](docs/TROUBLESHOOTING.md#one-app-refuses-to-play-while-the-rest-of-the-tv-is-online)，再去排查那个应用。
+
+</details>
+
+<details>
+<summary><b>电视自己的设置里也有值得拨的开关吗？</b></summary>
+
+有几个。它们不需要 ADB，遥控器就能拨回来，清理清单也会保留它们（「用量与诊断」和「仅应用模式」除外）：那些页面属于设置和 Play 服务，而每份清单都保留这两者。下面这些路径是 Google TV 的；其他 Android TV 版本会把其中一部分挪到别处。
+
+- **设置 → 隐私 → 广告**：删除广告 ID，或打开「退出广告个性化」。在 Android TV 上它在「关于 → 法律信息 → 广告」下面（有些机型在设备偏好设置里）。
+- **设置 → 隐私 → 位置**，关闭。桌面的网络胶囊可能随之显示「Wi-Fi」而不是网络名称。
+- **设置 → 隐私 → 用量与诊断**，在清理之前关闭。在 Chromecast with Google TV 4K 上，这个页面来自 setupwraith，而大多数 Google TV 清单为了换桌面都会停用它；在一台 [Hisense 50A6H4](examples/hisense-smarttv-4k-ffm-android11/debloat.txt) 上，清理后打开它什么都不显示。
+- **设置 → 网络和互联网 → 始终可扫描**，关闭。它允许 Google 的位置服务和其他应用在 Wi-Fi 关闭时仍扫描 Wi-Fi 网络，所以走以太网的电视尤其要注意。
+- **设置 → 账号与登录 → 你的档案 → 仅应用模式**（在 launcherx 仍启用的场景下：`stock_home_redirect`，或 Chromecast 的 `debloat-keep-cast.txt`）。Google TV 自己的主屏会因此去掉个性化推荐，投屏仍然可用，但搜索和助手会关掉。这个开关在 launcherx 里，所以停用 launcherx 的清单也就带走了它。
+
+Fire OS 上：设置 → 偏好设置 → 隐私设置，关闭「基于兴趣的广告」「设备使用数据」和「收集应用使用数据」。它们会和亚马逊账号同步，所以请在菜单里改，不要用 `settings put`。
+
+</details>
+
+<details>
+<summary><b>能用 AirPlay 吗？</b></summary>
+
+本仓库不含此功能。Android 手机的 Chromecast 内置投屏仍然保留。iPhone 可以试 [jqssun/android-airplay-server](https://github.com/jqssun/android-airplay-server)；它的安装脚本在 [PR #84](https://github.com/Gathin23/cleanyourtv/pull/84) 里。
+
+</details>
+
+<details>
+<summary><b>能直接下载 APK 吗？</b></summary>
+
+用那个一行脚本自己编译，一分钟就好，而且你能掌控装到电视上的到底是什么。这里不提供预编译二进制。
+
+</details>
 
 ## 参与贡献
 
-欢迎提交经过实际设备验证的机型清单、桌面改进、文档修正和主题。提交前请阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md)，每个 PR 保持一个主题，并说明验证范围。衍生项目和不同风格的桌面可登记在 [`SHOWCASE.md`](SHOWCASE.md)。
+最有价值的贡献是你那台电视的清理清单，这样下一个用同款机型的人不必重新摸索。[CONTRIBUTING.md](CONTRIBUTING.md) 里写了格式和我们要求的测试。想通过编程助手来贡献？[AGENTS.md](AGENTS.md) 给了它同样的规则。
 
-如果英文说明发生变化，也欢迎同步修订本文。机型数量、支持列表和主题列表直接参考对应目录，以减少重复维护。
+| 怎么帮上忙 | 意味着什么 |
+|---|---|
+| **你电视的清理清单** | 最有用的那种：下一个用同款机型的人可以直接跳过摸索。 |
+| **桌面与提示词** | 桌面改进和更精准的提示词措辞同样欢迎。 |
+| **做过什么衍生作品？** | 桌面、移植版、主题：加进 [SHOWCASE.md](SHOWCASE.md)，那里已经有一百一十七个项目，分成主屏、fork、扩展插件、工具和其他平台几类，并附按电视品牌索引。 |
 
-## 联系与安全报告
+这个仓库里有他们工作的人：
 
-电视使用问题可在 [GitHub Discussions](https://github.com/Gathin23/cleanyourtv/discussions) 讨论。媒体与合作联系方式见[英文联系说明](README.md#contact)。安全漏洞请通过仓库 [Security 页面](https://github.com/Gathin23/cleanyourtv/security) 私下报告，详见 [`SECURITY.md`](SECURITY.md)。
+<a href="https://github.com/Gathin23/cleanyourtv/graphs/contributors"><img src="https://contrib.rocks/image?repo=Gathin23/cleanyourtv&columns=16&max=400" alt="贡献者"></a>
+
+<details>
+<summary><strong>Star 历史</strong></summary>
+
+<a href="https://star-history.com/#Gathin23/cleanyourtv&Date"><img src="https://api.star-history.com/svg?repos=Gathin23/cleanyourtv&type=Date" alt="Star 历史曲线" width="640"></a>
+
+</details>
+
+## 联系方式
+
+| 事项 | 去哪里 |
+|---|---|
+| **关于你电视的问题** | [GitHub Discussions](https://github.com/Gathin23/cleanyourtv/discussions) |
+| **媒体与咨询** | [hello@itsgathin.com](mailto:hello@itsgathin.com) |
+| **安全问题** | 请通过 [Security 标签页](https://github.com/Gathin23/cleanyourtv/security) 私下报告，见 [`SECURITY.md`](SECURITY.md) |
+
+## 法律声明
+
+- CleanYourTV 是一个独立的开源项目，与任何电视厂商或平台没有隶属、背书或赞助关系。品牌和型号名称仅用于说明某份清单是在哪台电视上测试的，其所有权仍归各自持有人。
+- 它只通过电视向机主提供的设置来工作：开发者选项、ADB 调试和 Android 自带的 `pm disable-user`，与「设置 > 应用 > 停用」是同一个开关。它不 root 电视、不刷写固件、不绕过任何锁、DRM 或复制保护，仓库里也不含任何厂商软件、固件或 APK。
+- 不卸载任何东西，`tools/restore.sh` 能把一切放回去。你在自己拥有的电视上运行它，风险自负；改动电视的软件可能影响保修或售后支持。
+- 本项目按「原样」提供，不附带任何形式的担保，采用下述 MIT 许可证。
 
 ## 许可证
 
-项目采用 [MIT 许可证](LICENSE)。Outfit 字体采用 [SIL Open Font License](launcher/FONT-LICENSE-OFL.txt)。
+MIT，见 [`LICENSE`](LICENSE)。Outfit 字体采用 SIL Open Font License，见 `launcher/FONT-LICENSE-OFL.txt`。
+
+---
+
+<sub>本中文版由社区翻译整理，如有出入以[英文原文](README.md)为准。图片已本地化并翻译为中文。</sub>
