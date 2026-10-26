@@ -711,7 +711,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
-        setUpUsbPill(cfg.usbPillPackage, cfg.topMenu);
+        setUpUsbPill(cfg.usbPillPackage, cfg.topMenu, cfg.dateBelowClock);
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnVpn.setOnClickListener(v -> openVpnPill());
         btnWifi.setOnLongClickListener(v -> {
@@ -2353,7 +2353,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * TV's own USB media browser. Hidden when the package is unset, not installed or disabled, and with
      * top_menu, which folds the bar into one gear.
      */
-    private void setUpUsbPill(String pkg, boolean topMenu) {
+    private void setUpUsbPill(String pkg, boolean topMenu, boolean dateBelowClock) {
         TextView pill = findViewById(R.id.btnUsb);
         Intent launch = null;
         if (!pkg.isEmpty() && !topMenu) {
@@ -2370,6 +2370,45 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         pill.setOnClickListener(v -> open(new Intent(target)));
         pill.setVisibility(View.VISIBLE);
         btnUsb = pill;
+        fitHeaderAroundUsbPill(dateBelowClock);
+    }
+
+    /**
+     * The USB pill takes room the clock and date may need. Whenever the header lays out with the date cut short
+     * ("MONDAY 26...") or the clock wrapped onto two lines, it gives up one thing (HeaderFit): first the pill's label,
+     * keeping the glyph as icon_only_buttons draws it, then the date beside the clock, which moves below it as
+     * date_below_clock lays it out. A header with room is left as it is.
+     */
+    private void fitHeaderAroundUsbPill(boolean dateAlreadyBelow) {
+        View leftBlock = findViewById(R.id.leftBlock);
+        TextView clock = findViewById(R.id.clock);
+        TextView date = findViewById(R.id.date);
+        boolean[] dateBelow = {dateAlreadyBelow};
+        leftBlock.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+                TextView pill = btnUsb;
+                if (pill == null) {
+                    leftBlock.removeOnLayoutChangeListener(this);
+                    return;
+                }
+                int step = HeaderFit.next(squeezed(clock, date), !TextUtils.isEmpty(pill.getText()), dateBelow[0]);
+                if (step == HeaderFit.FOLD_LABEL) {
+                    // Not inside this layout pass; and only once, though several passes may ask before it runs.
+                    leftBlock.post(() -> { if (!TextUtils.isEmpty(pill.getText())) makeIconOnly(pill); });
+                } else if (step == HeaderFit.DATE_BELOW) {
+                    dateBelow[0] = true;
+                    leftBlock.post(MainActivity.this::moveDateBelowClock);
+                }
+            }
+        });
+    }
+
+    /** The date ends in an ellipsis, or the clock wrapped onto a second line. */
+    private static boolean squeezed(TextView clock, TextView date) {
+        android.text.Layout d = date.getLayout();
+        boolean dateCut = d != null && d.getLineCount() > 0 && d.getEllipsisCount(d.getLineCount() - 1) > 0;
+        return dateCut || clock.getLineCount() > 1;
     }
 
     /** top_bar_apps buttons, in bar order. */

@@ -320,7 +320,10 @@
     <string-array name="top_bar_apps" translatable="false">
     </string-array>
     <!-- A "USB" pill left of Inputs, styled like the other pills (white USB glyph and label), that opens this package:
-         the TV's USB media browser, e.g. com.xiaomi.mitv.mediaexplorer on Xiaomi. The app then leaves the grid. Empty
+         the TV's USB media browser, e.g. com.xiaomi.mitv.mediaexplorer on Xiaomi. The app then leaves the grid. When the
+         header would cut the date short or wrap the clock, the pill drops its label and keeps the glyph (as
+         icon_only_buttons draws it), and if that is not enough the date moves below the clock (as date_below_clock
+         lays it out); with icon_only_buttons or icon_only_inputs it is a round button from the start. Empty
          (the default), not installed or disabled hides the pill, as does top_menu. Can also be set with
          "usb_pill_package" in a theme. -->
     <string name="usb_pill_package" translatable="false"></string>
