@@ -720,6 +720,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnSettings.setOnClickListener(v -> {
             if (launcherSettingsButton) startActivityForResult(
                     new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+            else if (!toolApps().isEmpty()) showToolsMenu();
             else open(systemIntent(Settings.ACTION_SETTINGS));
         });
         btnReorder = findViewById(R.id.btnReorder);
@@ -2528,6 +2529,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private static final int RACE_RED = 0xFFFF3B2F;
 
+    /** config.xml tools_apps that are installed: {label, icon, launch intent} for the Settings menu. */
+    private List<Object[]> toolApps() {
+        PackageManager pm = getPackageManager();
+        List<Object[]> out = new ArrayList<>();
+        for (String pkg : getResources().getStringArray(R.array.tools_apps)) {
+            Intent launch = pm.getLeanbackLaunchIntentForPackage(pkg);
+            if (launch == null) launch = pm.getLaunchIntentForPackage(pkg);
+            if (launch == null) continue;
+            try {
+                android.content.pm.ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+                out.add(new Object[]{pm.getApplicationLabel(ai), pm.getApplicationIcon(ai), launch});
+            } catch (PackageManager.NameNotFoundException e) {
+                android.util.Log.w("TvHome", "tool app gone: " + pkg, e);
+            }
+        }
+        return out;
+    }
+
+    /** The Settings button with tools_apps: the TV's own settings first, then each tool app. */
+    private void showToolsMenu() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (240 * density));
+        addSettingsMenuRow(rows, popup, getString(R.string.tv_settings), getDrawable(R.drawable.ic_settings), false,
+                () -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        for (Object[] tool : toolApps()) {
+            Intent launch = (Intent) tool[2];
+            addSettingsMenuRow(rows, popup, (CharSequence) tool[0], (Drawable) tool[1], true, () -> open(launch));
+        }
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (240 * density), panel.getMeasuredWidth()));
+        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
+
     /**
      * Shows or hides the race-weekend panel for this minute. Text only, set once a minute with the clock:
      * nothing animates, so the panel costs the GPU nothing between ticks.
@@ -3237,9 +3274,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (launcherSettingsButton) {
             addInputRow(rows, popup, R.drawable.ic_home_settings_pill, getString(R.string.launcher_settings), -1,
                     () -> startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
-        } else {
+        }
+        // With tools_apps the Settings row opens their list (TV settings first), as the Settings button does.
+        if (!launcherSettingsButton || !toolApps().isEmpty()) {
             addInputRow(rows, popup, R.drawable.ic_settings, getString(R.string.settings), -1,
-                    () -> open(systemIntent(Settings.ACTION_SETTINGS)));
+                    () -> {
+                        if (toolApps().isEmpty()) open(systemIntent(Settings.ACTION_SETTINGS));
+                        else root.post(this::showToolsMenu);
+                    });
         }
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (220 * density), Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
@@ -3255,6 +3297,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
         if (!launcherSettingsButton) addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> startActivityForResult(
                 new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
+        // tools_apps hidden from the grid stay reachable here too.
+        if (!toolApps().isEmpty()) addSettingsMenuRow(rows, popup, R.string.tv_settings, () -> root.post(this::showToolsMenu));
         // Firmware that ships its own settings app next to the AOSP one (Xiaomi China is one): the
         // vendor app holds pages the AOSP settings has no row for, such as Account & Security with
         // the ADB switch. Offered here only while one of them is installed.
@@ -3333,8 +3377,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, int title, Runnable action) {
+        addSettingsMenuRow(rows, popup, getString(title), null, false, action);
+    }
+
+    /** A menu row with an optional icon: a glyph takes the row's text colour, an app's own icon keeps its colours. */
+    private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, CharSequence title, Drawable icon,
+                                    boolean appIcon, Runnable action) {
         View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
-        row.findViewById(R.id.icon).setVisibility(View.GONE);
+        ImageView iconView = row.findViewById(R.id.icon);
+        if (icon == null) {
+            iconView.setVisibility(View.GONE);
+        } else {
+            iconView.setImageDrawable(icon);
+            if (appIcon) iconView.setImageTintList(null);
+        }
         row.findViewById(R.id.dot).setVisibility(View.GONE);
         row.findViewById(R.id.status).setVisibility(View.GONE);
         ((TextView) row.findViewById(R.id.title)).setText(title);
