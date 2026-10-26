@@ -33,9 +33,11 @@ import java.util.concurrent.Executors;
 final class WallpaperPlayer {
     private final FrameLayout root;
     private final ImageView image;
+    private final ImageView nextImage;
     private final int backgroundColor;
     private final List<File> files;
     private final long interval;
+    private final boolean crossfade;
     private final String order;
     private final SharedPreferences preferences;
     private final ExecutorService decoder = Executors.newSingleThreadExecutor();
@@ -67,6 +69,7 @@ final class WallpaperPlayer {
         backgroundColor = config.backgroundColor;
         files = new ArrayList<>(config.wallpapers);
         interval = config.wallpaperRotationMinutes * 60_000L;
+        crossfade = config.animations && !config.reducedMotion;
         bitmapConfig = config.wallpaperTrueColor ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
         // The dim is painted into the picture (decode), so no full-screen shade layer is drawn on every frame.
         dimColor = config.wallpaperDim > 0 ? (config.wallpaperDim * 255 / 100) << 24 : 0;
@@ -88,11 +91,17 @@ final class WallpaperPlayer {
         image = new ImageView(context);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        nextImage = new ImageView(context);
+        nextImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        nextImage.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        nextImage.setAlpha(0f);
         names = config.wallpaperCaptions && config.wallpaperEnabled && !files.isEmpty()
                 ? WallpaperCaptions.read(files.get(0).getParentFile()) : Collections.emptyMap();
         caption = names.isEmpty() ? null : makeCaption(context, root);
         if (config.wallpaperEnabled && !files.isEmpty()) {
             root.addView(image, 0, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            root.addView(nextImage, 1, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             showFirst();
         }
@@ -111,7 +120,7 @@ final class WallpaperPlayer {
         while (first != null) {
             Bitmap bitmap = decode(first);
             if (bitmap != null) {
-                show(bitmap);
+                show(bitmap, false);
                 // The picture covers the whole screen: the root's plain colour under it is overdraw.
                 root.setBackground(null);
                 displayed = first.getName();
@@ -135,11 +144,16 @@ final class WallpaperPlayer {
 
     void stop() {
         active = false;
+        nextImage.animate().cancel();
     }
 
     /** Drops the wallpaper texture when Home is hidden and Android asks the process to free memory. */
     void releaseForMemoryPressure() {
         if (current == null) return;
+        nextImage.animate().cancel();
+        nextImage.setImageDrawable(null);
+        nextImage.setAlpha(0f);
+        image.animate().cancel();
         image.setImageDrawable(null);
         // The renderer may still have a queued frame that references this hardware bitmap. Drop our references and
         // let Android reclaim its native buffer after rendering releases it instead of recycling it mid-frame.
@@ -162,6 +176,8 @@ final class WallpaperPlayer {
     void close() {
         active = false;
         closed = true;
+        nextImage.animate().cancel();
+        image.animate().cancel();
         decoder.shutdownNow();
     }
 
@@ -192,7 +208,7 @@ final class WallpaperPlayer {
                     update();
                     return;
                 }
-                show(bitmap);
+                show(bitmap, crossfade);
                 displayed = next.getName();
                 showCaption(true);
                 if (!displayed.equals(previous) || changed == 0) {
@@ -259,14 +275,38 @@ final class WallpaperPlayer {
         return key.toString();
     }
 
-    /** Puts a picture on screen and releases the previous one after a frame has drawn the new one. */
-    private void show(Bitmap bitmap) {
+    /** Puts a picture on screen, crossfading into it if fade is true. */
+    private void show(Bitmap bitmap, boolean fade) {
         Bitmap old = current;
         current = bitmap;
         // The wallpaper covers the whole root; avoid drawing the fallback colour under it.
         root.setBackground(null);
-        image.setImageBitmap(bitmap);
-        if (old != null && old != bitmap) image.postDelayed(old::recycle, 500);
+        if (!fade || old == null || old == bitmap) {
+            nextImage.animate().cancel();
+            nextImage.setAlpha(0f);
+            nextImage.setImageDrawable(null);
+            image.animate().cancel();
+            image.setAlpha(1f);
+            image.setImageBitmap(bitmap);
+            if (old != null && old != bitmap) image.postDelayed(old::recycle, 500);
+            return;
+        }
+        nextImage.animate().cancel();
+        nextImage.setImageBitmap(bitmap);
+        nextImage.setAlpha(0f);
+        nextImage.animate()
+                .alpha(1f)
+                .setDuration(800)
+                .withEndAction(() -> {
+                    image.setImageBitmap(bitmap);
+                    image.setAlpha(1f);
+                    nextImage.setAlpha(0f);
+                    nextImage.setImageDrawable(null);
+                    if (old != null && old != bitmap) {
+                        image.postDelayed(old::recycle, 300);
+                    }
+                })
+                .start();
     }
 
     private Bitmap decode(File file) {
