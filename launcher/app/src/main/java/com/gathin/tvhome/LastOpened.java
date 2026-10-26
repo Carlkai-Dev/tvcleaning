@@ -4,27 +4,69 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.format.DateUtils;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * When an app was last opened from Home, for the cinematic shelf's "Last opened" line: the launcher notes the
- * time whenever it opens an app. No permission and nothing read from other apps, so an app started some other
- * way (a remote's own Netflix button) shows the last time Home opened it.
+ * When an app was last opened from Home, for the cinematic shelf's "Last opened" line and grid sorting.
+ * Launch times are cached in memory to ensure UI thread operations (such as list sorting) never block on disk I/O.
  */
 final class LastOpened {
     private static final String PREFS = "last_opened";
+    private static final Map<String, Long> CACHE = new ConcurrentHashMap<>();
+    private static volatile boolean seeded = false;
 
     private LastOpened() {
     }
 
+    /**
+     * Seeds the in-memory cache once from SharedPreferences.
+     */
+    static void seed(Context ctx) {
+        if (ctx == null || seeded) return;
+        Context appCtx = ctx.getApplicationContext();
+        synchronized (CACHE) {
+            if (!seeded) {
+                seeded = true;
+                try {
+                    Map<String, ?> all = prefs(appCtx).getAll();
+                    for (Map.Entry<String, ?> e : all.entrySet()) {
+                        if (e.getValue() instanceof Long) {
+                            CACHE.put(e.getKey(), (Long) e.getValue());
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
     /** Notes that Home just opened this app. */
     static void record(Context ctx, String pkg) {
-        prefs(ctx).edit().putLong(pkg, System.currentTimeMillis()).apply();
+        if (ctx == null || pkg == null) return;
+        long now = System.currentTimeMillis();
+        CACHE.put(pkg, now);
+        prefs(ctx.getApplicationContext()).edit().putLong(pkg, now).apply();
+    }
+
+    /** Returns a snapshot copy of the cached launch times for stable sorting. */
+    static Map<String, Long> snapshot(Context ctx) {
+        if (!seeded && ctx != null) {
+            seed(ctx);
+        }
+        return new HashMap<>(CACHE);
     }
 
     /** Milliseconds since the epoch, or 0 when Home never opened the app. */
     static long get(Context ctx, String pkg) {
-        return pkg == null ? 0L : prefs(ctx).getLong(pkg, 0L);
+        if (pkg == null) return 0L;
+        if (!seeded && ctx != null) {
+            seed(ctx);
+        }
+        Long val = CACHE.get(pkg);
+        return val != null ? val : 0L;
     }
 
     /**
