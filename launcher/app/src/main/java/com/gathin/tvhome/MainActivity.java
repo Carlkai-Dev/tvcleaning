@@ -140,7 +140,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private RecyclerView grid;
     private FrameLayout root;
     private WallpaperPlayer wallpaperPlayer;
+    /** The looping aerial behind Home (config.xml aerial_backdrop); null when that file is not on the TV. */
+    private AerialBackdrop aerial;
     private GlassView glass;
+    private NavSound navSound;
+    /** Row scrolling, as on tvOS: about 350 ms, gliding to a stop. */
+    private static final int SCROLL_MS = 350;
+    private static final android.view.animation.Interpolator SCROLL_EASE =
+            new android.view.animation.PathInterpolator(0.25f, 1f, 0.5f, 1f);
+    /** The top row of buttons and the clock; slides up with the grid's scroll. Null in the Hebrew layout. */
+    private View header;
+    /** How far the grid has scrolled down from the top, in px, for the header. */
+    private int headerScroll;
     private View ambient;
     private TextView heroName;
     /** The top shelf: heroName, plus the cinematic shelf's "Last opened" line and dock position dots. */
@@ -433,8 +444,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         getWindow().setBackgroundDrawable(null);
         wallpaperPlayer = new WallpaperPlayer(this, root, cfg);
         sky = findViewById(R.id.sky);
+        // Above the wallpaper (it stays as the picture when the video is missing), below everything else.
+        // The Background menu's pick, else config.xml's aerial_backdrop.
+        aerial = AerialBackdrop.attach(this, root, root.indexOfChild(sky),
+                AerialBackdrop.chosen(this, getString(R.string.aerial_backdrop)), cfg.backgroundColor);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
+        navSound = new NavSound(this);
+        header = findViewById(R.id.header);
+        // A font of your own for the clock (files/clock_font.otf or .ttf, pushed with adb), else Inter.
+        applyClockFont(findViewById(R.id.clock), findViewById(R.id.ampm));
         glass.setStyle(cfg.glassStyle);
         if (festive) glass.setAccent(festival.accentColor());
         ambient = findViewById(R.id.ambient);
@@ -443,7 +462,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.forceHasOverlappingRendering(false);
         ambientGlow = cfg.ambientGlow;
         appGlow = cfg.appGlow;
-        if (!ambientGlow) ambient.setVisibility(View.GONE);
+        if (!ambientGlow || aerial != null) ambient.setVisibility(View.GONE);
         heroName = findViewById(R.id.heroName);
         hero = findViewById(R.id.hero);
         // The hero is now a group (name, and the cinematic lines): without this every fade of the default
@@ -468,7 +487,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (cfg.headerWhite) {
             // The clock's own white for the date and the line before it, instead of their dimmed whites.
             ((TextView) findViewById(R.id.date)).setTextColor(Color.WHITE);
-            findViewById(R.id.clockDivider).setBackgroundColor(Color.WHITE);
+            View divider = findViewById(R.id.clockDivider);
+            if (divider != null) divider.setBackgroundColor(Color.WHITE);
         }
         if (getResources().getBoolean(R.bool.rtl_menu_bar)) {
             // Center Hebrew greetings over the numeric time, independent of a visible AM/PM label. The clock's row
@@ -487,6 +507,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             clockRow.addOnLayoutChangeListener(centerGreeting);
         }
         btnWifi = findViewById(R.id.btnWifi);
+        // No network pill on this TV: Wi-Fi lives in Settings.
+        if (btnWifi != null) btnWifi.setVisibility(View.GONE);
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
         raceCalendar = cfg.raceCalendar;
@@ -557,6 +579,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (dockRow && getPosition(child) < COLUMNS) return false;
                 int top = child.getTop() + rect.top;
                 int bottom = top + rect.height();
+                // Apple TV: going down into the apps slides the dock up to the top of the screen, the app rows
+                // laid out under it. While the focused row fits under the parked dock, park it there; rows
+                // further down than that scroll in one at a time below.
+                int park = dockRow ? parkDockBy(parent) : Integer.MIN_VALUE;
+                // 40dp, not the bottom padding: that padding grows to let the dock park on a short grid.
+                if (park != Integer.MIN_VALUE && bottom - park <= getHeight() - (int) (40 * density)) {
+                    if (Math.abs(park) < (int) (8 * density)) return false;
+                    if (immediate || reducedMotion || !animations) parent.scrollBy(0, park);
+                    else parent.smoothScrollBy(0, park, SCROLL_EASE, PARK_MS);
+                    return true;
+                }
                 // A row already fully on screen stays put, even inside the bottom padding (the last row
                 // rows_below_dock leaves visible ends there; nudging it up was the bug). A row that has to scroll
                 // in still stops at the padding line, clear of the screen edge, as before.
@@ -567,7 +600,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 else dy = Math.min(top, bottom - limitBottom);
                 if (dy == 0) return false;
                 if (immediate || reducedMotion || !animations) parent.scrollBy(0, dy);
-                else parent.smoothScrollBy(0, dy);
+                else parent.smoothScrollBy(0, dy, SCROLL_EASE, SCROLL_MS);
                 return true;
             }
         });
@@ -622,12 +655,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // room above the dock and the last rows run off the bottom instead of the title drawing over the clock.
             if (MainActivity.this.dockRow && cfg.dockTitle && rowsBelowDock > 0) want = Math.max(want, (int) (AppAdapter.TITLE_ROOM_DP * density));
             // No dock to push down: the grid starts at the top, with room for the first row's zoom and glass.
-            if (!MainActivity.this.dockRow) want = (int) (AppAdapter.TOP_ROOM_DP * density);
+            // The grid now runs under the header, so start below it.
+            if (!MainActivity.this.dockRow) want = (int) (AppAdapter.TOP_ROOM_DP * density) + (header != null ? header.getBottom() : 0);
+            // Room under the last row so the dock can slide all the way up to DOCK_PARK_TOP_DP (parkDockBy) even
+            // when the app rows are too few to scroll it there by themselves; 40dp as before once there are more.
+            // The band starts 10dp above the content top (6dp decoration + 8dp item padding - 24dp band margin).
+            int bottom = (int) (40 * density);
+            if (MainActivity.this.dockRow && adapter != null) {
+                int rows = (Math.max(0, adapter.getItemCount() - COLUMNS) + COLUMNS - 1) / COLUMNS;
+                int below = h - (int) ((10 + DOCK_PARK_TOP_DP + AppAdapter.DOCK_EXTRA_DP) * density) - itemH * (rows + 1);
+                bottom = Math.max(bottom, below + (int) (8 * density));
+            }
             // A single row never shows the names under its tiles (the title above the row names the app), so the
             // 7dp gap and 22dp label item_app.xml keeps for them would only lift the row: sit it that much lower.
             if (singleRow && !cfg.alwaysShowNames) want += (int) (29 * density);
-            if (grid.getPaddingTop() != want) {
-                grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
+            if (grid.getPaddingTop() != want || grid.getPaddingBottom() != bottom) {
+                grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), bottom);
                 // A vertical grid parks the dock on the new padding line by scrolling (onTileFocused); a sideways
                 // row cannot scroll vertically, and the layout request made from inside this layout pass is
                 // dropped, so lay the row out again on the next frame. The glass and the title were placed for the
@@ -655,6 +698,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                scrollHeader(dy);
                 if (!glassShown) return;
                 glassTargetY -= dy;
                 glassScrollShift -= dy;
@@ -712,68 +756,43 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        launcherSettingsButton = cfg.launcherSettingsButton;
-        if (launcherSettingsButton) {
-            ((TextView) btnSettings).setText(R.string.launcher_settings);
-            ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_home_settings_pill, 0, 0, 0);
-        }
+        // Press: the launcher's menu, TV settings at its top. Hold: straight to the Android TV settings.
         btnSettings.setOnClickListener(v -> {
-            if (launcherSettingsButton) startActivityForResult(
-                    new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
-            else open(systemIntent(Settings.ACTION_SETTINGS));
-        });
-        btnReorder = findViewById(R.id.btnReorder);
-        btnReorder.setOnClickListener(v -> toggleReorder());
-        btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
-        if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
-        showInputsPill = cfg.showInputsPill;
-        showInputsMenuRow = cfg.showInputsPill;
-        btnLibraryTop = findViewById(R.id.btnLibraryTop);
-        btnLibraryTop.setOnClickListener(v -> {
-            onLibraryRequested();
-            libraryFromTopBar = true;   // closing it goes back to this button, not to the pill after the last row
-        });
-        btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
-        addTopBarApps(cfg.topBarApps, cfg.launchActions);
-        iconOnlyButtons = cfg.iconOnlyButtons;
-        topMenu = cfg.topMenu;
-        wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
-        if (cfg.wifiStatusColor) {
-            wifiPlainTint = btnWifi.getCompoundDrawableTintList();
-            wifiOnlineTint = getColorStateList(R.color.pill_icon_online);
-            if (cfg.wifiStatusWarnings) {
-                wifiNoInternetTint = getColorStateList(R.color.pill_icon_no_internet);
-                wifiOfflineTint = getColorStateList(R.color.pill_icon_offline);
-            }
-        }
-        if (cfg.topMenu) {
-            // One gear: Inputs and Wi-Fi move into its dropdown. The Wi-Fi pill stays hidden but keeps its
-            // label up to date, which the menu's Wi-Fi row shows.
-            showInputsPill = false;
-            btnInputs.setVisibility(View.GONE);
-            btnWifi.setVisibility(View.GONE);
-            ((TextView) btnSettings).setText(R.string.settings);
-            ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_settings, 0, 0, 0);
-            if (!iconOnlyButtons) makeIconOnly((TextView) btnSettings);
-            btnSettings.setOnClickListener(v -> showTopMenu());
-            // The lone gear sits at the header's middle, not on its bottom line like the row of pills.
-            LinearLayout topButtons = findViewById(R.id.topButtons);
-            RelativeLayout.LayoutParams tlp = (RelativeLayout.LayoutParams) topButtons.getLayoutParams();
-            tlp.addRule(RelativeLayout.ALIGN_TOP, R.id.leftBlock);
-            tlp.bottomMargin = 0;
-            topButtons.setLayoutParams(tlp);
-            topButtons.setGravity(Gravity.CENTER_VERTICAL);
-        }
-        if (iconOnlyButtons) {
-            if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
-            else makeIconOnly(btnWifi);
-            makeIconOnly((TextView) btnSettings);
-        }
-        if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
-        btnSettings.setOnLongClickListener(v -> {
+            // The release after a hold can arrive as a click once Home is back: not a second press.
+            if (SystemClock.uptimeMillis() - settingsHeldAt < 1500) return;
             showSettingsMenu();
+        });
+        btnSettings.setOnLongClickListener(v -> {
+            settingsHeldAt = SystemClock.uptimeMillis();
+            openTvSettings();
             return true;
         });
+        // The bell: Home sounds on or off, null in the Hebrew layout.
+        TextView btnMute = findViewById(R.id.btnMute);
+        if (btnMute != null) {
+            showMuted(btnMute, navSound.isMuted());
+            btnMute.setOnClickListener(v -> {
+                navSound.setMuted(!navSound.isMuted());
+                showMuted(btnMute, navSound.isMuted());
+            });
+            // Hold: the Sounds panel, the same as Settings, Sounds.
+            btnMute.setOnLongClickListener(v -> {
+                showSoundsMenu(0, v);
+                return true;
+            });
+        }
+        btnReorder = findViewById(R.id.btnReorder);
+        btnReorder.setOnClickListener(v -> toggleReorder());
+        reorderButtonEnabled = cfg.reorderButton;
+        btnReorder.setVisibility(reorderButtonEnabled && topShown(TOP_REORDER) ? View.VISIBLE : View.GONE);
+        if (btnMute != null) btnMute.setVisibility(topShown(TOP_SOUND) ? View.VISIBLE : View.GONE);
+
+        // Clicking the clock capsule opens the clock panel with the time to the second.
+        View clockBlock = findViewById(R.id.clockBlock);
+        if (clockBlock != null) {
+            clockBlock.setVisibility(topShown(TOP_CLOCK) ? View.VISIBLE : View.GONE);
+            clockBlock.setOnClickListener(this::showClockPanel);
+        }
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -786,23 +805,50 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 focusTile(singleRow ? lastFocused : lastFocused % COLUMNS);
                 return true;
             }
-            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
-            int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
-            int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
-            return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
+            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : R.id.btnSettings;
+            // The left end of the right-hand row: the bell, else Customize when shown, else Inputs or Settings.
+            int leftOfBar = btnMute != null && btnMute.getVisibility() == View.VISIBLE ? R.id.btnMute
+                    : btnReorder.getVisibility() == View.VISIBLE ? R.id.btnReorder : firstButton;
+            int leftButton = rtlMenuBar ? R.id.btnSettings : leftOfBar;
+            // The clock capsule ends the row on the right where the layout has one (not the Hebrew header).
+            int rightButton = rtlMenuBar ? firstButton : clockBlock != null && clockBlock.getVisibility() == View.VISIBLE ? R.id.clockBlock : R.id.btnSettings;
+            boolean end = keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? v.getId() == leftButton
+                    : keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
+            if (end) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                // Focus is leaving this button: cancel its lift now so it settles with the move.
+                TvFocusMotion.applyButton(v, false, density);
+            }
+            return false;
         };
         btnInputs.setOnKeyListener(pillKeys);
-        btnWifi.setOnKeyListener(pillKeys);
-        btnVpn.setOnKeyListener(pillKeys);
+        if (btnWifi != null) btnWifi.setOnKeyListener(pillKeys);
+        if (btnVpn != null) btnVpn.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
-        btnLibraryTop.setOnKeyListener(pillKeys);
+        if (btnLibraryTop != null) btnLibraryTop.setOnKeyListener(pillKeys);
+        if (btnMute != null) btnMute.setOnKeyListener(pillKeys);
+        if (clockBlock != null) clockBlock.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_DOWN && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER)) {
+                showClockPanel(v);
+                return true;
+            }
+            return pillKeys.onKey(v, keyCode, event);
+        });
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
-        if (advancedEffects) {
+        if (animations && !reducedMotion) {
+            // The round buttons move like the app icons: lift, lean and settle, and the highlight.
+            for (View button : new View[]{btnMute, btnReorder, btnInputs, btnSettings, clockBlock}) {
+                if (button == null) continue;
+                button.setForeground(new ShineDrawable());
+                button.setClipToOutline(true);   // the highlight stays inside the circle
+                button.setOnFocusChangeListener((view, focused) -> TvFocusMotion.applyButton(view, focused, density));
+            }
+        } else if (advancedEffects) {
             List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnVpn, btnReorder, btnLibraryTop, btnSettings));
             pills.addAll(topAppButtons);
             for (View button : pills) {
+                if (button == null) continue;
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(reducedMotion ? Motion.REDUCED_MS : 160).start());
@@ -812,6 +858,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
+            if (oldF != null && newF != null && oldF != newF && navSound != null) navSound.onFocusMoved();
             boolean onTile = newF != null && newF.getId() == R.id.card;
             if (!onTile) hideGlass();
         });
@@ -985,6 +1032,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (showStats) startStats();
         sky.update();
         wallpaperPlayer.start();
+        if (aerial != null) aerial.resume();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
             diya.start();
@@ -1154,6 +1202,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
+        if (aerial != null) aerial.pause();   // frees the video decoder for the app being opened
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -1215,6 +1264,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onDestroy();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
+        if (navSound != null) navSound.release();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);
@@ -1234,6 +1284,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         for (int code : settingsKeycodes) {
             if (event.getKeyCode() != code) continue;
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
+                if (navSound != null) navSound.onAppOpened();   // the same pop as the Settings button
                 open(settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class)
                         : systemIntent(Settings.ACTION_SETTINGS));
             }
@@ -1256,6 +1307,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        TvFocusMotion.noteKey(event);   // which way the next focused icon should lean
+        if (event.getAction() == KeyEvent.ACTION_DOWN && TvFocusMotion.lastDirection == event.getKeyCode() && navSound != null) navSound.noteKey();
         // Vendor keys (TCL Netflix button, 4062) never reach the key services, only the focused window.
         if (event.getKeyCode() >= 1000 && RemoteKeys.handle(this, event, homeAppKeys.get(event.getKeyCode()), null)) return true;
         if (handleSettingsKey(event)) return true;
@@ -1346,6 +1399,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         reordering = true;
         orderAtStart = adapter.movableKeys();
         glass.setAccent(REORDER_ACCENT);
+        if (glassShown) glass.animate().alpha(1f).setDuration(180).start();
         btnReorder.setActivated(true);
         return true;
     }
@@ -1355,6 +1409,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (reordering) endReorder();
         if (!beginReorder()) return;
         dockEditing = true;
+        if (glassShown) glass.animate().alpha(1f).setDuration(180).start();
         dockEditSlot = -1;
         focusTile(0);
         Toast.makeText(this, R.string.dock_edit_hint, Toast.LENGTH_LONG).show();
@@ -1484,6 +1539,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void endReorder() {
         if (!reordering) return;
         dockEditing = false;
+        if (glassShown) glass.animate().alpha(glassLevel()).setDuration(160).start();
         dockEditSlot = -1;
         dockEditAppKey = null;
         drop();
@@ -1491,6 +1547,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         adapter.setReordering(false);
         glass.setAccent(festive ? festival.accentColor() : 0);
         btnReorder.setActivated(false);
+        if (glassShown) glass.animate().alpha(glassLevel()).setDuration(160).start();
         List<String> keys = adapter.movableKeys();
         List<String> before = orderAtStart;
         orderAtStart = null;
@@ -1585,7 +1642,53 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     @Override
     public void onBackPressed() {
-        // Home screen: Back goes nowhere.
+        // Home screen: Back starts the screensaver. Apps can't ask the dream manager themselves (WRITE_DREAM_STATE
+        // is a system permission); SystemUI's Somnambulator can, and does so when started.
+        try {
+            startActivity(new Intent(Intent.ACTION_MAIN)
+                    .setClassName("com.android.systemui", "com.android.systemui.Somnambulator"));
+        } catch (ActivityNotFoundException | SecurityException e) {
+            android.util.Log.w("TvHome", "no screensaver starter on this TV", e);
+        }
+    }
+
+    /** The bell for sounds on, the bell with a slash while Home is silenced. */
+    private void showMuted(TextView bell, boolean muted) {
+        bell.setCompoundDrawablesRelativeWithIntrinsicBounds(muted ? R.drawable.ic_bell_slash : R.drawable.ic_bell, 0, 0, 0);
+        bell.setContentDescription(getString(muted ? R.string.sounds_off : R.string.sounds_on));
+    }
+
+    /** The dock band's top edge once it is parked at the top of the screen, from the grid's top. */
+    private static final float DOCK_PARK_TOP_DP = 24f;
+    /** The dock's slide to the top (and back down, onTileFocused) is longer than a row scroll: it travels further. */
+    private static final int PARK_MS = 480;
+
+    /**
+     * How far to scroll the grid so the dock band's top sits DOCK_PARK_TOP_DP below the grid's top;
+     * Integer.MIN_VALUE when the dock is not laid out (scrolled far away), so there is nothing to measure.
+     * DockDecoration draws the band 24dp outside the dock tiles.
+     */
+    private int parkDockBy(RecyclerView rv) {
+        RecyclerView.ViewHolder vh = rv.findViewHolderForAdapterPosition(0);
+        if (!(vh instanceof AppAdapter.Holder)) return Integer.MIN_VALUE;
+        View item = vh.itemView;
+        int bandTop = item.getTop() + ((AppAdapter.Holder) vh).card.getTop() - Math.round(24 * density);
+        return bandTop - Math.round(DOCK_PARK_TOP_DP * density);
+    }
+
+    /** The floating box: shown only while rearranging or editing the dock, where it marks the chosen tile. */
+    private float glassLevel() {
+        return reordering || dockEditing ? 1f : 0f;
+    }
+
+    private void scrollHeader(int dy) {
+        if (header == null) return;
+        if (!grid.canScrollVertically(-1)) headerScroll = 0;
+        else if (dy == 0) headerScroll = grid.computeVerticalScrollOffset();
+        else headerScroll = Math.max(0, headerScroll + dy);
+        // Past its bottom edge plus room for a focused pill's glow, it is out of sight: stop moving it.
+        float away = header.getBottom() + 16 * density;
+        header.setTranslationY(-Math.min(headerScroll, away));
     }
 
     // ---- glass highlight -------------------------------------------------------------------------
@@ -1625,6 +1728,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onTileFocused(int position, View card) {
         lastFocused = position;
         lastFocusedKey = adapter.keyAt(position);
+        if (aerial != null) aerial.setGridFocused(dockRow && position >= COLUMNS);
         // Focus restored before the first layout (cold start): the tile has no size yet, and the glass
         // would be sized to 2*pad. Run again once the tile is laid out.
         if (card.getWidth() == 0) {
@@ -1643,6 +1747,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float h = card.getHeight() * scale + 2 * pad;
         float x = r.exactCenterX() - w / 2f;
         float y = r.exactCenterY() - h / 2f - (advancedEffects ? 4f * density : 0f);
+
+        // A dock icon at either end shifts inward as it grows (TvFocusMotion.edgeShift); the box follows it.
+        View cardItem = (View) card.getParent();
+        if (animations && !reducedMotion && cardItem != null && cardItem.getParent() == grid) {
+            RecyclerView.ViewHolder vh = grid.getChildViewHolder(cardItem);
+            if (vh instanceof AppAdapter.Holder) x += ((AppAdapter.Holder) vh).dockEdge * TvFocusMotion.edgeShift(card);
+        }
 
         ViewGroup.LayoutParams lp = glass.getLayoutParams();
         if (lp.width != (int) w || lp.height != (int) h || card.getWidth() != glassCardW) {
@@ -1668,8 +1779,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.cancel();
             glass.setTranslationX(x);
             glass.setTranslationY(y);
-            if (animations && !reducedMotion) glass.animate().alpha(1f).setDuration(180).start();
-            else glass.setAlpha(1f);
+            // The icon itself shows focus now; the box only marks the tile being moved while rearranging.
+            if (animations) glass.animate().alpha(glassLevel()).setDuration(reducedMotion ? 100 : 160).start();
+            else glass.setAlpha(glassLevel());
             glassShown = true;
         } else if (!animations) {
             springX.cancel();
@@ -1691,7 +1803,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             boolean scroll = !singleRow && Math.abs(dy) > (int) (8 * density);
             if (scroll) {
                 if (!animations || reducedMotion) grid.scrollBy(0, dy);
-                else grid.smoothScrollBy(0, dy);
+                else grid.smoothScrollBy(0, dy, SCROLL_EASE, SCROLL_MS);
             }
             showHero(position, scroll ? r.top - dy : r.top);
         } else {
@@ -2242,7 +2354,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (singleRow) {
             // One row: Up leaves for the top bar, Down has nowhere to go, and Left/Right walk the whole row,
             // stopping at its two ends (the default focus search scrolls the row to the next tile).
-            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                View top = null;
+                if (position >= 4) {
+                    top = findViewById(R.id.clockBlock);
+                    if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnSettings);
+                }
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnMute);
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnReorder);
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnInputs);
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnSettings);
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.clockBlock);
+                if (top != null) {
+                    top.requestFocus();
+                    return true;
+                }
+                return false;
+            }
             if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) return true;
             boolean forward = rtlAppGrid ? keyCode == KeyEvent.KEYCODE_DPAD_LEFT : keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
             int last = adapter.focusablePosition(count - 1);
@@ -2262,11 +2390,32 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             // In the dock, the last app is the row's end: the empty slots after it take no focus.
             int rowCount = position < COLUMNS ? Math.min(count, adapter.dockFilled()) : count;
-            return GridNavigation.atHorizontalEdge(position, rowCount, COLUMNS,
+            boolean edge = GridNavigation.atHorizontalEdge(position, rowCount, COLUMNS,
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
+            if (edge && animations && !reducedMotion) {
+                RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(position);
+                if (vh instanceof AppAdapter.Holder) TvFocusMotion.bump(((AppAdapter.Holder) vh).card, keyCode, density);
+            }
+            return edge;
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
+            if (position < COLUMNS) {
+                View top = null;
+                if (position >= 4) {
+                    top = findViewById(R.id.clockBlock);
+                    if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnSettings);
+                }
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnMute);
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnReorder);
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnInputs);
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.btnSettings);
+                if (top == null || top.getVisibility() != View.VISIBLE) top = findViewById(R.id.clockBlock);
+                if (top != null) {
+                    top.requestFocus();
+                    return true;
+                }
+                return false;
+            }
             target = position - COLUMNS;
         } else {
             int lastRowStart = ((count - 1) / COLUMNS) * COLUMNS;
@@ -2276,11 +2425,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             target = Math.min(position + COLUMNS, count - 1);
         }
+        // NavSound ticks from the focus listener, the same as for Left/Right.
         focusTile(target);
-        // The default focus search clicks for Left/Right; Up/Down are handled here, so click for them too.
-        grid.playSoundEffect(keyCode == KeyEvent.KEYCODE_DPAD_UP
-                ? SoundEffectConstants.NAVIGATION_UP : SoundEffectConstants.NAVIGATION_DOWN);
         return true;
+    }
+
+    @Override public void onAppOpened() {
+        if (navSound != null) navSound.onAppOpened();
     }
 
     @Override public void onLibraryFocused() {
@@ -2298,7 +2449,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View clockRow = (View) findViewById(R.id.clock).getParent();
         LinearLayout clockColumn = (LinearLayout) clockRow.getParent();
         ((ViewGroup) column.getParent()).removeView(column);
-        findViewById(R.id.clockDivider).setVisibility(View.GONE);
+        View div = findViewById(R.id.clockDivider);
+        if (div != null) div.setVisibility(View.GONE);
         // Its own width, not the column's: in Hebrew the column is only as wide as the clock.
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -2856,7 +3008,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 }
             }
         }
-        btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
+        btnInputs.setVisibility(any && topShown(TOP_INPUTS) ? View.VISIBLE : View.GONE);
     }
 
     /** boot_to_live_tv, or the Open on start app: the first time Home comes up after the TV starts, open that app
@@ -3153,8 +3305,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max(width, Math.min(panel.getMeasuredWidth(), (int) (360 * density))));
 
-        int alignment = getResources().getBoolean(R.bool.rtl_menu_bar) != underGear ? Gravity.END : Gravity.START;
-        dropIn(popup, panel, anchor, alignment);
+        // Both layouts now keep Inputs towards the right of its row: grow the menu inward from it.
+        dropIn(popup, panel, anchor, Gravity.END);
+        // Left or Right leave the menu the way the remote points, to the round button on that side, as the clock
+        // panel does; Up and Down still move through the inputs.
+        View.OnKeyListener sideways = (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            boolean left = keyCode == KeyEvent.KEYCODE_DPAD_LEFT, right = keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
+            if (!left && !right) return false;
+            View next = findViewById(left ? R.id.btnReorder : R.id.btnSettings);
+            if (left && next.getVisibility() != View.VISIBLE) next = findViewById(R.id.btnMute);
+            if (next == null || next.getVisibility() != View.VISIBLE) return true;
+            TvFocusMotion.noteKey(event);   // the popup's keys skip dispatchKeyEvent: note them for the lean and tick
+            if (navSound != null) navSound.noteKey();
+            popup.dismiss();
+            next.requestFocus();
+            return true;
+        };
+        for (int i = 0; i < rows.getChildCount(); i++) {
+            View row = rows.getChildAt(i);
+            if (row.isFocusable()) row.setOnKeyListener(sideways);
+        }
         rows.getChildAt(0).requestFocus();
     }
 
@@ -3253,11 +3424,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
         LinearLayout rows = panel.findViewById(R.id.rows);
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
-        if (!launcherSettingsButton) addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> startActivityForResult(
-                new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
-        // Firmware that ships its own settings app next to the AOSP one (Xiaomi China is one): the
-        // vendor app holds pages the AOSP settings has no row for, such as Account & Security with
-        // the ADB switch. Offered here only while one of them is installed.
+        addSettingsMenuRow(rows, popup, R.string.menu_tv_settings, this::openTvSettings);
+        addSettingsMenuRow(rows, popup, R.string.menu_sleep, () -> {
+            if (!SleepService.sleep()) Toast.makeText(this, R.string.sleep_unavailable, Toast.LENGTH_LONG).show();
+        });
+        if (dockRow) addSettingsMenuRow(rows, popup, R.string.dock_edit, this::startDockEdit);
+        addSettingsMenuRow(rows, popup, R.string.reorder, this::toggleReorder);
+        addSettingsMenuRow(rows, popup, R.string.background, this::showBackgroundMenu);
+        addSettingsMenuRow(rows, popup, R.string.top_buttons, () -> showTopButtonsMenu(0));
+        addSettingsMenuRow(rows, popup, R.string.sounds, () -> showSoundsMenu(0));
         if (SystemSettings.vendorIntent(this) != null) {
             addSettingsMenuRow(rows, popup, R.string.native_settings, () -> {
                 Intent vendor = SystemSettings.vendorIntent(this);
@@ -3265,15 +3440,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             });
         }
         if (moduleCards) addSettingsMenuRow(rows, popup, R.string.module_cards, this::showModuleCards);
-        if (dockRow) addSettingsMenuRow(rows, popup, R.string.dock_edit, this::startDockEdit);
-        addSettingsMenuRow(rows, popup, R.string.reorder, this::toggleReorder);
-        // A launcher may not restart the TV itself; the Home key helper can open the system power menu instead.
+        addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> startActivityForResult(
+                new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
         if (HomeKeyService.canOpenPowerMenu()) addSettingsMenuRow(rows, popup, R.string.power_menu, HomeKeyService::openPowerMenu);
         panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         popup.setWidth(Math.max((int) (200 * density), panel.getMeasuredWidth()));
-        // Hebrew puts Settings at the left of the header: grow the menu inward from it.
-        dropIn(popup, panel, anchor, getResources().getBoolean(R.bool.rtl_menu_bar)
-                ? Gravity.START : Gravity.END);
+        dropIn(popup, panel, anchor, Gravity.END);
         rows.getChildAt(0).requestFocus();
     }
 
@@ -3333,6 +3505,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void addSettingsMenuRow(LinearLayout rows, PopupWindow popup, int title, Runnable action) {
+        addSettingsMenuRow(rows, popup, getString(title), action);
+    }
+
+    /** The same with a title that is not a string resource (an aerial's name); returns the row. */
+    private View addSettingsMenuRow(LinearLayout rows, PopupWindow popup, CharSequence title, Runnable action) {
         View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
         row.findViewById(R.id.icon).setVisibility(View.GONE);
         row.findViewById(R.id.dot).setVisibility(View.GONE);
@@ -3359,6 +3536,285 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return true;
         });
         rows.addView(row);
+        return row;
+    }
+
+    /**
+     * Settings menu, Sounds: the navigation sound, the app-open sound, and All sounds for both at once. Each row
+     * shows On or Off; OK flips it and the menu stays open on that row. The bell follows.
+     */
+    private void showSoundsMenu(int focusRow) {
+        showSoundsMenu(focusRow, findViewById(R.id.btnSettings));
+    }
+
+    /** anchor: the button the panel drops from, Settings or the bell (hold OK on it). */
+    private void showSoundsMenu(int focusRow, View anchor) {
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (260 * density));
+        int[] titles = {R.string.sound_all, R.string.sound_navigation, R.string.sound_open};
+        boolean[] on = {!navSound.isMuted(), navSound.tickOn(), navSound.popOn()};
+        for (int i = 0; i < titles.length; i++) {
+            final int row = i;
+            View r = addSettingsMenuRow(rows, popup, getString(titles[i]), () -> {
+                if (row == 0) navSound.setMuted(!navSound.isMuted());
+                else if (row == 1) navSound.setTick(!navSound.tickOn());
+                else navSound.setPop(!navSound.popOn());
+                TextView bell = findViewById(R.id.btnMute);
+                if (bell != null) showMuted(bell, navSound.isMuted());
+                showSoundsMenu(row, anchor);
+            });
+            TextView status = r.findViewById(R.id.status);
+            status.setText(on[i] ? R.string.sound_on : R.string.sound_off);
+            status.setVisibility(View.VISIBLE);
+        }
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (260 * density), panel.getMeasuredWidth()));
+        dropIn(popup, panel, anchor, Gravity.END);
+        rows.getChildAt(Math.min(focusRow, rows.getChildCount() - 1)).requestFocus();
+    }
+
+    /** When Settings was last held, so the release that follows is not taken as a press. */
+    private long settingsHeldAt;
+
+    /**
+     * Background > Download aerials: Apple's whole set, each marked On TV or with its download progress. OK
+     * downloads one (one at a time, carrying on if the menu closes); hold OK on one that is on the TV to remove it.
+     */
+    private void showAerialStore() {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_scroll, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (360 * density));
+        TextView loading = (TextView) storeRow(rows, getString(R.string.aerials_loading), null);
+        loading.setFocusable(true);
+        dropIn(popup, panel, anchor, Gravity.END);
+        loading.requestFocus();
+        AerialDownloads.loadCatalog(this, list -> {
+            if (!popup.isShowing()) return;
+            rows.removeAllViews();
+            if (list == null) {
+                storeRow(rows, getString(R.string.aerials_offline), null).requestFocus();
+                return;
+            }
+            for (AerialDownloads.Aerial a : list) {
+                View row = storeRow(rows, a.title, a);
+                TextView status = row.findViewById(R.id.status);
+                showStoreStatus(status, a);
+                row.setOnClickListener(v -> {
+                    if (AerialDownloads.onTv(this, a)) return;
+                    AerialDownloads.download(this, a, (pct, msg) -> {
+                        if (pct < 0) {
+                            Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                        } else if (pct > 100) {
+                            Toast.makeText(this, getString(R.string.aerials_done, a.title), Toast.LENGTH_SHORT).show();
+                        }
+                        showStoreStatus(status, a);
+                        if (pct >= 0 && pct <= 100) status.setText(getString(R.string.aerials_percent, pct));
+                    });
+                    showStoreStatus(status, a);
+                });
+                row.setOnLongClickListener(v -> {
+                    if (!AerialDownloads.onTv(this, a)) return false;
+                    AerialDownloads.remove(this, a);
+                    showStoreStatus(status, a);
+                    Toast.makeText(this, getString(R.string.aerials_removed, a.title), Toast.LENGTH_SHORT).show();
+                    return true;
+                });
+            }
+            capScroll(panel);
+            popup.update(popup.getWidth(), ViewGroup.LayoutParams.WRAP_CONTENT);
+            if (rows.getChildCount() > 0) rows.getChildAt(0).requestFocus();
+        });
+    }
+
+    /** A popup_scroll menu no taller than the space between the top icons and the dock; it scrolls if there are more. */
+    private void capScroll(View panel) {
+        View scroll = panel.findViewById(R.id.scroll);
+        int max = (int) (getResources().getDisplayMetrics().heightPixels * 0.55f);
+        scroll.measure(View.MeasureSpec.makeMeasureSpec((int) (360 * density), View.MeasureSpec.AT_MOST),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        if (scroll.getMeasuredHeight() <= max) return;
+        ViewGroup.LayoutParams lp = scroll.getLayoutParams();
+        lp.height = max;
+        scroll.setLayoutParams(lp);
+    }
+
+    private View storeRow(LinearLayout rows, String title, AerialDownloads.Aerial a) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        row.findViewById(R.id.icon).setVisibility(View.GONE);
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        row.findViewById(R.id.status).setVisibility(a == null ? View.GONE : View.VISIBLE);
+        rows.addView(row);
+        return a == null ? row.findViewById(R.id.title) : row;
+    }
+
+    private void showStoreStatus(TextView status, AerialDownloads.Aerial a) {
+        if (a.file.equals(AerialDownloads.downloading)) {
+            status.setText(getString(R.string.aerials_percent, AerialDownloads.downloadPercent));
+        } else {
+            status.setText(AerialDownloads.onTv(this, a) ? R.string.aerials_on_tv : R.string.aerials_get);
+        }
+    }
+
+    /** The Android TV settings, with the same pop as opening an app. */
+    private void openTvSettings() {
+        if (navSound != null) navSound.onAppOpened();
+        open(systemIntent(Settings.ACTION_SETTINGS));
+    }
+
+    /** Settings menu, Top icons: which of the optional top icons show (Inputs, Customize, sound, clock). */
+    private static final String TOP_PREFS = "top_buttons", TOP_INPUTS = "inputs", TOP_REORDER = "reorder",
+            TOP_SOUND = "sound", TOP_CLOCK = "clock";
+    private boolean reorderButtonEnabled = true;
+
+    private boolean topShown(String key) {
+        return getSharedPreferences(TOP_PREFS, MODE_PRIVATE).getBoolean(key, true);
+    }
+
+    /** Shows or hides the optional top buttons from the saved choices (Inputs also needs an input to show). */
+    private void applyTopButtons() {
+        View mute = findViewById(R.id.btnMute);
+        if (mute != null) mute.setVisibility(topShown(TOP_SOUND) ? View.VISIBLE : View.GONE);
+        btnReorder.setVisibility(reorderButtonEnabled && topShown(TOP_REORDER) ? View.VISIBLE : View.GONE);
+        View clock = findViewById(R.id.clockBlock);
+        if (clock != null) clock.setVisibility(topShown(TOP_CLOCK) ? View.VISIBLE : View.GONE);
+        updateInputsButton();
+    }
+
+    /** One row per optional button, marked Shown or Hidden; OK flips it and the menu stays open on that row. */
+    private void showTopButtonsMenu(int focusRow) {
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (260 * density));
+        String[] keys = {TOP_INPUTS, TOP_REORDER, TOP_SOUND, TOP_CLOCK};
+        int[] titles = {R.string.inputs, R.string.top_button_reorder, R.string.top_button_sound, R.string.clock_panel};
+        for (int i = 0; i < keys.length; i++) {
+            final String key = keys[i];
+            final int row = i;
+            View r = addSettingsMenuRow(rows, popup, getString(titles[i]), () -> {
+                getSharedPreferences(TOP_PREFS, MODE_PRIVATE).edit().putBoolean(key, !topShown(key)).apply();
+                applyTopButtons();
+                showTopButtonsMenu(row);
+            });
+            TextView status = r.findViewById(R.id.status);
+            status.setText(topShown(key) ? R.string.top_button_shown : R.string.top_button_hidden);
+            status.setVisibility(View.VISIBLE);
+        }
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (260 * density), panel.getMeasuredWidth()));
+        dropIn(popup, panel, anchor, Gravity.END);
+        rows.getChildAt(Math.min(focusRow, rows.getChildCount() - 1)).requestFocus();
+    }
+
+    /**
+     * Settings menu, Background: every aerial on the TV, the one playing marked. Picking one keeps it (AerialBackdrop.choose)
+     * and rebuilds Home, which starts the new flight.
+     */
+    private void showBackgroundMenu() {
+        java.util.List<String[]> aerials = AerialBackdrop.catalog(this);
+        String current = AerialBackdrop.chosen(this, getString(R.string.aerial_backdrop));
+        View anchor = findViewById(R.id.btnSettings);
+        View panel = getLayoutInflater().inflate(R.layout.popup_scroll, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (240 * density));
+        View focus = null;
+        // First row: rotate through them all (AerialBackdrop.CYCLE), each aerial once and then the next.
+        if (aerials.size() > 1) {
+            View cycleRow = addSettingsMenuRow(rows, popup, getString(R.string.background_cycle), () -> {
+                if (AerialBackdrop.CYCLE.equals(current)) return;
+                AerialBackdrop.choose(this, AerialBackdrop.CYCLE);
+                recreate();
+            });
+            if (AerialBackdrop.CYCLE.equals(current)) {
+                TextView status = cycleRow.findViewById(R.id.status);
+                status.setText(R.string.background_current);
+                status.setVisibility(View.VISIBLE);
+                focus = cycleRow;
+            }
+        }
+        for (String[] a : aerials) {
+            final String file = a[0];
+            View row = addSettingsMenuRow(rows, popup, a[1], () -> {
+                if (file.equals(current)) return;
+                AerialBackdrop.choose(this, file);
+                recreate();
+            });
+            if (file.equals(current)) {
+                TextView status = row.findViewById(R.id.status);
+                status.setText(R.string.background_current);
+                status.setVisibility(View.VISIBLE);
+                focus = row;
+            }
+        }
+        // Last row: more aerials from Apple, straight onto the TV.
+        addSettingsMenuRow(rows, popup, R.string.aerials_download, this::showAerialStore);
+        capScroll(panel);
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (240 * density), panel.getMeasuredWidth()));
+        dropIn(popup, panel, anchor, Gravity.END);
+        (focus != null ? focus : rows.getChildAt(0)).requestFocus();
+    }
+
+    /** The clock font file, if one is on the TV: files/clock_font.otf or files/clock_font.ttf. */
+    static final String[] CLOCK_FONT_FILES = {"clock_font.otf", "clock_font.ttf"};
+    private android.graphics.Typeface clockFont;
+    private boolean clockFontLoaded;
+
+    /**
+     * Sets the clock font on these views, or on every TextView inside them (the clock panel). Nothing in the app
+     * ships a font for this: the file is the TV owner's own, so Inter stays the clock font everywhere else.
+     */
+    private void applyClockFont(View... views) {
+        if (!clockFontLoaded) {
+            clockFontLoaded = true;
+            java.io.File dir = Config.dir(this);
+            for (String name : CLOCK_FONT_FILES) {
+                java.io.File f = dir == null ? null : new java.io.File(dir, name);
+                if (f == null || !f.isFile()) continue;
+                try {
+                    clockFont = android.graphics.Typeface.createFromFile(f);
+                } catch (RuntimeException e) {
+                    android.util.Log.w("TvHome", "cannot load " + f, e);
+                }
+                break;
+            }
+        }
+        if (clockFont == null) return;
+        for (View v : views) {
+            if (v instanceof TextView) ((TextView) v).setTypeface(clockFont);
+            else if (v instanceof ViewGroup) {
+                ViewGroup g = (ViewGroup) v;
+                for (int i = 0; i < g.getChildCount(); i++) applyClockFont(g.getChildAt(i));
+            }
+        }
+    }
+
+    /** OK on the clock: a small glass panel under it, in the top-right corner, with the time to the second. */
+    private void showClockPanel(View anchor) {
+        View panel = getLayoutInflater().inflate(R.layout.popup_clock, root, false);
+        applyClockFont(panel);
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        final PopupWindow popup = glassPopup(panel, Math.max((int) (300 * density), panel.getMeasuredWidth()));
+        panel.setOnClickListener(v -> popup.dismiss());
+        // Down or Left leave the panel the way the remote points: close it and move there, as if it were not
+        // open. Up and Right have nowhere to go from the top-right corner. The popup's keys skip the activity's
+        // dispatchKeyEvent, so note the key here for the navigation tick.
+        panel.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) return true;
+            if (keyCode != KeyEvent.KEYCODE_DPAD_DOWN && keyCode != KeyEvent.KEYCODE_DPAD_LEFT) return false;
+            TvFocusMotion.noteKey(event);
+            if (navSound != null) navSound.noteKey();
+            popup.dismiss();
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) focusTile(lastFocused % COLUMNS);
+            else findViewById(R.id.btnSettings).requestFocus();
+            return true;
+        });
+        dropIn(popup, panel, anchor, Gravity.END);
+        panel.requestFocus();
     }
 
     /**

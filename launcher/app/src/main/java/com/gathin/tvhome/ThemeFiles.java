@@ -18,6 +18,8 @@ final class ThemeFiles {
         if (segments.size() == 1) {
             String name = segments.get(0);
             return Config.FILE_NAME.equals(name) || "wallpaper.jpg".equals(name) || "theme_revision".equals(name)
+                    || NavSound.TICK_FILE.equals(name) || NavSound.POP_FILE.equals(name)
+                    || java.util.Arrays.asList(MainActivity.CLOCK_FONT_FILES).contains(name)
                     ? name : null;
         }
         if (segments.size() == 2 && WALLPAPERS.equals(segments.get(0))

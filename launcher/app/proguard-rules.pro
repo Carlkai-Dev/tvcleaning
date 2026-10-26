@@ -1,4 +1,8 @@
-# Shrink and optimise, but keep class and method names: the size win comes from dropping unused
-# AndroidX code, not from renaming, and readable stack traces matter more in a sideloaded app
-# where crash reports arrive as screenshots.
 -dontobfuscate
+
+# Drawables and views inflated from XML: R8 cannot see reflective/XML instantiation.
+-keep class com.gathin.tvhome.LiquidGlassDrawable { public <init>(); }
+-keep class com.gathin.tvhome.LiquidGlassDrawable$Panel { public <init>(); }
+-keep class com.gathin.tvhome.ShineDrawable { public <init>(); }
+-keep class com.gathin.tvhome.ShineView { public <init>(...); }
+-keep class com.gathin.tvhome.GlassView { public <init>(...); }
