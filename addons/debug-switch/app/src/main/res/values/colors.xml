@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The same dark as the screen and the banner. -->
+    <color name="icon_background">#FF15171C</color>
+</resources>

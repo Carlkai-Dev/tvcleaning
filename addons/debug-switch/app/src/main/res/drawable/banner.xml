@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 16:9 banner: the icon's beetle with the Wi-Fi sign on its shell, its signal fanning out to the right. Own art. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#15171C" android:pathData="M0,0h320v180h-320z" />
+    <!-- The signal, fading as it goes. -->
+    <path android:strokeColor="#7CE38B" android:strokeWidth="6" android:strokeLineCap="round" android:strokeAlpha="0.6"
+        android:pathData="M181.7,59a62,62 0 0,1 0,62" />
+    <path android:strokeColor="#7CE38B" android:strokeWidth="6" android:strokeLineCap="round" android:strokeAlpha="0.38"
+        android:pathData="M200.7,48a84,84 0 0,1 0,84" />
+    <path android:strokeColor="#7CE38B" android:strokeWidth="6" android:strokeLineCap="round" android:strokeAlpha="0.18"
+        android:pathData="M219.8,37a106,106 0 0,1 0,106" />
+    <!-- The beetle from ic_foreground.xml, 1.5x, centred at (128,90). -->
+    <group android:translateX="47" android:translateY="10.5" android:scaleX="1.5" android:scaleY="1.5">
+        <path android:strokeColor="#B0B6C2" android:strokeWidth="3" android:strokeLineCap="round"
+            android:pathData="M33,50l-6,-5M31,60h-8M33,70l-6,5M75,50l6,-5M77,60h8M75,70l6,5M50,30l-4,-7M58,30l4,-7" />
+        <path android:fillColor="#B0B6C2" android:pathData="M46,35a8,8 0 1,0 16,0a8,8 0 1,0 -16,0z" />
+        <path android:fillColor="#7CE38B" android:pathData="M31,60a23,23 0 1,0 46,0a23,23 0 1,0 -46,0z" />
+        <path android:strokeColor="#15171C" android:strokeWidth="4.6" android:strokeLineCap="round"
+            android:pathData="M46.9,66.9a10,10 0 0,1 14.2,0M41.3,61.3a18,18 0 0,1 25.4,0" />
+        <path android:fillColor="#15171C" android:pathData="M50.4,72a3.6,3.6 0 1,0 7.2,0a3.6,3.6 0 1,0 -7.2,0z" />
+    </group>
+</vector>
