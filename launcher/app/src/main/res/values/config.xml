@@ -319,6 +319,11 @@
          They leave the grid. Missing apps are skipped. Can also be set with "top_bar_apps" in a theme. -->
     <string-array name="top_bar_apps" translatable="false">
     </string-array>
+    <!-- A "USB" pill left of Inputs, styled like the other pills (white USB glyph and label), that opens this package:
+         the TV's USB media browser, e.g. com.xiaomi.mitv.mediaexplorer on Xiaomi. The app then leaves the grid. Empty
+         (the default), not installed or disabled hides the pill, as does top_menu. Can also be set with
+         "usb_pill_package" in a theme. -->
+    <string name="usb_pill_package" translatable="false"></string>
     <!-- The Inputs pill in the top bar, shown when the TV has inputs to list. false hides it for good; what the
          remote's Input button does is unchanged. Can also be set with "show_inputs_pill" in a theme. -->
     <bool name="show_inputs_pill">true</bool>

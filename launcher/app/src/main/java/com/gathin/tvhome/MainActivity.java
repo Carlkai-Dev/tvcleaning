@@ -177,6 +177,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView greeting;
     private View clockBlock;
     private View btnInputs;
+    /** usb_pill_package: the USB pill left of Inputs, or null when it is not shown. */
+    private TextView btnUsb;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
     private TextView btnWifi;
@@ -709,6 +711,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
+        setUpUsbPill(cfg.usbPillPackage, cfg.topMenu);
         btnWifi.setOnClickListener(v -> openNetworkPill());
         btnVpn.setOnClickListener(v -> openVpnPill());
         btnWifi.setOnLongClickListener(v -> {
@@ -773,6 +776,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             makeIconOnly((TextView) btnSettings);
         }
         if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
+        if (btnUsb != null && (iconOnlyButtons || cfg.iconOnlyInputs)) makeIconOnly(btnUsb);
         btnSettings.setOnLongClickListener(v -> {
             showSettingsMenu();
             return true;
@@ -789,7 +793,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 focusTile(singleRow ? lastFocused : lastFocused % COLUMNS);
                 return true;
             }
-            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
+            int firstButton = startTopButton(rtlMenuBar).getId();
             int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
             int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
@@ -801,10 +805,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
+        if (btnUsb != null) btnUsb.setOnKeyListener(pillKeys);
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
         if (advancedEffects) {
             List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnVpn, btnReorder, btnLibraryTop, btnSettings));
             pills.addAll(topAppButtons);
+            if (btnUsb != null) pills.add(btnUsb);
             for (View button : pills) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
@@ -2328,6 +2334,42 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (button != btnInputs && button.getVisibility() == View.VISIBLE) return button;
         }
         return findViewById(R.id.btnSettings);
+    }
+
+    /**
+     * The shown button at the bar's start, the end Settings is not on: the USB pill, else Inputs, else the next one.
+     * The Hebrew bar (rtl_menu_bar) lists its buttons the other way round, so there it is the last child.
+     */
+    private View startTopButton(boolean rtlMenuBar) {
+        ViewGroup bar = findViewById(R.id.topButtons);
+        boolean[] shown = new boolean[bar.getChildCount()];
+        for (int i = 0; i < shown.length; i++) shown[i] = bar.getChildAt(i).getVisibility() == View.VISIBLE;
+        int start = BarEnds.start(shown, rtlMenuBar);
+        return start >= 0 ? bar.getChildAt(start) : findViewById(R.id.btnSettings);
+    }
+
+    /**
+     * usb_pill_package: a pill like Inputs, with a white USB glyph and "USB", left of Inputs, that opens the
+     * TV's own USB media browser. Hidden when the package is unset, not installed or disabled, and with
+     * top_menu, which folds the bar into one gear.
+     */
+    private void setUpUsbPill(String pkg, boolean topMenu) {
+        TextView pill = findViewById(R.id.btnUsb);
+        Intent launch = null;
+        if (!pkg.isEmpty() && !topMenu) {
+            PackageManager pm = getPackageManager();
+            launch = pm.getLeanbackLaunchIntentForPackage(pkg);
+            if (launch == null) launch = pm.getLaunchIntentForPackage(pkg);
+        }
+        if (launch == null) {
+            pill.setVisibility(View.GONE);
+            btnUsb = null;
+            return;
+        }
+        Intent target = launch;
+        pill.setOnClickListener(v -> open(new Intent(target)));
+        pill.setVisibility(View.VISIBLE);
+        btnUsb = pill;
     }
 
     /** top_bar_apps buttons, in bar order. */

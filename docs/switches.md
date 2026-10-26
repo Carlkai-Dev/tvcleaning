@@ -39,6 +39,7 @@ fits the rules; keys from before the rule sit on its wanted list until a screens
 | `header_white` | <img src="switches/header_white.jpg" width="320" alt="header_white on a TV"> |
 | `clock_wallpaper` | <img src="switches/clock_wallpaper.jpg" width="320" alt="clock_wallpaper on a TV"> |
 | `clock_wallpaper_dim` | <img src="switches/clock_wallpaper.jpg" width="320" alt="clock_wallpaper_dim on a TV"> |
+| `usb_pill_package` | <img src="switches/usb_pill_package.jpg" width="320" alt="usb_pill_package on a TV"> |
 | `clock_glow` | <img src="switches/clock_glow.jpg" width="320" alt="clock_glow on a TV"> |
 | `open_on_start_choice` | <img src="switches/open_on_start_choice.jpg" width="320" alt="open_on_start_choice on a TV"> |
 | `single_row` | <img src="switches/single_row.jpg" width="320" alt="single_row on a TV"> |

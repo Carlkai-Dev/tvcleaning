@@ -322,6 +322,15 @@
                 android:clipToPadding="false"
                 android:orientation="horizontal">
 
+                <!-- usb_pill_package: opens the TV's USB media browser; hidden when that package is not launchable. -->
+                <TextView
+                    android:id="@+id/btnUsb"
+                    style="@style/TopButton"
+                    android:visibility="gone"
+                    android:text="@string/usb_pill"
+                    android:drawableStart="@drawable/ic_usb"
+                    android:nextFocusDown="@+id/grid" />
+
                 <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"

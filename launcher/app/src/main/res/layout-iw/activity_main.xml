@@ -383,6 +383,15 @@
                     android:text="@string/inputs"
                     android:drawableStart="@drawable/ic_input"
                     android:nextFocusDown="@+id/grid" />
+
+                <!-- usb_pill_package: beyond Inputs, at the bar's start (its right end in this mirrored bar). -->
+                <TextView
+                    android:id="@+id/btnUsb"
+                    style="@style/TopButton"
+                    android:visibility="gone"
+                    android:text="@string/usb_pill"
+                    android:drawableStart="@drawable/ic_usb"
+                    android:nextFocusDown="@+id/grid" />
             </LinearLayout>
         </RelativeLayout>
 
