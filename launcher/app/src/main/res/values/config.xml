@@ -463,4 +463,8 @@
          faint outer glow), rim (the crisp rim alone, no sheen, fill or glow, for a quiet focus over a wallpaper) or
          halo (the rim with a lighter outer glow). Can also be set with "glass_style": "rim" in a theme's config.json. -->
     <string name="glass_style" translatable="false">glass</string>
+    <!-- One fixed colour for the focus highlight's rim and glow on every tile, as #RRGGBB, instead of the white glass;
+         it wins over app_glow and the cinematic shelf's per-app colours, and a festival's accent wins over it. Empty
+         (the default) changes nothing. Can also be set with "glow_color": "#FF2D95" in a theme's config.json. -->
+    <string name="glow_color" translatable="false"></string>
 </resources>
