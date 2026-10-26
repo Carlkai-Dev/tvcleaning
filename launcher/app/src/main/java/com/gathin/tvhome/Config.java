@@ -613,8 +613,9 @@ final class Config {
         }
         // A top-bar app is moved there, not copied: it leaves the grid.
         for (String pkg : topBarApps) if (!hidden.contains(pkg)) hidden.add(pkg);
-        // So does the USB pill's app: one way in, not a pill and a tile.
-        if (!usbPillPackage.isEmpty() && !hidden.contains(usbPillPackage)) hidden.add(usbPillPackage);
+        // So does the USB pill's app, one way in rather than a pill and a tile; but not under top_menu, which shows
+        // no pill, or Home would have no way to it left.
+        if (UsbPill.leavesGrid(usbPillPackage, topMenu) && !hidden.contains(usbPillPackage)) hidden.add(usbPillPackage);
         // A theme push or reset invalidates choices made on the TV. On first use, remember the
         // current theme without clearing choices from an older launcher version.
         SharedPreferences choices = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
