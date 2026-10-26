@@ -344,6 +344,8 @@ on that firmware, grouped and commented. These are starting points: comment out 
 
 Notes for models that have no tested list yet live in [`docs/devices/`](../docs/devices/):
 
+- [Epson EH-TW6250](../docs/devices/epson-eh-tw6250.md), Askey `STI6110`, Android 12 `SC.20241210 R-4.06S-0004-UN`: USB-debugging ADB, complete split-APK sideload preflight, CleanYourTV Home and reboot checks, native input limits, and hidden settings/update tiles; single-session observations, no several-day debloat list.
+
 - [Homatics Box R 4K Plus](../docs/devices/homatics-box-r-4k-plus.md), `SEI804HM` / `YYJ`, Android TV 14 build `8963`: paired encrypted ADB from a wired computer, standard Home handover, theme and physical-remote checks, package state retained after cold boot, and closing both debugging modes; single-session observations, no several-day debloat list.
 - [Hisense 55U8G](../docs/devices/hisense-55u8g.md), owner-identified US model, `SmartTV 4K FFM` / `huangshan`, Android TV 10, vendor software `V0000.01.00U.Q0506` / `D01`: identifier mapping, original Inputs handler and bounded updater-role observations; no several-day debloat list.
 - [Pixpaq Gold Ray-Mastered Edition](../docs/devices/pixpaq-gold-ray-mastered.md), Android 13 (reports `ADT-3`): Activity Launcher paths into Android Settings and Developer options, a separate Settings shortcut, Projectivy Home and reboot observations, and screensaver selection; no packages disabled.
