@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Debug Switch</string>
+    <string name="title">Wireless debugging</string>
+    <string name="on">ON</string>
+    <string name="off">OFF</string>
+    <string name="turn_on">Turn on</string>
+    <string name="turn_off">Turn off</string>
+    <string name="hint_open">Computers you have already paired can connect. Turn it off when you are done.</string>
+    <string name="hint_closed">Closed. Turn it on to let computers you have already paired connect again.</string>
+    <string name="hint_wifi">Android allows Wireless debugging only over Wi-Fi, and this TV is not on Wi-Fi.</string>
+    <string name="hint_grant">Not allowed yet. Run install.sh, or from a computer:\nadb shell pm grant %1$s android.permission.WRITE_SECURE_SETTINGS</string>
+    <string name="address">TV address: %1$s</string>
+    <string name="connect">From a paired computer: adb connect %1$s</string>
+    <string name="no_address">TV address: not connected</string>
+</resources>
