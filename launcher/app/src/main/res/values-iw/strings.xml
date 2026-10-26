@@ -19,6 +19,17 @@
     <string name="festival_diwali_greeting">חג דיוואלי שמח</string>
     <string name="ethernet">רשת קווית</string>
     <string name="offline">אין חיבור לרשת</string>
+    <!-- wifi_menu: the Wi-Fi drop-down -->
+    <string name="wifi_off">Wi-Fi כבוי</string>
+    <string name="wifi_on_description">Wi-Fi, פועל</string>
+    <string name="wifi_off_description">Wi-Fi, כבוי</string>
+    <string name="wifi_secured">מאובטחת</string>
+    <string name="wifi_open">פתוחה</string>
+    <string name="wifi_connecting">מתחבר…</string>
+    <string name="wifi_failed">החיבור נכשל</string>
+    <string name="wifi_searching">מחפש רשתות…</string>
+    <string name="wifi_settings">הגדרות Wi-Fi</string>
+    <string name="wifi_password_for">סיסמה עבור %1$s</string>
     <string name="not_available">לא זמין בטלוויזיה זו</string>
     <string name="cant_open">לא ניתן לפתוח את %1$s</string>
     <string name="date_format">EEEE  d בMMMM</string>
