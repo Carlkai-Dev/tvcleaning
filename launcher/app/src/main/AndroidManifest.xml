@@ -25,6 +25,13 @@
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
     <queries>
+        <!-- wifi_menu with wifi_helper: the helper app that switches Wi-Fi and joins networks. -->
+        <intent>
+            <action android:name="io.github.cleanyourtv.wifi.SET" />
+        </intent>
+        <intent>
+            <action android:name="io.github.cleanyourtv.wifi.CONNECT" />
+        </intent>
         <!-- The standard settings handlers, so package visibility doesn't hide them and send the pills to a vendor fallback by mistake. -->
         <intent>
             <action android:name="android.settings.SETTINGS" />
@@ -81,6 +88,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:windowSoftInputMode="adjustNothing"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
             android:excludeFromRecents="true"

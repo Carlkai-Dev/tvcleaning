@@ -1,0 +1,38 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'io.github.cleanyourtv.wifiswitch'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'io.github.cleanyourtv.wifiswitch'
+        minSdk 26
+        // Deliberately 28. Android 10 (SDK 29) and later refuse WifiManager.setWifiEnabled and addNetwork from
+        // apps that target them, but still honour both for apps that target Android 9. This app does nothing else.
+        //noinspection ExpiredTargetSdkVersion
+        targetSdk 28
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            // Sideloaded over ADB, never published.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    lint {
+        // Play's minimum target SDK; this app is never published, and target 28 is the point of it.
+        disable 'ExpiredTargetSdkVersion', 'OldTargetApi'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

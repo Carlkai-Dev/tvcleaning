@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wi-Fi switch: switches Wi-Fi and joins networks for the launcher's Wi-Fi drop-down (wifi_menu with
+     wifi_helper set to this package). No screen, no service, no network access of its own. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+
+    <application
+        android:allowBackup="false"
+        android:label="Wi-Fi switch">
+
+        <!-- io.github.cleanyourtv.wifi.SET, boolean extra "on": Wi-Fi on or off. -->
+        <receiver
+            android:name=".SwitchReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.github.cleanyourtv.wifi.SET" />
+            </intent-filter>
+        </receiver>
+
+        <!-- io.github.cleanyourtv.wifi.CONNECT, extras "ssid", "security" (open / psk / sae), "password": join it. -->
+        <receiver
+            android:name=".ConnectReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.github.cleanyourtv.wifi.CONNECT" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

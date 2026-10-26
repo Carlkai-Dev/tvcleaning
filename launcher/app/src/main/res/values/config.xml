@@ -292,6 +292,23 @@
          the focused pill either way), so the connection shows at a glance, also as an icon-only button. Can also be
          set with "wifi_status_color": true in a theme's config.json. -->
     <bool name="wifi_status_color">false</bool>
+
+    <!-- The network pill opens a Wi-Fi drop-down, the way the Inputs pill opens its list: a Wi-Fi switch, the
+         networks the TV can see (strongest first, Connected / Secured / Open), and a row for Android's Wi-Fi
+         settings. The pill's icon also shows the signal (one to three bars) and a crossed-out icon while Wi-Fi is
+         off or the TV is offline. The network list needs location permission and location switched on (Android
+         only hands scan results to apps then); without them it says it is searching. Picking the switch or a
+         network opens Android's Wi-Fi settings unless wifi_helper is set. A theme's config.json can set it.
+         Off by default. -->
+    <bool name="wifi_menu">false</bool>
+
+    <!-- With wifi_menu: the package of a helper app that switches Wi-Fi and joins networks, so the drop-down's
+         switch really switches Wi-Fi and a network's row asks for its password right there. Android 10 and later
+         stopped ordinary apps doing either; apps built for Android 9 still may, so the helper is one of those. It
+         answers two explicit broadcasts: <package>.SET (boolean extra "on") to its .SwitchReceiver, and
+         <package>.CONNECT (extras "ssid", "security": open / psk / sae, "password") to its .ConnectReceiver.
+         Empty (the default): the switch and the networks open Android's Wi-Fi settings. A theme can set it. -->
+    <string name="wifi_helper" translatable="false"></string>
     <!-- With wifi_status_color: the icon orange while the TV is connected but Android has not reached the internet
          through it (a hotel or holiday-park Wi-Fi waiting for its login page) and red while it is offline, instead
          of white for both. Can also be set with "wifi_status_warnings": true in a theme's config.json. -->

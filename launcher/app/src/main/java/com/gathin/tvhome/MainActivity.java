@@ -67,6 +67,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.PopupWindow;
+import android.view.inputmethod.InputMethodManager;
+import android.view.inputmethod.EditorInfo;
+import android.text.InputType;
+import android.widget.EditText;
+import android.net.wifi.ScanResult;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -201,6 +206,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Optional time-of-day backdrop (config.xml, sky_intensity); 0 keeps it hidden. */
     private SkyView sky;
     private String vpnApp;
+    /** wifi_menu: the network pill opens the Wi-Fi drop-down, and its icon shows the signal. */
+    private boolean wifiMenu;
+    /** wifi_helper: the package that switches Wi-Fi and joins networks for the drop-down; empty: none. */
+    private String wifiHelper = "";
     /** vpn_pill: the VPN shown as its own pill (btnVpn) instead of a badge in the network pill. Off with top_menu. */
     private boolean vpnPill;
     private TextView btnVpn;
@@ -311,15 +320,30 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             handler.post(MainActivity.this::updateWifiLabel);
         }
 
-        /** wifi_status_warnings follows validation; signal-strength updates also land here, so skip those. */
+        /**
+         * wifi_status_warnings follows validation. Signal-strength updates also land here: they're skipped,
+         * except with wifi_menu, whose pill shows the bars and updates when the signal crosses one.
+         */
         private boolean lastValidated;
+        private int lastBars = -1;
 
         @Override
         public void onCapabilitiesChanged(@NonNull Network network, @NonNull NetworkCapabilities caps) {
             boolean validated = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
-            if (validated == lastValidated) return;
+            boolean validationChanged = validated != lastValidated;
             lastValidated = validated;
-            if (wifiNoInternetTint != null) handler.post(MainActivity.this::updateWifiLabel);
+            boolean barsChanged = false;
+            // getSignalStrength is Android 10+; older TVs update the bars on connection changes only.
+            if (wifiMenu && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                    && caps.getSignalStrength() != NetworkCapabilities.SIGNAL_STRENGTH_UNSPECIFIED) {
+                int bars = WifiMenu.bars(WifiManager.calculateSignalLevel(caps.getSignalStrength(), 5));
+                barsChanged = bars != lastBars;
+                lastBars = bars;
+            }
+            if (barsChanged || (validationChanged && wifiNoInternetTint != null)) {
+                handler.post(MainActivity.this::updateWifiLabel);
+            }
         }
     };
     /** Shows the Inputs pill once the TV registers an input: at boot HDMI inputs can appear after Home is shown. */
@@ -507,6 +531,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             date.setPadding(0, (int) (4 * density), 0, 0);
         }
         vpnApp = cfg.vpnApp;
+        wifiMenu = cfg.wifiMenu;
+        wifiHelper = cfg.wifiHelper;
         vpnPill = cfg.vpnPill && !cfg.topMenu;
         btnVpn = findViewById(R.id.btnVpn);
         moduleCards = cfg.moduleCards;
@@ -2618,8 +2644,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) ethernet = true;
                 if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) wifi = true;
             }
-            if (!online) {
+            // wifi_menu: Wi-Fi switched off shows at once. Android takes a moment to report the network gone, and
+            // until then the pill would still show "Wi-Fi" with a weak signal.
+            WifiManager wifiState = wifiMenu
+                    ? (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE) : null;
+            if (wifiState != null && !wifiState.isWifiEnabled() && !ethernet) {
+                online = false;
+                validated = false;
+                text = getString(R.string.wifi_off);
+                icon = R.drawable.ic_wifi_off;
+                vpn = false;
+            } else if (!online) {
                 text = getString(R.string.offline);
+                if (wifiMenu) icon = R.drawable.ic_wifi_off;
                 vpn = false;
             } else if (ethernet) {
                 text = getString(R.string.ethernet);
@@ -2631,6 +2668,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 WifiInfo info = wm != null ? wm.getConnectionInfo() : null;
                 String ssid = info != null ? info.getSSID() : null;
                 flame = info != null ? Math.max(1, Math.min(4, WifiManager.calculateSignalLevel(info.getRssi(), 5))) : 3;
+                if (wifiMenu) icon = barsIcon(WifiMenu.bars(flame));
                 if (ssid != null) {
                     ssid = ssid.replace("\"", "").trim();
                     if (!ssid.isEmpty() && !ssid.contains("unknown") && !ssid.equals("0x")) text = ssid;
@@ -2779,7 +2817,253 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private void openNetworkPill() {
         Intent i = vpnPill ? null : vpnAppIntent();
+        if (i == null && wifiMenu) {
+            showWifi();
+            return;
+        }
         open(i != null ? i : systemIntent(Settings.ACTION_WIFI_SETTINGS));
+    }
+
+    // ---- wifi_menu: the Wi-Fi drop-down -------------------------------------------------------------
+
+    /** Broadcasts a wifi_helper answers: switch Wi-Fi (boolean extra "on"); join a network ("ssid", "security", "password"). */
+    static final String WIFI_HELPER_SET = "io.github.cleanyourtv.wifi.SET";
+    static final String WIFI_HELPER_CONNECT = "io.github.cleanyourtv.wifi.CONNECT";
+    private static final int WIFI_MAX_ROWS = 6;
+    /** How long a network shows "Connecting…" before "Couldn't connect" (a wrong password, mostly). */
+    private static final long WIFI_JOIN_TIMEOUT_MS = 20000;
+    private static final int WIFI_SWITCH_ON = 0xFF34C759;   // the status dot's green
+    /** The network being joined from the drop-down, and when to give up on it. */
+    private String wifiJoiningSsid;
+    private long wifiJoinDeadline;
+
+    private static int barsIcon(int bars) {
+        return bars <= 1 ? R.drawable.ic_wifi_1 : bars == 2 ? R.drawable.ic_wifi_2 : R.drawable.ic_wifi_3;
+    }
+
+    /**
+     * Drops down from the network pill like the Inputs list: a Wi-Fi switch, the networks the TV can see and a row
+     * for Android's Wi-Fi settings. With wifi_helper the switch switches Wi-Fi and a secured network asks for its
+     * password right there; without it, both open Android's Wi-Fi settings.
+     */
+    private void showWifi() {
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        final PopupWindow popup = glassPopup(panel, (int) (320 * density));
+        Runnable settings = () -> open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
+
+        WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        boolean on = wm != null && wm.isWifiEnabled();
+        // The network list is its own section, so the switch can clear it and fill it again.
+        LinearLayout networks = new LinearLayout(this);
+        networks.setOrientation(LinearLayout.VERTICAL);
+        addWifiSwitchRow(rows, on, settings, popup, networks);
+        rows.addView(networks);
+        fillWifiNetworks(networks, popup, settings);
+        addSeparator(rows);
+        addWifiRow(rows, popup, R.drawable.ic_settings, getString(R.string.wifi_settings), null, false, settings);
+
+        // Hangs from the pill's end and grows inward, so the wide list stays on screen.
+        int alignment = getResources().getBoolean(R.bool.rtl_menu_bar) ? Gravity.START : Gravity.END;
+        dropIn(popup, panel, btnWifi, alignment);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /**
+     * The network rows, strongest first. Empty while Wi-Fi is off; "Searching" while Android has no results yet,
+     * or holds them back (it hands scan results only to apps with location permission while location is on).
+     */
+    private void fillWifiNetworks(LinearLayout section, PopupWindow popup, Runnable settings) {
+        section.removeAllViews();
+        WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wm == null || !wm.isWifiEnabled()) return;
+
+        String current = null;
+        List<WifiMenu.Network> scan = new ArrayList<>();
+        try {
+            WifiInfo info = wm.getConnectionInfo();
+            if (info != null && info.getSSID() != null) current = info.getSSID().replace("\"", "").trim();
+            for (ScanResult r : wm.getScanResults()) scan.add(new WifiMenu.Network(r.SSID, r.level, r.capabilities));
+        } catch (SecurityException ignored) {
+            // No location permission or location off: the list stays empty.
+        }
+
+        addSeparator(section);
+        List<WifiMenu.Network> list = WifiMenu.strongestFirst(scan, WIFI_MAX_ROWS);
+        for (WifiMenu.Network n : list) addNetworkRow(section, popup, n, n.ssid.equals(current), settings);
+        if (list.isEmpty()) {
+            addWifiRow(section, popup, R.drawable.ic_wifi_1, getString(R.string.wifi_searching), null, false, settings);
+        }
+    }
+
+    /**
+     * One nearby network. With wifi_helper an open network is joined at once and a WPA/WPA2/WPA3 one opens a
+     * password field underneath; enterprise networks, and every network without a helper, open Android's Wi-Fi settings.
+     */
+    private void addNetworkRow(LinearLayout section, PopupWindow popup, WifiMenu.Network n, boolean connected,
+                               Runnable settings) {
+        String security = WifiMenu.security(n.capabilities);
+        String status;
+        if (connected) {
+            status = getString(R.string.connected);
+        } else if (n.ssid.equals(wifiJoiningSsid)) {
+            status = getString(SystemClock.uptimeMillis() < wifiJoinDeadline ? R.string.wifi_connecting : R.string.wifi_failed);
+        } else {
+            status = getString(WifiMenu.OPEN.equals(security) ? R.string.wifi_open : R.string.wifi_secured);
+        }
+
+        View row = getLayoutInflater().inflate(R.layout.item_input, section, false);
+        ((ImageView) row.findViewById(R.id.icon)).setImageResource(
+                barsIcon(WifiMenu.bars(WifiManager.calculateSignalLevel(n.rssi, 5))));
+        ((TextView) row.findViewById(R.id.title)).setText(n.ssid);
+        ((TextView) row.findViewById(R.id.status)).setText(status);
+        row.findViewById(R.id.dot).setVisibility(connected ? View.VISIBLE : View.GONE);
+        row.setOnClickListener(v -> {
+            if (connected) return;
+            if (WifiMenu.EAP.equals(security) || !wifiHelperAnswers(WIFI_HELPER_CONNECT)) {
+                popup.dismiss();
+                settings.run();
+            } else if (WifiMenu.OPEN.equals(security)) {
+                joinWifi(section, popup, settings, n.ssid, security, null);
+            } else {
+                showPasswordRow(section, popup, settings, row, n.ssid, security);
+            }
+        });
+        section.addView(row);
+    }
+
+    /** A password field right under the chosen network; Go on the TV keyboard joins it. */
+    private void showPasswordRow(LinearLayout section, PopupWindow popup, Runnable settings, View networkRow,
+                                 String ssid, String security) {
+        View old = section.findViewWithTag("wifi-password");
+        if (old != null) section.removeView(old);
+
+        EditText field = new EditText(this);
+        field.setTag("wifi-password");
+        field.setSingleLine(true);
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        field.setImeOptions(EditorInfo.IME_ACTION_GO | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+        field.setHint(getString(R.string.wifi_password_for, ssid));
+        field.setTextColor(0xFFFFFFFF);
+        field.setHintTextColor(0x99FFFFFF);
+        field.setTextSize(15);
+        // Password fields switch to monospace; keep the row titles' font.
+        field.setTypeface(((TextView) networkRow.findViewById(R.id.title)).getTypeface());
+        int pad = (int) (12 * density);
+        field.setPadding(pad, 0, pad, 0);
+        // The pills' 1.5dp outline, green while typing.
+        GradientDrawable box = new GradientDrawable();
+        box.setCornerRadius(10 * density);
+        box.setColor(0x14FFFFFF);
+        box.setStroke((int) (1.5f * density), 0x73FFFFFF);
+        field.setBackground(box);
+        field.setOnFocusChangeListener((v, focused) ->
+                box.setStroke((int) (1.5f * density), focused ? WIFI_SWITCH_ON : 0x73FFFFFF));
+        field.setOnEditorActionListener((v, actionId, event) -> {
+            String password = field.getText().toString();
+            if (password.isEmpty()) return true;
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.hideSoftInputFromWindow(field.getWindowToken(), 0);
+            joinWifi(section, popup, settings, ssid, security, password);
+            return true;
+        });
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, (int) (42 * density));
+        int m = (int) (6 * density);
+        lp.setMargins(m, m / 2, m, m);
+        section.addView(field, section.indexOfChild(networkRow) + 1, lp);
+        field.requestFocus();
+        field.post(() -> {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.showSoftInput(field, InputMethodManager.SHOW_IMPLICIT);
+        });
+    }
+
+    /** Hands the network (and password) to wifi_helper, then refreshes the list as the TV connects. */
+    private void joinWifi(LinearLayout section, PopupWindow popup, Runnable settings, String ssid, String security,
+                          String password) {
+        Intent join = new Intent(WIFI_HELPER_CONNECT).setPackage(wifiHelper)
+                .putExtra("ssid", ssid).putExtra("security", security);
+        if (password != null) join.putExtra("password", password);
+        wifiJoiningSsid = ssid;
+        wifiJoinDeadline = SystemClock.uptimeMillis() + WIFI_JOIN_TIMEOUT_MS;
+        sendBroadcast(join);
+        Runnable refill = () -> {
+            if (popup.isShowing()) fillWifiNetworks(section, popup, settings);
+        };
+        refill.run();
+        for (long delay : new long[]{3000, 7000, 12000, WIFI_JOIN_TIMEOUT_MS + 500}) {
+            handler.postDelayed(refill, delay);
+        }
+        handler.postDelayed(this::updateWifiLabel, 8000);
+    }
+
+    /** Whether wifi_helper is set, installed, and listens for {@code action}. */
+    private boolean wifiHelperAnswers(String action) {
+        return !wifiHelper.isEmpty()
+                && !getPackageManager().queryBroadcastReceivers(new Intent(action).setPackage(wifiHelper), 0).isEmpty();
+    }
+
+    /**
+     * The drop-down's top row: an on/off switch. With wifi_helper, selecting it slides the switch and switches
+     * Wi-Fi through a broadcast, so nothing covers the screen and the list stays open; without it, Android's Wi-Fi
+     * settings open, where the switch is.
+     */
+    private void addWifiSwitchRow(LinearLayout rows, boolean on, Runnable settings, PopupWindow popup,
+                                  LinearLayout networks) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        ImageView icon = row.findViewById(R.id.icon);
+        icon.setImageResource(on ? R.drawable.ic_wifi_3 : R.drawable.ic_wifi_off);
+        ((TextView) row.findViewById(R.id.title)).setText(R.string.wifi);
+        row.findViewById(R.id.status).setVisibility(View.GONE);
+        row.findViewById(R.id.dot).setVisibility(View.GONE);
+        SwitchView toggle = new SwitchView(this, WIFI_SWITCH_ON);
+        toggle.setChecked(on, false);
+        ((LinearLayout) row).addView(toggle);
+        row.setContentDescription(getString(on ? R.string.wifi_on_description : R.string.wifi_off_description));
+        row.setOnFocusChangeListener((v, focused) -> toggle.setOnLightRow(focused));
+        row.setOnClickListener(v -> {
+            if (!wifiHelperAnswers(WIFI_HELPER_SET)) {
+                popup.dismiss();
+                settings.run();
+                return;
+            }
+            boolean target = !toggle.isChecked();
+            toggle.setChecked(target, true);
+            icon.setImageResource(target ? R.drawable.ic_wifi_3 : R.drawable.ic_wifi_off);
+            row.setContentDescription(getString(target ? R.string.wifi_on_description : R.string.wifi_off_description));
+            sendBroadcast(new Intent(WIFI_HELPER_SET).setPackage(wifiHelper).putExtra("on", target));
+            // Off: the list goes at once. On: "Searching", then the networks as Android's scans come in.
+            Runnable refill = () -> {
+                if (popup.isShowing()) fillWifiNetworks(networks, popup, settings);
+            };
+            if (!target) {
+                networks.removeAllViews();
+            } else {
+                for (long delay : new long[]{1500, 5000, 10000}) handler.postDelayed(refill, delay);
+            }
+            // The pill follows straight away, not only once Android reports the network gone.
+            handler.postDelayed(this::updateWifiLabel, 300);
+            handler.postDelayed(this::updateWifiLabel, 2500);
+        });
+        rows.addView(row);
+    }
+
+    /** A plain row of the drop-down, in the Inputs list's style: icon, title, an optional status and the green dot. */
+    private void addWifiRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, String statusText,
+                            boolean live, Runnable action) {
+        View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
+        ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
+        ((TextView) row.findViewById(R.id.title)).setText(title);
+        TextView status = row.findViewById(R.id.status);
+        if (statusText == null) status.setVisibility(View.GONE);
+        else status.setText(statusText);
+        row.findViewById(R.id.dot).setVisibility(live ? View.VISIBLE : View.GONE);
+        row.setOnClickListener(v -> {
+            popup.dismiss();
+            action.run();
+        });
+        rows.addView(row);
     }
 
     /** vpn_app's launch intent, or null when none is set or it is not installed. */
