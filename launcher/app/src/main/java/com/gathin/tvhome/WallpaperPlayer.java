@@ -51,6 +51,9 @@ final class WallpaperPlayer {
     private boolean active;
     private boolean closed;
     private boolean loading;
+    /** wallpaper_on_return: every start after the first (a return from an app or the screensaver) picks a new picture. */
+    private final boolean onReturn;
+    private boolean startedBefore;
     private String displayed = "";
     /** wallpaper_captions: the shown picture's name from wallpapers/captions.txt; null when off or there are none. */
     private final TextView caption;
@@ -67,6 +70,7 @@ final class WallpaperPlayer {
         backgroundColor = config.backgroundColor;
         files = new ArrayList<>(config.wallpapers);
         interval = config.wallpaperRotationMinutes * 60_000L;
+        onReturn = config.wallpaperOnReturn;
         bitmapConfig = config.wallpaperTrueColor ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
         // The dim is painted into the picture (decode), so no full-screen shade layer is drawn on every frame.
         dimColor = config.wallpaperDim > 0 ? (config.wallpaperDim * 255 / 100) << 24 : 0;
@@ -130,7 +134,19 @@ final class WallpaperPlayer {
 
     void start() {
         active = true;
-        update();
+        // The first start keeps the picture Home opened with (showFirst decoded it already); every later start is a
+        // return from an app or the screensaver, and with wallpaper_on_return each one brings a new picture.
+        boolean force = newPictureOnReturn(onReturn, startedBefore, files.size());
+        startedBefore = true;
+        update(force);
+    }
+
+    /**
+     * Whether this start of Home replaces the picture whatever the rotation timer says: only with wallpaper_on_return,
+     * only once Home has started before, and only when the collection has another picture to show.
+     */
+    static boolean newPictureOnReturn(boolean onReturn, boolean startedBefore, int pictures) {
+        return onReturn && startedBefore && pictures > 1;
     }
 
     void stop() {
@@ -166,13 +182,18 @@ final class WallpaperPlayer {
     }
 
     void update() {
+        update(false);
+    }
+
+    /** @param force pick a new picture now, whatever the rotation timer says (wallpaper_on_return). */
+    private void update(boolean force) {
         if (!active || closed || loading || files.isEmpty()) return;
         String previous = preferences.getString("image", "");
         // A picture outside the time of day's group (the group changed) is replaced at once, not after the interval.
         List<File> playable = playable();
         File selected = WallpaperRotation.find(playable, previous);
         long changed = preferences.getLong("changed", 0);
-        if (selected == null || WallpaperRotation.due(changed, System.currentTimeMillis(), interval)) {
+        if (selected == null || force || WallpaperRotation.due(changed, System.currentTimeMillis(), interval)) {
             selected = WallpaperRotation.pick(playable, previous, order, random);
         }
         if (selected == null || selected.getName().equals(displayed)) return;
