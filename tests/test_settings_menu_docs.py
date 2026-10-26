@@ -125,10 +125,12 @@ class MenuReaderTest(unittest.TestCase):
         self.assertEqual(menu_rows(body), [])
 
     def test_the_real_menu_is_read(self):
-        # Five rows today: launcher settings, native settings, module cards, dock edit, reorder.
+        # Six rows today: launcher settings, TV settings (only with tools_apps), native settings, module cards,
+        # dock edit, reorder.
         body = method_body(MAIN_ACTIVITY.read_text(encoding="utf-8"))
         self.assertEqual(menu_rows(body),
-                         ["launcher_settings", "native_settings", "module_cards", "dock_edit", "reorder"])
+                         ["launcher_settings", "tv_settings", "native_settings", "module_cards", "dock_edit",
+                          "reorder"])
 
     def test_a_row_with_no_string_is_reported(self):
         with self.assertRaisesRegex(AssertionError, r"R\.string\.not_a_string"):
