@@ -1,0 +1,30 @@
+{
+  "dock_apps": [
+    "com.android.tv",
+    "com.google.android.youtube.tv",
+    "com.disney.disneyplus",
+    "com.android.vending"
+  ],
+  "hidden_apps": [
+    "com.inspur.isoc.launcher",
+    "com.omni.modeswitch",
+    "com.omni.otademo",
+    "com.inspur.tang.mwtvinput"
+  ],
+  "live_tv_package": "com.android.tv",
+  "app_labels": ["com.android.tv=有線電視"],
+  "input_sources": ["HW28=-"],
+  "live_tv_input_id": "none",
+  "app_library": true,
+  "tile_menu": true,
+  "library_ok_opens": true,
+  "background_color": "#090C14",
+  "wallpaper": true,
+  "cinematic_home": true,
+  "dock_glass": true,
+  "icon_only_buttons": true,
+  "app_glow": true,
+  "glow_style": "horizon",
+  "focus_overshoot": false,
+  "advanced_effects": true
+}
