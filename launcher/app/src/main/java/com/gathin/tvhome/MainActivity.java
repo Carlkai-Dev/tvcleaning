@@ -39,6 +39,7 @@ import android.net.NetworkRequest;
 import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -180,6 +181,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
     private TextView btnWifi;
+    private TextView btnBattery;
+    private boolean batteryPill;
     /** The network pill's icon as last set, so a refresh that changes nothing does not lay the top bar out again. */
     private int wifiIcon;
     /** The pills have been filled in once; later resumes refresh them after the first frame. */
@@ -369,6 +372,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateClockVisibility();
         }
     };
+    // battery_pill: ACTION_BATTERY_CHANGED is sticky, so registering in onStart shows the level at once; it is only
+    // registered while Home is on screen and the key is on, and never with the key off.
+    private final IntentFilter batteryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 0);
+            if (!BatteryPill.hasLevel(level, scale)) {
+                btnBattery.setVisibility(View.GONE);
+                return;
+            }
+            boolean plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0;
+            btnBattery.setText(BatteryPill.label(level, scale, getResources().getConfiguration().getLocales().get(0)));
+            btnBattery.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    plugged ? R.drawable.ic_battery_charging : R.drawable.ic_battery, 0, 0, 0);
+            btnBattery.setVisibility(View.VISIBLE);
+        }
+    };
     private final Runnable minuteTick = new Runnable() {
         @Override
         public void run() {
@@ -489,6 +511,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             clockRow.addOnLayoutChangeListener(centerGreeting);
         }
         btnWifi = findViewById(R.id.btnWifi);
+        btnBattery = findViewById(R.id.btnBattery);
+        batteryPill = cfg.batteryPill;
         shamsiDate = findViewById(R.id.shamsiDate);
         stats = findViewById(R.id.stats);
         raceCalendar = cfg.raceCalendar;
@@ -933,8 +957,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         started = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(timeReceiver, timeFilter, Context.RECEIVER_NOT_EXPORTED);
+            if (batteryPill) registerReceiver(batteryReceiver, batteryFilter, Context.RECEIVER_NOT_EXPORTED);
         } else {
             registerReceiver(timeReceiver, timeFilter);
+            if (batteryPill) registerReceiver(batteryReceiver, batteryFilter);
         }
         updateClockVisibility();
         tileRefresh.onStart();
@@ -1176,6 +1202,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onStop();
         started = false;
         unregisterReceiver(timeReceiver);
+        if (batteryPill) unregisterReceiver(batteryReceiver);
         handler.removeCallbacks(clockCheck);
         stopped = true;
         tileRefresh.onStop();
