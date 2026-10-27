@@ -64,6 +64,10 @@ INPUT_PERMISSION = "android.permission.TV_INPUT_HARDWARE"
 # otherwise match through its shared user's permissions, the same reason disable.sh scopes its grep.
 REQUESTED_RE = re.compile(r"requested permissions:(.*?)"
                           r"(?:\n\s*(?:install|runtime) permissions:|\n\s*User \d+:|$)", re.S)
+# Lollipop's dumpsys package prints no "requested permissions:" block, only the package's own
+# "grantedPermissions:" (#1753): the fallback disable.sh reads when the requested block is absent.
+GRANTED_RE = re.compile(r"grantedPermissions:(.*?)"
+                        r"(?:\n\s*(?:install|runtime) permissions:|\n\s*User \d+:|$)", re.S)
 HOME_QUERY = ("cmd package resolve-activity --brief -a android.intent.action.MAIN "
               "-c android.intent.category.HOME")
 CLAIMS_QUERY = ("cmd package query-activities --brief -a android.intent.action.MAIN "
@@ -94,7 +98,9 @@ def launcher_to_use(dev, listed, preferred=None):
     if preferred:
         if not recovery.PACKAGE_RE.fullmatch(preferred):
             raise SystemExit(f"not a package name: {preferred!r}")
-        match = [c for c in home_activities(dev) if home_of(c) == preferred]
+        # A package can register a FallbackHome next to its real Home; only the real one will do.
+        match = [c for c in home_activities(dev)
+                 if home_of(c) == preferred and not FALLBACK_HOME_RE.search(c)]
         if not match:
             raise SystemExit(f"{preferred} has no HOME activity on this TV: is the launcher "
                              f"installed? (launcher/build-and-install.sh)")
@@ -166,9 +172,22 @@ def setupwraith_owns_wifi(dev):
 
 
 def asks_for_input_hardware(dev, name):
-    """Whether the package itself asks for TV_INPUT_HARDWARE, i.e. it drives the HDMI/AV inputs."""
-    block = REQUESTED_RE.search(recovery.shell(dev, f"dumpsys package {name}"))
-    return bool(block and INPUT_PERMISSION in block.group(1))
+    """Whether the package itself asks for TV_INPUT_HARDWARE, i.e. it drives the HDMI/AV inputs.
+
+    True or False from a dump that can be read; None when the dump shows neither a requested nor a
+    granted permission block, so the check could not run — Android 5.x prints neither (#1753)."""
+    dump = recovery.shell(dev, f"dumpsys package {name}")
+    block = REQUESTED_RE.search(dump)
+    if block:
+        return INPUT_PERMISSION in block.group(1)
+    granted = GRANTED_RE.search(dump)
+    if granted:
+        return INPUT_PERMISSION in granted.group(1)
+    if "Service Resolver Table:" in dump:
+        # Lollipop's per-package dump has no permission block but lists what serves the input
+        # service: the decisive check the requested-permission grep stands in for.
+        return "android.media.tv.TvInputService" in dump
+    return None
 
 
 def handler_apps(dev):
@@ -205,7 +224,15 @@ def safety_checks(dev, names):
         for name in names:
             if any(name == skipped_name for skipped_name, _ in skipped):
                 continue
-            if asks_for_input_hardware(dev, name):
+            hw = asks_for_input_hardware(dev, name)
+            if hw is None:
+                # Fail closed, the same as disable.sh: a dump this firmware cannot be read from
+                # keeps the package on (#1753), and the owner is told what it costs.
+                skipped.append((name, "could not check whether it drives the HDMI/AV inputs (the "
+                                      "TV's dumpsys shows neither permission block, as Android 5.x "
+                                      "prints neither): it stays enabled; set TVINPUT_ALLOW=1 to "
+                                      "disable it once every input still works after a reboot"))
+            elif hw:
                 skipped.append((name, "it asks for android.permission.TV_INPUT_HARDWARE, so it is "
                                       "the software layer under the HDMI/AV/tuner inputs: with it "
                                       "disabled those ports stay black and only a full restore and "
@@ -213,6 +240,12 @@ def safety_checks(dev, names):
                                       "it)"))
     if not os.environ.get("HANDLERS_ALLOW") and any(n not in {k for k, _ in skipped} for n in names):
         inputs, settings = handler_apps(dev)
+        if not settings and not inputs:
+            # A working query always has some app answering android.settings.SETTINGS; an empty
+            # answer means the firmware has no `cmd`, and the guard below would pass in silence.
+            print("  could not check which listed packages open the TV's inputs and Settings: the "
+                  "query answered with nothing (this firmware may have no 'cmd'); open an HDMI "
+                  "input and Settings from the launcher after --fix")
         for name in names:
             if any(name == skipped_name for skipped_name, _ in skipped):
                 continue
@@ -241,11 +274,13 @@ def fix(dev, listed, back_on, home_drifted, preferred):
         recovery.shell(dev, f"cmd package set-home-activity --user 0 {target}")
         home = recovery.query_home(dev)
         if home != target:
+            # Stop here, as the comment above says: Home is still on what it was, which may be a
+            # package this list disables, and disabling it now leaves the TV with setupwraith's
+            # RecoveryActivity or a placeholder for Home (#1573).
             print(f"Home: asked for {target} but the TV still resolves {home or 'nothing'}; "
-                  f"reboot it and check again")
-            failed = True
-        else:
-            print(f"Home: set to {target}")
+                  f"nothing was disabled. Reboot it and check again")
+            return 1
+        print(f"Home: set to {target}")
     left_on = []
     if back_on:
         left_on = safety_checks(dev, back_on)
@@ -318,6 +353,19 @@ def main():
         # The same for a line that is not a package name and for a list with every line commented
         # out: read_list stops with a message, which Python turns into exit 1.
         sys.stderr.write(f"{e}. Nothing was checked or changed.\n")
+        return 2
+    # The launcher argument has to be a Home the TV can stay on: not one this list disables (--fix would
+    # set Home to it and then disable it), and none of what answers HOME without being a launcher. With
+    # `check.py --fix <list> com.google.android.tungsten.setupwraith`, --fix set Home to setupwraith's
+    # RecoveryActivity and called it fixed (#1573).
+    if preferred and (preferred in listed or preferred in NOT_LAUNCHERS
+                      or FACTORY_HOME_RE.search(preferred)):
+        why = ("this list disables it" if preferred in listed else
+               "it answers Home without being a launcher (a setup wizard, a settings app or a "
+               "factory test)")
+        sys.stderr.write(f"check.py: {preferred} cannot be the launcher Home is on: {why}. Pass the "
+                         f"launcher Home should stay on, or no launcher at all. Nothing was checked "
+                         f"or changed.\n")
         return 2
     core = recovery.core_packages(listed)
     if core:
