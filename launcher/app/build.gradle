@@ -9,6 +9,10 @@ android {
     defaultConfig {
         // Opt-in identity for firmware with a package-name HOME allowlist; see docs/devices/xiaomi-mitv-aetp0-dofus.md.
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
+        // Opt-in omission of CATEGORY_HOME for firmware whose background services uninstall HOME apps (e.g. TiVo Stream 4K com.nes.coreservice).
+        manifestPlaceholders = [
+            homeCategory: providers.gradleProperty('omitHomeCategory').map { it.toBoolean() ? "android.intent.category.DEFAULT" : "android.intent.category.HOME" }.getOrElse("android.intent.category.HOME")
+        ]
         minSdk 26
         targetSdk 34
         versionCode 8

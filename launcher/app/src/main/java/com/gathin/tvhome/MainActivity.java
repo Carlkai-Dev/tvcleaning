@@ -174,6 +174,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
     private TextView btnWifi;
+    private TextView btnWeather;
     /** The network pill's icon as last set, so a refresh that changes nothing does not lay the top bar out again. */
     private int wifiIcon;
     /** The pills have been filled in once; later resumes refresh them after the first frame. */
@@ -611,6 +612,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
         if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
+        btnWeather = findViewById(R.id.btnWeather);
+        if (btnWeather != null) {
+            btnWeather.setOnClickListener(v -> {
+                Intent wIntent = getPackageManager().getLeanbackLaunchIntentForPackage("io.github.sumyabazar1.weather");
+                if (wIntent == null) wIntent = getPackageManager().getLaunchIntentForPackage("io.github.sumyabazar1.weather");
+                if (wIntent != null) {
+                    wIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(wIntent);
+                } else {
+                    fetchCurrentWeather();
+                }
+            });
+            fetchCurrentWeather();
+        }
         showInputsPill = cfg.showInputsPill;
         showInputsMenuRow = cfg.showInputsPill;
         btnLibraryTop = findViewById(R.id.btnLibraryTop);
@@ -674,11 +689,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         };
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
+        if (btnWeather != null) btnWeather.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            for (View button : new View[]{btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings}) {
+            for (View button : new View[]{btnInputs, btnWifi, btnWeather, btnReorder, btnLibraryTop, btnSettings}) {
+                if (button == null) continue;
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
                         .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
                         .setDuration(reducedMotion ? Motion.REDUCED_MS : 160).start());
@@ -825,6 +842,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         restartIdleClock();
         promptsPaused = false;
+        fetchCurrentWeather();
+        fetchRecentShows();
         if (grid.getAdapter() == null) grid.setAdapter(adapter);   // dropped by onTrimMemory
         switch (tileRefresh.onResume(packagesChangedSinceRebuild())) {
             case REBUILD:
@@ -3217,5 +3236,154 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             default:
                 return getString(R.string.card_state_new);
         }
+    }
+
+    private static class RecentShow {
+        String title;
+        String subtitle;
+        RecentShow(String t, String s) { this.title = t; this.subtitle = s; }
+    }
+
+    private void fetchRecentShows() {
+        LinearLayout container = findViewById(R.id.recentShowsContainer);
+        LinearLayout row = findViewById(R.id.recentShowsRow);
+        if (container == null || row == null) return;
+
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL("http://10.0.0.150:32400/status/sessions/history/all?sort=viewedAt:desc&limit=4");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(4000);
+                conn.setReadTimeout(4000);
+                if (conn.getResponseCode() == 200) {
+                    java.io.InputStream is = conn.getInputStream();
+                    javax.xml.parsers.DocumentBuilderFactory dbf = javax.xml.parsers.DocumentBuilderFactory.newInstance();
+                    org.w3c.dom.Document doc = dbf.newDocumentBuilder().parse(is);
+                    is.close();
+                    org.w3c.dom.NodeList videos = doc.getElementsByTagName("Video");
+
+                    final List<RecentShow> shows = new ArrayList<>();
+                    for (int i = 0; i < videos.getLength() && i < 4; i++) {
+                        org.w3c.dom.Element el = (org.w3c.dom.Element) videos.item(i);
+                        String title = el.getAttribute("title");
+                        String grand = el.getAttribute("grandparentTitle");
+                        String mainTitle = grand != null && !grand.isEmpty() ? grand : title;
+                        String subTitle = grand != null && !grand.isEmpty() ? title : "Movie";
+                        shows.add(new RecentShow(mainTitle, subTitle));
+                    }
+
+                    if (!shows.isEmpty()) {
+                        runOnUiThread(() -> renderRecentShows(shows));
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }).start();
+    }
+
+    private void renderRecentShows(List<RecentShow> shows) {
+        LinearLayout container = findViewById(R.id.recentShowsContainer);
+        LinearLayout row = findViewById(R.id.recentShowsRow);
+        if (container == null || row == null || shows == null || shows.isEmpty()) return;
+
+        row.removeAllViews();
+        container.setVisibility(View.VISIBLE);
+
+        float density = getResources().getDisplayMetrics().density;
+        int dp8 = Math.round(8 * density);
+        int dp12 = Math.round(12 * density);
+        int dp14 = Math.round(14 * density);
+
+        for (int i = 0; i < shows.size(); i++) {
+            RecentShow show = shows.get(i);
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setFocusable(true);
+            card.setClickable(true);
+            card.setBackgroundResource(R.drawable.item_focus_bg);
+            card.setPadding(dp14, dp12, dp14, dp12);
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, Math.round(62 * density), 1f);
+            if (i > 0) lp.setMarginStart(dp8);
+            if (i < shows.size() - 1) lp.setMarginEnd(dp8);
+            card.setLayoutParams(lp);
+
+            TextView titleV = new TextView(this);
+            titleV.setText("▶  " + show.title);
+            titleV.setTextColor(Color.WHITE);
+            titleV.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            titleV.setTypeface(null, android.graphics.Typeface.BOLD);
+            titleV.setSingleLine(true);
+            titleV.setEllipsize(TextUtils.TruncateAt.END);
+            card.addView(titleV);
+
+            TextView subV = new TextView(this);
+            subV.setText(show.subtitle);
+            subV.setTextColor(Color.parseColor("#94A3B8"));
+            subV.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            subV.setSingleLine(true);
+            subV.setEllipsize(TextUtils.TruncateAt.END);
+            card.addView(subV);
+
+            card.setOnClickListener(v -> {
+                Intent pIntent = getPackageManager().getLeanbackLaunchIntentForPackage("com.plexapp.android");
+                if (pIntent == null) pIntent = getPackageManager().getLaunchIntentForPackage("com.plexapp.android");
+                if (pIntent != null) {
+                    pIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(pIntent);
+                }
+            });
+
+            card.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_UP && (
+                        keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                        keyCode == KeyEvent.KEYCODE_ENTER ||
+                        keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER ||
+                        keyCode == KeyEvent.KEYCODE_BUTTON_A)) {
+                    card.performClick();
+                    return true;
+                }
+                return false;
+            });
+
+            row.addView(card);
+        }
+    }
+
+    private void fetchCurrentWeather() {
+        if (btnWeather == null) return;
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL("https://api.open-meteo.com/v1/forecast?latitude=38.5816&longitude=-121.4944&current=temperature_2m,weather_code&temperature_unit=fahrenheit");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                conn.setRequestProperty("User-Agent", "CleanYourTV/2.7");
+                if (conn.getResponseCode() == 200) {
+                    java.io.InputStream is = conn.getInputStream();
+                    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+                    String res = s.hasNext() ? s.next() : "";
+                    is.close();
+                    org.json.JSONObject obj = new org.json.JSONObject(res);
+                    org.json.JSONObject cur = obj.optJSONObject("current");
+                    if (cur != null) {
+                        double temp = cur.optDouble("temperature_2m", Double.NaN);
+                        int code = cur.optInt("weather_code", 0);
+                        if (!Double.isNaN(temp)) {
+                            int rounded = (int) Math.round(temp);
+                            String cond = code <= 1 ? "Clear" : code <= 3 ? "Partly Cloudy" : code <= 48 ? "Foggy" : code <= 65 ? "Rain" : code <= 77 ? "Snow" : "Cloudy";
+                            String weatherText = rounded + "° " + cond;
+                            runOnUiThread(() -> {
+                                if (btnWeather != null) {
+                                    btnWeather.setText(weatherText);
+                                }
+                            });
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }).start();
     }
 }

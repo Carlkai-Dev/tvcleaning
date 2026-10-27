@@ -1,0 +1,11 @@
+{
+  "model": "TiVo Stream 4K",
+  "device": "SEI400TV",
+  "product": "SEI400TV",
+  "manufacturer": "SEI Robotics",
+  "release": "12",
+  "sdk": 31,
+  "build": "SC.1272 release-keys",
+  "security_patch": "2025-07-05",
+  "fingerprint": "eSTREAM4K/SEI400TV/SEI400TV:12/SC/1272:user/release-keys"
+}

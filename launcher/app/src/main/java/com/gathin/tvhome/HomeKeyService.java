@@ -167,11 +167,7 @@ public class HomeKeyService extends AccessibilityService {
         }
         if (event.getKeyCode() != KeyEvent.KEYCODE_ALL_APPS) return false;
         if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
-            Intent home = new Intent(Intent.ACTION_MAIN)
-                    .addCategory(Intent.CATEGORY_HOME)
-                    .setPackage(getPackageName())
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-            startActivity(home);
+            openHome();
         }
         return true;
     }
@@ -185,8 +181,16 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        // stock_home_redirect: the firmware turned the stock launcher back on and its home screen came up.
-        if (stockHome.isEmpty() || event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
+        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
+        CharSequence pkg = event.getPackageName();
+        if (pkg != null) {
+            String pkgStr = pkg.toString();
+            if (pkgStr.contains("com.tivo.atom") || pkgStr.contains("com.tivo.tivoplusplayer")) {
+                openHome();
+                return;
+            }
+        }
+        if (stockHome.isEmpty()) return;
         CharSequence cls = event.getClassName();
         if (cls != null && stockHome.contains(cls.toString())) openHome();
     }
@@ -235,8 +239,11 @@ public class HomeKeyService extends AccessibilityService {
     }
 
     private void openHome() {
-        startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setPackage(getPackageName())
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED));
+        try {
+            startActivity(new Intent(this, MainActivity.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED));
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
