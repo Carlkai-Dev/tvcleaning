@@ -146,4 +146,8 @@
     <string name="race_countdown_days">%1$d일 %2$d시간</string>
     <!-- Cinematic top shelf (cinematic_home): %1$s is when it was last opened, e.g. "5분 전". -->
     <string name="last_opened">마지막 실행 %1$s</string>
+    <string name="wifi_off">Wi-Fi off</string>
+    <string name="connecting">Connecting…</string>
+    <string name="wifi_sign_in">Sign in to Wi-Fi</string>
+    <string name="no_internet">No internet</string>
 </resources>
