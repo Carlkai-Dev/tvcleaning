@@ -322,6 +322,16 @@
                 android:clipToPadding="false"
                 android:orientation="horizontal">
 
+                <!-- Battery level (config.xml battery_pill). Display only: not focusable, so the D-pad passes over it. -->
+                <TextView
+                    android:id="@+id/btnBattery"
+                    style="@style/TopButton"
+                    android:visibility="gone"
+                    android:focusable="false"
+                    android:clickable="false"
+                    android:singleLine="true"
+                    android:drawableStart="@drawable/ic_battery" />
+
                 <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"

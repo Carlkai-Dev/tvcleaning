@@ -383,6 +383,16 @@
                     android:text="@string/inputs"
                     android:drawableStart="@drawable/ic_input"
                     android:nextFocusDown="@+id/grid" />
+
+                <!-- Battery level (config.xml battery_pill), at the bar's start as in the default layout. Display only. -->
+                <TextView
+                    android:id="@+id/btnBattery"
+                    style="@style/TopButton"
+                    android:visibility="gone"
+                    android:focusable="false"
+                    android:clickable="false"
+                    android:singleLine="true"
+                    android:drawableStart="@drawable/ic_battery" />
             </LinearLayout>
         </RelativeLayout>
 
