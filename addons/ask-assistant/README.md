@@ -7,7 +7,7 @@ panel over whatever you're watching and is read aloud.
 
 It replaces the TV's search on the mic button with an assistant that runs on a model you chose, on a server you own.
 
-![Ask over a playing video: "Set the volume to 15 percent"](docs/over-video.jpg)
+![Ask over a playing video: "Set the volume to 15 percent"](screenshot.jpg)
 
 <sub>Over [Big Buck Bunny](https://peach.blender.org/), (c) Blender Foundation, CC BY 3.0.</sub>
 
