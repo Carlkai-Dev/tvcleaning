@@ -75,4 +75,10 @@
         <item quantity="other">%1$d aplikacija</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="remote_buttons_label">Dugmad daljinskog</string>
+    <string name="remote_button_default">Podrazumevano</string>
+    <string name="remote_button_nothing">Ništa</string>
+    <string name="remote_button_mute">Isključi zvuk</string>
+    <string name="remote_button_sleep">Spavanje</string>
+    <string name="remote_button_screensaver">Čuvar ekrana</string>
 </resources>

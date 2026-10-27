@@ -111,4 +111,10 @@
     <string name="race_live">%1$s · käynnissä</string>
     <string name="race_finished">Ruutulippu</string>
     <string name="last_opened">Viimeksi avattu %1$s</string>
+    <string name="remote_buttons_label">Kaukosäätimen painikkeet</string>
+    <string name="remote_button_default">Oletus</string>
+    <string name="remote_button_nothing">Ei mitään</string>
+    <string name="remote_button_mute">Mykistä</string>
+    <string name="remote_button_sleep">Lepotila</string>
+    <string name="remote_button_screensaver">Näytönsäästäjä</string>
 </resources>

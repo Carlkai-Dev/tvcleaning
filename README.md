@@ -673,7 +673,10 @@ and a wallpaper.
     transitions; they may use more memory) once animations are on.
   - **Open on start**, only with `open_on_start_choice`: Off, or an app that opens instead of Home the first
     time Home comes up after the TV starts. Once per boot, so Home and Back still reach the launcher.
-  - **Follow theme (reset on-TV choices)**, which clears every choice above. Pushing or resetting a theme
+  - **Remote buttons**, only with `remap_buttons` and `HOME_KEY_SERVICE=1`: each listed button with what it
+    does, and for each an app, an action (Inputs, Settings, Mute, Sleep, Screensaver), Nothing, or Default
+    (its `app_keys` entry). A choice works at once and is kept through Follow theme and theme pushes.
+  - **Follow theme (reset on-TV choices)**, which clears every choice above but the remote buttons. Pushing or resetting a theme
     clears them too.
   - **Choose default home** opens Android's home picker, and **TV system settings** the TV's own settings
     page.
@@ -732,7 +735,9 @@ tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.Clock
   unprefixed app, holding for half a second opens the hold one (by keycode or `hold:scan:...`). An entry can
   name an activity (`package/.Activity`), such as an add-on's quick bar, instead of the app's launcher entry.
 - In place of an app, an `app_keys` entry can name an action: `back`, `home`, `recents`, `mute`, `sleep`,
-  `screensaver`, `settings` or `wifi`, so a spare colour button can mute the TV or, held, put it in standby.
+  `screensaver`, `settings`, `wifi` or `nothing`, so a spare colour button can mute the TV or, held, put it in standby.
+- With `remap_buttons`, Launcher settings gets a **Remote buttons** row where those buttons are mapped to an app
+  or an action on the TV itself.
 - `HOME_KEY_SERVICE=1` also fixes sticks whose Home key sends ALL_APPS, and opens Settings from the remote's
   **gear** button, even one Android does not map (scancodes or keycodes in config.xml).
 - With `settings_key_panel` the gear opens a [small quick settings panel](docs/quick-settings-panel.jpg)

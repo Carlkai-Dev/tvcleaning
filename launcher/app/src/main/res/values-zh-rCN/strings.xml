@@ -146,4 +146,10 @@
     <string name="tile_add_to_dock">添加到程序坞</string>
     <string name="tile_move">移动</string>
     <string name="tile_replace_in_dock">替换为其他应用</string>
+    <string name="remote_buttons_label">遥控器按键</string>
+    <string name="remote_button_default">默认</string>
+    <string name="remote_button_nothing">无</string>
+    <string name="remote_button_mute">静音</string>
+    <string name="remote_button_sleep">睡眠</string>
+    <string name="remote_button_screensaver">屏幕保护程序</string>
 </resources>

@@ -109,4 +109,10 @@
     <string name="race_live">%1$s · langsung</string>
     <string name="race_finished">Bendera finis</string>
     <string name="last_opened">Terakhir dibuka %1$s</string>
+    <string name="remote_buttons_label">Tombol remote</string>
+    <string name="remote_button_default">Default</string>
+    <string name="remote_button_nothing">Tidak ada</string>
+    <string name="remote_button_mute">Bisukan</string>
+    <string name="remote_button_sleep">Tidur</string>
+    <string name="remote_button_screensaver">Screensaver</string>
 </resources>

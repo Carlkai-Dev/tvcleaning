@@ -120,4 +120,10 @@
     <string name="race_qualifying">Kval</string>
     <string name="race_race">Lopp</string>
     <string name="last_opened">Senast öppnad %1$s</string>
+    <string name="remote_buttons_label">Fjärrkontrollens knappar</string>
+    <string name="remote_button_default">Standard</string>
+    <string name="remote_button_nothing">Ingenting</string>
+    <string name="remote_button_mute">Ljud av</string>
+    <string name="remote_button_sleep">Viloläge</string>
+    <string name="remote_button_screensaver">Skärmsläckare</string>
 </resources>

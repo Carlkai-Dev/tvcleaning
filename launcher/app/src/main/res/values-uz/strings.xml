@@ -110,4 +110,10 @@
     <string name="race_live">%1$s · jonli</string>
     <string name="race_finished">Marra</string>
     <string name="last_opened">Oxirgi marta ochilgan: %1$s</string>
+    <string name="remote_buttons_label">Pult tugmalari</string>
+    <string name="remote_button_default">Standart</string>
+    <string name="remote_button_nothing">Hech narsa</string>
+    <string name="remote_button_mute">Ovozsiz</string>
+    <string name="remote_button_sleep">Uyqu</string>
+    <string name="remote_button_screensaver">Ekran saqlovchi</string>
 </resources>

@@ -98,4 +98,10 @@
         <item quantity="other">%1$dটি অ্যাপ</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="remote_buttons_label">রিমোটের বোতাম</string>
+    <string name="remote_button_default">ডিফল্ট</string>
+    <string name="remote_button_nothing">কিছুই না</string>
+    <string name="remote_button_mute">মিউট</string>
+    <string name="remote_button_sleep">স্লিপ</string>
+    <string name="remote_button_screensaver">স্ক্রিনসেভার</string>
 </resources>
