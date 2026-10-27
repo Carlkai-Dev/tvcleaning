@@ -147,4 +147,7 @@
     <string name="race_countdown_hours">%1$d שע׳ %2$d דק׳</string>
     <string name="race_countdown_days">%1$d ימ׳ %2$d שע׳</string>
     <string name="last_opened">פתיחה אחרונה: %1$s</string>
+    <string name="clock_format_system">מערכת</string>
+    <string name="clock_format_12">12 שעות</string>
+    <string name="clock_format_24">24 שעות</string>
 </resources>
