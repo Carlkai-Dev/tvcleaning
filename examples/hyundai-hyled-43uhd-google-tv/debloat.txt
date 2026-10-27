@@ -1,0 +1,26 @@
+# Hyundai HYLED-43UHD (board Realtek RTD2873, Andean region), Google TV on Android 11
+# Ultra-budget 4K TV popular in Colombia, Mexico, Peru and Chile.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/hyundai-hyled-43uhd-google-tv/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/hyundai-hyled-43uhd-google-tv/debloat.txt com.google.android.apps.tv.launcherx
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Stock launcher: com.google.android.apps.tv.launcherx.
+# Live TV & Inputs: keep com.realtek.tv and com.realtek.dtv for HDMI sources and antenna tuner.
+
+# Telemetry and diagnostics
+com.android.tv.feedbackconsent
+com.google.android.feedback
+
+# Android ad and recommendation services
+com.android.adservices.api
+com.android.ondevicepersonalization.services
+com.realtek.leanbacklauncher.partnercustomizer # injects promotional partner rows into home
+
+# Retail demo and store promo stubs
+com.apps.esticker3                             # Shop demo sticker
+com.google.android.apps.tv.dreamx              # Google TV promo screensaver
+
+# Unused services on TV
+com.google.android.play.games
+com.android.printspooler

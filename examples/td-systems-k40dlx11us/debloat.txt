@@ -1,0 +1,27 @@
+# TD Systems K40DLX11US (product K40DLX11US, board TP.MT5522.PB751, CVTE ODM), Android TV 11
+# Budget FHD TV sold across Spain and Western Europe.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/td-systems-k40dlx11us/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/td-systems-k40dlx11us/debloat.txt com.google.android.tvlauncher
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Stock launcher: com.google.android.tvlauncher (or com.cvte.tv.launcher).
+# Live TV & Inputs: keep com.cvte.tvservice and com.cvte.tv.androidsetting (required for HDMI/tuner).
+
+# CVTE factory test tools and diagnostics
+cn.cvte.tv.factory.autotest
+com.cvte.tv.audiotest
+com.cvte.fac.menu
+com.google.android.feedback
+
+# Background cleaners and store preloads
+com.cvte.tvclean                        # Background memory cleaner
+com.cvte.tv.appstore                    # Preloaded third-party store
+
+# Recommendation rows and retail demo
+com.google.android.tvrecommendations
+com.cvte.tv.ucservice                   # CVTE UserCenter analytics/promo service
+
+# Preloaded apps
+com.google.android.play.games
+com.android.printspooler
