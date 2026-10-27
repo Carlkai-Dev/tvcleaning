@@ -150,4 +150,10 @@
     <!-- Cinematic top shelf (cinematic_home): the line under the focused dock app's name; %1$s is when it was
          last opened, e.g. "5 minutes ago" or "yesterday, 9:40 pm". -->
     <string name="last_opened">Последний запуск: %1$s</string>
+    <string name="remote_buttons_label">Кнопки пульта</string>
+    <string name="remote_button_default">По умолчанию</string>
+    <string name="remote_button_nothing">Ничего</string>
+    <string name="remote_button_mute">Без звука</string>
+    <string name="remote_button_sleep">Сон</string>
+    <string name="remote_button_screensaver">Заставка</string>
 </resources>

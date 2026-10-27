@@ -111,4 +111,10 @@
     <string name="race_live">%1$s · live</string>
     <string name="race_finished">Geblokte vlag</string>
     <string name="last_opened">Laatst geopend %1$s</string>
+    <string name="remote_buttons_label">Knoppen afstandsbediening</string>
+    <string name="remote_button_default">Standaard</string>
+    <string name="remote_button_nothing">Niets</string>
+    <string name="remote_button_mute">Dempen</string>
+    <string name="remote_button_sleep">Slaapstand</string>
+    <string name="remote_button_screensaver">Schermbeveiliging</string>
 </resources>

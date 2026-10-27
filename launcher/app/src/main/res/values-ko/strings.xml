@@ -146,4 +146,10 @@
     <string name="race_countdown_days">%1$d일 %2$d시간</string>
     <!-- Cinematic top shelf (cinematic_home): %1$s is when it was last opened, e.g. "5분 전". -->
     <string name="last_opened">마지막 실행 %1$s</string>
+    <string name="remote_buttons_label">리모컨 버튼</string>
+    <string name="remote_button_default">기본값</string>
+    <string name="remote_button_nothing">없음</string>
+    <string name="remote_button_mute">음소거</string>
+    <string name="remote_button_sleep">절전</string>
+    <string name="remote_button_screensaver">화면 보호기</string>
 </resources>

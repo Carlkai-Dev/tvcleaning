@@ -110,4 +110,10 @@
     <string name="race_live">%1$s · direkte</string>
     <string name="race_finished">Målgang</string>
     <string name="last_opened">Sist åpnet %1$s</string>
+    <string name="remote_buttons_label">Fjernkontrollknapper</string>
+    <string name="remote_button_default">Standard</string>
+    <string name="remote_button_nothing">Ingenting</string>
+    <string name="remote_button_mute">Demp</string>
+    <string name="remote_button_sleep">Hvilemodus</string>
+    <string name="remote_button_screensaver">Skjermsparer</string>
 </resources>

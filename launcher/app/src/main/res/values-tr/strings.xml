@@ -93,4 +93,10 @@
         <item quantity="other">%1$d uygulama</item>
     </plurals>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="remote_buttons_label">Kumanda tuşları</string>
+    <string name="remote_button_default">Varsayılan</string>
+    <string name="remote_button_nothing">Hiçbiri</string>
+    <string name="remote_button_mute">Sessiz</string>
+    <string name="remote_button_sleep">Uyku</string>
+    <string name="remote_button_screensaver">Ekran koruyucu</string>
 </resources>

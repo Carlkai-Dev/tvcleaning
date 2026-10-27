@@ -121,4 +121,10 @@
     <string name="race_countdown_days">%1$d ngày %2$d giờ</string>
     <string name="last_opened">Mở lần cuối %1$s</string>
     <string name="tile_move">Di chuyển</string>
+    <string name="remote_buttons_label">Nút điều khiển</string>
+    <string name="remote_button_default">Mặc định</string>
+    <string name="remote_button_nothing">Không làm gì</string>
+    <string name="remote_button_mute">Tắt tiếng</string>
+    <string name="remote_button_sleep">Ngủ</string>
+    <string name="remote_button_screensaver">Trình bảo vệ màn hình</string>
 </resources>

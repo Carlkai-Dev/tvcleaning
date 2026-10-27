@@ -96,4 +96,10 @@
     <string name="race_countdown_hours">%1$dt %2$dm</string>
     <string name="race_countdown_days">%1$dd %2$dt</string>
     <string name="last_opened">Sidst åbnet %1$s</string>
+    <string name="remote_buttons_label">Fjernbetjeningens knapper</string>
+    <string name="remote_button_default">Standard</string>
+    <string name="remote_button_nothing">Intet</string>
+    <string name="remote_button_mute">Lydløs</string>
+    <string name="remote_button_sleep">Dvale</string>
+    <string name="remote_button_screensaver">Pauseskærm</string>
 </resources>

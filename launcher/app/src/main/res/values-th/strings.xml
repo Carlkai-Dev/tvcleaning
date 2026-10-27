@@ -67,4 +67,10 @@
         <item quantity="other">%1$d แอป</item>
     </plurals>
     <string name="greeting_with_name">%1$s %2$s</string>
+    <string name="remote_buttons_label">ปุ่มรีโมท</string>
+    <string name="remote_button_default">ค่าเริ่มต้น</string>
+    <string name="remote_button_nothing">ไม่มี</string>
+    <string name="remote_button_mute">ปิดเสียง</string>
+    <string name="remote_button_sleep">พักเครื่อง</string>
+    <string name="remote_button_screensaver">โปรแกรมรักษาหน้าจอ</string>
 </resources>

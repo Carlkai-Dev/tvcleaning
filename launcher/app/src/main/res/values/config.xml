@@ -184,9 +184,9 @@
          for HDMI 3 on a TCL Smart TV Pro; the ids are in `tools/tv.py 'dumpsys tv_input'` (hdmi_port=N under
          TvInputHardwareInfo). An action word in place of a package runs that action instead: back, home, recents,
          mute (toggles the sound, with the TV's volume bar), sleep (standby, Android 9 and later), screensaver (the
-         one chosen in the TV's settings, or the launcher's clock), settings or wifi; e.g. KEYCODE_PROG_YELLOW:mute
-         and hold:KEYCODE_PROG_YELLOW:sleep. "package/.Activity" opens that activity instead of the app's launcher
-         entry, e.g. hold:191:io.github.maxhayim.brightness/.QuickActivity for an add-on's quick bar. Prefix an
+         one chosen in the TV's settings, or the launcher's clock), settings, wifi or nothing (swallows the button);
+         e.g. KEYCODE_PROG_YELLOW:mute and hold:KEYCODE_PROG_YELLOW:sleep. "package/.Activity" opens that
+         activity instead of the app's launcher entry, e.g. hold:191:io.github.maxhayim.brightness/.QuickActivity for an add-on's quick bar. Prefix an
          entry with "hold:" for the same button's long press:
          "hold:KEYCODE_BUTTON_8:org.xbmc.kodi" opens Kodi when held for half a second, while the unprefixed entry
          still opens on a tap; "hold:scan:490:..." works for scancodes. A key with only a hold entry does nothing
@@ -197,6 +197,17 @@
          where the firmware hands KEYCODE_GUIDE (172) to the stock launcher and no app ever receives it. Leave empty
          to omit. -->
     <string-array name="app_keys" translatable="false">
+    </string-array>
+
+    <!-- Remote buttons the owner can map to an app or an action on the TV, from Launcher settings > Remote buttons,
+         as "keycode=Label" (the keycode as in app_keys: logcat's InputReader lines or `getevent -lt` show it). A
+         choice made there replaces that keycode's app_keys tap entry (hold:, front: and scan: entries stay), and
+         Default goes back to it; the targets offered are Nothing, Inputs, Settings, Mute, Sleep, Screensaver and
+         every TV app. Needs HOME_KEY_SERVICE=1. The Settings button (settings_key_keycodes) is answered before
+         app_keys and cannot be listed. For a TCL BT_RC833 remote: "4062=Netflix", "4099=Prime Video",
+         "190=YouTube", "4137=TCL Home", "4020=TCL Channel", "4159=Web". A theme's config.json can set it too.
+         Leave empty to hide the row (the default). -->
+    <string-array name="remap_buttons" translatable="false">
     </string-array>
 
     <!-- Package of the stock launcher, for TVs whose firmware turns it back on after it was disabled. XGIMI's
