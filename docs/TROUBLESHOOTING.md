@@ -451,6 +451,17 @@ Things that bit us or contributors, so they don't bite you. Commands use `tools/
   `FallbackHome`. An opt-in application-ID build worked with the stock launcher still enabled;
   see the [device notes and rollback steps](devices/xiaomi-mitv-aetp0-dofus.md). This is different
   from a missing default-home picker or a remote that emits ALL_APPS.
+- **ColorOS TV refuses a HOME install, or boots only a launcher that declares its own category**,
+  verified on an OPPO K9 55 (`OPPOCNM632`), Android 9. The default `com.gathin.tvhome` build is not
+  accepted as Home. The working build is
+  `-PlauncherApplicationId=com.oneplus.tv.launcher2`, and `MainActivity`'s HOME filter also declares
+  `com.heytap.tv.launcher.category.MODERN_HOME` (without that category, ColorOS boot waits on the
+  brand animation). Leave `com.heytap.tv.launcher` installed and enabled: it is the stock home, and
+  building over that package name replaces it. `launcher/build-and-install.sh` installs
+  `com.gathin.tvhome` and would disable a stock launcher it was told to, so do not name
+  `com.heytap.tv.launcher` as `STOCK_LAUNCHER`. The other allowlisted ids are
+  `com.heytap.tv.launcher` (stock, do not overwrite) and `com.oppo.tv.launcher2`. The list and the
+  full device note land with the examples change, at `docs/devices/oppo-k9-55-oppocnm632.md`.
 - **The new launcher still doesn't own Home** after the stock one is disabled, seen on Google TV
   (Xiaomi MiTV-MOOR2). Another system app answers HOME: `com.google.android.tungsten.setupwraith`,
   with `.MainActivity` at intent-filter priority 4 and `.RecoveryActivity` at priority 1. You
