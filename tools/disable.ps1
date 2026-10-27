@@ -13,7 +13,13 @@ $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 $repo = Split-Path -Parent $PSScriptRoot
 $List = (Resolve-Path $List).Path
 $py = Join-Path $repo 'tools\venv\Scripts\python.exe'
-if (-not (Test-Path $py)) { throw 'run: python -m venv tools\venv; tools\venv\Scripts\python.exe -m pip install -r tools\requirements.txt' }
+if (-not (Test-Path $py)) {
+    if ($env:VIRTUAL_ENV -and (Test-Path (Join-Path $env:VIRTUAL_ENV 'Scripts\python.exe'))) {
+        $py = Join-Path $env:VIRTUAL_ENV 'Scripts\python.exe'
+    } else {
+        throw 'run: python -m venv tools\venv; tools\venv\Scripts\python.exe -m pip install -r tools\requirements.txt'
+    }
+}
 if (-not $TvHost) { throw 'pass -TvHost <tv ip> or set $env:TV_HOST' }
 $env:TV_HOST = $TvHost
 

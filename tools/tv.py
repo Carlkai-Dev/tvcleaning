@@ -184,7 +184,9 @@ class NativeAdbDevice:
     max_chunk_size = 4096
 
     def __init__(self, binary, host, port, timeout):
-        self.binary = binary
+        import shutil
+        resolved = shutil.which(binary)
+        self.binary = resolved if resolved else binary
         self.serial = f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
         self.timeout = float(timeout)
         if self._run(["get-state"]).strip() != "device":
@@ -260,9 +262,14 @@ def connect_error(e):
     if isinstance(e, InvalidCommandError) and "STLS" in str(e):
         # Android 11+ answers the handshake on its Wireless debugging port with STLS, a request for TLS.
         # adb_shell 0.4.4 (tools/requirements.txt) has no TLS, so no TV_HOST or TV_PORT gets past it.
+        hint = ""
+        import shutil
+        if shutil.which("adb") and not os.environ.get("TV_ADB_BINARY"):
+            hint = ("\nOr set TV_ADB_BINARY=adb to use your local Google ADB connection directly "
+                    "(see tools/native-adb.md).")
         return (f"{target} is a Wireless debugging port: it asks for TLS, which tv.py cannot use.\n"
                 f"To use port 5555 instead, {pair}, then set TV_HOST to the TV's IP alone and leave TV_PORT "
-                f"unset. {reboot} {see}")
+                f"unset. {reboot} {see}{hint}")
     if isinstance(e, ConnectionRefusedError):
         return (f"{target} refused the connection: nothing listens for ADB there, so network ADB is off "
                 f"or on another port.\nIf the TV has Wireless debugging, {pair}. {reboot} A firmware that "
