@@ -147,4 +147,8 @@
     <string name="race_countdown_hours">%1$d שע׳ %2$d דק׳</string>
     <string name="race_countdown_days">%1$d ימ׳ %2$d שע׳</string>
     <string name="last_opened">פתיחה אחרונה: %1$s</string>
+    <string name="wifi_off">Wi-Fi כבוי</string>
+    <string name="connecting">מתחבר…</string>
+    <string name="wifi_sign_in">נדרשת התחברות ל-Wi-Fi</string>
+    <string name="no_internet">אין אינטרנט</string>
 </resources>
