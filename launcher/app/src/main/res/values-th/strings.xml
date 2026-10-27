@@ -67,4 +67,9 @@
         <item quantity="other">%1$d แอป</item>
     </plurals>
     <string name="greeting_with_name">%1$s %2$s</string>
+    <string name="tile_names_always">ตลอดเวลา</string>
+    <string name="tile_names_focus">เมื่อโฟกัส</string>
+    <string name="tile_names_never">ไม่แสดง</string>
+    <string name="app_labels_label">ชื่อแอป</string>
+    <string name="label_size_label">App label size</string>
 </resources>

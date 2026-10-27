@@ -152,4 +152,9 @@
     <!-- Cinematic top shelf (cinematic_home): the line under the focused dock app's name; %1$s is when it was
          last opened, e.g. "5 minutes ago" or "yesterday, 9:40 pm". -->
     <string name="last_opened">Last opened %1$s</string>
+    <string name="tile_names_always">Always</string>
+    <string name="tile_names_focus">On focus</string>
+    <string name="tile_names_never">Never</string>
+    <string name="app_labels_label">App labels</string>
+    <string name="label_size_label">App label size</string>
 </resources>

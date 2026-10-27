@@ -56,3 +56,5 @@ fits the rules; keys from before the rule sit on its wanted list until a screens
 | `power_on_home_always` | <img src="switches/power_on_home_always.jpg" width="320" alt="power_on_home_always on a TV"> |
 | `inputs_connected_only` | <img src="switches/inputs_connected_only.jpg" width="320" alt="inputs_connected_only on a TV"> |
 | `icon_tiles` | <img src="switches/icon_tiles.jpg" width="320" alt="icon_tiles: an app drawn from its icon in the grid on a TV"> |
+| `tile_names` | <img src="switches/tile_names.jpg" width="320" alt="tile_names on a TV"> |
+| `tile_name_size` | <img src="switches/tile_name_size.jpg" width="320" alt="tile_name_size on a TV"> |
