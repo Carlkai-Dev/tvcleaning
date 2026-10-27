@@ -43,6 +43,11 @@ final class Config {
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
+    static final String DREAM_SCENE_KEY = "dream_scene";
+    static final String DREAM_PALETTE_KEY = "dream_palette";
+    static final String DREAM_CLOCK_KEY = "dream_clock";
+    static final String[] DREAM_SCENES = {"rain_city", "neon_grid"};
+    static final String[] DREAM_PALETTES = {"magenta", "amber", "green"};
     /**
      * Counts the changes made in Launcher settings. Home remembers the count it was built with and rebuilds on
      * resume when it differs, however the settings were left (see MainActivity#onResume).
@@ -628,6 +633,9 @@ final class Config {
         SharedPreferences choices = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
         // Unmounted storage looks like a theme reset; compare only once the file is readable.
         if (mounted) syncThemeChoices(choices, dir, file);
+        dreamScene = chosenOption(choices.getString(DREAM_SCENE_KEY, null), dreamScene, DREAM_SCENES);
+        dreamPalette = chosenOption(choices.getString(DREAM_PALETTE_KEY, null), dreamPalette, DREAM_PALETTES);
+        dreamClock = choices.getBoolean(DREAM_CLOCK_KEY, dreamClock);
         int chosenColumns = choices.getInt("columns", columns);
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         int chosenRows = choices.getInt(ROWS_BELOW_DOCK_KEY, rowsBelow);
@@ -724,13 +732,27 @@ final class Config {
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
                     .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
-                    .remove(DOCK_OPACITY_KEY);
+                    .remove(DOCK_OPACITY_KEY).remove(DREAM_SCENE_KEY).remove(DREAM_PALETTE_KEY)
+                    .remove(DREAM_CLOCK_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
                     .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY).remove(DOCK_OPACITY_KEY)
+                    .remove(DREAM_SCENE_KEY).remove(DREAM_PALETTE_KEY).remove(DREAM_CLOCK_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
+    }
+
+    /** The option picked in Launcher settings if it is one of the allowed ones, else the theme's value. */
+    static String chosenOption(String chosen, String theme, String[] allowed) {
+        for (String option : allowed) if (option.equals(chosen)) return chosen;
+        return theme;
+    }
+
+    /** The option after current in allowed, wrapping round; the first one when current is not in it. */
+    static String nextOption(String current, String[] allowed) {
+        for (int i = 0; i < allowed.length; i++) if (allowed[i].equals(current)) return allowed[(i + 1) % allowed.length];
+        return allowed[0];
     }
 
     /** The dock band opacity chosen in Launcher settings, or the theme's when none (or an out-of-range one) is saved. */

@@ -40,6 +40,16 @@
     <string name="advanced_effects_state">Pokročilé efekty: %1$s</string>
     <string name="open_on_start_label">Otevřít po spuštění</string>
     <string name="open_on_start_state">Otevřít po spuštění: %1$s</string>
+    <string name="dream_scene_state">Scéna spořiče obrazovky: %1$s</string>
+    <string name="dream_palette_state">Barvy spořiče obrazovky: %1$s</string>
+    <string name="dream_clock_state">Hodiny spořiče obrazovky: %1$s</string>
+    <string name="dream_preview">Náhled spořiče obrazovky</string>
+    <string name="dream_system_settings">Vybrat spořič obrazovky (nastavení TV)</string>
+    <string name="dream_scene_rain_city">Město v dešti</string>
+    <string name="dream_scene_neon_grid">Neonová mřížka</string>
+    <string name="dream_palette_magenta">Purpurová</string>
+    <string name="dream_palette_amber">Jantarová</string>
+    <string name="dream_palette_green">Zelená</string>
     <string name="advanced_effects_warning">Přidá zvednutou dlaždici, zvětšení ikon a plynulé přechody barev. Může zvýšit spotřebu paměti, skutečný rozdíl záleží na televizi.</string>
     <string name="follow_theme">Podle motivu (zrušit volby na TV)</string>
     <string name="follow_theme_hint">Použije aktuální motiv nebo vestavěné nastavení rozložení a animací. Nahrání nového motivu nebo jeho resetování také zruší volby provedené na televizi.</string>

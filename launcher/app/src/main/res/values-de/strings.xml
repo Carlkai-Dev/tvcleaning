@@ -36,6 +36,16 @@
     <string name="advanced_effects_state">Erweiterte Effekte: %1$s</string>
     <string name="open_on_start_label">Beim Start öffnen</string>
     <string name="open_on_start_state">Beim Start öffnen: %1$s</string>
+    <string name="dream_scene_state">Bildschirmschoner-Szene: %1$s</string>
+    <string name="dream_palette_state">Bildschirmschoner-Farben: %1$s</string>
+    <string name="dream_clock_state">Bildschirmschoner-Uhr: %1$s</string>
+    <string name="dream_preview">Bildschirmschoner ansehen</string>
+    <string name="dream_system_settings">Bildschirmschoner wählen (TV-Einstellungen)</string>
+    <string name="dream_scene_rain_city">Stadt im Regen</string>
+    <string name="dream_scene_neon_grid">Neon-Gitter</string>
+    <string name="dream_palette_magenta">Magenta</string>
+    <string name="dream_palette_amber">Bernstein</string>
+    <string name="dream_palette_green">Grün</string>
     <string name="advanced_effects_warning">Hebt Kacheln an, vergrößert Symbole und glättet Farbübergänge. Kann den Speicherverbrauch erhöhen; die Wirkung hängt vom TV ab.</string>
     <string name="follow_theme">Design übernehmen (TV-Auswahl zurücksetzen)</string>
     <string name="follow_theme_hint">Verwendet Layout und Bewegung des aktuellen Designs oder der integrierten Einstellungen. Ein neues oder zurückgesetztes Design löscht die TV-Auswahl ebenfalls.</string>

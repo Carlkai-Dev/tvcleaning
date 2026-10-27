@@ -25,4 +25,21 @@ public class NeonDreamTest {
         assertFalse(NeonDream.NeonView.isGrid("anything else"));
         assertFalse(NeonDream.NeonView.isGrid(null));
     }
+
+    @Test public void aChoiceMadeOnTheTvWinsWhenItIsAllowed() {
+        assertEquals("neon_grid", Config.chosenOption("neon_grid", "rain_city", Config.DREAM_SCENES));
+        assertEquals("green", Config.chosenOption("green", "magenta", Config.DREAM_PALETTES));
+    }
+
+    @Test public void noChoiceOrAnUnknownOneKeepsTheThemeValue() {
+        assertEquals("rain_city", Config.chosenOption(null, "rain_city", Config.DREAM_SCENES));
+        assertEquals("amber", Config.chosenOption("purple", "amber", Config.DREAM_PALETTES));
+    }
+
+    @Test public void theRowCyclesThroughTheOptionsAndWrapsRound() {
+        assertEquals("amber", Config.nextOption("magenta", Config.DREAM_PALETTES));
+        assertEquals("green", Config.nextOption("amber", Config.DREAM_PALETTES));
+        assertEquals("magenta", Config.nextOption("green", Config.DREAM_PALETTES));
+        assertEquals("magenta", Config.nextOption("unknown", Config.DREAM_PALETTES));
+    }
 }

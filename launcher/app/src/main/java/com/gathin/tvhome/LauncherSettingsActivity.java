@@ -36,6 +36,12 @@ public final class LauncherSettingsActivity extends Activity {
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
+    private TextView dreamSceneChoice;
+    private TextView dreamPaletteChoice;
+    private TextView dreamClockChoice;
+    private String dreamScene;
+    private String dreamPalette;
+    private boolean dreamClock;
     private TextView openOnStartChoice;
     private int columns;
     private int rowsBelowDock;
@@ -60,6 +66,9 @@ public final class LauncherSettingsActivity extends Activity {
         dockOpacity = config.dockOpacity;
         animations = config.animations;
         advancedEffects = config.animations && config.advancedEffects;
+        dreamScene = config.dreamScene;
+        dreamPalette = config.dreamPalette;
+        dreamClock = config.dreamClock;
 
         int[] ids = {R.id.columns4, R.id.columns5, R.id.columns6, R.id.columns7};
         for (int i = 0; i < ids.length; i++) {
@@ -130,6 +139,31 @@ public final class LauncherSettingsActivity extends Activity {
                         .show();
             }
         });
+        dreamSceneChoice = findViewById(R.id.dreamSceneChoice);
+        dreamSceneChoice.setOnClickListener(v -> {
+            dreamScene = Config.nextOption(dreamScene, Config.DREAM_SCENES);
+            choices.edit().putString(Config.DREAM_SCENE_KEY, dreamScene).apply();
+            changed();
+            refresh();
+        });
+        dreamPaletteChoice = findViewById(R.id.dreamPaletteChoice);
+        dreamPaletteChoice.setOnClickListener(v -> {
+            dreamPalette = Config.nextOption(dreamPalette, Config.DREAM_PALETTES);
+            choices.edit().putString(Config.DREAM_PALETTE_KEY, dreamPalette).apply();
+            changed();
+            refresh();
+        });
+        dreamClockChoice = findViewById(R.id.dreamClockChoice);
+        dreamClockChoice.setOnClickListener(v -> {
+            dreamClock = !dreamClock;
+            choices.edit().putBoolean(Config.DREAM_CLOCK_KEY, dreamClock).apply();
+            changed();
+            refresh();
+        });
+        findViewById(R.id.dreamPreviewChoice).setOnClickListener(v ->
+                startActivity(new Intent(this, DreamPreviewActivity.class)));
+        findViewById(R.id.dreamSystemChoice).setOnClickListener(v ->
+                open(new Intent(Settings.ACTION_DREAM_SETTINGS)));
         openOnStartChoice = findViewById(R.id.openOnStartChoice);
         if (config.openOnStartChoice) {
             openOnStartChoice.setVisibility(View.VISIBLE);
@@ -140,13 +174,17 @@ public final class LauncherSettingsActivity extends Activity {
             if (!hasOnTvChoices()) return;
             choices.edit().remove("columns").remove(Config.ROWS_BELOW_DOCK_KEY).remove("animations")
                     .remove("advanced_effects").remove(Config.WALLPAPER_CHOICE_KEY)
-                    .remove(Config.DOCK_OPACITY_KEY).remove(OpenOnStart.KEY).commit();
+                    .remove(Config.DOCK_OPACITY_KEY).remove(Config.DREAM_SCENE_KEY).remove(Config.DREAM_PALETTE_KEY)
+                    .remove(Config.DREAM_CLOCK_KEY).remove(OpenOnStart.KEY).commit();
             Config current = Config.load(this);
             columns = current.columns;
             rowsBelowDock = current.rowsBelowDock;
             dockOpacity = current.dockOpacity;
             animations = current.animations;
             advancedEffects = current.animations && current.advancedEffects;
+            dreamScene = current.dreamScene;
+            dreamPalette = current.dreamPalette;
+            dreamClock = current.dreamClock;
             changed();
             refresh();
         });
@@ -297,6 +335,13 @@ public final class LauncherSettingsActivity extends Activity {
                 "none".equals(wallpaperCurrent) ? getString(R.string.wallpaper_none)
                         : wallpaperCurrent != null ? wallpaperCurrent
                         : getString(R.string.wallpaper_theme_default)));
+        dreamSceneChoice.setText(getString(R.string.dream_scene_state,
+                getString("neon_grid".equals(dreamScene) ? R.string.dream_scene_neon_grid : R.string.dream_scene_rain_city)));
+        dreamPaletteChoice.setText(getString(R.string.dream_palette_state, getString(
+                "amber".equals(dreamPalette) ? R.string.dream_palette_amber
+                        : "green".equals(dreamPalette) ? R.string.dream_palette_green : R.string.dream_palette_magenta)));
+        dreamClockChoice.setText(getString(R.string.dream_clock_state,
+                getString(dreamClock ? R.string.on : R.string.off)));
         openOnStartChoice.setText(getString(R.string.open_on_start_state, openOnStartLabel()));
         followThemeChoice.setSelected(!hasOnTvChoices());
     }
@@ -305,7 +350,8 @@ public final class LauncherSettingsActivity extends Activity {
         return choices.contains("columns") || choices.contains(Config.ROWS_BELOW_DOCK_KEY)
                 || choices.contains("animations") || choices.contains("advanced_effects")
                 || choices.contains(Config.WALLPAPER_CHOICE_KEY) || choices.contains(Config.DOCK_OPACITY_KEY)
-                || choices.contains(OpenOnStart.KEY);
+                || choices.contains(Config.DREAM_SCENE_KEY) || choices.contains(Config.DREAM_PALETTE_KEY)
+                || choices.contains(Config.DREAM_CLOCK_KEY) || choices.contains(OpenOnStart.KEY);
     }
 
     private void open(Intent intent) {

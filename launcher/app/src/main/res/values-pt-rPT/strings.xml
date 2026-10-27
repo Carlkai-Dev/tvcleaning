@@ -10,4 +10,14 @@
     <string name="tile_replace_in_dock">Substituir por outra app</string>
     <string name="dock_edit_pick_place">Escolha o lugar da dock para esta app e prima OK. Voltar para cancelar.</string>
     <string name="more_inputs">Mais entradas</string>
+    <string name="dream_scene_state">Cena da proteção de ecrã: %1$s</string>
+    <string name="dream_palette_state">Cores da proteção de ecrã: %1$s</string>
+    <string name="dream_clock_state">Relógio da proteção de ecrã: %1$s</string>
+    <string name="dream_preview">Pré-visualizar a proteção de ecrã</string>
+    <string name="dream_system_settings">Escolher a proteção de ecrã (definições da TV)</string>
+    <string name="dream_scene_rain_city">Cidade na chuva</string>
+    <string name="dream_scene_neon_grid">Grelha de néon</string>
+    <string name="dream_palette_magenta">Magenta</string>
+    <string name="dream_palette_amber">Âmbar</string>
+    <string name="dream_palette_green">Verde</string>
 </resources>

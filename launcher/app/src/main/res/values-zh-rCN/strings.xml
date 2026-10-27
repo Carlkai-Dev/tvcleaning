@@ -20,6 +20,16 @@
     <string name="advanced_effects_state">高级动态效果：%1$s</string>
     <string name="open_on_start_label">开机时打开</string>
     <string name="open_on_start_state">开机时打开：%1$s</string>
+    <string name="dream_scene_state">屏保场景：%1$s</string>
+    <string name="dream_palette_state">屏保颜色：%1$s</string>
+    <string name="dream_clock_state">屏保时钟：%1$s</string>
+    <string name="dream_preview">预览屏保</string>
+    <string name="dream_system_settings">选择屏保（电视设置）</string>
+    <string name="dream_scene_rain_city">雨中都市</string>
+    <string name="dream_scene_neon_grid">霓虹网格</string>
+    <string name="dream_palette_magenta">品红</string>
+    <string name="dream_palette_amber">琥珀</string>
+    <string name="dream_palette_green">绿色</string>
     <string name="advanced_effects_warning">增加卡片上浮、图标缩放和背景颜色平滑过渡；可能增加内存占用，实际变化取决于电视。</string>
     <string name="follow_theme">跟随主题（重置电视端设置）</string>
     <string name="follow_theme_hint">恢复当前主题或内置的布局与动效设置。推送或重置主题也会清除电视端的这些设置。</string>
