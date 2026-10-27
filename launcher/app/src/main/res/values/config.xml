@@ -17,10 +17,12 @@
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
-        <item>com.netflix.ninja</item>
+        <item>com.spotify.tv.android</item>
+        <item>org.videolan.vlc</item>
         <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.wbd.stream</item>
+        <item>com.netflix.ninja</item>
         <item>com.google.android.youtube.tv</item>
-        <item>in.startv.hotstar</item>
     </string-array>
     <!-- With fewer dock_apps than columns (or a dock app that is not installed), the free dock slots take
          the first grid apps, so the dock never shows a gap. false leaves them empty (#162); a theme can
@@ -30,11 +32,12 @@
     <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
     <string-array name="hidden_apps">
         <item>com.mediatek.wwtv.tvcenter</item>
+        <item>com.mitv.livetv</item>
         <item>com.mitv.gallery</item>
     </string-array>
 
     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
-    <string name="live_tv_package" translatable="false">com.mediatek.wwtv.tvcenter</string>
+    <string name="live_tv_package" translatable="false">com.mitv.livetv</string>
 
     <!-- Open the Live TV app above the first time Home comes up after the TV is switched on, for sets that are
          mostly used for broadcast TV. Once per boot: Home after that stays Home. Can also be set with
@@ -186,8 +189,9 @@
          mute (toggles the sound, with the TV's volume bar), sleep (standby, Android 9 and later), screensaver (the
          one chosen in the TV's settings, or the launcher's clock), settings or wifi; e.g. KEYCODE_PROG_YELLOW:mute
          and hold:KEYCODE_PROG_YELLOW:sleep. "package/.Activity" opens that activity instead of the app's launcher
-         entry, e.g. hold:191:io.github.maxhayim.brightness/.QuickActivity for an add-on's quick bar. Prefix an
-         entry with "hold:" for the same button's long press:
+         entry, e.g. hold:191:io.github.maxhayim.brightness/.QuickActivity for an add-on's quick bar.
+         "assistant:<text>" sends a fixed text query to Android's Assistant. Prefix an entry with "hold:" for a
+         long press, or "hold:3000ms:" to set the hold time to 3 seconds:
          "hold:KEYCODE_BUTTON_8:org.xbmc.kodi" opens Kodi when held for half a second, while the unprefixed entry
          still opens on a tap; "hold:scan:490:..." works for scancodes. A key with only a hold entry does nothing
          on a tap. A listed app that is not installed leaves the button doing nothing. Prefix an entry with "front:"
@@ -197,6 +201,10 @@
          where the firmware hands KEYCODE_GUIDE (172) to the stock launcher and no app ever receives it. Leave empty
          to omit. -->
     <string-array name="app_keys" translatable="false">
+        <item>190:com.google.android.youtube.tv</item>
+        <item>192:org.videolan.vlc</item>
+        <item>hold:3000ms:183:assistant:toggle upstairs light</item>
+        <item>hold:3000ms:186:assistant:toggle aircon</item>
     </string-array>
 
     <!-- Package of the stock launcher, for TVs whose firmware turns it back on after it was disabled. XGIMI's
@@ -360,7 +368,7 @@
 
     <!-- Tiles per row in the grid; the dock always has this many slots. Tiles are 180dp wide at 4 columns and
          shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
-    <integer name="columns">4</integer>
+    <integer name="columns">6</integer>
 
     <!-- Basic motion is on; advanced effects are opt-in in the launcher's own Settings screen. -->
     <bool name="animations">true</bool>

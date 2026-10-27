@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.ToIntFunction;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -29,12 +30,14 @@ import java.util.regex.Pattern;
  * "KEYCODE_BUTTON_3:com.google.android.youtube.tv", or a scancode as "scan:490:com.wbd.hbomax". A "hold:"
  * prefix makes an entry the long-press action instead: "hold:KEYCODE_BUTTON_8:org.xbmc.kodi" opens Kodi when
  * that button is held for HOLD_MS, while the unprefixed entry still opens on a tap; "hold:scan:490:..." does
- * the same for a scancode. One set of maps for both services; Android hands a key to every service that filters,
+ * the same for a scancode. Prefix it with "hold:3000ms:" to set a per-entry hold time. One set of maps for both
+ * services; Android hands a key to every service that filters,
  * so both may call handle() for one event, and it answers each press once.
  * A target of "input:<input id>" switches to that TV input (an HDMI port) instead of opening an app, a target
  * of "inputs" opens the input switcher, for a remote whose source button sends a key Android does not map,
  * one of the action words (back, home, recents, mute, sleep, screensaver, settings, wifi) does that action, and
- * "package/.Activity" opens that activity rather than the app's launcher entry (an add-on's quick bar, say).
+ * "assistant:<text>" sends a fixed text query to Android's Assistant, and "package/.Activity" opens that
+ * activity rather than the app's launcher entry (an add-on's quick bar, say).
  */
 final class RemoteKeys {
 
@@ -47,6 +50,7 @@ final class RemoteKeys {
     /** Pre-compiled regex patterns to avoid re-compiling Patterns on every entry during key parsing. */
     private static final Pattern NUMERIC_KEY = Pattern.compile("[0-9]{1,6}");
     private static final Pattern KEYCODE_KEY = Pattern.compile("KEYCODE_[A-Z0-9_]+");
+    private static final Pattern HOLD_DURATION = Pattern.compile("^([0-9]{1,6})ms:(.+)$");
 
     private RemoteKeys() { }
 
@@ -94,7 +98,17 @@ final class RemoteKeys {
     }
 
     static Map<Integer, String> parseHoldAppKeys(Iterable<String> entries, ToIntFunction<String> names) {
-        return parseAppKeys(prefixed(entries, "hold:"), names);
+        return parseAppKeys(holdEntries(entries), names);
+    }
+
+    static Map<Integer, Long> parseHoldAppKeyDelays(Iterable<String> entries, ToIntFunction<String> names) {
+        Map<Integer, Long> delays = new HashMap<>();
+        for (HoldEntry entry : parsedHoldEntries(entries)) {
+            for (Integer key : parseAppKeys(Arrays.asList(entry.mapping), names).keySet()) {
+                delays.put(key, entry.delayMs);
+            }
+        }
+        return delays;
     }
 
     /** keycode -> target from the "front:" entries, used while the button's own app is already in front. */
@@ -147,7 +161,17 @@ final class RemoteKeys {
 
     /** scancode -> package from the "hold:scan:..." entries; the rest reads as it does in parseAppScancodes. */
     static Map<Integer, String> parseHoldAppScancodes(Iterable<String> entries) {
-        return parseAppScancodes(prefixed(entries, "hold:"));
+        return parseAppScancodes(holdEntries(entries));
+    }
+
+    static Map<Integer, Long> parseHoldAppScancodeDelays(Iterable<String> entries) {
+        Map<Integer, Long> delays = new HashMap<>();
+        for (HoldEntry entry : parsedHoldEntries(entries)) {
+            for (Integer scan : parseAppScancodes(Arrays.asList(entry.mapping)).keySet()) {
+                delays.put(scan, entry.delayMs);
+            }
+        }
+        return delays;
     }
 
     /** The entries with this prefix ("hold:", "front:"), the prefix removed, so the normal parsers can read them. */
@@ -161,11 +185,57 @@ final class RemoteKeys {
         return found;
     }
 
+    private static final class HoldEntry {
+        final String mapping;
+        final long delayMs;
+
+        HoldEntry(String mapping, long delayMs) {
+            this.mapping = mapping;
+            this.delayMs = delayMs;
+        }
+    }
+
+    private static List<HoldEntry> parsedHoldEntries(Iterable<String> entries) {
+        List<HoldEntry> found = new ArrayList<>();
+        for (String entry : entries) {
+            if (entry == null) continue;
+            String text = entry.trim();
+            if (!text.startsWith("hold:")) continue;
+            String mapping = text.substring("hold:".length()).trim();
+            Matcher duration = HOLD_DURATION.matcher(mapping);
+            if (!duration.matches()) {
+                found.add(new HoldEntry(mapping, HOLD_MS));
+                continue;
+            }
+            long delay;
+            try {
+                delay = Long.parseLong(duration.group(1));
+            } catch (NumberFormatException invalid) {
+                continue;
+            }
+            if (delay > 0) found.add(new HoldEntry(duration.group(2).trim(), delay));
+        }
+        return found;
+    }
+
+    private static List<String> holdEntries(Iterable<String> entries) {
+        List<String> mappings = new ArrayList<>();
+        for (HoldEntry entry : parsedHoldEntries(entries)) mappings.add(entry.mapping);
+        return mappings;
+    }
+
     /** The package of a "guide:<package>" target, or null for any other target. */
     static String guidePackage(String target) {
         if (target == null || !target.startsWith("guide:")) return null;
         String pkg = target.substring(6).trim();
         return pkg.isEmpty() ? null : pkg;
+    }
+
+    /** The fixed query from an "assistant:<text>" target, or null when the target is not one. */
+    static String assistantQuery(String target) {
+        if (target == null || !target.startsWith("assistant:")) return null;
+        String query = target.substring("assistant:".length()).trim();
+        return query.isEmpty() ? null : query;
     }
 
     /**
@@ -186,6 +256,10 @@ final class RemoteKeys {
      * normal one on an earlier release. False means neither list has this key, so the caller can pass it on.
      */
     static boolean handle(Context ctx, KeyEvent event, String app, String holdApp) {
+        return handle(ctx, event, app, holdApp, HOLD_MS);
+    }
+
+    static boolean handle(Context ctx, KeyEvent event, String app, String holdApp, long holdDelayMs) {
         if (app == null && holdApp == null) return false;
         if (presses == null) {
             Handler handler = new Handler(Looper.getMainLooper());
@@ -196,10 +270,11 @@ final class RemoteKeys {
         }
         String button = event.getDeviceId() + ":" + event.getKeyCode() + ":" + event.getScanCode();
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            presses.down(button, event.getEventTime(), event.getRepeatCount(), holdApp, target -> launch(ctx, target));
+            presses.down(button, event.getEventTime(), event.getRepeatCount(), holdApp, holdDelayMs,
+                    target -> launch(ctx, target));
         } else if (event.getAction() == KeyEvent.ACTION_UP) {
             presses.up(button, event.getEventTime(), event.getDownTime(), event.isCanceled(), app, holdApp,
-                    target -> launch(ctx, target));
+                    holdDelayMs, target -> launch(ctx, target));
         }
         return true;
     }
@@ -229,7 +304,8 @@ final class RemoteKeys {
             this.timer = timer;
         }
 
-        void down(String button, long eventTime, int repeatCount, String holdApp, Consumer<String> open) {
+        void down(String button, long eventTime, int repeatCount, String holdApp, long holdDelayMs,
+                Consumer<String> open) {
             if (repeatCount != 0) return;
             Press press = buttons.computeIfAbsent(button, b -> new Press());
             if (press.downAt == eventTime) return;
@@ -243,11 +319,11 @@ final class RemoteKeys {
                 press.fired = true;
                 open.accept(holdApp);
             };
-            timer.post(press.hold, HOLD_MS);
+            timer.post(press.hold, holdDelayMs);
         }
 
         void up(String button, long eventTime, long downTime, boolean canceled, String app, String holdApp,
-                Consumer<String> open) {
+                long holdDelayMs, Consumer<String> open) {
             Press press = buttons.computeIfAbsent(button, b -> new Press());
             if (press.upAt == eventTime) return;
             boolean sawDown = press.downAt > press.upAt;
@@ -258,13 +334,17 @@ final class RemoteKeys {
             }
             if (canceled || (sawDown && press.fired)) return;
             // Without its DOWN (the service started while the button was held), the event's own down time will do.
-            open.accept(target(app, holdApp, eventTime - (sawDown ? press.downAt : downTime)));
+            open.accept(target(app, holdApp, eventTime - (sawDown ? press.downAt : downTime), holdDelayMs));
         }
     }
 
     /** The app a mapped key opens: its hold entry after HOLD_MS, otherwise its normal one. */
     static String target(String app, String holdApp, long heldMs) {
-        return heldMs >= HOLD_MS && holdApp != null ? holdApp : app;
+        return target(app, holdApp, heldMs, HOLD_MS);
+    }
+
+    static String target(String app, String holdApp, long heldMs, long holdDelayMs) {
+        return heldMs >= holdDelayMs && holdApp != null ? holdApp : app;
     }
 
     /** The TV input id of an "input:<id>" target, e.g. "input:com.tcl.tvinput/.passthroughinput.TvPassThroughService/HW1413743104"; null for a package. */
@@ -354,6 +434,11 @@ final class RemoteKeys {
      *  "package/.Activity" target opens that activity. */
     static void launch(Context ctx, String pkg) {
         if (pkg == null || runAction(ctx, pkg)) return;
+        if (pkg.startsWith("assistant:")) {
+            String query = assistantQuery(pkg);
+            if (query != null) start(ctx, new Intent(Intent.ACTION_ASSIST).putExtra("query", query));
+            return;
+        }
         if (INPUTS.equals(pkg)) {
             // This launcher's own Inputs menu, as InputsRequestActivity opens it: addressed to Home directly, so a
             // vendor input picker that also answers VIEW_INPUTS never turns it into a chooser.

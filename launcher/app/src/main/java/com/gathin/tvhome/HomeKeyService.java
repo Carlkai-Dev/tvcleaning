@@ -64,6 +64,8 @@ public class HomeKeyService extends AccessibilityService {
     private Map<Integer, String> appScancodes = Collections.emptyMap();
     private Map<Integer, String> holdAppKeys = Collections.emptyMap();
     private Map<Integer, String> holdAppScancodes = Collections.emptyMap();
+    private Map<Integer, Long> holdAppKeyDelays = Collections.emptyMap();
+    private Map<Integer, Long> holdAppScancodeDelays = Collections.emptyMap();
 
     /** Waits for the user to unlock when Android binds this service at boot; null once the config is read. */
     private BroadcastReceiver unlockReceiver;
@@ -230,6 +232,8 @@ public class HomeKeyService extends AccessibilityService {
         armStandbyExit();
         holdAppKeys = RemoteKeys.parseHoldAppKeys(config.appKeys);
         holdAppScancodes = RemoteKeys.parseHoldAppScancodes(config.appKeys);
+        holdAppKeyDelays = RemoteKeys.parseHoldAppKeyDelays(config.appKeys, KeyEvent::keyCodeFromString);
+        holdAppScancodeDelays = RemoteKeys.parseHoldAppScancodeDelays(config.appKeys);
         // gamepad_passthrough, off by default. Only with key_filter on: off, the service never filters keys.
         if (config.gamepadPassthrough && config.keyFilter && gamepads == null) {
             gamepads = new GamepadPassthrough(this);
@@ -261,7 +265,8 @@ public class HomeKeyService extends AccessibilityService {
         if (consumeVolumeKeys && VolumeKeys.handle(this, event)) return true;
         // A scancode entry is more specific than any keycode, so it goes first.
         if (RemoteKeys.handle(this, event, inFront(appScancodes, frontAppScancodes, event.getScanCode()),
-                holdAppScancodes.get(event.getScanCode()))) return true;
+                holdAppScancodes.get(event.getScanCode()),
+                holdAppScancodeDelays.getOrDefault(event.getScanCode(), RemoteKeys.HOLD_MS))) return true;
         // The stock launcher handled the remote's Settings button; with it disabled the button does nothing.
         if (isSettingsKey(event)) {
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) {
@@ -276,7 +281,8 @@ public class HomeKeyService extends AccessibilityService {
             return true;
         }
         if (RemoteKeys.handle(this, event, inFront(appKeys, frontAppKeys, event.getKeyCode()),
-                holdAppKeys.get(event.getKeyCode()))) return true;
+                holdAppKeys.get(event.getKeyCode()),
+                holdAppKeyDelays.getOrDefault(event.getKeyCode(), RemoteKeys.HOLD_MS))) return true;
         // home_long_press_home: Android never sees the Home key, so a held press cannot turn into ALL_APPS.
         if (homeLongPressHome && event.getKeyCode() == KeyEvent.KEYCODE_HOME) {
             if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) openHome();

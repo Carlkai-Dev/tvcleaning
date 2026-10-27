@@ -54,6 +54,14 @@ public class RemoteKeysTest {
         assertNull(RemoteKeys.guidePackage(null));
     }
 
+    @Test public void assistantTargetsCarryTheirFixedQuery() {
+        assertEquals("toggle upstairs light", RemoteKeys.assistantQuery("assistant:toggle upstairs light"));
+        assertEquals("UPSTAIRS ON", RemoteKeys.assistantQuery("assistant: UPSTAIRS ON "));
+        assertNull(RemoteKeys.assistantQuery("assistant: "));
+        assertNull(RemoteKeys.assistantQuery("com.google.android.katniss"));
+        assertNull(RemoteKeys.assistantQuery(null));
+    }
+
     @Test public void keyNamesWorkLikeNumbers() {
         Map<Integer, String> keys = parse("KEYCODE_BUTTON_3:com.google.android.youtube.tv", "KEYCODE_NOT_A_KEY:a.b");
         assertEquals(1, keys.size());
@@ -101,28 +109,54 @@ public class RemoteKeysTest {
 
     @Test public void holdEntriesGetTheirOwnMap() {
         Map<Integer, String> holds = parseHold(
-                "hold:KEYCODE_BUTTON_8:org.xbmc.kodi", " hold:190:a.b ", "hold:KEYCODE_NOT_A_KEY:x.y",
+                "hold:KEYCODE_BUTTON_8:org.xbmc.kodi", " hold:190:a.b ", "hold:3000ms:183:assistant:toggle upstairs light",
+                "hold:KEYCODE_NOT_A_KEY:x.y",
                 "hold:195:", "190:c.d", "hold:scan:490:d.e", "hold:");
-        assertEquals(2, holds.size());
+        assertEquals(3, holds.size());
         assertEquals("org.xbmc.kodi", holds.get(195));
         assertEquals("a.b", holds.get(190));
+        assertEquals("assistant:toggle upstairs light", holds.get(183));
+        assertEquals(Long.valueOf(3000), RemoteKeys.parseHoldAppKeyDelays(Arrays.asList(
+                "hold:3000ms:183:assistant:toggle upstairs light"), RemoteKeysTest::keyCode).get(183));
         // the normal parser leaves hold entries alone
         assertTrue(parse("hold:190:a.b").isEmpty());
     }
 
     @Test public void holdScancodeEntries() {
         Map<Integer, String> scans = RemoteKeys.parseHoldAppScancodes(Arrays.asList(
-                "hold:scan:490:com.wbd.hbomax", "hold:scan:491:", "hold:190:a.b", "scan:492:c.d"));
-        assertEquals(1, scans.size());
+                "hold:scan:490:com.wbd.hbomax", "hold:3000ms:scan:491:assistant:toggle upstairs light",
+                "hold:scan:492:", "hold:190:a.b", "scan:493:c.d"));
+        assertEquals(2, scans.size());
         assertEquals("com.wbd.hbomax", scans.get(490));
+        assertEquals("assistant:toggle upstairs light", scans.get(491));
+        assertEquals(Long.valueOf(3000), RemoteKeys.parseHoldAppScancodeDelays(Arrays.asList(
+                "hold:3000ms:scan:491:assistant:toggle upstairs light")).get(491));
     }
 
     @Test public void holdTimePicksTheHoldApp() {
         assertEquals("hold.app", RemoteKeys.target("app", "hold.app", RemoteKeys.HOLD_MS));
         assertEquals("hold.app", RemoteKeys.target("app", "hold.app", 5000));
         assertEquals("app", RemoteKeys.target("app", "hold.app", RemoteKeys.HOLD_MS - 1));
+        assertNull(RemoteKeys.target(null, "assistant:toggle upstairs light", 2999, 3000));
+        assertEquals("assistant:toggle upstairs light",
+                RemoteKeys.target(null, "assistant:toggle upstairs light", 3000, 3000));
         assertEquals("app", RemoteKeys.target("app", null, 5000));
         assertNull(RemoteKeys.target(null, "hold.app", 0));
+    }
+
+    @Test public void timedHoldWaitsThreeSecondsAndDoesNothingOnATap() {
+        Remote remote = new Remote();
+        String query = "assistant:toggle upstairs light";
+
+        remote.down("1:183:0", 1000, query, 3000);
+        assertEquals(Long.valueOf(3000), remote.delays.get(0));
+        remote.up("1:183:0", 2999, 1000, null, query, 3000);
+        assertNull(remote.opened.get(0));
+        remote.opened.clear();
+
+        remote.down("1:183:0", 4000, query, 3000);
+        remote.holdTimeout();
+        assertEquals(Arrays.asList(query), remote.opened);
     }
 
     @Test public void inputsTargetKeptForAScancode() {
@@ -167,18 +201,30 @@ public class RemoteKeysTest {
     /** Presses with a timer the test runs by hand, and the targets they open. */
     private static final class Remote {
         final List<Runnable> holds = new ArrayList<>();
+        final List<Long> delays = new ArrayList<>();
         final List<String> opened = new ArrayList<>();
         final RemoteKeys.Presses presses = new RemoteKeys.Presses(new RemoteKeys.Presses.Timer() {
-            @Override public void post(Runnable hold, long delayMs) { holds.add(hold); }
+            @Override public void post(Runnable hold, long delayMs) {
+                holds.add(hold);
+                delays.add(delayMs);
+            }
             @Override public void cancel(Runnable hold) { holds.remove(hold); }
         });
 
         void down(String button, long at, String holdApp) {
-            presses.down(button, at, 0, holdApp, opened::add);
+            down(button, at, holdApp, RemoteKeys.HOLD_MS);
+        }
+
+        void down(String button, long at, String holdApp, long holdDelayMs) {
+            presses.down(button, at, 0, holdApp, holdDelayMs, opened::add);
         }
 
         void up(String button, long at, long downTime, String app, String holdApp) {
-            presses.up(button, at, downTime, false, app, holdApp, opened::add);
+            up(button, at, downTime, app, holdApp, RemoteKeys.HOLD_MS);
+        }
+
+        void up(String button, long at, long downTime, String app, String holdApp, long holdDelayMs) {
+            presses.up(button, at, downTime, false, app, holdApp, holdDelayMs, opened::add);
         }
 
         /** HOLD_MS has passed: every hold still pending fires. */
@@ -230,7 +276,8 @@ public class RemoteKeysTest {
     @Test public void aCanceledUpOpensNothingAndDropsTheHold() {
         Remote remote = new Remote();
         remote.down("1:190:0", 1000, "hold");
-        remote.presses.up("1:190:0", 1200, 1000, true, "tap", "hold", remote.opened::add);
+        remote.presses.up("1:190:0", 1200, 1000, true, "tap", "hold", RemoteKeys.HOLD_MS,
+                remote.opened::add);
         remote.holdTimeout();
         assertTrue(remote.opened.isEmpty());
     }
