@@ -50,6 +50,16 @@
     <string name="advanced_effects_state">Efectos avanzados: %1$s</string>
     <string name="open_on_start_label">Abrir al iniciar</string>
     <string name="open_on_start_state">Abrir al iniciar: %1$s</string>
+    <string name="dream_scene_state">Escena del salvapantallas: %1$s</string>
+    <string name="dream_palette_state">Colores del salvapantallas: %1$s</string>
+    <string name="dream_clock_state">Reloj del salvapantallas: %1$s</string>
+    <string name="dream_preview">Vista previa del salvapantallas</string>
+    <string name="dream_system_settings">Elegir salvapantallas (ajustes del televisor)</string>
+    <string name="dream_scene_rain_city">Ciudad bajo la lluvia</string>
+    <string name="dream_scene_neon_grid">Cuadrícula de neón</string>
+    <string name="dream_palette_magenta">Magenta</string>
+    <string name="dream_palette_amber">Ámbar</string>
+    <string name="dream_palette_green">Verde</string>
     <string name="advanced_effects_warning">Eleva las tarjetas, amplía los iconos y suaviza los cambios de color. Puede aumentar el uso de memoria; depende del televisor.</string>
     <string name="follow_theme">Seguir el tema (restablecer ajustes)</string>
     <string name="follow_theme_hint">Usa el diseño y los efectos del tema actual o los valores integrados. Aplicar o restablecer un tema también borra estos ajustes.</string>

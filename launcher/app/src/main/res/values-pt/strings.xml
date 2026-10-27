@@ -112,6 +112,16 @@
     <string name="advanced_effects_state">Efeitos avançados: %1$s</string>
     <string name="open_on_start_label">Abrir ao iniciar</string>
     <string name="open_on_start_state">Abrir ao iniciar: %1$s</string>
+    <string name="dream_scene_state">Cena do protetor de tela: %1$s</string>
+    <string name="dream_palette_state">Cores do protetor de tela: %1$s</string>
+    <string name="dream_clock_state">Relógio do protetor de tela: %1$s</string>
+    <string name="dream_preview">Pré-visualizar o protetor de tela</string>
+    <string name="dream_system_settings">Escolher o protetor de tela (configurações da TV)</string>
+    <string name="dream_scene_rain_city">Cidade na chuva</string>
+    <string name="dream_scene_neon_grid">Grade de neon</string>
+    <string name="dream_palette_magenta">Magenta</string>
+    <string name="dream_palette_amber">Âmbar</string>
+    <string name="dream_palette_green">Verde</string>
     <string name="advanced_effects_warning">Adiciona elevação do bloco, zoom no ícone e transições de cor suaves. Pode usar mais memória; a diferença real depende da sua TV.</string>
     <string name="follow_theme">Seguir o tema (desfaz as escolhas feitas na TV)</string>
     <string name="follow_theme_hint">Usa o tema atual ou o layout e o movimento padrão. Enviar ou redefinir um tema também apaga as escolhas feitas na TV.</string>

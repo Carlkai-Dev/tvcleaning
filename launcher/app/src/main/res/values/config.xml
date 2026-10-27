@@ -467,6 +467,14 @@
          (OLED panels); they still move every minute. Ignored while clock_wallpaper shows a picture. Can also be set
          with "clock_glow" in a theme. -->
     <bool name="clock_glow">true</bool>
+
+    <!-- The neon screensaver (NeonDream): its scene, "rain_city" or "neon_grid"; its colours, "magenta", "amber" or
+         "green"; and the clock that drifts over it. Pick it in Settings > Screensaver, or
+         `settings put secure screensaver_components com.gathin.tvhome/.NeonDream`. A theme's config.json can set
+         "dream_scene", "dream_palette" and "dream_clock". -->
+    <string name="dream_scene" translatable="false">rain_city</string>
+    <string name="dream_palette" translatable="false">magenta</string>
+    <bool name="dream_clock">true</bool>
     <!-- Shape of the glow behind the focused app, in its colour: radial (a soft glow, the default) or horizon (the
          colour washes down from the top edge and fades to black, brightest along the top). The cinematic shelf
          keeps its own glow. Can also be set with "glow_style": "horizon" in a theme's config.json. -->

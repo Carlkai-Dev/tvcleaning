@@ -59,6 +59,16 @@
     <string name="advanced_effects_state">Effets avancés : %1$s</string>
     <string name="open_on_start_label">Ouvrir au démarrage</string>
     <string name="open_on_start_state">Ouvrir au démarrage: %1$s</string>
+    <string name="dream_scene_state">Scène de l\'économiseur d\'écran : %1$s</string>
+    <string name="dream_palette_state">Couleurs de l\'économiseur d\'écran : %1$s</string>
+    <string name="dream_clock_state">Horloge de l\'économiseur d\'écran : %1$s</string>
+    <string name="dream_preview">Aperçu de l\'économiseur d\'écran</string>
+    <string name="dream_system_settings">Choisir l\'économiseur d\'écran (réglages du téléviseur)</string>
+    <string name="dream_scene_rain_city">Ville sous la pluie</string>
+    <string name="dream_scene_neon_grid">Grille néon</string>
+    <string name="dream_palette_magenta">Magenta</string>
+    <string name="dream_palette_amber">Ambre</string>
+    <string name="dream_palette_green">Vert</string>
     <string name="advanced_effects_warning">Soulève les tuiles, agrandit les icônes et adoucit les transitions de couleur. Peut augmenter la mémoire utilisée selon le téléviseur.</string>
     <string name="follow_theme">Suivre le thème (réinitialiser les choix)</string>
     <string name="follow_theme_hint">Utilise la disposition et les animations du thème actuel ou les valeurs intégrées. Appliquer ou réinitialiser un thème efface aussi ces choix.</string>

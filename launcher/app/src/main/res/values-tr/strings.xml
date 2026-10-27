@@ -59,6 +59,16 @@
     <string name="advanced_effects_state">Gelişmiş efektler: %1$s</string>
     <string name="open_on_start_label">Açılışta aç</string>
     <string name="open_on_start_state">Açılışta aç: %1$s</string>
+    <string name="dream_scene_state">Ekran koruyucu sahnesi: %1$s</string>
+    <string name="dream_palette_state">Ekran koruyucu renkleri: %1$s</string>
+    <string name="dream_clock_state">Ekran koruyucu saati: %1$s</string>
+    <string name="dream_preview">Ekran koruyucuyu önizle</string>
+    <string name="dream_system_settings">Ekran koruyucuyu seç (TV ayarları)</string>
+    <string name="dream_scene_rain_city">Yağmurlu şehir</string>
+    <string name="dream_scene_neon_grid">Neon ızgara</string>
+    <string name="dream_palette_magenta">Macenta</string>
+    <string name="dream_palette_amber">Kehribar</string>
+    <string name="dream_palette_green">Yeşil</string>
     <string name="advanced_effects_warning">Kutucukları yükseltir, simgeleri büyütür ve renk geçişlerini yumuşatır. Bellek kullanımını artırabilir; etki TV’ye bağlıdır.</string>
     <string name="follow_theme">Temayı izle (TV seçimlerini sıfırla)</string>
     <string name="follow_theme_hint">Geçerli temanın veya yerleşik ayarların düzenini ve hareketini kullanır. Tema uygulamak ya da sıfırlamak TV seçimlerini de temizler.</string>

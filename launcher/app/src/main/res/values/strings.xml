@@ -42,6 +42,7 @@
     <string name="stats_storage">Storage %1$s free</string>
     <string name="storage_gb_whole">%1$.0f GB</string>
     <string name="storage_gb_decimal">%1$.1f GB</string>
+    <string name="dream_neon_name" translatable="false">Neon rain</string>
     <string name="dream_name">Clock</string>
     <string name="vpn">VPN</string>
     <string name="vpn_off">VPN off</string>
@@ -63,6 +64,17 @@
     <string name="open_on_start_label">Open on start</string>
     <string name="open_on_start_state">Open on start: %1$s</string>
     <string name="advanced_effects_warning">Adds a lifted tile, icon zoom and smooth colour transitions. May increase memory use; the actual difference depends on your TV.</string>
+    <!-- Launcher settings, Screensaver group (the neon screensaver); %1$s is the current choice. -->
+    <string name="dream_scene_state">Screensaver scene: %1$s</string>
+    <string name="dream_palette_state">Screensaver colours: %1$s</string>
+    <string name="dream_clock_state">Screensaver clock: %1$s</string>
+    <string name="dream_preview">Preview the screensaver</string>
+    <string name="dream_system_settings">Choose the screensaver (TV settings)</string>
+    <string name="dream_scene_rain_city">Rain city</string>
+    <string name="dream_scene_neon_grid">Neon grid</string>
+    <string name="dream_palette_magenta">Magenta</string>
+    <string name="dream_palette_amber">Amber</string>
+    <string name="dream_palette_green">Green</string>
     <string name="follow_theme">Follow theme (reset on-TV choices)</string>
     <string name="follow_theme_hint">Uses the current theme or built-in layout and motion settings. Pushing or resetting a theme also clears your on-TV choices.</string>
     <string name="tv_settings">TV system settings</string>

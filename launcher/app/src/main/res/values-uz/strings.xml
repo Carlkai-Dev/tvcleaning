@@ -43,6 +43,16 @@
     <string name="advanced_effects_state">Qoʻshimcha effektlar: %1$s</string>
     <string name="open_on_start_label">Ishga tushganda ochish</string>
     <string name="open_on_start_state">Ishga tushganda ochish: %1$s</string>
+    <string name="dream_scene_state">Ekran saqlagich sahnasi: %1$s</string>
+    <string name="dream_palette_state">Ekran saqlagich ranglari: %1$s</string>
+    <string name="dream_clock_state">Ekran saqlagich soati: %1$s</string>
+    <string name="dream_preview">Ekran saqlagichni ko\'rib chiqish</string>
+    <string name="dream_system_settings">Ekran saqlagichni tanlash (TV sozlamalari)</string>
+    <string name="dream_scene_rain_city">Yomg\'irli shahar</string>
+    <string name="dream_scene_neon_grid">Neon setka</string>
+    <string name="dream_palette_magenta">Magenta</string>
+    <string name="dream_palette_amber">Qahrabo</string>
+    <string name="dream_palette_green">Yashil</string>
     <string name="advanced_effects_warning">Plitkani koʻtarish, belgini kattalashtirish va ranglarning silliq oʻtishini qoʻshadi. Xotira sarfi oshishi mumkin; farq televizoringizga bogʻliq.</string>
     <string name="follow_theme">Mavzuga qaytish (TVdagi tanlovlarni bekor qilish)</string>
     <string name="follow_theme_hint">Joriy mavzu yoki standart joylashuv va harakat sozlamalaridan foydalanadi. Mavzuni yuborish yoki qayta tiklash ham TVdagi tanlovlaringizni tozalaydi.</string>

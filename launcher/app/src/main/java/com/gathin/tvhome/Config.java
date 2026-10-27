@@ -43,6 +43,11 @@ final class Config {
     static final String ROWS_BELOW_DOCK_KEY = "rows_below_dock";
     static final String WALLPAPER_CHOICE_KEY = "wallpaper_choice";
     static final String DOCK_OPACITY_KEY = "dock_opacity";
+    static final String DREAM_SCENE_KEY = "dream_scene";
+    static final String DREAM_PALETTE_KEY = "dream_palette";
+    static final String DREAM_CLOCK_KEY = "dream_clock";
+    static final String[] DREAM_SCENES = {"rain_city", "neon_grid"};
+    static final String[] DREAM_PALETTES = {"magenta", "amber", "green"};
     /**
      * Counts the changes made in Launcher settings. Home remembers the count it was built with and rebuilds on
      * resume when it differs, however the settings were left (see MainActivity#onResume).
@@ -254,6 +259,12 @@ final class Config {
     final int clockWallpaperDim;
     /** The clock screensaver's coloured glow; false leaves the clock on plain black, e.g. for an OLED (config.xml, clock_glow). */
     final boolean clockGlow;
+    /** The neon screensaver's scene: rain_city or neon_grid (config.xml, dream_scene). */
+    final String dreamScene;
+    /** Its colours: magenta, amber or green (config.xml, dream_palette). */
+    final String dreamPalette;
+    /** The drifting clock over the neon scene (config.xml, dream_clock). */
+    final boolean dreamClock;
     /** Every app in the dock's row, which scrolls sideways, and no grid below it (config.xml, single_row); needs dock_row. */
     final boolean singleRow;
     /** With single_row, the band runs behind every app in the row, not only the dock apps (config.xml, dock_band_all). */
@@ -272,7 +283,7 @@ final class Config {
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
-                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly) {
+                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, String dreamScene, String dreamPalette, boolean dreamClock) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -375,6 +386,9 @@ final class Config {
         this.clockWallpaper = clockWallpaper;
         this.clockWallpaperDim = clockWallpaperDim;
         this.clockGlow = clockGlow;
+        this.dreamScene = dreamScene;
+        this.dreamPalette = dreamPalette;
+        this.dreamClock = dreamClock;
         this.singleRow = singleRow;
         this.dockBandAll = dockBandAll;
         this.glowStyle = glowStyle(glowStyle);
@@ -496,6 +510,9 @@ final class Config {
         boolean clockWallpaper = res.getBoolean(R.bool.clock_wallpaper);
         int clockWallpaperDim = res.getInteger(R.integer.clock_wallpaper_dim);
         boolean clockGlow = res.getBoolean(R.bool.clock_glow);
+        String dreamScene = res.getString(R.string.dream_scene);
+        String dreamPalette = res.getString(R.string.dream_palette);
+        boolean dreamClock = res.getBoolean(R.bool.dream_clock);
         String glassStyle = res.getString(R.string.glass_style);
         boolean singleRow = res.getBoolean(R.bool.single_row);
         boolean dockBandAll = res.getBoolean(R.bool.dock_band_all);
@@ -601,6 +618,9 @@ final class Config {
             clockWallpaper = bool(json, "clock_wallpaper", clockWallpaper);
             clockWallpaperDim = integer(json, "clock_wallpaper_dim", clockWallpaperDim, 0, 90);
             clockGlow = bool(json, "clock_glow", clockGlow);
+            dreamScene = string(json, "dream_scene", dreamScene).trim();
+            dreamPalette = string(json, "dream_palette", dreamPalette).trim();
+            dreamClock = bool(json, "dream_clock", dreamClock);
             singleRow = bool(json, "single_row", singleRow);
             dockBandAll = bool(json, "dock_band_all", dockBandAll);
             glowStyle = string(json, "glow_style", glowStyle);
@@ -613,6 +633,9 @@ final class Config {
         SharedPreferences choices = ctx.getSharedPreferences(SETTINGS_NAME, Context.MODE_PRIVATE);
         // Unmounted storage looks like a theme reset; compare only once the file is readable.
         if (mounted) syncThemeChoices(choices, dir, file);
+        dreamScene = chosenOption(choices.getString(DREAM_SCENE_KEY, null), dreamScene, DREAM_SCENES);
+        dreamPalette = chosenOption(choices.getString(DREAM_PALETTE_KEY, null), dreamPalette, DREAM_PALETTES);
+        dreamClock = choices.getBoolean(DREAM_CLOCK_KEY, dreamClock);
         int chosenColumns = choices.getInt("columns", columns);
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         int chosenRows = choices.getInt(ROWS_BELOW_DOCK_KEY, rowsBelow);
@@ -665,7 +688,7 @@ final class Config {
                 dockBand, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, gamepadPassthrough,
                 consumeVolumeKeys, powerOnHome, homeLongPressHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
-                dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly);
+                dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly, dreamScene, dreamPalette, dreamClock);
     }
 
     /**
@@ -709,13 +732,27 @@ final class Config {
             SharedPreferences.Editor editor = choices.edit();
             if (!"absent".equals(token)) editor.remove("columns").remove("animations")
                     .remove("advanced_effects").remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY)
-                    .remove(DOCK_OPACITY_KEY);
+                    .remove(DOCK_OPACITY_KEY).remove(DREAM_SCENE_KEY).remove(DREAM_PALETTE_KEY)
+                    .remove(DREAM_CLOCK_KEY);
             editor.putString(THEME_SIGNATURE_KEY, signature).commit();
         } else if (!seen.equals(signature)) {
             choices.edit().remove("columns").remove("animations").remove("advanced_effects")
                     .remove(ROWS_BELOW_DOCK_KEY).remove(WALLPAPER_CHOICE_KEY).remove(DOCK_OPACITY_KEY)
+                    .remove(DREAM_SCENE_KEY).remove(DREAM_PALETTE_KEY).remove(DREAM_CLOCK_KEY)
                     .putString(THEME_SIGNATURE_KEY, signature).commit();
         }
+    }
+
+    /** The option picked in Launcher settings if it is one of the allowed ones, else the theme's value. */
+    static String chosenOption(String chosen, String theme, String[] allowed) {
+        for (String option : allowed) if (option.equals(chosen)) return chosen;
+        return theme;
+    }
+
+    /** The option after current in allowed, wrapping round; the first one when current is not in it. */
+    static String nextOption(String current, String[] allowed) {
+        for (int i = 0; i < allowed.length; i++) if (allowed[i].equals(current)) return allowed[(i + 1) % allowed.length];
+        return allowed[0];
     }
 
     /** The dock band opacity chosen in Launcher settings, or the theme's when none (or an out-of-range one) is saved. */
