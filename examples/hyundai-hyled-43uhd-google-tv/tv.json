@@ -1,0 +1,6 @@
+{
+  "tv": "Hyundai HYLED-43UHD 4K (Realtek RTD2873), Latin America",
+  "os": "Google TV 11",
+  "brand": "Hyundai",
+  "notes": "Android ad services, Realtek partner customizer, Google feedback and retail demo stubs disabled; keep Realtek TV input framework (`com.realtek.tv*`) and remote key handlers for HDMI and volume control"
+}

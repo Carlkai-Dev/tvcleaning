@@ -1,0 +1,6 @@
+{
+  "tv": "TD Systems K40DLX11US 40\" FHD (CVTE board, MediaTek), Spain",
+  "os": "Android TV 11",
+  "brand": "TD Systems",
+  "notes": "CVTE/MediaTek ODM set: CVTE factory test apps, background memory cleaner (`com.cvte.tvclean`), store preloads (`com.cvte.tv.appstore`), Google recommendations and telemetry disabled; keep `com.cvte.tvservice` and `com.cvte.tv.androidsetting` for HDMI/input switching"
+}
