@@ -42,6 +42,7 @@
     <string name="stats_storage">Storage %1$s free</string>
     <string name="storage_gb_whole">%1$.0f GB</string>
     <string name="storage_gb_decimal">%1$.1f GB</string>
+    <string name="dream_neon_name" translatable="false">Neon rain</string>
     <string name="dream_name">Clock</string>
     <string name="vpn">VPN</string>
     <string name="vpn_off">VPN off</string>

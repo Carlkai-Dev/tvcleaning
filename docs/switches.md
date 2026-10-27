@@ -40,6 +40,9 @@ fits the rules; keys from before the rule sit on its wanted list until a screens
 | `clock_wallpaper` | <img src="switches/clock_wallpaper.jpg" width="320" alt="clock_wallpaper on a TV"> |
 | `clock_wallpaper_dim` | <img src="switches/clock_wallpaper.jpg" width="320" alt="clock_wallpaper_dim on a TV"> |
 | `clock_glow` | <img src="switches/clock_glow.jpg" width="320" alt="clock_glow on a TV"> |
+| `dream_scene` | <img src="switches/dream_scene.jpg" width="320" alt="dream_scene rain_city on a TV"> |
+| `dream_palette` | <img src="switches/dream_palette.jpg" width="320" alt="dream_palette amber with the neon_grid scene on a TV"> |
+| `dream_clock` | <img src="switches/dream_scene.jpg" width="320" alt="dream_clock on a TV"> |
 | `open_on_start_choice` | <img src="switches/open_on_start_choice.jpg" width="320" alt="open_on_start_choice on a TV"> |
 | `single_row` | <img src="switches/single_row.jpg" width="320" alt="single_row on a TV"> |
 | `dock_band_all` | <img src="switches/single_row.jpg" width="320" alt="dock_band_all on a TV"> |

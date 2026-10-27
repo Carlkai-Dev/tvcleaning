@@ -201,6 +201,18 @@
             </intent-filter>
         </service>
 
+        <!-- Neon screensaver: a rain-soaked city or a synthwave grid, with the clock drifting over it. -->
+        <service
+            android:name=".NeonDream"
+            android:label="@string/dream_neon_name"
+            android:exported="true"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
         <!-- tools/theme.sh writes the theme through this where the shell can't reach Android/data;
              see ThemeProvider. WRITE_SECURE_SETTINGS: the adb shell has it, ordinary apps don't. -->
         <provider

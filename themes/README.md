@@ -135,6 +135,9 @@ A new key needs one there in the same pull request.
 | `clock_wallpaper` | bool | The clock screensaver over Home's wallpaper instead of black with a coloured glow; the clock still moves every minute (`false` by default) |
 | `clock_wallpaper_dim` | 0 to 90 | How dark that wallpaper is behind the clock, in percent (50 by default) |
 | `clock_glow` | bool | The clock screensaver's coloured glow (`true` by default); `false` leaves the moving clock on plain black, e.g. for an OLED |
+| `dream_scene` | `rain_city` or `neon_grid` | Scene of the Neon rain screensaver (`com.gathin.tvhome/.NeonDream`, picked in the TV's screensaver settings or with `settings put secure screensaver_components`): `rain_city` (default) is a neon city in the rain, `neon_grid` a synthwave sun over a moving grid. Any other value is `rain_city` |
+| `dream_palette` | `magenta`, `amber` or `green` | Colours of that screensaver; `magenta` by default, and any other value is `magenta` |
+| `dream_clock` | bool | The clock drifting over that screensaver, with a faint glitch (`true` by default); `false` leaves the scene alone |
 | `glow_style` | string | Shape of the glow behind the focused app, in its colour: `radial` (default) or `horizon`, the colour washing down from the top edge to black; the cinematic shelf keeps its own |
 | `glass_style` | string | Look of the focus highlight: `glass` (default: a translucent slab with a bright top sheen, a crisp rim and a faint outer glow), `rim` (the crisp rim alone, no sheen, fill or glow, for a quiet focus over a wallpaper) or `halo` (the rim with a lighter outer glow) |
 | `cinematic_home` | bool | Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its colour, with a larger name, "Last opened" (apps opened from Home), dock position dots, a focus glow in the app's colour and a translucent dock band; off by default |
