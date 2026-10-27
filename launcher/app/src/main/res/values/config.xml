@@ -449,6 +449,12 @@
     <!-- The focus highlight glows in the focused app's colour on every tile, as the cinematic shelf does for the
          dock, without cinematic_home. Can also be set with "app_glow": true in a theme's config.json. -->
     <bool name="app_glow">false</bool>
+    <!-- The focused dock app's banner as a large picture under the top bar, on the side away from the shelf's name
+         (the right, the left in Hebrew), its edges fading into the glow in the app's colour, which then comes from
+         that corner as on the cinematic shelf: the shelf shows which service it is, Netflix's logo or Prime Video's
+         blue. Apps with no banner keep the glow alone; grid tiles too. About 1 MB of memory per dock app, made the
+         first time its tile is focused. Can also be set with "app_backdrop": true in a theme's config.json. -->
+    <bool name="app_backdrop">false</bool>
     <!-- The rows fade out as they scroll up under the clock, instead of being cut off at a hard line (TopFade).
          The grid then draws into a hardware layer, about 6 MB of graphics memory at 1080p, so it is off by default.
          Can also be set with "fade_rows": true in a theme's config.json. -->
