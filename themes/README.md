@@ -149,6 +149,7 @@ A new key needs one there in the same pull request.
 | `dock_band_all` | bool | With `single_row`, the band runs behind every app in the row, not only the dock apps (`false` by default) |
 | `ambient_glow` | bool | The glow behind the dock in the focused app's colour (`true` by default); `false` keeps only `background_color` or the wallpaper, e.g. for a calm photo background |
 | `app_glow` | bool | The focus highlight glows in the focused app's colour on every tile, as `cinematic_home` does for the dock (`false` by default) |
+| `app_backdrop` | bool | The focused dock app's banner as a large picture under the top bar, on the side away from its name, fading into the glow in the app's colour, so the shelf shows the service's logo; apps with no banner keep the glow alone. About 1 MB of memory per dock app (`false` by default) |
 | `fade_rows` | bool | The rows fade out as they scroll up under the clock instead of being cut off at a hard line; the wallpaper or sky shows through. The grid then draws into a hardware layer (about 6 MB of graphics memory at 1080p) (`false` by default) |
 
 ## Wallpapers

@@ -22,6 +22,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.Shader;
@@ -52,6 +54,7 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
+import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -167,6 +170,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final Map<String, Bitmap> heroArtCache = new HashMap<>();
     /** The app whose artwork heroArt shows, so focusing it again only fades it back in. */
     private String heroArtKey;
+    /** config.xml app_backdrop: the focused dock app's banner in the top corner, faded into its glow. */
+    private boolean backdropOn;
+    private ImageView appBackdrop;
+    /** Faded banner per app (about 1 MB each, null for an app without one), made the first time its dock tile is focused. */
+    private final Map<String, Bitmap> backdropCache = new HashMap<>();
+    /** The app whose banner appBackdrop shows, so focusing it again only fades it back in. */
+    private String backdropKey;
     /** The focus glow's colour while the cinematic shelf tints it, 0 for plain white glass. */
     private int glassAccent;
     private int ambientColor = -1;
@@ -460,6 +470,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cinematicWhiteFocus = cfg.cinematicWhiteFocus;
         heroArtAlpha = cfg.cinematicArt / 100f;
         if (cinematic) setUpCinematicShelf(cfg.cinematicScrim);
+        appBackdrop = findViewById(R.id.appBackdrop);
+        backdropOn = cfg.appBackdrop;
+        if (backdropOn) {
+            // 58 % of the screen's width at 16:9 in the top corner, lowered so the logo sits under the top bar's
+            // buttons, which keep the faded top edge behind them; the bottom edge fades out above the dock.
+            DisplayMetrics dm = getResources().getDisplayMetrics();
+            int w = Math.round(dm.widthPixels * 0.58f);
+            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) appBackdrop.getLayoutParams();
+            lp.width = w;
+            lp.height = w * 9 / 16;
+            lp.topMargin = Math.round(dm.heightPixels * 0.12f);
+            appBackdrop.setLayoutParams(lp);
+            appBackdrop.setVisibility(View.VISIBLE);
+            // One bitmap: apply its alpha while drawing instead of through an offscreen buffer.
+            appBackdrop.forceHasOverlappingRendering(false);
+        }
         // dock_title false: the name above the dock (and the cinematic lines under it) never shows; the glow
         // still follows the dock.
         if (!cfg.dockTitle) hero.setVisibility(View.GONE);
@@ -1060,6 +1086,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             ambient.setAlpha(0f);
             heroArt.animate().cancel();
             heroArt.setAlpha(0f);
+            appBackdrop.animate().cancel();
+            appBackdrop.setAlpha(0f);
         }
         if (rebuild) reloadTiles();
         if (animate && entrance && animations && !reducedMotion) {
@@ -1110,6 +1138,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // An updated app may bring new artwork; the backdrop is cheap to make again.
         heroArtCache.clear();
         heroArtKey = null;
+        backdropCache.clear();
+        backdropKey = null;
         // One LEANBACK query for both the tiles and the card checks.
         final List<ResolveInfo> leanback = getPackageManager().queryIntentActivities(
                 new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
@@ -1161,6 +1191,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hero.animate().cancel();
         ambient.animate().cancel();
         heroArt.animate().cancel();
+        appBackdrop.animate().cancel();
         handler.removeCallbacks(minuteTick);
         stopStats();
         if (diya != null) diya.stop();
@@ -1199,6 +1230,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.getRecycledViewPool().clear();
         heroArtCache.clear();
         heroArtKey = null;
+        backdropCache.clear();
+        backdropKey = null;
         wallpaperPlayer.releaseForMemoryPressure();
         tileRefresh.invalidate();
     }
@@ -1731,6 +1764,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         float y = dockTopInRoot - 14 * density - 26 * density - hero.getHeight();
         boolean changed = !label.contentEquals(heroName.getText());
         if (cinematic && heroArtAlpha > 0f) showHeroArt(position);
+        if (backdropOn) showBackdrop(position);
 
         if (!animations || reducedMotion) {
             // Snap the shelf instead of sliding and fading it: each of those frames repaints the
@@ -1874,6 +1908,74 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else heroArt.animate().alpha(heroArtAlpha).setDuration(reducedMotion ? Math.min(ms, Motion.REDUCED_MS) : ms).start();
     }
 
+    // ---- app backdrop (app_backdrop) -------------------------------------------------------------
+
+    /** Swaps the picture to this app's faded banner the way showHeroArt swaps the artwork; no banner leaves it empty. */
+    private void showBackdrop(int position) {
+        String key = adapter.keyAt(position);
+        if (key == null) return;
+        appBackdrop.animate().cancel();
+        if (key.equals(backdropKey)) {
+            fadeBackdrop(420);
+            return;
+        }
+        Bitmap art = backdropCache.get(key);
+        if (art == null && !backdropCache.containsKey(key)) {
+            art = fadedBanner(adapter.bannerAt(position));
+            backdropCache.put(key, art);
+        }
+        backdropKey = key;
+        final Bitmap next = art;
+        if (!animations || reducedMotion || appBackdrop.getAlpha() == 0f) {
+            appBackdrop.setImageBitmap(next);
+            fadeBackdrop(600);
+            return;
+        }
+        appBackdrop.animate().alpha(0f).setDuration(140).withEndAction(() -> {
+            appBackdrop.setImageBitmap(next);
+            appBackdrop.animate().alpha(1f).setDuration(420).start();
+        }).start();
+    }
+
+    private void fadeBackdrop(int ms) {
+        if (!animations) appBackdrop.setAlpha(1f);
+        else appBackdrop.animate().alpha(1f).setDuration(reducedMotion ? Math.min(ms, Motion.REDUCED_MS) : ms).start();
+    }
+
+    /**
+     * The banner filling the backdrop's shape (cropped, never stretched), no larger than its own pixels, with the
+     * edge towards the shelf's name, the top edge and the edge towards the dock faded out, so it melts into the glow.
+     */
+    private Bitmap fadedBanner(Drawable live) {
+        if (live == null) return null;
+        int iw = live.getIntrinsicWidth(), ih = live.getIntrinsicHeight();
+        if (iw <= 0 || ih <= 0) return null;
+        int w = Math.min(appBackdrop.getLayoutParams().width, Math.max(iw, 320));
+        int h = w * 9 / 16;
+        // Draw a private copy: changing the bounds of the drawable a tile shows would blank the tile.
+        Drawable d = live.getConstantState() != null ? live.getConstantState().newDrawable().mutate() : live;
+        Rect saved = new Rect(d.getBounds());
+        float scale = Math.max((float) w / iw, (float) h / ih);
+        int dw = Math.round(iw * scale), dh = Math.round(ih * scale);
+        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bmp);
+        d.setBounds((w - dw) / 2, (h - dh) / 2, (w + dw) / 2, (h + dh) / 2);
+        d.draw(canvas);
+        d.setBounds(saved);
+        boolean rtl = getResources().getBoolean(R.bool.rtl_menu_bar);
+        Paint mask = new Paint();
+        mask.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+        mask.setShader(new LinearGradient(rtl ? w : 0, 0, rtl ? 0 : w, 0,
+                new int[]{0x00000000, 0x4D000000, 0xD1000000, 0xFF000000}, new float[]{0f, 0.16f, 0.36f, 0.52f},
+                Shader.TileMode.CLAMP));
+        canvas.drawRect(0, 0, w, h, mask);
+        mask.setShader(new LinearGradient(0, 0, 0, h,
+                new int[]{0x00000000, 0xFF000000, 0xFF000000, 0x6B000000, 0x00000000}, new float[]{0f, 0.24f, 0.45f, 0.75f, 1f},
+                Shader.TileMode.CLAMP));
+        canvas.drawRect(0, 0, w, h, mask);
+        return bmp;
+    }
+
     /** "Last opened yesterday, 9:40 PM", the time in white; nothing (but the same height) when it was never seen. */
     private void updateHeroMeta(int position) {
         long when = LastOpened.get(this, adapter.packageAt(position));
@@ -1937,7 +2039,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bmp);
             Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            if (cinematic) {
+            if (cinematic || backdropOn) {
                 // Higher and stronger, from the corner away from the shelf's text: the app's colour floods
                 // the top of the screen over its artwork, and the scrim keeps the text side dark.
                 boolean rtl = getResources().getBoolean(R.bool.rtl_menu_bar);
@@ -2009,6 +2111,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hero.setAlpha(0f);
         heroArt.animate().cancel();
         heroArt.setAlpha(0f);
+        appBackdrop.animate().cancel();
+        appBackdrop.setAlpha(0f);
         heroShown = false;
         if (!ambientGlow) return;
         if (!animations || reducedMotion) {
@@ -2033,15 +2137,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hero.animate().cancel();
         ambient.animate().cancel();
         heroArt.animate().cancel();
+        appBackdrop.animate().cancel();
         heroShown = false;
         if (animations && !reducedMotion) {
             hero.animate().alpha(0f).setDuration(160).start();
             if (ambientGlow) ambient.animate().alpha(0f).setDuration(300).start();
             heroArt.animate().alpha(0f).setDuration(300).start();
+            appBackdrop.animate().alpha(0f).setDuration(300).start();
         } else {
             hero.setAlpha(0f);
             ambient.setAlpha(0f);
             heroArt.setAlpha(0f);
+            appBackdrop.setAlpha(0f);
         }
     }
 

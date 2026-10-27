@@ -32,6 +32,17 @@
         android:layout_height="match_parent"
         android:alpha="0" />
 
+    <!-- app_backdrop: the focused dock app's banner in the top left, mirrored, faded into the glow; sized in code. -->
+    <ImageView
+        android:id="@+id/appBackdrop"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_gravity="top|left"
+        android:scaleType="fitXY"
+        android:alpha="0"
+        android:visibility="gone"
+        android:importantForAccessibility="no" />
+
     <!-- Race-weekend panel (a theme's race_calendar, see RaceWeekend), mirrored: under the clock on the right. -->
     <LinearLayout
         android:id="@+id/racePanel"

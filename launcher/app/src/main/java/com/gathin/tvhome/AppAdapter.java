@@ -665,6 +665,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return e.banner != null ? e.banner : e.icon;
     }
 
+    /** The tile's own banner, or null for a tile drawn from its icon (app_backdrop shows banners only). */
+    Drawable bannerAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position).banner : null;
+    }
+
     float focusScale() {
         return !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
     }
