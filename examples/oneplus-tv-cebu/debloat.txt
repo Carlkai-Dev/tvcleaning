@@ -18,8 +18,8 @@
 # USB debugging alone opens port 5555, and it stays open across reboots until switched off.
 # Reboot-checked: nothing came back enabled. AdGuard Private DNS validates.
 #
-# Second unit: same model on Android TV 11 (API 30), firmware RTM8.240401.135, India, one day of use
-# (2026-10-25). The telemetry and content groups were applied, plus some extras and preloads by choice;
+# Second unit: same model on Android TV 11 (API 30), firmware RTM8.240401.135, India.
+# The telemetry and content groups were applied, plus some extras and preloads by choice;
 # Chromecast, Miracast, TV Mirror, OnePlus Connect and Bluetooth speaker mode were kept. After a reboot
 # the disabled list was unchanged.
 # - Not installed on this firmware: com.google.android.tv.bugreportsender, net.oneplus.odm(.provider),
@@ -37,8 +37,6 @@
 #   A2DP sink is in com.android.bluetooth. Keep it if a phone or laptop plays through the TV.
 # - The kernel reports a MemAvailable far above MemTotal (about 309 GB), so RAM readings that use it
 #   (launcher show_stats, addons/capacity-stats) show 0 MB used. Storage readings are right.
-# - The official YouTube app (5.30) shows "Speed: Not available on this device" in its player settings,
-#   before and after the debloat. That is the app's choice for this model, not something this list removed.
 # - Private DNS (Control D) validates.
 
 # Telemetry and diagnostics
@@ -48,8 +46,8 @@ com.heytap.mcs                               # HeyTap push messaging, with nearx
 com.heytap.tv.remotediagnosing               # HeyTap remote diagnosis
 net.oneplus.odm                              # OnePlus device manager (analytics)
 net.oneplus.odm.provider                     # its data provider
-# com.heytap.rom.service                     # Android 11 unit: ROM log collector and uploader (ZipLogService, UpLoadLogReceiver); one day, untested longer
-# com.heytap.tv.remotecontrolinspect         # Android 11 unit: remote-control diagnostics app; one day, untested longer
+com.heytap.rom.service                       # ROM log collector and uploader (ZipLogService, UpLoadLogReceiver); Android 11 firmware only
+com.heytap.tv.remotecontrolinspect           # Remote-control diagnostics app; Android 11 firmware only
 
 # OnePlus content, recommendation rows, auto-installs and preloaded extras
 com.oneplus.tv.launcher                      # OxygenPlay content page
@@ -60,7 +58,7 @@ com.coloros.relax.tv                         # "Relax" ambient sounds app, with 
 com.heytap.tv.imagewall                      # Image wall
 com.oneplus.tv.userguide                     # Built-in user guide
 com.heytap.tv.assistant.oneplus              # OnePlus TV Manager (cleaner, bandwidth alerts)
-# com.oneplus.tv.screensaver                 # Android 11 unit: OnePlus screensaver, not the active one there; one day, untested longer
+com.oneplus.tv.screensaver                   # OnePlus screensaver (the system screensaver stays Google's Ambient mode); Android 11 firmware only
 
 # Casting, mirroring and OnePlus extras (off by choice)
 com.google.android.apps.mediashell           # Chromecast built-in
